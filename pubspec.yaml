@@ -58,6 +58,7 @@ dependencies:
   disk_space_plus: ^0.2.6
   nip77: ^1.0.1
   flutter_svg: ^2.2.4
+  tostore: ^3.1.0
 
 dev_dependencies:
   flutter_test:
