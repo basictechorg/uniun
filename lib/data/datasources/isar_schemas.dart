@@ -18,7 +18,6 @@ import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
-import 'package:uniun/data/models/subscription_record_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
@@ -38,7 +37,6 @@ final List<CollectionSchema> isarSchemas = [
   RelayModelSchema,
   ChannelModelSchema,
   ChannelMessageModelSchema,
-  SubscriptionRecordModelSchema,
   EncryptedDmModelSchema,
   MissingProfilePubkeyModelSchema,
 ];

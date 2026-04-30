@@ -349,6 +349,7 @@ lib/gateway/
   - `EventQueueModel` watcher → new queue rows trigger immediate send on all write `WebSocketService`s.
   - `RelayModel` watcher → syncs `_services` map when relays are added/removed at runtime.
   - `FollowedNoteModel` watcher → refreshes `#e` REQ subscriptions.
+  - `ChannelModel` watcher → re-runs channel NIP-28 sync (kinds 41, 42 + kind 40 fetch) when the user joins or leaves a channel.
   - `_dequeueTimer` (5 min) → purges queue entries older than 30 minutes.
 
 **`WebSocketService` (one per relay):**
@@ -365,7 +366,7 @@ lib/gateway/
 // Followed note references — refreshed when FollowedNoteModel changes
 {"kinds": [1], "#e": ["followedNoteId1", "followedNoteId2", ...]}
 
-// Channel messages (per SubscriptionRecordEntity)
+// Channel messages — one row per joined channel in ChannelModel drives #e filter
 {"kinds": [41, 42], "#e": ["channelId"], "limit": 100}
 
 // DMs (future — gift wraps addressed to this user)

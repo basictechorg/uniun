@@ -6,10 +6,8 @@ import 'package:nostr/nostr.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
-import 'package:uniun/domain/entities/subscription_record/subscription_record_entity.dart';
 import 'package:uniun/domain/repositories/channel_repository.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
-import 'package:uniun/domain/repositories/subscription_record_repository.dart';
 
 class CreateChannelInput {
   final String name;
@@ -27,19 +25,17 @@ class CreateChannelInput {
   });
 }
 
-/// Creates a NIP-28 channel locally, enqueues kind **40** for relay publish,
-/// and persists an active [SubscriptionRecordEntity] for that channel id.
+/// Creates a NIP-28 channel locally and enqueues kind **40** for relay publish.
+/// [ChannelModel] presence implies the user is subscribed to that channel.
 @lazySingleton
 class CreateChannelUseCase
     extends UseCase<Either<Failure, ChannelEntity>, CreateChannelInput> {
   final ChannelRepository _channelRepository;
   final EventQueueRepository _eventQueueRepository;
-  final SubscriptionRecordRepository _subscriptionRecordRepository;
 
   const CreateChannelUseCase(
     this._channelRepository,
     this._eventQueueRepository,
-    this._subscriptionRecordRepository,
   );
 
   @override
@@ -99,29 +95,6 @@ class CreateChannelUseCase
           enqueueResult.fold(
             (f) => f,
             (_) => const Failure.errorFailure('enqueue failed'),
-          ),
-        );
-      }
-
-      final subRecord = SubscriptionRecordEntity(
-        channelId: channelId,
-        kinds: const [41, 42, 43, 44],
-        eTags: [channelId],
-        authors: null,
-        limit: null,
-        lastUntilByRelay: const {},
-        createdAt: nowUnix,
-        updatedAt: nowUnix,
-        enabled: true,
-      );
-      final subResult = await _subscriptionRecordRepository.saveRecord(
-        subRecord,
-      );
-      if (subResult.isLeft()) {
-        return Left(
-          subResult.fold(
-            (f) => f,
-            (_) => const Failure.errorFailure('subscription save failed'),
           ),
         );
       }

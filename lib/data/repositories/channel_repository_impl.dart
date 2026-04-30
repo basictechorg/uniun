@@ -13,7 +13,9 @@ class ChannelRepositoryImpl extends ChannelRepository {
   ChannelRepositoryImpl({required this.isar});
 
   @override
-  Future<Either<Failure, ChannelEntity>> saveChannel(ChannelEntity channel) async {
+  Future<Either<Failure, ChannelEntity>> saveChannel(
+    ChannelEntity channel,
+  ) async {
     try {
       final existing = await isar.channelModels
           .where()
@@ -30,9 +32,6 @@ class ChannelRepositoryImpl extends ChannelRepository {
       model.createdAt = channel.createdAt;
       model.updatedAt = channel.updatedAt;
       model.lastMetaEvent = channel.lastMetaEvent;
-      model.lastReadEventId = channel.lastReadEventId;
-      model.lastReadAt = channel.lastReadAt;
-
       await isar.writeTxn(() async {
         await isar.channelModels.put(model);
       });
@@ -94,7 +93,9 @@ class ChannelRepositoryImpl extends ChannelRepository {
   }
 
   @override
-  Future<Either<Failure, ChannelEntity>> getChannelById(String channelId) async {
+  Future<Either<Failure, ChannelEntity>> getChannelById(
+    String channelId,
+  ) async {
     try {
       final channel = await isar.channelModels
           .where()
@@ -106,30 +107,6 @@ class ChannelRepositoryImpl extends ChannelRepository {
         );
       }
       return Right(channel.toDomain());
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Unit>> updateLastRead(
-    String channelId,
-    String lastReadEventId,
-    int lastReadAt,
-  ) async {
-    try {
-      await isar.writeTxn(() async {
-        final channel = await isar.channelModels
-            .where()
-            .channelIdEqualTo(channelId)
-            .findFirst();
-        if (channel == null) return;
-        channel.lastReadEventId = lastReadEventId;
-        channel.lastReadAt = lastReadAt;
-        await isar.channelModels.put(channel);
-      });
-
-      return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

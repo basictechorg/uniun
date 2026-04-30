@@ -2,7 +2,6 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:isolate';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/gateway/central_relay_manager.dart';
@@ -32,7 +31,10 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
     );
 
     final manager = CentralRelayManager(isar: isar);
-    final nip17Service = Nip17EncryptionService(isar, privkeyHex: init.privkeyHex);
+    final nip17Service = Nip17EncryptionService(
+      isar,
+      privkeyHex: init.privkeyHex,
+    );
 
     await manager.start();
     nip17Service.start();

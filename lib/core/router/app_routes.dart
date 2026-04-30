@@ -12,6 +12,7 @@ abstract class AppRoutes {
   static const thread = '/thread';
   static const aiModelSelection = '/ai-model-selection';
   static const createChannel = '/create-channel';
+  static const joinChannel = '/join-channel';
   static const savedNotes = '/saved-notes';
   static const channelDetail = '/channel-detail';
   static const graph = '/graph';

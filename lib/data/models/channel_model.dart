@@ -34,10 +34,6 @@ class ChannelModel {
 
   /// Event id of the last accepted kind 41.
   String? lastMetaEvent;
-
-  /// Unread tracking checkpoint for channel messages.
-  String? lastReadEventId;
-  int? lastReadAt;
 }
 
 extension ChannelModelExtension on ChannelModel {
@@ -51,7 +47,5 @@ extension ChannelModelExtension on ChannelModel {
         createdAt: createdAt,
         updatedAt: updatedAt,
         lastMetaEvent: lastMetaEvent,
-        lastReadEventId: lastReadEventId,
-        lastReadAt: lastReadAt,
       );
 }

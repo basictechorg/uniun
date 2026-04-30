@@ -14,7 +14,5 @@ abstract class ChannelEntity with _$ChannelEntity {
     required int createdAt,
     required int updatedAt,
     String? lastMetaEvent,
-    String? lastReadEventId,
-    int? lastReadAt,
   }) = _ChannelEntity;
 }

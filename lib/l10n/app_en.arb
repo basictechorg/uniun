@@ -34,6 +34,12 @@
   "actionSave": "Save",
   "@actionSave": { "description": "Save / bookmark action" },
 
+  "actionCancel": "Cancel",
+  "@actionCancel": { "description": "Cancel button" },
+
+  "actionDone": "Done",
+  "@actionDone": { "description": "Done button" },
+
   "actionSaved": "Saved",
   "@actionSaved": { "description": "State when note is bookmarked" },
 
@@ -73,8 +79,70 @@
   "drawerNoChannels": "No channels yet",
   "@drawerNoChannels": { "description": "Empty state for channels in drawer" },
 
+  "joinChannelTitle": "Join Channel",
+  "@joinChannelTitle": { "description": "App bar title for the join channel page" },
+
+  "joinChannelHeading": "Join Existing Channel",
+  "@joinChannelHeading": { "description": "Heading on the join channel page" },
+
+  "joinChannelAction": "Join Channel",
+  "@joinChannelAction": { "description": "Primary join channel button label" },
+
+  "joinChannelIdLabel": "Channel ID (Hex)",
+  "@joinChannelIdLabel": { "description": "Field label for channel id input" },
+
+  "joinChannelRelaysTitle": "Channel Relays",
+  "@joinChannelRelaysTitle": { "description": "Section title for relay selection on join channel page" },
+
+  "joinChannelRelaysBody": "Select the relays this channel operates on to start syncing.",
+  "@joinChannelRelaysBody": { "description": "Helper text under the relay selector on join channel page" },
+
+  "joinChannelSelectRelays": "Select Relays",
+  "@joinChannelSelectRelays": { "description": "Placeholder / dialog title for relay selection" },
+
+  "joinChannelSelectedRelays": "{count} Relays Selected",
+  "@joinChannelSelectedRelays": {
+    "description": "Label showing how many relays are selected on join channel page",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "joinChannelAddRelay": "Add Relay",
+  "@joinChannelAddRelay": { "description": "Title and tooltip for adding a relay from the join channel flow" },
+
+  "joinChannelAddRelayAction": "Add",
+  "@joinChannelAddRelayAction": { "description": "Confirm button for adding a relay" },
+
+  "joinChannelRelayHint": "wss://relay.example.com",
+  "@joinChannelRelayHint": { "description": "Hint text when adding a relay URL" },
+
+  "joinChannelByQr": "Join by QR",
+  "@joinChannelByQr": { "description": "Secondary CTA to scan a QR code and join a channel" },
+
+  "joinChannelQrTitle": "Scan Channel QR",
+  "@joinChannelQrTitle": { "description": "App bar title for the QR scanner page" },
+
+  "joinChannelQrHint": "Scan a QR code containing a channel id and relay list.",
+  "@joinChannelQrHint": { "description": "Hint text on the join channel QR scanner page" },
+
+  "joinChannelQrFromGallery": "Pick QR from gallery",
+  "@joinChannelQrFromGallery": { "description": "Tooltip for choosing a QR image from the gallery on the join channel scanner page" },
+
+  "joinChannelQrGalleryError": "No valid QR code found in the selected image.",
+  "@joinChannelQrGalleryError": { "description": "Snackbar shown when the chosen gallery image does not contain a decodable QR code" },
+
+  "joinChannelSuccess": "Channel joined successfully.",
+  "@joinChannelSuccess": { "description": "Snackbar after successfully joining a channel" },
+
   "channelMessageHint": "Message channel…",
   "@channelMessageHint": { "description": "Placeholder text in the channel message composer input" },
+
+  "channelShareQrTitle": "Share Channel QR",
+  "@channelShareQrTitle": { "description": "Title for the share-channel QR bottom sheet and tooltip" },
+
+  "channelShareQrBody": "Let someone scan this QR to join the channel with the right relays.",
+  "@channelShareQrBody": { "description": "Helper text under the share-channel QR title" },
 
   "drawerNoMessages": "No messages yet",
   "@drawerNoMessages": { "description": "Empty state for DMs in drawer" },

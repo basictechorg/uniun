@@ -60,7 +60,7 @@ UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented o
 - Kind 41 = metadata update (creator only).
 - Kind 42 messages tag `["e", channelId, relayUrl, "root"]` per spec.
 - `CentralRelayManager` routes Kind 40–44 events to channel-specific relays stored in `ChannelModel.relays`.
-- `SubscriptionRecordEntity` tracks channel subscriptions (kinds 41, 42, 43, 44, `#e` = channelId).
+- Each joined channel is a `ChannelModel` row in Isar; the Gateway builds REQ filters from all channel ids (presence = subscribed).
 - No private channels in MVP — NIP-28 is public-only.
 
 **Relay subscriptions for channels:**

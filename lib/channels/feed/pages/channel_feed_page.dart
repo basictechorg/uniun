@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/channels/feed/bloc/channel_feed_state.dart';
@@ -10,6 +13,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/vishnu/widgets/note_card.dart';
 
 class ChannelFeedPage extends StatelessWidget {
@@ -21,11 +25,10 @@ class ChannelFeedPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => ChannelFeedBloc()..add(LoadChannelFeedEvent(channelId)),
+          create: (_) =>
+              ChannelFeedBloc()..add(LoadChannelFeedEvent(channelId)),
         ),
-        BlocProvider(
-          create: (_) => getIt<FollowedNotesCubit>()..load(),
-        ),
+        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
       ],
       child: _ChannelFeedView(channelId: channelId),
     );
@@ -111,20 +114,93 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     });
   }
 
+  void _showChannelQrSheet(BuildContext context, ChannelFeedState state) {
+    final l10n = AppLocalizations.of(context)!;
+    final channel = state.channel;
+    if (channel == null) return;
+
+    final payload = jsonEncode({
+      'name': channel.name,
+      'channel_id': channel.channelId,
+      'relays': channel.relays,
+    });
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.channelShareQrTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.channelShareQrBody,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: QrImageView(
+                    data: payload,
+                    version: QrVersions.auto,
+                    size: 240,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '#${channel.name}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocConsumer<ChannelFeedBloc, ChannelFeedState>(
-      listenWhen: (prev, curr) =>
-          prev.messages.length != curr.messages.length,
+      listenWhen: (prev, curr) => prev.messages.length != curr.messages.length,
       listener: (context, state) {
-        if (!_didScrollToBottom &&
-            state.status == ChannelFeedStatus.loaded) {
+        if (!_didScrollToBottom && state.status == ChannelFeedStatus.loaded) {
           _didScrollToBottom = true;
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => _scrollToBottom());
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _scrollToBottom(),
+          );
         } else if (state.messages.isNotEmpty) {
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => _scrollToBottom());
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _scrollToBottom(),
+          );
         }
       },
       builder: (context, state) {
@@ -137,8 +213,11 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
             elevation: 0,
             surfaceTintColor: Colors.transparent,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 20, color: AppColors.primary),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             title: Column(
@@ -164,12 +243,21 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
                   ),
               ],
             ),
+            actions: [
+              if (state.channel != null)
+                IconButton(
+                  onPressed: () => _showChannelQrSheet(context, state),
+                  icon: const Icon(
+                    Icons.qr_code_rounded,
+                    color: AppColors.primary,
+                  ),
+                  tooltip: l10n.channelShareQrTitle,
+                ),
+            ],
           ),
           body: Column(
             children: [
-              Expanded(
-                child: _buildMessageList(context, state, channelName),
-              ),
+              Expanded(child: _buildMessageList(context, state, channelName)),
               ChannelMessageComposer(
                 channelId: widget.channelId,
                 avatarUrl: _userAvatarUrl,
@@ -183,7 +271,10 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   }
 
   Widget _buildMessageList(
-      BuildContext context, ChannelFeedState state, String channelName) {
+    BuildContext context,
+    ChannelFeedState state,
+    String channelName,
+  ) {
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -210,8 +301,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
 
     return BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
       builder: (ctx, followedState) {
-        final followedIds =
-            followedState.notes.map((n) => n.eventId).toSet();
+        final followedIds = followedState.notes.map((n) => n.eventId).toSet();
         final bloc = ctx.read<ChannelFeedBloc>();
 
         return ListView.builder(

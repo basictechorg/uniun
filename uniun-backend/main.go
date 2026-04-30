@@ -28,6 +28,7 @@ func main() {
 	InitGlobalLogger()
 
 	relay = khatru.NewRelay()
+	relay.Negentropy = true
 
 	relay.Info.Name = config.RelayName
 	relay.Info.Description = config.RelayDescription

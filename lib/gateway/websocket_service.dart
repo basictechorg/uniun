@@ -12,7 +12,10 @@ import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/channel_message_model.dart';
+import 'package:uniun/data/models/channel_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:nip77/nip77.dart';
 
 /// Manages a single WebSocket connection to one Nostr relay.
 ///
@@ -24,14 +27,12 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 ///  - Receive incoming Nostr events and write them directly to [NoteModel].
 ///  - Update [RelayModel.status] on every connection state change.
 class WebSocketService {
-  /// NIP-01 [REQ] subscription id for kind-1 notes from this relay.
-  static const _kind1FeedSubscriptionId = 'feed_notes';
-
   /// NIP-01 [REQ] id for followed-note thread refs (`#e` = followed root ids).
   static const _followedNoteRefsSubscriptionId = 'followed_note_refs';
 
   static const _dmSubscriptionId = 'dms';
   static const _kind0SubscriptionId = 'profiles';
+  static const _channelSubscriptionId = 'channels';
 
   final String url;
   final bool read;
@@ -56,10 +57,6 @@ class WebSocketService {
 
   /// EventQueueModel.id of the event currently in-flight.
   int? _pendingQueueId;
-
-  /// Dedupes [`FollowedNoteModel`] bumps when the same kind-1 `EVENT` is
-  /// delivered twice (e.g. matches both `feed_notes` and `followed_note_refs`).
-  final Set<String> _processedFollowReferenceBumps = {};
 
   final String? activePubkey;
 
@@ -102,11 +99,8 @@ class WebSocketService {
             _isConnected = true;
             _reconnectAttempt = 0;
             _updateStatus(RelayStatus.connected);
-            _subscribeKind1Feed();
-            _subscribeDms();
             _ensureMissingPubkeysWatcher();
-            unawaited(_subscribeKind0Profiles());
-            unawaited(_subscribeFollowedNoteRefs());
+            unawaited(_performInitialSyncs());
             _processSendQueue();
           })
           .catchError((_) {
@@ -118,31 +112,182 @@ class WebSocketService {
   }
 
   /// Sends [REQ] for kind1 notes (NIP-01). Live matching [EVENT]s follow until [CLOSE].
-  void _subscribeKind1Feed() {
+  Future<void> _performInitialSyncs() async {
     if (!read || _disposed || _socket == null) return;
-    _socket!.sink.add(
-      jsonEncode([
-        'REQ',
-        _kind1FeedSubscriptionId,
+
+    final client = Nip77Client(relayUrl: url);
+    bool nip77Connected = false;
+    try {
+      print("NIP-77: Connecting to $url for initial syncs...");
+      await client.connect();
+      nip77Connected = true;
+      print("NIP-77: Connected successfully to $url");
+    } catch (e) {
+      print("NIP-77: Connect failed for $url: $e");
+    }
+
+    // 2. DMs
+    if (activePubkey != null) {
+      await _syncOrFallback(client, nip77Connected, _dmSubscriptionId, {
+        'kinds': [1059],
+        '#p': [activePubkey],
+      });
+    }
+
+    // 3. Profiles
+    final missing = await _isar.missingProfilePubkeyModels.where().findAll();
+    if (missing.isNotEmpty) {
+      await _syncOrFallback(client, nip77Connected, _kind0SubscriptionId, {
+        'kinds': [0],
+        'authors': missing.map((m) => m.pubkey).toList(),
+      });
+    }
+
+    // 4. Followed Notes
+    final followed = await _isar.followedNoteModels.where().findAll();
+    if (followed.isNotEmpty) {
+      final eRefs = followed.map((f) => f.eventId).toList();
+      await _syncOrFallback(
+        client,
+        nip77Connected,
+        _followedNoteRefsSubscriptionId,
         {
           'kinds': [1],
+          '#e': eRefs,
         },
-      ]),
-    );
+      );
+    }
+
+    // 5. Channels — [ChannelModel] presence means subscribed locally
+    final channels = await _isar.channelModels.where().findAll();
+    if (channels.isNotEmpty) {
+      final channelIds = channels.map((c) => c.channelId).toList();
+
+      // Sync 41 and 42 via NIP-77 (#e references channelId)
+      await _syncOrFallback(client, nip77Connected, _channelSubscriptionId, {
+        'kinds': [41, 42],
+        '#e': channelIds,
+      });
+
+      // Fetch 40 directly since channelId == eventId for kind 40 (no #e tag needed)
+      _socket!.sink.add(
+        jsonEncode([
+          'REQ',
+          '${_channelSubscriptionId}_info',
+          {
+            'kinds': [40],
+            'ids': channelIds,
+          },
+        ]),
+      );
+    }
+
+    if (nip77Connected) {
+      await client.disconnect();
+    }
   }
 
-  void _subscribeDms() {
-    if (!read || _disposed || _socket == null || activePubkey == null) return;
-    _socket!.sink.add(
-      jsonEncode([
-        'REQ',
-        _dmSubscriptionId,
-        {
-          'kinds': [1059],
-          '#p': [activePubkey],
-        },
-      ]),
-    );
+  Future<void> _syncOrFallback(
+    Nip77Client client,
+    bool nip77Connected,
+    String subId,
+    Map<String, dynamic> filter,
+  ) async {
+    if (!read || _disposed || _socket == null || !_isConnected) return;
+
+    bool useFallback = !nip77Connected;
+
+    if (nip77Connected) {
+      try {
+        print("NIP-77: --- Syncing subscription: $subId ---");
+        print("NIP-77: Filter: $filter");
+        final myEvents = await _getLocalEventIdsForFilter(filter);
+        print("NIP-77: Found ${myEvents.length} local events for $subId");
+
+        final syncResult = await client.syncEvents(
+          myEvents: myEvents,
+          filter: filter,
+        );
+
+        print(
+          "NIP-77: Sync complete for $subId. Need: ${syncResult.needIds.length}, Have (un-uploaded): ${syncResult.haveIds.length}",
+        );
+
+        if (syncResult.needIds.isNotEmpty) {
+          final reqJson = jsonEncode([
+            'REQ',
+            '${subId}_missing',
+            {'ids': syncResult.needIds},
+          ]);
+          print("NIP-77: Sending REQ for missing events: $reqJson");
+          _socket!.sink.add(reqJson);
+        }
+      } catch (e) {
+        print("NIP-77: Sync failed for $subId: $e");
+        useFallback = true;
+      }
+    }
+
+    if (_disposed || _socket == null || !_isConnected) return;
+
+    if (useFallback) {
+      final fallbackReq = jsonEncode(['REQ', subId, filter]);
+      print("NIP-77: Fallback standard REQ for $subId: $fallbackReq");
+      _socket!.sink.add(fallbackReq);
+    } else {
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final liveFilter = Map<String, dynamic>.from(filter);
+      liveFilter['since'] = nowSec;
+      final liveReq = jsonEncode(['REQ', subId, liveFilter]);
+      print("NIP-77: Live streaming REQ for $subId: $liveReq");
+      _socket!.sink.add(liveReq);
+    }
+  }
+
+  Future<Map<String, int>> _getLocalEventIdsForFilter(
+    Map<String, dynamic> filter,
+  ) async {
+    final Map<String, int> myEvents = {};
+    final kindsList = filter['kinds'] as List<dynamic>?;
+    if (kindsList == null || kindsList.isEmpty) return myEvents;
+
+    for (final kind in kindsList) {
+      if (kind == 1) {
+        final ids = await _isar.noteModels.where().eventIdProperty().findAll();
+        for (final id in ids) {
+          myEvents[id] = 0;
+        }
+      } else if (kind == 1059) {
+        final ids = await _isar.encryptedDmModels
+            .where()
+            .eventIdProperty()
+            .findAll();
+        for (final id in ids) {
+          myEvents[id] = 0;
+        }
+      } else if (kind == 41) {
+        // We track the last meta event in ChannelModel, but since NIP-77 expects all event IDs
+        // for range reconciliation, we will only add the one we have tracked.
+        // It might result in fetching older 41s we missed, which is fine.
+        final channels = await _isar.channelModels.where().findAll();
+        for (final ch in channels) {
+          if (ch.lastMetaEvent != null) {
+            myEvents[ch.lastMetaEvent!] = 0;
+          }
+        }
+      } else if (kind == 42) {
+        final ids = await _isar.channelMessageModels
+            .where()
+            .eventIdProperty()
+            .findAll();
+        for (final id in ids) {
+          myEvents[id] = 0;
+        }
+      } else if (kind == 0) {
+        // Rarely have local missing profiles stored, but if we do, skip passing eventId since ProfileModel doesn't store eventId.
+      }
+    }
+    return myEvents;
   }
 
   Future<void> _subscribeKind0Profiles() async {
@@ -187,16 +332,26 @@ class WebSocketService {
     if (followed.isEmpty) return;
 
     final eRefs = followed.map((f) => f.eventId).toList();
-    _socket!.sink.add(
-      jsonEncode([
-        'REQ',
-        _followedNoteRefsSubscriptionId,
-        {
-          'kinds': [1],
-          '#e': eRefs,
-        },
-      ]),
+    final filter = {
+      'kinds': [1],
+      '#e': eRefs,
+    };
+
+    final client = Nip77Client(relayUrl: url);
+    bool connected = false;
+    try {
+      await client.connect();
+      connected = true;
+    } catch (_) {}
+
+    await _syncOrFallback(
+      client,
+      connected,
+      _followedNoteRefsSubscriptionId,
+      filter,
     );
+
+    if (connected) await client.disconnect();
   }
 
   void disconnect() {
@@ -230,6 +385,48 @@ class WebSocketService {
 
   /// Called by [CentralRelayManager] when [FollowedNoteModel] rows change.
   void onFollowedNotesChanged() => unawaited(_subscribeFollowedNoteRefs());
+
+  /// Called by [CentralRelayManager] when [ChannelModel] rows change.
+  void onChannelSubscriptionsChanged() => unawaited(_resubscribeChannels());
+
+  Future<void> _resubscribeChannels() async {
+    if (!read || _disposed || _socket == null || !_isConnected) return;
+
+    _socket!.sink.add(jsonEncode(['CLOSE', _channelSubscriptionId]));
+    _socket!.sink.add(jsonEncode(['CLOSE', '${_channelSubscriptionId}_info']));
+
+    final channelRows = await _isar.channelModels.where().findAll();
+    if (channelRows.isEmpty) return;
+
+    final channelIds = channelRows.map((c) => c.channelId).toList();
+
+    final client = Nip77Client(relayUrl: url);
+    bool connected = false;
+    try {
+      await client.connect();
+      connected = true;
+    } catch (_) {}
+
+    await _syncOrFallback(client, connected, _channelSubscriptionId, {
+      'kinds': [41, 42],
+      '#e': channelIds,
+    });
+
+    if (connected) {
+      await client.disconnect();
+    }
+
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        '${_channelSubscriptionId}_info',
+        {
+          'kinds': [40],
+          'ids': channelIds,
+        },
+      ]),
+    );
+  }
 
   Future<void> _processSendQueue() async {
     // Guard: only send if this relay is a write relay, connected, and idle.
@@ -284,6 +481,12 @@ class WebSocketService {
             unawaited(_storeIncomingKind0Profile(eventMap));
           } else if (kind == 1059) {
             unawaited(_storeEncryptedDm(eventMap));
+          } else if (kind == 40) {
+            unawaited(_handleKind40(eventMap));
+          } else if (kind == 41) {
+            unawaited(_handleKind41(eventMap));
+          } else if (kind == 42) {
+            unawaited(_handleKind42(eventMap));
           }
         }
         break;
@@ -337,7 +540,7 @@ class WebSocketService {
   /// Only handles Kind 1 (short text notes) in v1.
   Future<void> _storeIncomingEvent(Map<String, dynamic> event) async {
     final kind = event['kind'] as int?;
-    if (kind != 1) return; // Kind 0, 42, Blossom → future
+    if (kind != 1) return;
 
     final eventId = event['id'] as String?;
     if (eventId == null) return;
@@ -403,7 +606,9 @@ class WebSocketService {
       pTagRef: pTagRef,
       content: event['content'] as String? ?? '',
       kind: event['kind'] as int? ?? 1059,
-      created: DateTime.fromMillisecondsSinceEpoch((event['created_at'] as int? ?? 0) * 1000),
+      created: DateTime.fromMillisecondsSinceEpoch(
+        (event['created_at'] as int? ?? 0) * 1000,
+      ),
     );
 
     try {
@@ -421,6 +626,168 @@ class WebSocketService {
     }
   }
 
+  Future<void> _handleKind40(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    final pubkey = event['pubkey'] as String?;
+    final createdAt = event['created_at'] as int?;
+    if (eventId == null || pubkey == null || createdAt == null) return;
+
+    final contentStr = event['content'] as String? ?? '{}';
+    Map<String, dynamic> metadata;
+    try {
+      metadata = jsonDecode(contentStr) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    await _isar.writeTxn(() async {
+      final channel = await _isar.channelModels
+          .where()
+          .channelIdEqualTo(eventId)
+          .findFirst();
+      if (channel == null) return; // Only update existing channels
+
+      channel.creatorPubKey = pubkey;
+      channel.createdAt = createdAt;
+      channel.name = metadata['name'] as String? ?? channel.name;
+      channel.about = metadata['about'] as String? ?? channel.about;
+      channel.picture = metadata['picture'] as String? ?? channel.picture;
+
+      final relays = metadata['relays'];
+      if (relays is List) {
+        channel.relays = relays.map((e) => e.toString()).toList();
+      }
+
+      await _isar.channelModels.put(channel);
+    });
+  }
+
+  Future<void> _handleKind41(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    final pubkey = event['pubkey'] as String?;
+    final createdAt = event['created_at'] as int?;
+    if (eventId == null || pubkey == null || createdAt == null) return;
+
+    final tags = event['tags'] as List<dynamic>? ?? [];
+    String? channelId;
+    for (final tag in tags) {
+      if (tag is List && tag.isNotEmpty && tag[0] == 'e') {
+        channelId = tag[1] as String?;
+        break; // first e tag should be the channel id
+      }
+    }
+    if (channelId == null) return;
+
+    final contentStr = event['content'] as String? ?? '{}';
+    Map<String, dynamic> metadata;
+    try {
+      metadata = jsonDecode(contentStr) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    await _isar.writeTxn(() async {
+      final channel = await _isar.channelModels
+          .where()
+          .channelIdEqualTo(channelId!)
+          .findFirst();
+      if (channel == null) return; // Ignore if we don't know the channel
+
+      // Only accept metadata updates from the original creator
+      if (channel.creatorPubKey != pubkey) return;
+
+      // Only accept if it's newer than the last known update
+      if (createdAt <= channel.updatedAt) return;
+
+      channel.name = metadata['name'] as String? ?? channel.name;
+      channel.about = metadata['about'] as String? ?? channel.about;
+      channel.picture = metadata['picture'] as String? ?? channel.picture;
+
+      final relays = metadata['relays'];
+      if (relays is List) {
+        channel.relays = relays.map((e) => e.toString()).toList();
+      }
+
+      channel.updatedAt = createdAt;
+      channel.lastMetaEvent = eventId;
+
+      await _isar.channelModels.put(channel);
+    });
+  }
+
+  Future<void> _handleKind42(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    final pubkey = event['pubkey'] as String?;
+    final sig = event['sig'] as String?;
+    final content = event['content'] as String?;
+    final createdAtInt = event['created_at'] as int?;
+
+    if (eventId == null ||
+        pubkey == null ||
+        sig == null ||
+        content == null ||
+        createdAtInt == null)
+      return;
+
+    final created = DateTime.fromMillisecondsSinceEpoch(createdAtInt * 1000);
+
+    final tags = event['tags'] as List<dynamic>? ?? [];
+    String? channelId;
+    String? rootEventId;
+    String? replyEventId;
+    final List<String> eTagRefs = [];
+
+    for (final tag in tags) {
+      if (tag is List && tag.isNotEmpty && tag[0] == 'e') {
+        final eRef = tag[1] as String?;
+        if (eRef != null) {
+          eTagRefs.add(eRef);
+          final marker = tag.length > 3 ? tag[3] as String? : null;
+          if (marker == 'root') {
+            channelId = eRef;
+          } else if (marker == 'reply') {
+            replyEventId = eRef;
+          }
+        }
+      }
+    }
+
+    // Fallback if markers are not properly set (NIP-10 legacy)
+    if (channelId == null && eTagRefs.isNotEmpty) {
+      channelId = eTagRefs.first;
+    }
+    if (replyEventId == null && eTagRefs.length > 1) {
+      replyEventId = eTagRefs.last;
+    }
+
+    if (channelId == null) return;
+
+    final model = ChannelMessageModel()
+      ..eventId = eventId
+      ..channelId = channelId
+      ..sig = sig
+      ..authorPubkey = pubkey
+      ..content = content
+      ..eTagRefs = eTagRefs
+      ..pTagRefs = []
+      ..rootEventId = channelId
+      ..replyToEventId = replyEventId
+      ..created = created;
+
+    try {
+      await _isar.writeTxn(() async {
+        final existing = await _isar.channelMessageModels
+            .where()
+            .eventIdEqualTo(eventId)
+            .findFirst();
+        if (existing != null) return;
+        await _isar.channelMessageModels.put(model);
+      });
+    } catch (_) {
+      return;
+    }
+  }
+
   Future<void> _storeIncomingKind0Profile(Map<String, dynamic> event) async {
     final pubkey = event['pubkey'] as String?;
     final createdAtSec = event['created_at'] as int?;
@@ -428,19 +795,23 @@ class WebSocketService {
 
     Map<String, dynamic> metadata;
     try {
-      metadata = jsonDecode(event['content'] as String? ?? '') as Map<String, dynamic>;
+      metadata =
+          jsonDecode(event['content'] as String? ?? '') as Map<String, dynamic>;
     } catch (_) {
       return;
     }
 
-    final incomingUpdatedAt = DateTime.fromMillisecondsSinceEpoch(createdAtSec * 1000);
+    final incomingUpdatedAt = DateTime.fromMillisecondsSinceEpoch(
+      createdAtSec * 1000,
+    );
     try {
       await _isar.writeTxn(() async {
         final existing = await _isar.profileModels
             .where()
             .pubkeyEqualTo(pubkey)
             .findFirst();
-        if (existing != null && incomingUpdatedAt.isBefore(existing.updatedAt)) {
+        if (existing != null &&
+            incomingUpdatedAt.isBefore(existing.updatedAt)) {
           return;
         }
 
@@ -522,9 +893,6 @@ class WebSocketService {
     for (final ref in eRefs) {
       if (!followedRoots.contains(ref)) continue;
       if (ref == incomingId) continue;
-      final dedupeKey = '$ref|$incomingId';
-      if (_processedFollowReferenceBumps.contains(dedupeKey)) continue;
-      _processedFollowReferenceBumps.add(dedupeKey);
       refsToIncrement.add(ref);
     }
     if (refsToIncrement.isEmpty) return;

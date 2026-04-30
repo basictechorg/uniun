@@ -42,6 +42,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionSave => 'Save';
 
   @override
+  String get actionCancel => 'Cancel';
+
+  @override
+  String get actionDone => 'Done';
+
+  @override
   String get actionSaved => 'Saved';
 
   @override
@@ -81,7 +87,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerNoChannels => 'No channels yet';
 
   @override
+  String get joinChannelTitle => 'Join Channel';
+
+  @override
+  String get joinChannelHeading => 'Join Existing Channel';
+
+  @override
+  String get joinChannelAction => 'Join Channel';
+
+  @override
+  String get joinChannelIdLabel => 'Channel ID (Hex)';
+
+  @override
+  String get joinChannelRelaysTitle => 'Channel Relays';
+
+  @override
+  String get joinChannelRelaysBody =>
+      'Select the relays this channel operates on to start syncing.';
+
+  @override
+  String get joinChannelSelectRelays => 'Select Relays';
+
+  @override
+  String joinChannelSelectedRelays(int count) {
+    return '$count Relays Selected';
+  }
+
+  @override
+  String get joinChannelAddRelay => 'Add Relay';
+
+  @override
+  String get joinChannelAddRelayAction => 'Add';
+
+  @override
+  String get joinChannelRelayHint => 'wss://relay.example.com';
+
+  @override
+  String get joinChannelByQr => 'Join by QR';
+
+  @override
+  String get joinChannelQrTitle => 'Scan Channel QR';
+
+  @override
+  String get joinChannelQrHint =>
+      'Scan a QR code containing a channel id and relay list.';
+
+  @override
+  String get joinChannelQrFromGallery => 'Pick QR from gallery';
+
+  @override
+  String get joinChannelQrGalleryError =>
+      'No valid QR code found in the selected image.';
+
+  @override
+  String get joinChannelSuccess => 'Channel joined successfully.';
+
+  @override
   String get channelMessageHint => 'Message channel…';
+
+  @override
+  String get channelShareQrTitle => 'Share Channel QR';
+
+  @override
+  String get channelShareQrBody =>
+      'Let someone scan this QR to join the channel with the right relays.';
 
   @override
   String get drawerNoMessages => 'No messages yet';

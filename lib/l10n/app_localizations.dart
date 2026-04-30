@@ -160,6 +160,18 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get actionSave;
 
+  /// Cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get actionCancel;
+
+  /// Done button
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get actionDone;
+
   /// State when note is bookmarked
   ///
   /// In en, this message translates to:
@@ -238,11 +250,125 @@ abstract class AppLocalizations {
   /// **'No channels yet'**
   String get drawerNoChannels;
 
+  /// App bar title for the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Join Channel'**
+  String get joinChannelTitle;
+
+  /// Heading on the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Join Existing Channel'**
+  String get joinChannelHeading;
+
+  /// Primary join channel button label
+  ///
+  /// In en, this message translates to:
+  /// **'Join Channel'**
+  String get joinChannelAction;
+
+  /// Field label for channel id input
+  ///
+  /// In en, this message translates to:
+  /// **'Channel ID (Hex)'**
+  String get joinChannelIdLabel;
+
+  /// Section title for relay selection on join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Channel Relays'**
+  String get joinChannelRelaysTitle;
+
+  /// Helper text under the relay selector on join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Select the relays this channel operates on to start syncing.'**
+  String get joinChannelRelaysBody;
+
+  /// Placeholder / dialog title for relay selection
+  ///
+  /// In en, this message translates to:
+  /// **'Select Relays'**
+  String get joinChannelSelectRelays;
+
+  /// Label showing how many relays are selected on join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Relays Selected'**
+  String joinChannelSelectedRelays(int count);
+
+  /// Title and tooltip for adding a relay from the join channel flow
+  ///
+  /// In en, this message translates to:
+  /// **'Add Relay'**
+  String get joinChannelAddRelay;
+
+  /// Confirm button for adding a relay
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get joinChannelAddRelayAction;
+
+  /// Hint text when adding a relay URL
+  ///
+  /// In en, this message translates to:
+  /// **'wss://relay.example.com'**
+  String get joinChannelRelayHint;
+
+  /// Secondary CTA to scan a QR code and join a channel
+  ///
+  /// In en, this message translates to:
+  /// **'Join by QR'**
+  String get joinChannelByQr;
+
+  /// App bar title for the QR scanner page
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Channel QR'**
+  String get joinChannelQrTitle;
+
+  /// Hint text on the join channel QR scanner page
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code containing a channel id and relay list.'**
+  String get joinChannelQrHint;
+
+  /// Tooltip for choosing a QR image from the gallery on the join channel scanner page
+  ///
+  /// In en, this message translates to:
+  /// **'Pick QR from gallery'**
+  String get joinChannelQrFromGallery;
+
+  /// Snackbar shown when the chosen gallery image does not contain a decodable QR code
+  ///
+  /// In en, this message translates to:
+  /// **'No valid QR code found in the selected image.'**
+  String get joinChannelQrGalleryError;
+
+  /// Snackbar after successfully joining a channel
+  ///
+  /// In en, this message translates to:
+  /// **'Channel joined successfully.'**
+  String get joinChannelSuccess;
+
   /// Placeholder text in the channel message composer input
   ///
   /// In en, this message translates to:
   /// **'Message channel…'**
   String get channelMessageHint;
+
+  /// Title for the share-channel QR bottom sheet and tooltip
+  ///
+  /// In en, this message translates to:
+  /// **'Share Channel QR'**
+  String get channelShareQrTitle;
+
+  /// Helper text under the share-channel QR title
+  ///
+  /// In en, this message translates to:
+  /// **'Let someone scan this QR to join the channel with the right relays.'**
+  String get channelShareQrBody;
 
   /// Empty state for DMs in drawer
   ///

@@ -33,16 +33,20 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
     final result = await _getRelaysUseCase.call();
     result.fold(
       (failure) {
-        emit(state.copyWith(
-          isLoadingRelays: false,
-          errorMessage: 'Failed to load relays.',
-        ));
+        emit(
+          state.copyWith(
+            isLoadingRelays: false,
+            errorMessage: 'Failed to load relays.',
+          ),
+        );
       },
       (relays) {
-        emit(state.copyWith(
-          isLoadingRelays: false,
-          availableRelays: relays.map((r) => r.url).toList(),
-        ));
+        emit(
+          state.copyWith(
+            isLoadingRelays: false,
+            availableRelays: relays.map((r) => r.url).toList(),
+          ),
+        );
       },
     );
   }
@@ -53,12 +57,20 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
   ) async {
     // Validation
     if (event.name.trim().length < 3) {
-      emit(state.copyWith(errorMessage: 'Channel name must be at least 3 characters.'));
+      emit(
+        state.copyWith(
+          errorMessage: 'Channel name must be at least 3 characters.',
+        ),
+      );
       return;
     }
-    
+
     if (event.name.trim().length > 30) {
-      emit(state.copyWith(errorMessage: 'Channel name cannot exceed 30 characters.'));
+      emit(
+        state.copyWith(
+          errorMessage: 'Channel name cannot exceed 30 characters.',
+        ),
+      );
       return;
     }
 
@@ -74,10 +86,12 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
     final user = userResult.fold((_) => null, (u) => u);
 
     if (user == null) {
-      emit(state.copyWith(
-        isSubmitting: false,
-        errorMessage: 'Active user not found or missing private key.',
-      ));
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: 'Active user not found or missing private key.',
+        ),
+      );
       return;
     }
 
@@ -86,10 +100,12 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
       try {
         hexPriv = Nip19.decodePrivkey(hexPriv);
       } catch (e) {
-        emit(state.copyWith(
-          isSubmitting: false,
-          errorMessage: 'Failed to decode private key.',
-        ));
+        emit(
+          state.copyWith(
+            isSubmitting: false,
+            errorMessage: 'Failed to decode private key.',
+          ),
+        );
         return;
       }
     }
@@ -106,17 +122,13 @@ class CreateChannelBloc extends Bloc<CreateChannelEvent, CreateChannelState> {
 
     createResult.fold(
       (failure) {
-        emit(state.copyWith(
-          isSubmitting: false,
-          errorMessage: failure.message,
-        ));
+        emit(
+          state.copyWith(isSubmitting: false, errorMessage: failure.message),
+        );
       },
       (channel) {
         // Success
-        emit(state.copyWith(
-          isSubmitting: false,
-          isSuccess: true,
-        ));
+        emit(state.copyWith(isSubmitting: false, isSuccess: true));
       },
     );
   }

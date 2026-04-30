@@ -17,10 +17,4 @@ abstract class ChannelRepository {
   Future<Either<Failure, List<ChannelEntity>>> getChannels();
 
   Future<Either<Failure, ChannelEntity>> getChannelById(String channelId);
-
-  Future<Either<Failure, Unit>> updateLastRead(
-    String channelId,
-    String lastReadEventId,
-    int lastReadAt,
-  );
 }
