@@ -6,6 +6,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/data/models/event_queue_private_channel_ext.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
@@ -14,6 +15,10 @@ import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/encrypted_message_model.dart';
+import 'package:uniun/data/models/private_channel_message_model.dart';
+import 'package:uniun/data/models/private_channel_join_request_model.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:nip77/nip77.dart';
 
@@ -33,6 +38,7 @@ class WebSocketService {
   static const _dmSubscriptionId = 'dms';
   static const _kind0SubscriptionId = 'profiles';
   static const _channelSubscriptionId = 'channels';
+  static const _privateChannelSubscriptionId = 'private_channels';
 
   final String url;
   final bool read;
@@ -182,6 +188,28 @@ class WebSocketService {
       );
     }
 
+    // 6. Private Channels — [PrivateChannelModel] presence means subscribed locally
+    final privateChannels = await _isar.privateChannelModels.where().findAll();
+    if (privateChannels.isNotEmpty) {
+      final groupIds = privateChannels.map((c) => c.groupId).toList();
+
+      await _syncOrFallback(client, nip77Connected, _privateChannelSubscriptionId, {
+        'kinds': [9021, 9022, 9023, 9024, 9025],
+        '#h': groupIds,
+      });
+
+      _socket!.sink.add(
+        jsonEncode([
+          'REQ',
+          '${_privateChannelSubscriptionId}_meta',
+          {
+            'kinds': [9002],
+            'ids': groupIds,
+          },
+        ]),
+      );
+    }
+
     if (nip77Connected) {
       await client.disconnect();
     }
@@ -285,6 +313,16 @@ class WebSocketService {
         }
       } else if (kind == 0) {
         // Rarely have local missing profiles stored, but if we do, skip passing eventId since ProfileModel doesn't store eventId.
+      } else if (kind >= 9021 && kind <= 9025) {
+        if (kind == 9021) {
+          final ids = await _isar.privateChannelJoinRequestModels.where().eventIdProperty().findAll();
+          for (final id in ids) myEvents[id] = 0;
+        } else {
+          final encryptedIds = await _isar.encryptedMessageModels.where().eventIdProperty().findAll();
+          for (final id in encryptedIds) myEvents[id] = 0;
+          final decryptedIds = await _isar.privateChannelMessageModels.where().eventIdProperty().findAll();
+          for (final id in decryptedIds) myEvents[id] = 0;
+        }
       }
     }
     return myEvents;
@@ -389,6 +427,10 @@ class WebSocketService {
   /// Called by [CentralRelayManager] when [ChannelModel] rows change.
   void onChannelSubscriptionsChanged() => unawaited(_resubscribeChannels());
 
+  /// Called by [CentralRelayManager] when [PrivateChannelModel] rows change.
+  void onPrivateChannelSubscriptionsChanged() =>
+      unawaited(_resubscribePrivateChannels());
+
   Future<void> _resubscribeChannels() async {
     if (!read || _disposed || _socket == null || !_isConnected) return;
 
@@ -428,6 +470,77 @@ class WebSocketService {
     );
   }
 
+  Future<void> _resubscribePrivateChannels() async {
+    if (!read || _disposed || _socket == null || !_isConnected) return;
+
+    _socket!.sink.add(jsonEncode(['CLOSE', _privateChannelSubscriptionId]));
+
+    final privateRows = await _isar.privateChannelModels.where().findAll();
+    if (privateRows.isEmpty) return;
+
+    final groupIds = privateRows.map((c) => c.groupId).toList();
+
+    final client = Nip77Client(relayUrl: url);
+    bool connected = false;
+    try {
+      await client.connect();
+      connected = true;
+    } catch (_) {}
+
+    await _syncOrFallback(client, connected, _privateChannelSubscriptionId, {
+      'kinds': [9021, 9022, 9023, 9024, 9025],
+      '#h': groupIds,
+    });
+
+    _socket!.sink.add(
+      jsonEncode([
+        'REQ',
+        '${_privateChannelSubscriptionId}_meta',
+        {
+          'kinds': [9002],
+          'ids': groupIds,
+        },
+      ]),
+    );
+
+    if (connected) {
+      await client.disconnect();
+    }
+  }
+
+  Future<void> _handlePrivateChannelMetadata(Map<String, dynamic> event) async {
+    final eventId = event['id'] as String?;
+    final pubkey = event['pubkey'] as String?;
+    if (eventId == null || pubkey == null) return;
+
+    final contentStr = event['content'] as String? ?? '{}';
+    Map<String, dynamic> metadata;
+    try {
+      metadata = jsonDecode(contentStr) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    await _isar.writeTxn(() async {
+      final channel = await _isar.privateChannelModels
+          .where()
+          .groupIdEqualTo(eventId)
+          .findFirst();
+      if (channel == null) return;
+
+      channel.name = metadata['name'] as String? ?? channel.name;
+      channel.description = metadata['about'] as String? ?? channel.description;
+      channel.adminPubkey = pubkey;
+
+      final relays = metadata['relays'];
+      if (relays is List && relays.isNotEmpty) {
+        channel.relays = relays.map((e) => e.toString()).toList();
+      }
+
+      await _isar.privateChannelModels.put(channel);
+    });
+  }
+
   Future<void> _processSendQueue() async {
     // Guard: only send if this relay is a write relay, connected, and idle.
     if (!write || !_isConnected || _pendingEventId != null) return;
@@ -450,7 +563,11 @@ class WebSocketService {
 
     _pendingEventId = next.eventId;
     _pendingQueueId = next.id;
-    _socket!.sink.add(next.toSerializedRelayMessage());
+    _socket!.sink.add(
+      next.isPrivateChannelEvent
+          ? next.toRawRelayMessage()
+          : next.toSerializedRelayMessage(),
+    );
   }
 
   // ── Inbound — relay messages ───────────────────────────────────────────────
@@ -487,6 +604,10 @@ class WebSocketService {
             unawaited(_handleKind41(eventMap));
           } else if (kind == 42) {
             unawaited(_handleKind42(eventMap));
+          } else if (kind == 9002) {
+            unawaited(_handlePrivateChannelMetadata(eventMap));
+          } else if (kind != null && kind >= 9021 && kind <= 9025) {
+            unawaited(_handlePrivateChannelEvent(eventMap));
           }
         }
         break;
@@ -971,6 +1092,68 @@ class WebSocketService {
       created: DateTime.fromMillisecondsSinceEpoch(createdAtSec * 1000),
       isSeen: false,
     );
+  }
+
+  Future<void> _handlePrivateChannelEvent(Map<String, dynamic> event) async {
+    final kind = event['kind'] as int?;
+    final eventId = event['id'] as String?;
+    final pubkey = event['pubkey'] as String?;
+    final content = event['content'] as String?;
+    final createdAtSec = event['created_at'] as int?;
+
+    if (kind == null || eventId == null || pubkey == null || content == null || createdAtSec == null) return;
+
+    final tags = event['tags'] as List<dynamic>? ?? [];
+    String? groupId;
+    for (final tag in tags) {
+      if (tag is List && tag.isNotEmpty && tag[0] == 'h') {
+        groupId = tag[1] as String?;
+        break;
+      }
+    }
+    if (groupId == null) return;
+
+    final timestamp = DateTime.fromMillisecondsSinceEpoch(createdAtSec * 1000);
+
+    if (kind == 9021) {
+      final model = PrivateChannelJoinRequestModel()
+        ..eventId = eventId
+        ..groupId = groupId
+        ..senderPubkey = pubkey
+        ..keyPackageB64 = content
+        ..timestamp = timestamp;
+      
+      try {
+        await _isar.writeTxn(() async {
+          final existing = await _isar.privateChannelJoinRequestModels
+              .where()
+              .eventIdEqualTo(eventId)
+              .findFirst();
+          if (existing != null) return;
+          await _isar.privateChannelJoinRequestModels.put(model);
+        });
+      } catch (_) {}
+    } else {
+      // For 9022/9023/9024/9025 keep payload in queue for main-isolate processing.
+      final model = EncryptedMessageModel()
+        ..eventId = eventId
+        ..groupId = groupId
+        ..senderPubkey = pubkey
+        ..kind = kind
+        ..encryptedPayload = content
+        ..timestamp = timestamp;
+      
+      try {
+        await _isar.writeTxn(() async {
+          final existing = await _isar.encryptedMessageModels
+              .where()
+              .eventIdEqualTo(eventId)
+              .findFirst();
+          if (existing != null) return;
+          await _isar.encryptedMessageModels.put(model);
+        });
+      } catch (_) {}
+    }
   }
 
   // ── Status tracking ────────────────────────────────────────────────────────

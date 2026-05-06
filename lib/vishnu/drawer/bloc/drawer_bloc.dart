@@ -5,6 +5,7 @@ import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/get_channels_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
@@ -19,17 +20,24 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetOwnProfileUseCase _getOwnProfile;
   final GetAllFollowedNotesUseCase _getAllFollowedNotes;
   final GetChannelsUseCase _getChannels;
+  final GetPrivateChannelsUsecase _getPrivateChannels;
   final Isar _isar;
   StreamSubscription<void>? _dmWatcher;
+  StreamSubscription<void>? _privateChannelWatcher;
 
   DrawerBloc(
     this._getActiveUser,
     this._getOwnProfile,
     this._getAllFollowedNotes,
     this._getChannels,
+    this._getPrivateChannels,
     this._isar,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
+    
+    _privateChannelWatcher = _getPrivateChannels.execute().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
   }
 
   Future<void> _onLoad(
@@ -101,6 +109,12 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
             .toList(),
       );
 
+      final privateChannelResult = await _getPrivateChannels.execute().first;
+      final privateChannels = privateChannelResult.map((c) => DrawerPrivateChannelItem(
+        id: c.groupId,
+        name: c.name,
+      )).toList();
+
       emit(DrawerLoaded(
         userName: displayName,
         npub: npubShort,
@@ -108,6 +122,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         avatarUrl: avatarUrl,
         followedNotes: followedNotes,
         channels: channels,
+        privateChannels: privateChannels,
         dms: dms,
       ));
     } catch (e) {

@@ -19,4 +19,7 @@ abstract class AppRoutes {
   static const createDm = '/create-dm';
   static const chatDm = '/chat-dm';
   static const brahmaCreate = '/brahma-create';
+  static const createPrivateChannel = '/create-private-channel';
+  static const joinPrivateChannel = '/join-private-channel';
+  static const privateChannelDetail = '/private-channel-detail';
 }

@@ -19,6 +19,10 @@ import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
+import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/encrypted_message_model.dart';
+import 'package:uniun/data/models/private_channel_message_model.dart';
+import 'package:uniun/data/models/private_channel_join_request_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -39,4 +43,9 @@ final List<CollectionSchema> isarSchemas = [
   ChannelMessageModelSchema,
   EncryptedDmModelSchema,
   MissingProfilePubkeyModelSchema,
+  PrivateChannelModelSchema,
+  EncryptedMessageModelSchema,
+  PrivateChannelMessageModelSchema,
+  PrivateChannelJoinRequestModelSchema,
 ];
+
