@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/data/models/event_queue_private_channel_ext.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/user_key_model.dart';
 import 'package:uniun/core/enum/relay_status.dart';
@@ -43,7 +46,9 @@ class CentralRelayManager {
   StreamSubscription<void>? _relayWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
   StreamSubscription<void>? _channelModelsWatcher;
+  StreamSubscription<void>? _privateChannelModelsWatcher;
   int _knownChannelCount = 0;
+  int _knownPrivateChannelCount = 0;
 
   CentralRelayManager({required Isar isar}) : _isar = isar;
 
@@ -114,6 +119,19 @@ class CentralRelayManager {
       }
     });
 
+    _knownPrivateChannelCount = await _loadPrivateChannelCount();
+    _privateChannelModelsWatcher = _isar.privateChannelModels.watchLazy().listen((_) async {
+      final currentCount = await _loadPrivateChannelCount();
+      if (currentCount <= _knownPrivateChannelCount) {
+        _knownPrivateChannelCount = currentCount;
+        return;
+      }
+      _knownPrivateChannelCount = currentCount;
+      for (final svc in _services.values) {
+        svc.onPrivateChannelSubscriptionsChanged();
+      }
+    });
+
     // 4. Start dequeue cleanup timer.
     _dequeueTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       _runDequeuePass();
@@ -181,6 +199,36 @@ class CentralRelayManager {
           return conversation.relays;
         }
       }
+      return null;
+    }
+
+    // Private channel protocol: route to the channel's stored relays.
+    if (event.isPrivateChannelEvent) {
+      // For private channel events the full signed event JSON is in content.
+      // Extract the groupId from the `h` tag in the stored event JSON.
+      try {
+        final decoded = jsonDecode(event.content) as Map<String, dynamic>;
+        final tags = (decoded['tags'] as List<dynamic>? ?? []);
+        final hTag = tags
+            .cast<List<dynamic>>()
+            .where((t) => t.isNotEmpty && t[0] == 'h')
+            .map((t) => t.length > 1 ? t[1] as String : null)
+            .whereType<String>()
+            .firstOrNull;
+
+        if (hTag != null) {
+          final channel = await _isar.privateChannelModels
+              .where()
+              .groupIdEqualTo(hTag)
+              .findFirst();
+          if (channel != null && channel.relays.isNotEmpty) {
+            return channel.relays;
+          }
+        }
+      } catch (_) {
+        // Malformed content — fall through to all relays.
+      }
+      // Channel not found locally (e.g. join before save) or no relay list → all relays.
       return null;
     }
 
@@ -313,6 +361,10 @@ class CentralRelayManager {
     return _isar.channelModels.count();
   }
 
+  Future<int> _loadPrivateChannelCount() async {
+    return _isar.privateChannelModels.count();
+  }
+
   // ── Shutdown ───────────────────────────────────────────────────────────────
 
   void stop() {
@@ -320,6 +372,7 @@ class CentralRelayManager {
     _relayWatcher?.cancel();
     _followedNotesWatcher?.cancel();
     _channelModelsWatcher?.cancel();
+    _privateChannelModelsWatcher?.cancel();
     _dequeueTimer?.cancel();
     for (final svc in _services.values) {
       svc.disconnect();

@@ -17,6 +17,7 @@ final class DrawerLoaded extends DrawerState {
     this.avatarUrl,
     required this.followedNotes,
     required this.channels,
+    required this.privateChannels,
     required this.dms,
   });
 
@@ -29,12 +30,20 @@ final class DrawerLoaded extends DrawerState {
   // which exist only for AI/knowledge graph context).
   final List<DrawerFollowedNoteItem> followedNotes;
   final List<DrawerChannelItem> channels;
+  final List<DrawerPrivateChannelItem> privateChannels;
   final List<DrawerDmItem> dms;
 }
 
-final class DrawerError extends DrawerState {
-  const DrawerError(this.message);
-  final String message;
+class DrawerPrivateChannelItem {
+  const DrawerPrivateChannelItem({
+    required this.id,
+    required this.name,
+    this.hasUnread = false,
+  });
+
+  final String id;
+  final String name;
+  final bool hasUnread;
 }
 
 class DrawerChannelItem {
@@ -73,4 +82,9 @@ class DrawerFollowedNoteItem {
   final String eventId;
   final String contentPreview;
   final int newReferenceCount;
+}
+
+final class DrawerError extends DrawerState {
+  const DrawerError(this.message);
+  final String message;
 }

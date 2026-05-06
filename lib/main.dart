@@ -19,6 +19,9 @@ import 'package:uniun/onboarding/pages/welcome_page.dart';
 import 'package:uniun/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/channels/join/pages/join_channel_page.dart';
+import 'package:uniun/private_channels/create/pages/create_private_channel_page.dart';
+import 'package:uniun/private_channels/join/pages/join_private_channel_page.dart';
+import 'package:uniun/private_channels/detail/pages/private_channel_detail_page.dart';
 import 'package:uniun/channels/feed/pages/channel_feed_page.dart';
 import 'package:uniun/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/dm/create/pages/create_dm_page.dart';
@@ -28,6 +31,7 @@ import 'package:uniun/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/brahma/graph/pages/graph_page.dart';
 import 'package:uniun/brahma/graph/pages/graph_compose_page.dart';
+import 'package:uniun/domain/services/marmot_transport_service.dart';
 import 'package:uniun/gateway/gateway.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -44,6 +48,9 @@ Future<void> main() async {
     ),
   );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  await configureDependencies();
+  getIt<MarmotTransportService>().start();
 
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
@@ -88,6 +95,11 @@ class UniunApp extends StatelessWidget {
         },
         AppRoutes.createChannel: (_) => const CreateChannelPage(),
         AppRoutes.joinChannel: (_) => const JoinChannelPage(),
+        AppRoutes.createPrivateChannel: (_) => const CreatePrivateChannelPage(),
+        AppRoutes.joinPrivateChannel: (_) => const JoinPrivateChannelPage(),
+        AppRoutes.privateChannelDetail: (ctx) => PrivateChannelDetailPage(
+              groupId: ModalRoute.of(ctx)!.settings.arguments as String,
+            ),
         AppRoutes.channelDetail: (ctx) => ChannelFeedPage(
           channelId: ModalRoute.of(ctx)!.settings.arguments as String,
         ),

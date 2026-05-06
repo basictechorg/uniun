@@ -112,6 +112,29 @@ class VishnuDrawer extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
+                    // ── Private Channels (collapsible) ────────────────────────────
+                    _CollapsiblePrivateChannelSection(
+                      items: loaded?.privateChannels ?? [],
+                      onCreate: () {
+                        _close(context);
+                        Navigator.pushNamed(context, AppRoutes.createPrivateChannel);
+                      },
+                      onJoin: () {
+                        _close(context);
+                        Navigator.pushNamed(context, AppRoutes.joinPrivateChannel);
+                      },
+                      onItemTap: (groupId) {
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.privateChannelDetail,
+                          arguments: groupId,
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // ── Direct Messages ───────────────────────────────────
                     _SectionHeader(
                       label: l10n.drawerDirectMessages,
@@ -623,6 +646,165 @@ class _CollapsibleChannelSectionState
           secondChild: const SizedBox.shrink(),
         ),
       ],
+    );
+  }
+}
+
+// ── Collapsible private channel section ────────────────────────────────────────
+
+class _CollapsiblePrivateChannelSection extends StatefulWidget {
+  const _CollapsiblePrivateChannelSection({
+    required this.items,
+    required this.onCreate,
+    required this.onJoin,
+    required this.onItemTap,
+  });
+
+  final List<app_drawer.DrawerPrivateChannelItem> items;
+  final VoidCallback onCreate;
+  final VoidCallback onJoin;
+  final ValueChanged<String> onItemTap;
+
+  @override
+  State<_CollapsiblePrivateChannelSection> createState() =>
+      _CollapsiblePrivateChannelSectionState();
+}
+
+class _CollapsiblePrivateChannelSectionState
+    extends State<_CollapsiblePrivateChannelSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "PRIVATE CHANNELS",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: AppColors.surface,
+                      builder: (ctx) => SafeArea(
+                        child: Wrap(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.add_rounded, color: AppColors.primary),
+                              title: const Text('Create Private Channel'),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                widget.onCreate();
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.login_rounded, color: AppColors.primary),
+                              title: const Text('Join Private Channel'),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                widget.onJoin();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Icon(Icons.add_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState:
+              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Column(
+            children: [
+              const SizedBox(height: 4),
+              if (widget.items.isEmpty)
+                const _EmptyHint("No private channels joined")
+              else
+                ...widget.items.map(
+                  (ch) => _PrivateChannelRow(
+                    channel: ch,
+                    onTap: () => widget.onItemTap(ch.id),
+                  ),
+                ),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrivateChannelRow extends StatelessWidget {
+  const _PrivateChannelRow({required this.channel, required this.onTap});
+  final app_drawer.DrawerPrivateChannelItem channel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          children: [
+            const Icon(Icons.lock_rounded, size: 16, color: AppColors.outline),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                channel.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight:
+                      channel.hasUnread ? FontWeight.w600 : FontWeight.w400,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (channel.hasUnread)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
