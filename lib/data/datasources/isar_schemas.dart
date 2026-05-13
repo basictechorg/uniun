@@ -23,6 +23,9 @@ import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
 import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/data/models/graph_node_model.dart';
+import 'package:uniun/data/models/graph_edge_model.dart';
+import 'package:uniun/data/models/memory_node_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -47,5 +50,8 @@ final List<CollectionSchema> isarSchemas = [
   EncryptedMessageModelSchema,
   PrivateChannelMessageModelSchema,
   PrivateChannelJoinRequestModelSchema,
+  GraphNodeModelSchema,
+  GraphEdgeModelSchema,
+  MemoryNodeModelSchema,
 ];
 
