@@ -38,25 +38,15 @@ const ChannelModelSchema = CollectionSchema(
       name: r'lastMetaEvent',
       type: IsarType.string,
     ),
-    r'lastReadAt': PropertySchema(
-      id: 5,
-      name: r'lastReadAt',
-      type: IsarType.long,
-    ),
-    r'lastReadEventId': PropertySchema(
-      id: 6,
-      name: r'lastReadEventId',
-      type: IsarType.string,
-    ),
-    r'name': PropertySchema(id: 7, name: r'name', type: IsarType.string),
-    r'picture': PropertySchema(id: 8, name: r'picture', type: IsarType.string),
+    r'name': PropertySchema(id: 5, name: r'name', type: IsarType.string),
+    r'picture': PropertySchema(id: 6, name: r'picture', type: IsarType.string),
     r'relays': PropertySchema(
-      id: 9,
+      id: 7,
       name: r'relays',
       type: IsarType.stringList,
     ),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 8,
       name: r'updatedAt',
       type: IsarType.long,
     ),
@@ -106,12 +96,6 @@ int _channelModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  {
-    final value = object.lastReadEventId;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.picture.length * 3;
   bytesCount += 3 + object.relays.length * 3;
@@ -135,12 +119,10 @@ void _channelModelSerialize(
   writer.writeLong(offsets[2], object.createdAt);
   writer.writeString(offsets[3], object.creatorPubKey);
   writer.writeString(offsets[4], object.lastMetaEvent);
-  writer.writeLong(offsets[5], object.lastReadAt);
-  writer.writeString(offsets[6], object.lastReadEventId);
-  writer.writeString(offsets[7], object.name);
-  writer.writeString(offsets[8], object.picture);
-  writer.writeStringList(offsets[9], object.relays);
-  writer.writeLong(offsets[10], object.updatedAt);
+  writer.writeString(offsets[5], object.name);
+  writer.writeString(offsets[6], object.picture);
+  writer.writeStringList(offsets[7], object.relays);
+  writer.writeLong(offsets[8], object.updatedAt);
 }
 
 ChannelModel _channelModelDeserialize(
@@ -156,12 +138,10 @@ ChannelModel _channelModelDeserialize(
   object.creatorPubKey = reader.readString(offsets[3]);
   object.id = id;
   object.lastMetaEvent = reader.readStringOrNull(offsets[4]);
-  object.lastReadAt = reader.readLongOrNull(offsets[5]);
-  object.lastReadEventId = reader.readStringOrNull(offsets[6]);
-  object.name = reader.readString(offsets[7]);
-  object.picture = reader.readString(offsets[8]);
-  object.relays = reader.readStringList(offsets[9]) ?? [];
-  object.updatedAt = reader.readLong(offsets[10]);
+  object.name = reader.readString(offsets[5]);
+  object.picture = reader.readString(offsets[6]);
+  object.relays = reader.readStringList(offsets[7]) ?? [];
+  object.updatedAt = reader.readLong(offsets[8]);
   return object;
 }
 
@@ -183,16 +163,12 @@ P _channelModelDeserializeProp<P>(
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
-      return (reader.readString(offset)) as P;
-    case 9:
       return (reader.readStringList(offset) ?? []) as P;
-    case 10:
+    case 8:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1111,238 +1087,6 @@ extension ChannelModelQueryFilter
     });
   }
 
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'lastReadAt'),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'lastReadAt'),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtEqualTo(int? value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'lastReadAt', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtGreaterThan(int? value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'lastReadAt',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtLessThan(int? value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'lastReadAt',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadAtBetween(
-    int? lower,
-    int? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'lastReadAt',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'lastReadEventId'),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'lastReadEventId'),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdEqualTo(String? value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'lastReadEventId',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'lastReadEventId',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'lastReadEventId',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'lastReadEventId', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition>
-  lastReadEventIdIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'lastReadEventId', value: ''),
-      );
-    });
-  }
-
   QueryBuilder<ChannelModel, ChannelModel, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1951,33 +1695,6 @@ extension ChannelModelQuerySortBy
     });
   }
 
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> sortByLastReadAt() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadAt', Sort.asc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  sortByLastReadAtDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  sortByLastReadEventId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadEventId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  sortByLastReadEventIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadEventId', Sort.desc);
-    });
-  }
-
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2091,33 +1808,6 @@ extension ChannelModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> thenByLastReadAt() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadAt', Sort.asc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  thenByLastReadAtDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  thenByLastReadEventId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadEventId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy>
-  thenByLastReadEventIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'lastReadEventId', Sort.desc);
-    });
-  }
-
   QueryBuilder<ChannelModel, ChannelModel, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -2201,22 +1891,6 @@ extension ChannelModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<ChannelModel, ChannelModel, QDistinct> distinctByLastReadAt() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'lastReadAt');
-    });
-  }
-
-  QueryBuilder<ChannelModel, ChannelModel, QDistinct>
-  distinctByLastReadEventId({bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(
-        r'lastReadEventId',
-        caseSensitive: caseSensitive,
-      );
-    });
-  }
-
   QueryBuilder<ChannelModel, ChannelModel, QDistinct> distinctByName({
     bool caseSensitive = true,
   }) {
@@ -2282,19 +1956,6 @@ extension ChannelModelQueryProperty
   lastMetaEventProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastMetaEvent');
-    });
-  }
-
-  QueryBuilder<ChannelModel, int?, QQueryOperations> lastReadAtProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'lastReadAt');
-    });
-  }
-
-  QueryBuilder<ChannelModel, String?, QQueryOperations>
-  lastReadEventIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'lastReadEventId');
     });
   }
 

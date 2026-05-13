@@ -16,6 +16,7 @@ import 'package:tostore/tostore.dart' as _i789;
 import 'package:uniun/brahma/bloc/brahma_create_bloc.dart' as _i787;
 import 'package:uniun/brahma/graph/bloc/graph_bloc.dart' as _i536;
 import 'package:uniun/channels/create/bloc/create_channel_bloc.dart' as _i234;
+import 'package:uniun/channels/join/bloc/join_channel_bloc.dart' as _i938;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/datasources/tostore_module.dart' as _i740;
 import 'package:uniun/data/repositories/ai_model_repository_impl.dart' as _i72;
@@ -27,6 +28,8 @@ import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart'
 import 'package:uniun/data/repositories/dm_message_repository_impl.dart'
     as _i398;
 import 'package:uniun/data/repositories/draft_repository_impl.dart' as _i640;
+import 'package:uniun/data/repositories/e2ee_group_repository_impl.dart'
+    as _i896;
 import 'package:uniun/data/repositories/event_queue_repository_impl.dart'
     as _i116;
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
@@ -40,8 +43,6 @@ import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
 import 'package:uniun/data/repositories/shiv_repository_impl.dart' as _i412;
 import 'package:uniun/data/repositories/storage_repository_impl.dart' as _i209;
-import 'package:uniun/data/repositories/subscription_record_repository_impl.dart'
-    as _i364;
 import 'package:uniun/data/repositories/tostore_vector_repository_impl.dart'
     as _i831;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
@@ -55,6 +56,7 @@ import 'package:uniun/domain/repositories/dm_conversation_repository.dart'
     as _i189;
 import 'package:uniun/domain/repositories/dm_message_repository.dart' as _i551;
 import 'package:uniun/domain/repositories/draft_repository.dart' as _i170;
+import 'package:uniun/domain/repositories/e2ee_group_repository.dart' as _i635;
 import 'package:uniun/domain/repositories/event_queue_repository.dart'
     as _i1039;
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
@@ -67,10 +69,10 @@ import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
 import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
 import 'package:uniun/domain/repositories/storage_repository.dart' as _i240;
-import 'package:uniun/domain/repositories/subscription_record_repository.dart'
-    as _i194;
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
 import 'package:uniun/domain/repositories/vector_repository.dart' as _i739;
+import 'package:uniun/domain/services/marmot_mls_service.dart' as _i168;
+import 'package:uniun/domain/services/marmot_transport_service.dart' as _i761;
 import 'package:uniun/domain/usecases/ai_model_usecases.dart' as _i894;
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart'
     as _i524;
@@ -85,14 +87,22 @@ import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
+import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
+import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
+import 'package:uniun/domain/usecases/save_relay_usecase.dart' as _i433;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
 import 'package:uniun/domain/usecases/shiv_usecases.dart' as _i604;
 import 'package:uniun/domain/usecases/storage_usecases.dart' as _i58;
-import 'package:uniun/domain/usecases/subscribe_channel_usecase.dart' as _i163;
 import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/followed_notes/cubit/followed_notes_cubit.dart' as _i97;
+import 'package:uniun/private_channels/create/bloc/create_private_channel_bloc.dart'
+    as _i152;
+import 'package:uniun/private_channels/detail/bloc/private_channel_detail_bloc.dart'
+    as _i529;
+import 'package:uniun/private_channels/join/bloc/join_private_channel_bloc.dart'
+    as _i818;
 import 'package:uniun/settings/cubit/edit_profile_cubit.dart' as _i195;
 import 'package:uniun/settings/cubit/settings_cubit.dart' as _i731;
 import 'package:uniun/settings/cubit/storage_cubit.dart' as _i888;
@@ -127,6 +137,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => tostoreModule.createTostore(),
       preResolve: true,
     );
+    gh.lazySingleton<_i168.MarmotMlsService>(() => _i168.MarmotMlsService());
     gh.lazySingleton<_i113.EmbeddingModelDownloader>(
       () => _i113.EmbeddingModelDownloader(),
     );
@@ -137,6 +148,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i831.TostoreVectorRepositoryImpl(
         gh<_i789.ToStore>(),
         gh<_i214.Isar>(),
+      ),
+    );
+    gh.lazySingleton<_i761.MarmotTransportService>(
+      () => _i761.MarmotTransportService(
+        gh<_i214.Isar>(),
+        gh<_i168.MarmotMlsService>(),
       ),
     );
     gh.factory<_i646.AIModelRepository>(
@@ -163,22 +180,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i43.SavedNoteRepository>(
       () => _i669.SavedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.factory<_i194.SubscriptionRecordRepository>(
-      () => _i364.SubscriptionRecordRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
     gh.factory<_i551.DmMessageRepository>(
       () => _i398.DmMessageRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.lazySingleton<_i635.E2EEGroupRepository>(
+      () => _i896.E2EEGroupRepositoryImpl(gh<_i214.Isar>()),
     );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.lazySingleton<_i163.SubscribeChannelUseCase>(
-      () => _i163.SubscribeChannelUseCase(
-        gh<_i194.SubscriptionRecordRepository>(),
-      ),
     );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
       () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
@@ -203,6 +215,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i722.GetChannelsUseCase>(
       () => _i722.GetChannelsUseCase(gh<_i127.ChannelRepository>()),
+    );
+    gh.lazySingleton<_i67.SaveChannelUseCase>(
+      () => _i67.SaveChannelUseCase(gh<_i127.ChannelRepository>()),
     );
     gh.lazySingleton<_i1023.CreateDmConversationUseCase>(
       () => _i1023.CreateDmConversationUseCase(
@@ -285,6 +300,26 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i551.DmMessageRepository>(),
       ),
     );
+    gh.lazySingleton<_i78.CreatePrivateChannelUsecase>(
+      () =>
+          _i78.CreatePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    );
+    gh.lazySingleton<_i78.SendPrivateChannelMessageUsecase>(
+      () => _i78.SendPrivateChannelMessageUsecase(
+        gh<_i761.MarmotTransportService>(),
+      ),
+    );
+    gh.lazySingleton<_i78.JoinPrivateChannelUsecase>(
+      () => _i78.JoinPrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    );
+    gh.lazySingleton<_i78.ApprovePrivateChannelJoinUsecase>(
+      () => _i78.ApprovePrivateChannelJoinUsecase(
+        gh<_i761.MarmotTransportService>(),
+      ),
+    );
+    gh.lazySingleton<_i78.LeavePrivateChannelUsecase>(
+      () => _i78.LeavePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    );
     gh.lazySingleton<_i475.GetFeedUseCase>(
       () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
     );
@@ -346,13 +381,21 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i964.ChannelMessageRepository>(),
       ),
     );
-    gh.factory<_i801.DrawerBloc>(
-      () => _i801.DrawerBloc(
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i391.GetOwnProfileUseCase>(),
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i214.Isar>(),
+    gh.lazySingleton<_i78.GetPrivateChannelsUsecase>(
+      () => _i78.GetPrivateChannelsUsecase(gh<_i635.E2EEGroupRepository>()),
+    );
+    gh.lazySingleton<_i78.GetPrivateChannelEntityUsecase>(
+      () =>
+          _i78.GetPrivateChannelEntityUsecase(gh<_i635.E2EEGroupRepository>()),
+    );
+    gh.lazySingleton<_i78.GetPrivateChannelMessagesUsecase>(
+      () => _i78.GetPrivateChannelMessagesUsecase(
+        gh<_i635.E2EEGroupRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i78.GetPrivateChannelJoinRequestsUsecase>(
+      () => _i78.GetPrivateChannelJoinRequestsUsecase(
+        gh<_i635.E2EEGroupRepository>(),
       ),
     );
     gh.lazySingleton<_i58.GetStorageStatsUseCase>(
@@ -396,11 +439,23 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1039.EventQueueRepository>(),
       ),
     );
-    gh.lazySingleton<_i1033.CreateChannelUseCase>(
-      () => _i1033.CreateChannelUseCase(
-        gh<_i127.ChannelRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-        gh<_i194.SubscriptionRecordRepository>(),
+    gh.factoryParam<_i529.PrivateChannelDetailBloc, String, dynamic>(
+      (groupId, _) => _i529.PrivateChannelDetailBloc(
+        gh<_i78.GetPrivateChannelEntityUsecase>(),
+        gh<_i78.GetPrivateChannelMessagesUsecase>(),
+        gh<_i78.GetPrivateChannelJoinRequestsUsecase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i78.ApprovePrivateChannelJoinUsecase>(),
+        gh<_i78.LeavePrivateChannelUsecase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        groupId,
+      ),
+    );
+    gh.factory<_i152.CreatePrivateChannelBloc>(
+      () => _i152.CreatePrivateChannelBloc(
+        gh<_i78.CreatePrivateChannelUsecase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
     gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
@@ -450,11 +505,20 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i985.GetRelaysUseCase>(
       () => _i985.GetRelaysUseCase(gh<_i993.RelayRepository>()),
     );
+    gh.lazySingleton<_i433.SaveRelayUseCase>(
+      () => _i433.SaveRelayUseCase(gh<_i993.RelayRepository>()),
+    );
     gh.lazySingleton<_i756.EmbedAndStoreNoteUseCase>(
       () => _i756.EmbedAndStoreNoteUseCase(
         gh<_i828.EmbeddingService>(),
         gh<_i739.VectorRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i1033.CreateChannelUseCase>(
+      () => _i1033.CreateChannelUseCase(
+        gh<_i127.ChannelRepository>(),
+        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i53.SelectAIModelCubit>(
@@ -514,6 +578,22 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i1023.GetDmUseCase(
         gh<_i214.Isar>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
+    gh.factory<_i818.JoinPrivateChannelBloc>(
+      () => _i818.JoinPrivateChannelBloc(
+        gh<_i78.JoinPrivateChannelUsecase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
+    gh.factory<_i801.DrawerBloc>(
+      () => _i801.DrawerBloc(
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i214.Isar>(),
       ),
     );
     gh.lazySingleton<_i1067.RagPipeline>(
@@ -581,6 +661,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i537.DeleteDraftUseCase>(),
         gh<_i475.SearchNotesUseCase>(),
         gh<_i475.GetNoteByIdUseCase>(),
+      ),
+    );
+    gh.factory<_i938.JoinChannelBloc>(
+      () => _i938.JoinChannelBloc(
+        gh<_i985.GetRelaysUseCase>(),
+        gh<_i433.SaveRelayUseCase>(),
+        gh<_i67.SaveChannelUseCase>(),
       ),
     );
     gh.factory<_i195.EditProfileCubit>(
