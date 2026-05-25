@@ -31,6 +31,7 @@ type Config struct {
 
 	// Logging
 	LogLevel string
+	LogFile  string
 }
 
 var config Config
@@ -51,11 +52,12 @@ func LoadConfig() {
 		RelayBanner:      getEnv("RELAY_BANNER", ""),
 
 		AzureForBlossom:      getBoolEnv("AZURE_FOR_BLOSSOM", false),
-		AzStorageAccountName: getEnv("AZURE_STORAGE_ACCOUNT_NAME", ""),
+		AzStorageAccountName: getEnv("AZURE_STORAGE_ACCOUNT_NAME", "uniun"),
 		AzStorageAccountKey:  getEnv("AZURE_STORAGE_ACCOUNT_KEY", ""),
 		AzBlossomContainer:   getEnv("AZURE_BLOSSOM_CONTAINER", "blossom"),
 
 		LogLevel: getEnv("LOG_LEVEL", "info"),
+		LogFile:  getEnv("LOG_FILE", "./uniun.log"),
 	}
 }
 

@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -14,9 +16,24 @@ import (
 func InitGlobalLogger() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-	log.Logger = zerolog.New(
-		zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"},
-	).With().Timestamp().Logger()
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"}
+	var writer io.Writer = consoleWriter
+
+	if config.LogFile != "" {
+		if dir := filepath.Dir(config.LogFile); dir != "" && dir != "." {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				fmt.Fprintf(os.Stderr, "logger: failed to create log directory %q: %v\n", dir, err)
+			}
+		}
+		f, err := os.OpenFile(config.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "logger: failed to open log file %q: %v\n", config.LogFile, err)
+		} else {
+			writer = zerolog.MultiLevelWriter(consoleWriter, f)
+		}
+	}
+
+	log.Logger = zerolog.New(writer).With().Timestamp().Logger()
 
 	level, err := zerolog.ParseLevel(strings.ToLower(config.LogLevel))
 	if err != nil {
