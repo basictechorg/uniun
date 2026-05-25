@@ -20,7 +20,6 @@ import 'package:uniun/domain/services/nip17_encryption_service.dart';
 ///
 /// The isolate stays alive for the lifetime of the app because
 /// [CentralRelayManager] holds active [Timer]s and stream subscriptions.
-/// No [SendPort] is needed — Isar is the shared message bus between isolates.
 Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
   try {
     // 2. Attempt to open Isar

@@ -8,7 +8,7 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/repositories/vector_repository.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
-import 'package:uniun/shiv/rag/embedding/embedding_service.dart';
+import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
 
 @lazySingleton
 class SearchVectorNotesUseCase
