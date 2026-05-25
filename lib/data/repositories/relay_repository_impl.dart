@@ -82,7 +82,7 @@ class RelayRepositoryImpl extends RelayRepository {
     if (count == 0) {
       await isar.writeTxn(() async {
         final defaultRelay = RelayModel()
-          ..url = 'ws://10.0.2.2:8080'
+          ..url = 'wss://dev.uniun.in:8080'
           ..read = true
           ..write = true
           ..status = RelayStatus.disconnected;
