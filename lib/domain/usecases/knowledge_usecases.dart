@@ -12,8 +12,8 @@ import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/repositories/graph_repository.dart';
 import 'package:uniun/domain/repositories/memory_repository.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
-import 'package:uniun/shiv/rag/prompt/prompt_builder.dart';
-import 'package:uniun/shiv/services/ai_model_runner.dart';
+import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart';
+import 'package:uniun/features/shiv/services/ai_model_runner.dart';
 
 /// Extracts a knowledge graph + wiki-style memory entry for a single note by
 /// calling Gemma in one-shot mode. Fire-and-forget safe: silently no-ops when

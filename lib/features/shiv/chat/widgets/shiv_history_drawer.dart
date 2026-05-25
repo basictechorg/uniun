@@ -1,0 +1,109 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
+import 'package:uniun/features/shiv/chat/widgets/shiv_conversation_tile.dart';
+
+/// Side drawer showing the Shiv AI conversation history.
+/// Add as `drawer:` on the Shiv page Scaffold.
+/// Open programmatically via [ShivHistoryDrawer.open].
+class ShivHistoryDrawer extends StatelessWidget {
+  const ShivHistoryDrawer({super.key});
+
+  static void open(BuildContext context) =>
+      Scaffold.of(context).openDrawer();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final top = MediaQuery.of(context).padding.top;
+
+    return Drawer(
+      backgroundColor: AppColors.surfaceContainerLow,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 8,
+              top: top + 16,
+              bottom: 12,
+            ),
+            color: AppColors.surface,
+            child: Row(
+              children: [
+                Text(
+                  l10n.shivConversations,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context
+                        .read<ShivAIBloc>()
+                        .add(const ShivAIEvent.createConversation());
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  color: AppColors.primary,
+                  tooltip: l10n.shivNewConversationTooltip,
+                ),
+              ],
+            ),
+          ),
+          // Conversation list
+          Expanded(
+            child: BlocBuilder<ShivAIBloc, ShivAIState>(
+              builder: (context, state) {
+                if (state.conversations.isEmpty) {
+                  return Center(
+                    child: Text(
+                      l10n.shivNoConversations,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: state.conversations.length,
+                  itemBuilder: (context, i) {
+                    final conv = state.conversations[i];
+                    return ShivConversationTile(
+                      conversation: conv,
+                      isActive: state.activeConversation?.conversationId ==
+                          conv.conversationId,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context
+                            .read<ShivAIBloc>()
+                            .add(ShivAIEvent.openConversation(
+                                conv.conversationId));
+                      },
+                      onDelete: () {
+                        context
+                            .read<ShivAIBloc>()
+                            .add(ShivAIEvent.deleteConversation(
+                                conv.conversationId));
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
