@@ -5,8 +5,9 @@ part 'user_key_entity.g.dart';
 
 /// The logged-in user's full identity, assembled at runtime.
 ///
-/// [pubkeyHex] and [npub] come from Isar (UserKeyModel).
-/// [nsec] comes from flutter_secure_storage — never persisted in Isar.
+/// [pubkeyHex] and [npub] come from SharedPreferences (UserKeyStore).
+/// [nsec] comes from flutter_secure_storage — never persisted in
+/// SharedPreferences.
 @freezed
 abstract class UserKeyEntity with _$UserKeyEntity {
   const factory UserKeyEntity({

@@ -14,4 +14,10 @@ abstract class UserRepository {
 
   /// Clear the stored keypair (logout).
   Future<Either<Failure, Unit>> logout();
+
+  /// Returns the active user's keys in raw hex form, ready for use in
+  /// background isolates (e.g. the Gateway) where FlutterSecureStorage and
+  /// SharedPreferences plugins are unavailable. Returns null when no active
+  /// user is logged in or the stored keys are inconsistent.
+  Future<({String privkeyHex, String pubkeyHex})?> getActiveKeysHex();
 }

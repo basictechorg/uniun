@@ -6,7 +6,6 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/event_queue_private_channel_ext.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';

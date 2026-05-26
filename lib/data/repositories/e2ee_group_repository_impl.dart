@@ -3,9 +3,9 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
-import 'package:uniun/domain/entities/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel_message_entity.dart';
-import 'package:uniun/domain/entities/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 
 @LazySingleton(as: E2EEGroupRepository)

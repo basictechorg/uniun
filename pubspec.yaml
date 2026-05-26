@@ -37,6 +37,7 @@ dependencies:
   nostr_core_dart: ^1.0.1
   json_annotation: ^4.9.0
   flutter_secure_storage: any
+  shared_preferences: ^2.2.2
   avatar_plus: ^0.0.5
   cached_network_image: ^3.3.1
   image_picker: ^1.2.1

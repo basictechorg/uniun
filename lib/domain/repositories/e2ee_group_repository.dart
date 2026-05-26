@@ -1,6 +1,6 @@
-import 'package:uniun/domain/entities/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel_message_entity.dart';
-import 'package:uniun/domain/entities/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 
 abstract class E2EEGroupRepository {
   Stream<List<PrivateChannelEntity>> watchChannels();

@@ -1,22 +1,21 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';
-import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/user_key_model.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/domain/entities/user_key/user_key_entity.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 
 @Injectable(as: UserRepository)
 class UserRepositoryImpl extends UserRepository {
-  final Isar isar;
+  final UserKeyStore _userKeyStore;
   final FlutterSecureStorage _secureStorage;
 
   // Key used in flutter_secure_storage for the user's nsec.
   static const _nsecStorageKey = 'uniun_nsec';
 
-  UserRepositoryImpl({required this.isar})
+  UserRepositoryImpl(this._userKeyStore)
       : _secureStorage = const FlutterSecureStorage(
           aOptions: AndroidOptions(encryptedSharedPreferences: true),
         );
@@ -62,22 +61,54 @@ class UserRepositoryImpl extends UserRepository {
   @override
   Future<Either<Failure, UserKeyEntity>> getActiveUser() async {
     try {
-      final model = await isar.userKeyModels.where().findFirst();
-      if (model == null) {
+      final pubkeyHex = _userKeyStore.pubkeyHex;
+      final npub = _userKeyStore.npub;
+      final createdAt = _userKeyStore.createdAt;
+      if (pubkeyHex == null || npub == null || createdAt == null) {
         return const Left(Failure.notFoundFailure('No active user'));
       }
 
       final nsec = await _secureStorage.read(key: _nsecStorageKey);
       if (nsec == null) {
-        // Isar has a key row but secure storage is cleared (e.g. app re-install
-        // on Android without backup). Treat as logged-out.
-        await isar.writeTxn(() async => isar.userKeyModels.clear());
+        // Public identity exists but secure storage is cleared (e.g. app
+        // re-install on Android without backup). Treat as logged-out.
+        await _userKeyStore.clear();
         return const Left(Failure.notFoundFailure('Private key missing — please log in again'));
       }
 
-      return Right(model.toDomain(nsec: nsec));
+      return Right(UserKeyEntity(
+        pubkeyHex: pubkeyHex,
+        npub: npub,
+        nsec: nsec,
+        createdAt: createdAt,
+      ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<({String privkeyHex, String pubkeyHex})?> getActiveKeysHex() async {
+    try {
+      final pubkeyHex = _userKeyStore.pubkeyHex;
+      if (pubkeyHex == null) return null;
+
+      final nsec = await _secureStorage.read(key: _nsecStorageKey);
+      if (nsec == null) return null;
+
+      final String privkeyHex;
+      if (nsec.startsWith('nsec1')) {
+        privkeyHex = Nip19.decodePrivkey(nsec);
+        if (privkeyHex.isEmpty) return null;
+      } else if (nsec.length == 64) {
+        privkeyHex = nsec;
+      } else {
+        return null;
+      }
+
+      return (privkeyHex: privkeyHex, pubkeyHex: pubkeyHex);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -85,7 +116,7 @@ class UserRepositoryImpl extends UserRepository {
   Future<Either<Failure, Unit>> logout() async {
     try {
       await _secureStorage.delete(key: _nsecStorageKey);
-      await isar.writeTxn(() async => isar.userKeyModels.clear());
+      await _userKeyStore.clear();
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -106,14 +137,12 @@ class UserRepositoryImpl extends UserRepository {
       // Private key → secure storage (Android Keystore / iOS Keychain)
       await _secureStorage.write(key: _nsecStorageKey, value: nsec);
 
-      // Public identity → Isar (safe to store, not a secret)
-      final existing = await isar.userKeyModels.where().findFirst();
-      final model = existing ?? UserKeyModel();
-      model.pubkeyHex = pubkeyHex;
-      model.npub = npub;
-      model.createdAt = now;
-
-      await isar.writeTxn(() async => isar.userKeyModels.put(model));
+      // Public identity → SharedPreferences (safe to store, not a secret)
+      await _userKeyStore.save(
+        pubkeyHex: pubkeyHex,
+        npub: npub,
+        createdAt: now,
+      );
 
       return Right(UserKeyEntity(
         pubkeyHex: pubkeyHex,
