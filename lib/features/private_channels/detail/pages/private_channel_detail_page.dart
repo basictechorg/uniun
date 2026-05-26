@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
-import 'package:uniun/domain/entities/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/core/router/app_routes.dart';
 

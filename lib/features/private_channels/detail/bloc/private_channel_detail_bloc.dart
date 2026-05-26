@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/domain/entities/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel_message_entity.dart';
-import 'package:uniun/domain/entities/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 

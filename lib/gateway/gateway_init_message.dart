@@ -14,8 +14,15 @@ class GatewayInitMessage {
   /// May be null before the user has logged in.
   final String? privkeyHex;
 
+  /// The active user's public key as raw hex (secp256k1).
+  /// Read from [UserKeyStore] (SharedPreferences) in Isolate 1 and passed
+  /// here because SharedPreferences is unavailable in background isolates.
+  /// May be null before the user has logged in.
+  final String? pubkeyHex;
+
   const GatewayInitMessage({
     required this.isarDirectory,
     this.privkeyHex,
+    this.pubkeyHex,
   });
 }

@@ -2,8 +2,8 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/gateway/central_relay_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
@@ -29,7 +29,10 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
       name: Isar.defaultName,
     );
 
-    final manager = CentralRelayManager(isar: isar);
+    final manager = CentralRelayManager(
+      isar: isar,
+      activePubkey: init.pubkeyHex,
+    );
     final nip17Service = Nip17EncryptionService(
       isar,
       privkeyHex: init.privkeyHex,
@@ -55,24 +58,19 @@ class GatewayBootstrap {
 
     final dir = await getApplicationDocumentsDirectory();
 
-    // Read nsec from secure storage (only accessible in the main isolate)
-    // and decode to hex before handing off to the background isolate.
-    String? privkeyHex;
-    try {
-      const storage = FlutterSecureStorage(
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      );
-      final nsec = await storage.read(key: 'uniun_nsec');
-      if (nsec != null && nsec.startsWith('nsec1')) {
-        privkeyHex = Nip19.decodePrivkey(nsec);
-      } else if (nsec != null && nsec.length == 64) {
-        privkeyHex = nsec;
-      }
-    } catch (_) {}
+    // Resolve the active user's keys in the main isolate. FlutterSecureStorage
+    // and SharedPreferences are unavailable in background isolates, so we hand
+    // off the raw hex values via [GatewayInitMessage]. Returns null when no
+    // user is logged in yet.
+    final keys = await getIt<UserRepository>().getActiveKeysHex();
 
     Isolate.spawn(
       gatewayEntryPoint,
-      GatewayInitMessage(isarDirectory: dir.path, privkeyHex: privkeyHex),
+      GatewayInitMessage(
+        isarDirectory: dir.path,
+        privkeyHex: keys?.privkeyHex,
+        pubkeyHex: keys?.pubkeyHex,
+      ),
     );
   }
 }

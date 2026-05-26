@@ -12,7 +12,9 @@
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
+import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:tostore/tostore.dart' as _i789;
+import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/datasources/tostore_module.dart' as _i740;
 import 'package:uniun/data/repositories/ai_model_repository_impl.dart' as _i72;
@@ -132,8 +134,13 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) async {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
+    final sharedPreferencesModule = _$SharedPreferencesModule();
     final isarModule = _$IsarModule();
     final tostoreModule = _$TostoreModule();
+    await gh.singletonAsync<_i460.SharedPreferences>(
+      () => sharedPreferencesModule.sharedPreferences(),
+      preResolve: true,
+    );
     await gh.singletonAsync<_i214.Isar>(
       () => isarModule.createIsar(),
       preResolve: true,
@@ -161,9 +168,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i168.MarmotMlsService>(),
       ),
     );
-    gh.factory<_i646.AIModelRepository>(
-      () => _i72.AIModelRepositoryImpl(gh<_i214.Isar>()),
-    );
     gh.factory<_i266.ShivRepository>(
       () => _i412.ShivRepositoryImpl(gh<_i214.Isar>()),
     );
@@ -175,6 +179,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i649.GraphRepository>(
       () => _i250.GraphRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.singleton<_i107.AppSettingsStore>(
+      () => _i107.AppSettingsStore(gh<_i460.SharedPreferences>()),
+    );
+    gh.singleton<_i107.UserKeyStore>(
+      () => _i107.UserKeyStore(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -193,6 +203,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i103.UserRepository>(
+      () => _i582.UserRepositoryImpl(gh<_i107.UserKeyStore>()),
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -229,6 +242,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i189.DmConversationRepository>(),
       ),
     );
+    gh.lazySingleton<_i799.GetActiveUserProfileUseCase>(
+      () => _i799.GetActiveUserProfileUseCase(
+        gh<_i103.UserRepository>(),
+        gh<_i967.ProfileRepository>(),
+      ),
+    );
     gh.factory<_i964.ChannelMessageRepository>(
       () => _i929.ChannelMessageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -247,9 +266,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i331.MemoryRepository>(
       () => _i849.MemoryRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.factory<_i103.UserRepository>(
-      () => _i582.UserRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.lazySingleton<_i604.GetConversationsUseCase>(
       () => _i604.GetConversationsUseCase(gh<_i266.ShivRepository>()),
@@ -412,26 +428,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i58.DeleteAllChatHistoryUseCase>(
       () => _i58.DeleteAllChatHistoryUseCase(gh<_i240.StorageRepository>()),
     );
-    gh.lazySingleton<_i894.GetAvailableAIModelsUseCase>(
-      () => _i894.GetAvailableAIModelsUseCase(gh<_i646.AIModelRepository>()),
-    );
-    gh.lazySingleton<_i894.GetActiveAIModelUseCase>(
-      () => _i894.GetActiveAIModelUseCase(gh<_i646.AIModelRepository>()),
-    );
-    gh.lazySingleton<_i894.DownloadAndActivateAIModelUseCase>(
-      () => _i894.DownloadAndActivateAIModelUseCase(
-        gh<_i646.AIModelRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i894.ClearActiveAIModelUseCase>(
-      () => _i894.ClearActiveAIModelUseCase(gh<_i646.AIModelRepository>()),
-    );
-    gh.lazySingleton<_i894.GetDownloadedModelIdsUseCase>(
-      () => _i894.GetDownloadedModelIdsUseCase(gh<_i646.AIModelRepository>()),
-    );
-    gh.lazySingleton<_i894.DeleteAIModelUseCase>(
-      () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
-    );
     gh.lazySingleton<_i858.UnsaveNoteUseCase>(
       () => _i858.UnsaveNoteUseCase(
         gh<_i43.SavedNoteRepository>(),
@@ -442,6 +438,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i524.CreateChannelMessageUseCase(
         gh<_i964.ChannelMessageRepository>(),
         gh<_i1039.EventQueueRepository>(),
+      ),
+    );
+    gh.factory<_i646.AIModelRepository>(
+      () => _i72.AIModelRepositoryImpl(
+        gh<_i214.Isar>(),
+        gh<_i107.AppSettingsStore>(),
       ),
     );
     gh.factoryParam<_i10.PrivateChannelDetailBloc, String, dynamic>(
@@ -504,16 +506,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i433.SaveRelayUseCase>(
       () => _i433.SaveRelayUseCase(gh<_i993.RelayRepository>()),
     );
-    gh.factory<_i687.SelectAIModelCubit>(
-      () => _i687.SelectAIModelCubit(
-        gh<_i894.GetAvailableAIModelsUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
-        gh<_i894.GetDownloadedModelIdsUseCase>(),
-        gh<_i894.DownloadAndActivateAIModelUseCase>(),
-        gh<_i894.DeleteAIModelUseCase>(),
-        gh<_i850.EmbeddingModelDownloader>(),
-      ),
-    );
     gh.lazySingleton<_i1033.CreateChannelUseCase>(
       () => _i1033.CreateChannelUseCase(
         gh<_i127.ChannelRepository>(),
@@ -550,12 +542,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i179.GetMemoriesByNoteIdsUseCase>(
       () => _i179.GetMemoriesByNoteIdsUseCase(gh<_i331.MemoryRepository>()),
-    );
-    gh.lazySingleton<_i799.GetActiveUserProfileUseCase>(
-      () => _i799.GetActiveUserProfileUseCase(
-        gh<_i103.UserRepository>(),
-        gh<_i967.ProfileRepository>(),
-      ),
     );
     gh.lazySingleton<_i391.PublishProfileMetadataUseCase>(
       () => _i391.PublishProfileMetadataUseCase(
@@ -619,18 +605,25 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i67.SaveChannelUseCase>(),
       ),
     );
-    gh.lazySingleton<_i681.RagPipeline>(
-      () => _i681.RagPipeline(
-        gh<_i587.EmbeddingService>(),
-        gh<_i961.VectorSearchService>(),
-        gh<_i207.PromptBuilder>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i391.GetOwnProfileUseCase>(),
-        gh<_i179.GetMemoriesByNoteIdsUseCase>(),
-        gh<_i179.GetGraphNeighboursUseCase>(),
-        gh<_i179.GetGraphNodesByKeysUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
+    gh.lazySingleton<_i894.GetAvailableAIModelsUseCase>(
+      () => _i894.GetAvailableAIModelsUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.GetActiveAIModelUseCase>(
+      () => _i894.GetActiveAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.DownloadAndActivateAIModelUseCase>(
+      () => _i894.DownloadAndActivateAIModelUseCase(
+        gh<_i646.AIModelRepository>(),
       ),
+    );
+    gh.lazySingleton<_i894.ClearActiveAIModelUseCase>(
+      () => _i894.ClearActiveAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.GetDownloadedModelIdsUseCase>(
+      () => _i894.GetDownloadedModelIdsUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i894.DeleteAIModelUseCase>(
+      () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
@@ -640,18 +633,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.PublishProfileMetadataUseCase>(),
       ),
     );
-    gh.factory<_i190.ShivAIBloc>(
-      () => _i190.ShivAIBloc(
-        gh<_i604.GetConversationsUseCase>(),
-        gh<_i604.CreateConversationUseCase>(),
-        gh<_i604.DeleteConversationUseCase>(),
-        gh<_i604.GetMessagesUseCase>(),
-        gh<_i604.SaveMessageUseCase>(),
-        gh<_i604.UpdateMessageContentUseCase>(),
-        gh<_i604.UpdateConversationTitleUseCase>(),
-        gh<_i604.UpdateActiveLeafUseCase>(),
-        gh<_i847.AIModelRunner>(),
-        gh<_i681.RagPipeline>(),
+    gh.factory<_i687.SelectAIModelCubit>(
+      () => _i687.SelectAIModelCubit(
+        gh<_i894.GetAvailableAIModelsUseCase>(),
+        gh<_i894.GetActiveAIModelUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+        gh<_i894.DownloadAndActivateAIModelUseCase>(),
+        gh<_i894.DeleteAIModelUseCase>(),
+        gh<_i850.EmbeddingModelDownloader>(),
       ),
     );
     gh.lazySingleton<_i756.EmbedAndStoreNoteUseCase>(
@@ -683,6 +672,19 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetNoteByIdUseCase>(),
       ),
     );
+    gh.lazySingleton<_i681.RagPipeline>(
+      () => _i681.RagPipeline(
+        gh<_i587.EmbeddingService>(),
+        gh<_i961.VectorSearchService>(),
+        gh<_i207.PromptBuilder>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i179.GetMemoriesByNoteIdsUseCase>(),
+        gh<_i179.GetGraphNeighboursUseCase>(),
+        gh<_i179.GetGraphNodesByKeysUseCase>(),
+        gh<_i894.GetActiveAIModelUseCase>(),
+      ),
+    );
     gh.factory<_i807.ThreadBloc>(
       () => _i807.ThreadBloc(
         gh<_i475.GetNoteByIdUseCase>(),
@@ -694,9 +696,25 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
+    gh.factory<_i190.ShivAIBloc>(
+      () => _i190.ShivAIBloc(
+        gh<_i604.GetConversationsUseCase>(),
+        gh<_i604.CreateConversationUseCase>(),
+        gh<_i604.DeleteConversationUseCase>(),
+        gh<_i604.GetMessagesUseCase>(),
+        gh<_i604.SaveMessageUseCase>(),
+        gh<_i604.UpdateMessageContentUseCase>(),
+        gh<_i604.UpdateConversationTitleUseCase>(),
+        gh<_i604.UpdateActiveLeafUseCase>(),
+        gh<_i847.AIModelRunner>(),
+        gh<_i681.RagPipeline>(),
+      ),
+    );
     return this;
   }
 }
+
+class _$SharedPreferencesModule extends _i107.SharedPreferencesModule {}
 
 class _$IsarModule extends _i146.IsarModule {}
 

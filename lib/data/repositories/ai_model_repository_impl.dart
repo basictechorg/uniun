@@ -8,8 +8,8 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:system_info_plus/system_info_plus.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
-import 'package:uniun/data/models/app_settings_model.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
 import 'package:path/path.dart' as p;
@@ -17,8 +17,9 @@ import 'package:path/path.dart' as p;
 @Injectable(as: AIModelRepository)
 class AIModelRepositoryImpl implements AIModelRepository {
   final Isar _isar;
+  final AppSettingsStore _settings;
 
-  AIModelRepositoryImpl(this._isar);
+  AIModelRepositoryImpl(this._isar, this._settings);
 
   // ── Model catalog ────────────────────────────────────────────────────────────
   // All URLs are real HuggingFace releases compatible with flutter_gemma 0.13.x
@@ -129,8 +130,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
   @override
   Future<Either<Failure, AIModelEntity?>> getActiveModel() async {
     try {
-      final settings = await _isar.appSettingsModels.get(1);
-      final activeId = settings?.activeModelId;
+      final activeId = _settings.activeModelId;
       if (activeId == null) return const Right(null);
 
       final entry = _catalog.where((m) => m.modelId == activeId).firstOrNull;
@@ -163,12 +163,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
   @override
   Future<Either<Failure, Unit>> clearActiveModel() async {
     try {
-      await _isar.writeTxn(() async {
-        final settings =
-            await _isar.appSettingsModels.get(1) ?? AppSettingsModel();
-        settings.activeModelId = null;
-        await _isar.appSettingsModels.put(settings);
-      });
+      await _settings.setActiveModelId(null);
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -192,12 +187,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
     // Already on disk — skip download, just activate.
     if (await FlutterGemma.isModelInstalled(filename)) {
       try {
-        await _isar.writeTxn(() async {
-          final settings =
-              await _isar.appSettingsModels.get(1) ?? AppSettingsModel();
-          settings.activeModelId = modelId;
-          await _isar.appSettingsModels.put(settings);
-        });
+        await _settings.setActiveModelId(modelId);
         yield AIModelDownloadEvent.complete(modelId);
       } catch (e) {
         yield AIModelDownloadEvent.failed(e.toString());
@@ -235,10 +225,10 @@ class AIModelRepositoryImpl implements AIModelRepository {
       return;
     }
 
-    // install() completed — persist selection to Isar.
+    // install() completed — persist download record to Isar and active
+    // selection to SharedPreferences.
     try {
       await _isar.writeTxn(() async {
-        // Record that this model is downloaded.
         final prev = await _isar.aIModelSelectionModels
             .filter()
             .modelIdEqualTo(modelId)
@@ -249,13 +239,8 @@ class AIModelRepositoryImpl implements AIModelRepository {
         model.modelPath = modelId.name;
         model.downloadedAt = DateTime.now();
         await _isar.aIModelSelectionModels.put(model);
-
-        // Set as active model in settings singleton.
-        final settings =
-            await _isar.appSettingsModels.get(1) ?? AppSettingsModel();
-        settings.activeModelId = modelId;
-        await _isar.appSettingsModels.put(settings);
       });
+      await _settings.setActiveModelId(modelId);
 
       yield AIModelDownloadEvent.complete(modelId);
     } catch (e) {
@@ -317,13 +302,11 @@ class AIModelRepositoryImpl implements AIModelRepository {
         if (record != null) {
           await _isar.aIModelSelectionModels.delete(record.id);
         }
-        // If this was the active model, clear it.
-        final settings = await _isar.appSettingsModels.get(1);
-        if (settings?.activeModelId == modelId) {
-          settings!.activeModelId = null;
-          await _isar.appSettingsModels.put(settings);
-        }
       });
+      // If this was the active model, clear it.
+      if (_settings.activeModelId == modelId) {
+        await _settings.setActiveModelId(null);
+      }
 
       return const Right(unit);
     } catch (e) {

@@ -4,11 +4,9 @@ import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
-import 'package:uniun/data/models/event_queue_private_channel_ext.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
-import 'package:uniun/data/models/user_key_model.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/data/repositories/relay_repository_impl.dart';
 import 'package:uniun/gateway/websocket_service.dart';
@@ -39,7 +37,7 @@ class CentralRelayManager {
   final Map<String, Timer> _tempRelayTimers = {};
   final Map<String, WebSocketService> _tempServices = {};
   int _lastHandledQueueId = 0;
-  String? _activePubkey;
+  final String? _activePubkey;
 
   Timer? _dequeueTimer;
   StreamSubscription<void>? _queueWatcher;
@@ -50,15 +48,15 @@ class CentralRelayManager {
   int _knownChannelCount = 0;
   int _knownPrivateChannelCount = 0;
 
-  CentralRelayManager({required Isar isar}) : _isar = isar;
+  CentralRelayManager({
+    required Isar isar,
+    String? activePubkey,
+  })  : _isar = isar,
+        _activePubkey = activePubkey;
 
   // ── Startup ────────────────────────────────────────────────────────────────
 
   Future<void> start() async {
-    final activeKey = await _isar.userKeyModels
-        .where()
-        .findFirst();
-    _activePubkey = activeKey?.pubkeyHex;
 
     // 1. Spin up one WebSocketService per persisted relay.
     var relays = await _isar.relayModels.where().findAll();

@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
-import 'package:uniun/domain/entities/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel_message_entity.dart';
-import 'package:uniun/domain/entities/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
 
