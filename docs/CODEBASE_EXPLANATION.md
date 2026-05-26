@@ -165,54 +165,52 @@ UI (Channels + DMs BLoC) is pending. Schema is in place and `.g.dart` files are 
 
 ## Part 7: Folder Structure
 
+**IMPORTANT:** All feature modules moved to `lib/features/` (PR #36 — folder restructure). Do not use the old flat paths.
+
 ```
 lib/
-├── common/           # get_it locator, snackbar, shared widgets
-├── core/             # theme, router, enums, error types, usecase bases
+├── common/           # get_it locator, snackbar, floating_nav, shared widgets
+├── core/
+│   ├── enum/         # NoteType, MessageRole, OutboundStatus, RelayStatus
+│   ├── error/        # Failure freezed union
+│   ├── router/       # AppRoutes constants
+│   ├── scan/         # QR + OCR scanner widgets (shared, not feature-specific)
+│   │   ├── uniun_qr_card.dart     # UniunQrCard.user() + UniunChannelQrCard.channel() + shared UniunQrView
+│   │   ├── uniun_qr_payload.dart  # encode/decode JSON QR payloads
+│   │   ├── qr_scanner_page.dart   # live QR scanner (MobileScanner)
+│   │   ├── text_scanner_page.dart # legacy OCR scanner (kept, not in use)
+│   │   ├── uniun_card.dart        # legacy OCR card (kept)
+│   │   └── uniun_payload.dart     # legacy OCR payload (kept)
+│   ├── theme/        # AppColors, AppTheme
+│   └── usecases/     # UseCase<T,P> base classes
 ├── data/
 │   ├── datasources/
-│   │   └── isar_module.dart      # Isar singleton — ALL schemas registered here
-│   ├── models/                   # Isar @Collection models (mutable)
-│   └── repositories/             # Repository impls (@Injectable)
+│   │   ├── isar_module.dart    # Isar singleton — ALL schemas registered here
+│   │   ├── isar_schemas.dart   # schema list
+│   │   └── tostore_module.dart # vector DB
+│   ├── models/       # Isar @Collection models — includes MemoryNodeModel (GraphRAG)
+│   └── repositories/ # Repository impls (@Injectable)
 ├── domain/
-│   ├── entities/                 # @freezed abstract class entities
-│   ├── repositories/             # Abstract interfaces
-│   └── usecases/                 # Business logic (@lazySingleton, grouped by feature)
+│   ├── entities/     # @freezed abstract class entities
+│   ├── repositories/ # Abstract interfaces
+│   └── usecases/     # Business logic (@lazySingleton, grouped by feature)
+│                     # knowledge_usecases.dart — graph + memory use cases (new)
+├── gateway/          # Relay sync isolate — do not modify (Parjaniya's code)
 ├── l10n/             # Generated — all UI strings via AppLocalizations
 │
-│── vishnu/           # Feed tab
-│   ├── bloc/
-│   ├── pages/
-│   └── widgets/
-│
-├── brahma/           # Create note tab
-│   ├── bloc/
-│   ├── pages/
-│   └── widgets/
-│
-├── shiv/             # AI assistant tab
-│   ├── chat/
-│   │   ├── bloc/     # ShivAIBloc (events, state, freezed)
-│   │   ├── pages/    # ShivChatPage
-│   │   └── widgets/  # ShivHistoryDrawer, ShivConversationTile,
-│   │                 # ShivInputComposer, ShivMessageBubble
-│   ├── model_select/
-│   │   ├── cubit/    # SelectAIModelCubit
-│   │   ├── pages/    # AIModelSelectionPage
-│   │   └── widgets/  # ModelCard, ModelSelectionFooter
-│   ├── pages/        # ShivPage (root — model check + landing/chat switch)
-│   ├── rag/
-│   │   ├── embedding/  # EmbeddingService (TFLite, all-MiniLM-L6-v2)
-│   │   ├── pipeline/   # RagPipeline (orchestrator)
-│   │   ├── prompt/     # PromptBuilder
-│   │   └── retrieval/  # VectorSearchService (cosine similarity)
-│   └── services/
-│       └── ai_model_runner.dart  # AIModelRunner (InferenceChat wrapper)
-│
-├── channels/         # NIP-28 public channels (pending)
-├── dms/              # NIP-17 DMs (pending)
-├── settings/         # Profile edit, identity, storage
-└── onboarding/       # Welcome, key gen, import
+└── features/         # ← ALL feature modules live here
+    ├── onboarding/
+    ├── home/
+    ├── vishnu/        # Feed + Drawer
+    ├── brahma/        # Create Note + Graph
+    ├── shiv/          # AI assistant (RAG pipeline, branch tree, model select)
+    ├── thread/        # Thread view
+    ├── channels/      # Public channels: create, feed, thread, join (+ QR join)
+    ├── private_channels/  # Private channels: create, join, detail
+    ├── dm/            # DMs (NIP-17) — UI pending
+    ├── followed_notes/
+    ├── saved_notes/
+    └── settings/
 ```
 
 ---
@@ -271,10 +269,13 @@ Add keys to `lib/l10n/app_en.arb`, then run `flutter gen-l10n`.
 | Vishnu feed (BLoC, NoteCard, pagination, save/unsave) | ✅ Done |
 | Thread view (BFS load, nested replies) | ✅ Done |
 | Followed notes (cubit, detail page) | ✅ Done |
-| Settings (profile edit, identity, storage) | ✅ Done |
+| Settings (profile edit, identity, storage, AI, style) | ✅ Done |
 | Brahma create note (BLoC, compose, graph preview) | ✅ Done |
-| Shiv AI (model select, RAG, conversations, chat UI) | ✅ Done |
+| Shiv AI — model select, RAG, GraphRAG, branch tree, streaming | ✅ Done |
 | EventQueueModel + relay wire format | ✅ Done |
-| DM models (DmConversationModel, DmMessageModel) | ✅ Schema done |
-| Channels UI (NIP-28) | 🔲 Pending |
+| Public channels — create, feed, thread, join (QR + manual) | ✅ Done |
+| Private channels — create, join, detail, admin requests | ✅ Done |
+| QR card system (UniunQrCard, UniunChannelQrCard, QrScannerPage) | ✅ Done |
+| DM models (schema) | ✅ Done |
+| Private channel QR share button | 🔲 Pending |
 | DMs UI (NIP-17) | 🔲 Pending |

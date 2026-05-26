@@ -1,0 +1,713 @@
+/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 193.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 194.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 195.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 196.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 197.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 198.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 199.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 200.
+I/tflite  (20823): Replacing 3 out of 5 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 4 partitions for subgraph 201.
+I/tflite  (20823): Replacing 2 out of 13 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 3 partitions for subgraph 202.
+I/tflite  (20823): Replacing 2 out of 10 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 203.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 204.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 205.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 206.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 207.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 208.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 209.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 210.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 211.
+I/tflite  (20823): Replacing 3 out of 5 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 4 partitions for subgraph 212.
+I/tflite  (20823): Replacing 2 out of 2 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 213.
+I/tflite  (20823): Replacing 2 out of 2 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 214.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 215.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 216.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 217.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 218.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 219.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 220.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 221.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 222.
+I/tflite  (20823): Replacing 3 out of 5 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 4 partitions for subgraph 223.
+I/tflite  (20823): Replacing 2 out of 13 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 3 partitions for subgraph 224.
+I/tflite  (20823): Replacing 2 out of 10 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 225.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 226.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 227.
+I/tflite  (20823): Replacing 8 out of 8 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 228.
+W/ratelimit(20823): Single process limit 250/s drop 787 lines.
+I/tflite  (20823): Replacing 1 out of 42 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 0.
+I/native  (20823): I0000 00:00:1779821796.207422   21430 embedding_lookup_text.cc:345] EmbeddingLookupText initialized: signature=per_layer_embedder, rank=4, floats_per_token=8960
+W/native  (20823): W0000 00:00:1779821796.207696   21430 litert_lm_loader.h:144] TFLite model type: TF_LITE_PREFILL_DECODE not found for backend constraints. Skipping.
+W/native  (20823): W0000 00:00:1779821796.207726   21430 litert_lm_loader.h:144] TFLite model type: TF_LITE_VISION_ENCODER not found for backend constraints. Skipping.
+I/native  (20823): I0000 00:00:1779821796.207771   21430 engine_settings.cc:98] The Main backend constraint is not set.
+I/native  (20823): I0000 00:00:1779821796.207784   21430 engine_settings.cc:343] The validated engine settings: EngineSettings: 
+I/native  (20823):   MainExecutorSettings: backend: CPU
+I/native  (20823): backend_config:
+I/native  (20823): kv_increment_size: 16
+I/native  (20823): prefill_chunk_size: -1
+I/native  (20823): number_of_threads: 4
+I/native  (20823): 
+I/native  (20823): max_tokens: 2048
+I/native  (20823): activation_data_type: Not set
+I/native  (20823): max_num_images: 0
+I/native  (20823): lora_rank: 0
+I/native  (20823): cache_dir: /data/user/0/com.basictech.uniun/cache
+I/native  (20823): cache_file: Not set
+I/native  (20823): litert_dispatch_lib_dir: Not set
+I/native  (20823): model_assets: model_path: /data/data/com.basictech.uniun/app_flutter/gemma-4-E2B-it.litertlm
+I/native  (20823): fake_weights_mode: FAKE_WEIGHTS_NONE
+I/native  (20823): 
+I/native  (20823): advanced_settings: prefill_batch_sizes: []
+I/native  (20823): num_output_candidates: 1
+I/native  (20823): configure_magic_numbers: true
+I/native  (20823): verify_magic_numbers: false
+I/native  (20823): clear_kv_cache_before_prefill: true
+I/native  (20823): num_logits_to_print_after_decode: 0
+I/native  (20823): gpu_madvise_original_shared_tensors: true
+I/native  (20823): is_benchmark: false
+I/native  (20823): preferred_device_substr: 
+I/native  (20823): num_threads_to_upload: -1
+I/native  (20823): num_threads_to_compile: -1
+I/native  (20823): convert_weights_on_gpu: true
+I/native  (20823): wait_for_weights_conversion_complete_in_benchmark: true
+I/native  (20823): optimize_shader_compilation: true
+I/native  (20823): cache_compiled_shaders_only: false
+I/native  (20823): share_constant_tensors: true
+I/native  (20823): sampler_handles_input: true
+I/native  (20823): allow_src_quantized_fc_conv_ops: true
+I/native  (20823): hint_waiting_for_completion: false
+I/native  (20823): gpu_context_low_priority: false
+I/native  (20823): enable_speculative_decoding: false
+I/native  (20823): disable_delegate_clustering: true
+I/native  (20823): 
+I/native  (20823):   LlmMetadata: MessageLite at 0x746afc0a80  BenchmarkParams: Not set
+I/native  (20823):   VisionExecutorSettings: Not set
+I/native  (20823):   AudioExecutorSettings: Not set
+I/native  (20823): I0000 00:00:1779821796.207851   21430 threadpool.cc:41] ThreadPool 'engine': Running up to 1 threads.
+I/LiteRtLmEngine(20823): LiteRT-LM engine initialized successfully
+I/native  (20823): I0000 00:00:1779821796.254469   21430 model_data_processor_factory.cc:395] Creating Gemma4DataProcessor
+W/native  (20823): W0000 00:00:1779821796.254703   21430 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
+D/LiteRtLmSession(20823): Created LiteRT-LM conversation with topK=20, temp=0.2
+I/flutter (20823): --- Sending to Native ---
+I/flutter (20823): History:
+I/flutter (20823): 
+I/flutter (20823): Current Message:
+I/flutter (20823): Extract structured knowledge from NEW_NOTE. Use SIMILAR_NOTES only as context to align entity names.
+I/flutter (20823): 
+I/flutter (20823): NEW_NOTE:
+I/flutter (20823): sam is best you know sam is great code and he knows this stuff
+I/flutter (20823): 
+I/flutter (20823): Return ONLY valid minified JSON with this exact shape:
+I/flutter (20823): {
+I/flutter (20823):   "summary": "<2-4 sentence summary of NEW_NOTE in the user's own words>",
+I/flutter (20823):   "keyPoints": ["<short fact 1>", "<short fact 2>"],
+I/flutter (20823):   "concepts": ["<entity A>", "<entity B>"],
+I/flutter (20823):   "relations": [{"source":"<entity>","target":"<entity>","type":"<verb>"}],
+I/flutter (20823):   "links": ["<id of a similar_note that is clearly related, else omit>"]
+I/flutter (20823): }
+I/flutter (20823): Rules:
+I/flutter (20823): - Replace EVERY angle-bracket placeholder with a real value drawn from NEW_NOTE. Never output the placeholder text itself.
+I/flutter (20823): - Entity names lowercase (e.g. "sam", "raj", "mysql", "node_js", "pc", "uniun").
+I/flutter (20823): - Relation "type" is a short freeform verb or snake_case phrase that describes the ACTUAL relationship in NEW_NOTE. Pick whatever fits the text — do not default to "uses".
+I/flutter (20823):   Examples across domains: uses, runs_on, depends_on, part_of, stores, produces, improves, replaces, measured_by,
+I/flutter (20823):   is_mother_of, is_father_of, friend_of, married_to, works_at, lives_in, located_in, born_in,
+I/flutter (20823):   happened_before, happened_after, caused_by, treated_with, symptom_of, similar_to, opposite_of.
+I/flutter (20823):   If none fit, invent a short snake_case verb that does.
+I/flutter (20823): - Summary must paraphrase NEW_NOTE in plain language; never output instruction fragments like "2-4 line summary".
+I/flutter (20823): - No prose outside the JSON. No markdown fences. No code blocks.
+I/flutter (20823): 
+I/flutter (20823): -------------------------
+I/flutter (20823): [MobileSession.addQueryChunk] modelType=ModelType.gemmaIt, fileType=ModelFileType.litertlm, msgType=MessageType.text
+I/flutter (20823): [transformToChatPrompt] modelType=ModelType.gemmaIt, fileType=ModelFileType.litertlm, messageType=MessageType.text, isUser=false
+I/flutter (20823): [transformToChatPrompt] litertlm non-iOS, using raw text, result length=1480
+I/flutter (20823): [MobileSession.addQueryChunk] finalPrompt length=1480
+V/LiteRtLmSession(20823): Accumulated chunk: 1480 chars, total: 1480
+I/flutter (20823): InferenceChat: Starting async stream generation
+I/flutter (20823): InferenceChat: Starting to iterate over native tokens...
+D/LiteRtLmSession(20823): Added text: 1480 chars
+D/LiteRtLmSession(20823): Building message with 1 content items
+D/LiteRtLmSession(20823): Generating async response for message: 1480 chars
+I/native  (20823): I0000 00:00:1779821796.326176   21431 session_basic.cc:356] RunPrefillAsync: 
+I/native  (20823): I0000 00:00:1779821796.326459   21431 session_basic.cc:358] <|turn>user
+I/native  (20823): Extract structured knowledge from NEW_NOTE. Use SIMILAR_NOTES only as context to align entity names.
+I/native  (20823): 
+I/native  (20823): NEW_NOTE:
+I/native  (20823): sam is best you know sam is great code and he knows this stuff
+I/native  (20823): 
+I/native  (20823): Return ONLY valid minified JSON with this exact shape:
+I/native  (20823): {
+I/native  (20823):   "summary": "<2-4 sentence summary of NEW_NOTE in the user's own words>",
+I/native  (20823):   "keyPoints": ["<short fact 1>", "<short fact 2>"],
+I/native  (20823):   "concepts": ["<entity A>", "<entity B>"],
+I/native  (20823):   "relations": [{"source":"<entity>","target":"<entity>","type":"<verb>"}],
+I/native  (20823):   "links": ["<id of a similar_note that is clearly related, else omit>"]
+I/native  (20823): }
+I/native  (20823): Rules:
+I/native  (20823): - Replace EVERY angle-bracket placeholder with a real value drawn from NEW_NOTE. Never output the placeholder text itself.
+I/native  (20823): - Entity names lowercase (e.g. "sam", "raj", "mysql", "node_js", "pc", "uniun").
+I/native  (20823): - Relation "type" is a short freeform verb or snake_case phrase that describes the ACTUAL relationship in NEW_NOTE. Pick whatever fits the text — do not default to "uses".
+I/native  (20823):   Examples across domains: uses, runs_on, depends_on, part_of, stores, produces, improves, replaces, measured_by,
+I/native  (20823):   is_mother_of, is_father_of, friend_of, married_to, works_at, lives_in, located_in, born_in,
+I/native  (20823):   happened_before, happened_after, caused_by, treated_with, symptom_of, similar_to, opposite_of.
+I/native  (20823):   If none fit, invent a short snake_case verb that does.
+I/native  (20823): - Summary must paraphrase NEW_NOTE in plain language; never output instruction fragments like "2-4 line summary".
+I/native  (20823): - No prose outside the JSON. No markdown fences. No code blocks.<turn|>
+I/native  (20823): <|turn>model
+I/native  (20823): I0000 00:00:1779821796.330825   21431 threadpool.cc:86] ThreadPool 'engine': Created a worker thread since all 0 worker threads are (supposed to be) busy.
+I/tflite  (20823): Replacing 1924 out of 2235 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 155 partitions for subgraph 1.
+I/flutter (20823): 🤖 System instruction built — name: Samarth, bio: null
+I/AssistStructure(20823): Flattened final assist data: 468 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(20823): The input method toggled cursor monitoring on
+D/InsetsController(20823): default animation onReady types: 8 mShow=true mHasAnimationCallbacks=true mRequestedTypes=8
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/InsetsAnimationCtrlImpl(20823): notify control request finished for types: 8
+D/InsetsController(20823): onAnimationFinish showOnFinish: true mRequestedTypes=8
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+I/flutter (20823): 🔍 Tostore.vectorSearch → 5 raw hit(s)
+I/flutter (20823): 🔍 Tostore ANN returning 0 ScoredNote(s)
+D/InputConnectionAdaptor(20823): The input method toggled cursor monitoring off
+D/InsetsController(20823): default animation onReady types: 8 mShow=false mHasAnimationCallbacks=true mRequestedTypes=8
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/InsetsAnimationCtrlImpl(20823): notify control request finished for types: 8
+D/InsetsController(20823): onAnimationFinish showOnFinish: false mRequestedTypes=8
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+D/FlutterJNI(20823): Sending viewport metrics to the engine.
+I/native  (20823): I0000 00:00:1779821882.291040   21442 session_basic.cc:394] RunPrefillAsync status: OK
+I/native  (20823): I0000 00:00:1779821882.291249   21442 session_basic.cc:514] RunDecodeAsync
+I/flutter (20823): InferenceChat: Received filtered token: "{"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "{"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "summary"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "summary"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: " is"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " is"
+I/flutter (20823): InferenceChat: Received filtered token: " a"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " a"
+I/flutter (20823): InferenceChat: Received filtered token: " great"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " great"
+I/flutter (20823): InferenceChat: Received filtered token: " coder"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " coder"
+I/flutter (20823): InferenceChat: Received filtered token: " who"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " who"
+I/flutter (20823): InferenceChat: Received filtered token: " possesses"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " possesses"
+I/flutter (20823): InferenceChat: Received filtered token: " a"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " a"
+I/flutter (20823): InferenceChat: Received filtered token: " lot"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " lot"
+I/flutter (20823): InferenceChat: Received filtered token: " of"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " of"
+I/flutter (20823): InferenceChat: Received filtered token: " knowledge"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " knowledge"
+I/flutter (20823): InferenceChat: Received filtered token: " in"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " in"
+I/flutter (20823): InferenceChat: Received filtered token: " his"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " his"
+I/flutter (20823): InferenceChat: Received filtered token: " field"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " field"
+I/flutter (20823): InferenceChat: Received filtered token: ".","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: ".","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "key"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "key"
+I/flutter (20823): InferenceChat: Received filtered token: "Points"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "Points"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ["
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ["
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: " is"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " is"
+I/flutter (20823): InferenceChat: Received filtered token: " great"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " great"
+I/flutter (20823): InferenceChat: Received filtered token: " code"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " code"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: " knows"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " knows"
+I/flutter (20823): InferenceChat: Received filtered token: " this"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " this"
+I/flutter (20823): InferenceChat: Received filtered token: " stuff"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " stuff"
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: "],"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "],"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "concepts"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "concepts"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ["
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ["
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "code"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "code"
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: "],"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "],"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "relations"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "relations"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ["
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ["
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: "{"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "{"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "source"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "source"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "target"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "target"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "code"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "code"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "type"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "type"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "is"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "is"
+I/flutter (20823): InferenceChat: Received filtered token: "_"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "_"
+I/flutter (20823): InferenceChat: Received filtered token: "great"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "great"
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: "},"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "},"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: "{"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "{"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "source"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "source"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "sam"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "target"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "target"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "stuff"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "stuff"
+I/flutter (20823): InferenceChat: Received filtered token: "","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "","
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "      "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "      "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "type"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "type"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " ""
+I/flutter (20823): InferenceChat: Received filtered token: "know"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "know"
+I/flutter (20823): InferenceChat: Received filtered token: "s"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "s"
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "    "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "    "
+I/flutter (20823): InferenceChat: Received filtered token: "}"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "}"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: "],"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "],"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "  "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "  "
+I/flutter (20823): InferenceChat: Received filtered token: """
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: """
+I/flutter (20823): InferenceChat: Received filtered token: "links"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "links"
+I/flutter (20823): InferenceChat: Received filtered token: "":"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "":"
+I/flutter (20823): InferenceChat: Received filtered token: " []"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " []"
+I/flutter (20823): InferenceChat: Received filtered token: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "
+I/flutter (20823): "
+I/flutter (20823): InferenceChat: Received filtered token: "}"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "}"
+I/flutter (20823): InferenceChat: Received filtered token: ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: ""
+I/flutter (20823): InferenceChat: Native token stream ended
+I/flutter (20823): InferenceChat: Complete response accumulated: "{
+I/flutter (20823):   "summary": "sam is a great coder who possesses a lot of knowledge in his field.",
+I/flutter (20823):   "keyPoints": [
+I/flutter (20823):     "sam is great code",
+I/flutter (20823):     "sam knows this stuff"
+I/flutter (20823):   ],
+I/flutter (20823):   "concepts": [
+I/flutter (20823):     "sam",
+I/flutter (20823):     "code"
+I/flutter (20823):   ],
+I/flutter (20823):   "relations": [
+I/flutter (20823):     {
+I/flutter (20823):       "source": "sam",
+I/flutter (20823):       "target": "code",
+I/flutter (20823):       "type": "is_great"
+I/flutter (20823):     },
+I/flutter (20823):     {
+I/flutter (20823):       "source": "sam",
+I/flutter (20823):       "target": "stuff",
+I/flutter (20823):       "type": "knows"
+I/flutter (20823):     }
+I/flutter (20823):   ],
+I/flutter (20823):   "links": []
+I/flutter (20823): }"
+I/flutter (20823): InferenceChat: Calculating response tokens...
+W/LiteRtLmSession(20823): sizeInTokens: LiteRT-LM does not support token counting. Using estimate (~4 chars/token): 102 tokens for 407 chars. This may be inaccurate for non-English text.
+I/flutter (20823): InferenceChat: Response tokens: 102
+I/flutter (20823): InferenceChat: Current total tokens: 102
+I/flutter (20823): InferenceChat: Adding message to history...
+I/flutter (20823): InferenceChat: Created message object (toolCall=false): {
+I/flutter (20823):   "summary": "sam is a great coder who possesses a lot of knowledge in his field.",
+I/flutter (20823):   "keyPoints": [
+I/flutter (20823):     "sam is great code",
+I/flutter (20823):     "sam knows this stuff"
+I/flutter (20823):   ],
+I/flutter (20823):   "concepts": [
+I/flutter (20823):     "sam",
+I/flutter (20823):     "code"
+I/flutter (20823):   ],
+I/flutter (20823):   "relations": [
+I/flutter (20823):     {
+I/flutter (20823):       "source": "sam",
+I/flutter (20823):       "target": "code",
+I/flutter (20823):       "type": "is_great"
+I/flutter (20823):     },
+I/flutter (20823):     {
+I/flutter (20823):       "source": "sam",
+I/flutter (20823):       "target": "stuff",
+I/flutter (20823):       "type": "knows"
+I/flutter (20823):     }
+I/flutter (20823):   ],
+I/flutter (20823):   "links": []
+I/flutter (20823): }
+I/flutter (20823): InferenceChat: Added to full history
+I/flutter (20823): InferenceChat: Added to model history
+I/flutter (20823): InferenceChat: Message added to history successfully
+I/flutter (20823): InferenceChat: generateChatResponseAsync completed successfully
+I/flutter (20823): 🧪 generateOneShot: done (407 chars)
+I/native  (20823): I0000 00:00:1779821946.403329   21430 session_basic.h:131] SessionBasic::CancelProcess
+I/LiteRtLmSession(20823): cancelGeneration: cancelled via Conversation.cancelProcess()
+D/LiteRtLmSession(20823): Conversation closed
+I/flutter (20823): 🔀 ModelTaskQueue: running chat (pending high=0 low=0)
+I/flutter (20823): ℹ️  Reusing existing model instance for gemma-4-E2B-it
+I/flutter (20823): 🔎 Extract: Gemma replied (407 chars)
+I/flutter (20823): 🔎 Extract: parsed — concepts=2 relations=2 keyPoints=2
+I/native  (20823): I0000 00:00:1779821946.430127   21430 model_data_processor_factory.cc:395] Creating Gemma4DataProcessor
+W/native  (20823): W0000 00:00:1779821946.430643   21430 mel_filterbank.cc:137] Missing 10 bands  starting at 0 in mel-frequency design. Perhaps too many channels or not enough frequency resolution in spectrum. (fft_length: 257 sample_rate: 16000 mel_channel_count: 128 lower_frequency_limit: 0 upper_frequency_limit: 8000
+D/LiteRtLmSession(20823): Created LiteRT-LM conversation with topK=40, temp=0.8
+I/flutter (20823): --- Sending to Native ---
+I/flutter (20823): History:
+I/flutter (20823): 
+I/flutter (20823): Current Message:
+I/flutter (20823): You are Shiv, the on-device AI assistant of UNIUN. Your name is Shiv and you were created by the UNIUN team.
+I/flutter (20823): UNIUN is a decentralized, offline-first social and knowledge network built on the Nostr protocol. Users create and connect Notes that form both a social feed and a personal knowledge graph.
+I/flutter (20823): The user's name is Samarth (not yours — yours is Shiv).
+I/flutter (20823): Answer concisely and helpfully.
+I/flutter (20823): If you reason before answering, keep your thinking brief — do not over-reason.
+I/flutter (20823): 
+I/flutter (20823): yo
+I/flutter (20823): -------------------------
+I/flutter (20823): [MobileSession.addQueryChunk] modelType=ModelType.gemmaIt, fileType=ModelFileType.litertlm, msgType=MessageType.text
+I/flutter (20823): [transformToChatPrompt] modelType=ModelType.gemmaIt, fileType=ModelFileType.litertlm, messageType=MessageType.text, isUser=false
+I/flutter (20823): [transformToChatPrompt] litertlm non-iOS, using raw text, result length=469
+I/flutter (20823): [MobileSession.addQueryChunk] finalPrompt length=469
+V/LiteRtLmSession(20823): Accumulated chunk: 469 chars, total: 469
+I/flutter (20823): InferenceChat: Starting async stream generation
+I/flutter (20823): InferenceChat: Starting to iterate over native tokens...
+D/LiteRtLmSession(20823): Added text: 469 chars
+D/LiteRtLmSession(20823): Building message with 1 content items
+D/LiteRtLmSession(20823): Generating async response for message: 469 chars
+I/native  (20823): I0000 00:00:1779821946.452480   21441 session_basic.cc:356] RunPrefillAsync: 
+I/native  (20823): I0000 00:00:1779821946.452636   21441 session_basic.cc:358] <|turn>user
+I/native  (20823): You are Shiv, the on-device AI assistant of UNIUN. Your name is Shiv and you were created by the UNIUN team.
+I/native  (20823): UNIUN is a decentralized, offline-first social and knowledge network built on the Nostr protocol. Users create and connect Notes that form both a social feed and a personal knowledge graph.
+I/native  (20823): The user's name is Samarth (not yours — yours is Shiv).
+I/native  (20823): Answer concisely and helpfully.
+I/native  (20823): If you reason before answering, keep your thinking brief — do not over-reason.
+I/native  (20823): 
+I/native  (20823): yo<turn|>
+I/native  (20823): <|turn>model
+I/flutter (20823): ✅ Extract: persisted graph+memory for 8cb0e307
+I/tflite  (20823): Replacing 1924 out of 2235 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 155 partitions for subgraph 2.
+I/native  (20823): I0000 00:00:1779821956.986682   21442 session_basic.cc:394] RunPrefillAsync status: OK
+I/native  (20823): I0000 00:00:1779821956.986828   21442 session_basic.cc:514] RunDecodeAsync
+I/flutter (20823): InferenceChat: Received filtered token: "Hello"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "Hello"
+I/flutter (20823): InferenceChat: Received filtered token: "."
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "."
+I/flutter (20823): InferenceChat: Received filtered token: " I"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " I"
+I/flutter (20823): InferenceChat: Received filtered token: " am"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " am"
+I/flutter (20823): InferenceChat: Received filtered token: " Shiv"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " Shiv"
+I/flutter (20823): InferenceChat: Received filtered token: ","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: ","
+I/flutter (20823): InferenceChat: Received filtered token: " the"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " the"
+I/flutter (20823): InferenceChat: Received filtered token: " on"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " on"
+I/flutter (20823): InferenceChat: Received filtered token: "-"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "-"
+I/flutter (20823): InferenceChat: Received filtered token: "device"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "device"
+I/flutter (20823): InferenceChat: Received filtered token: " AI"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " AI"
+I/flutter (20823): InferenceChat: Received filtered token: " assistant"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " assistant"
+I/flutter (20823): InferenceChat: Received filtered token: " developed"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " developed"
+I/flutter (20823): InferenceChat: Received filtered token: " by"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " by"
+I/flutter (20823): InferenceChat: Received filtered token: " the"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " the"
+I/flutter (20823): InferenceChat: Received filtered token: " UNI"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " UNI"
+I/flutter (20823): InferenceChat: Received filtered token: "UN"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "UN"
+I/flutter (20823): InferenceChat: Received filtered token: " team"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " team"
+I/flutter (20823): InferenceChat: Received filtered token: "."
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "."
+I/flutter (20823): InferenceChat: Received filtered token: " How"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " How"
+I/flutter (20823): InferenceChat: Received filtered token: " can"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " can"
+I/flutter (20823): InferenceChat: Received filtered token: " I"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " I"
+I/flutter (20823): InferenceChat: Received filtered token: " help"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " help"
+I/flutter (20823): InferenceChat: Received filtered token: " you"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " you"
+I/flutter (20823): InferenceChat: Received filtered token: " today"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " today"
+I/flutter (20823): InferenceChat: Received filtered token: ","
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: ","
+I/flutter (20823): InferenceChat: Received filtered token: " Sam"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: " Sam"
+I/flutter (20823): InferenceChat: Received filtered token: "arth"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "arth"
+I/flutter (20823): InferenceChat: Received filtered token: "?"
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: "?"
+I/flutter (20823): InferenceChat: Received filtered token: ""
+I/flutter (20823): InferenceChat: No function processing, emitting token as text: ""
+I/flutter (20823): InferenceChat: Native token stream ended
+I/flutter (20823): InferenceChat: Complete response accumulated: "Hello. I am Shiv, the on-device AI assistant developed by the UNIUN team. How can I help you today, Samarth?"
+I/flutter (20823): InferenceChat: Calculating response tokens...
+W/LiteRtLmSession(20823): sizeInTokens: LiteRT-LM does not support token counting. Using estimate (~4 chars/token): 27 tokens for 108 chars. This may be inaccurate for non-English text.
+I/flutter (20823): InferenceChat: Response tokens: 27
+I/flutter (20823): InferenceChat: Current total tokens: 27
+I/flutter (20823): InferenceChat: Adding message to history...
+I/flutter (20823): InferenceChat: Created message object (toolCall=false): Hello. I am Shiv, the on-device AI assistant developed by the UNIUN team. How can I help you today, Samarth?
+I/flutter (20823): InferenceChat: Added to full history
+I/flutter (20823): InferenceChat: Added to model history
+I/flutter (20823): InferenceChat: Message added to history successfully
+I/flutter (20823): InferenceChat: generateChatResponseAsync completed successfully
+I/native  (20823): I0000 00:00:1779821969.827657   21430 session_basic.h:131] SessionBasic::CancelProcess
+I/LiteRtLmSession(20823): cancelGeneration: cancelled via Conversation.cancelProcess()
+D/LiteRtLmSession(20823): Conversation closed

@@ -123,6 +123,7 @@ import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart' as _i207;
 import 'package:uniun/features/shiv/rag/retrieval/vector_search_service.dart'
     as _i961;
 import 'package:uniun/features/shiv/services/ai_model_runner.dart' as _i847;
+import 'package:uniun/features/shiv/services/model_task_queue.dart' as _i973;
 import 'package:uniun/features/thread/bloc/thread_bloc.dart' as _i807;
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart' as _i1039;
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as _i666;
@@ -155,12 +156,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i587.EmbeddingService>(() => _i587.EmbeddingService());
     gh.lazySingleton<_i207.PromptBuilder>(() => const _i207.PromptBuilder());
-    gh.lazySingleton<_i847.AIModelRunner>(() => _i847.AIModelRunner());
+    gh.lazySingleton<_i973.ModelTaskQueue>(() => _i973.ModelTaskQueue());
     gh.lazySingleton<_i739.VectorRepository>(
       () => _i831.TostoreVectorRepositoryImpl(
         gh<_i789.ToStore>(),
         gh<_i214.Isar>(),
       ),
+    );
+    gh.lazySingleton<_i847.AIModelRunner>(
+      () => _i847.AIModelRunner(gh<_i973.ModelTaskQueue>()),
     );
     gh.lazySingleton<_i761.MarmotTransportService>(
       () => _i761.MarmotTransportService(
@@ -708,6 +712,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i604.UpdateActiveLeafUseCase>(),
         gh<_i847.AIModelRunner>(),
         gh<_i681.RagPipeline>(),
+        gh<_i973.ModelTaskQueue>(),
       ),
     );
     return this;
