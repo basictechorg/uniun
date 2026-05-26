@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <circle cx="256" cy="256" r="200" fill="currentColor"/>
+
+  <path d="M 256 136
+           C 256 136, 215 232, 215 317
+           C 215 350, 233 376, 256 376
+           C 279 376, 297 350, 297 317
+           C 297 232, 256 136, 256 136 Z"
+        fill="#ffffff"/>
+</svg>

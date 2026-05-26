@@ -171,7 +171,6 @@ class _NoteCardState extends State<NoteCard> {
                         icon: widget.isFollowed
                             ? Icons.link_rounded
                             : Icons.add_link_rounded,
-                        label: widget.isFollowed ? l10n.actionFollowing : l10n.actionFollow,
                         color: widget.isFollowed
                             ? AppColors.primary
                             : AppColors.onSurfaceVariant,
@@ -188,15 +187,13 @@ class _NoteCardState extends State<NoteCard> {
                       ),
 
                       // Reference count — shown when the note references others
-                      if (refCount > 0) ...[
-                        const SizedBox(width: 20),
-                        _ActionChip(
-                          icon: Icons.link_rounded,
-                          label: '$refCount',
-                          color: AppColors.onSurfaceVariant,
-                          onTap: widget.onTap,
-                        ),
-                      ],
+                      const SizedBox(width: 20),
+                      _ActionChip(
+                        icon: Icons.link_rounded,
+                        label: '$refCount',
+                        color: AppColors.onSurfaceVariant,
+                        onTap: widget.onTap,
+                      ),
 
                       const SizedBox(width: 20),
 
@@ -205,7 +202,6 @@ class _NoteCardState extends State<NoteCard> {
                         icon: _isSaved
                             ? Icons.bookmark_rounded
                             : Icons.bookmark_border_rounded,
-                        label: _isSaved ? l10n.actionSaved : l10n.actionSave,
                         color: _isSaved
                             ? AppColors.primary
                             : AppColors.onSurfaceVariant,
@@ -234,13 +230,13 @@ class _NoteCardState extends State<NoteCard> {
 class _ActionChip extends StatelessWidget {
   const _ActionChip({
     required this.icon,
-    required this.label,
     required this.color,
     required this.onTap,
+    this.label,
   });
 
   final IconData icon;
-  final String label;
+  final String? label;
   final Color color;
   final VoidCallback onTap;
 
@@ -251,15 +247,17 @@ class _ActionChip extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
+          if (label != null) ...[
+            const SizedBox(width: 5),
+            Text(
+              label!,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

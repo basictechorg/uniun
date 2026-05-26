@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
@@ -297,35 +298,18 @@ class _FeedHeader extends StatelessWidget {
           // Drawer / logo button
           GestureDetector(
             onTap: () => Scaffold.of(context).openDrawer(),
-            child: const Row(
+            child: Row(
               children: [
-                Image(
-                  image: AssetImage('assets/images/uniun-logo.png'),
-                  height: 28,
-                  width: 28,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'UNIUN',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.8,
-                  ),
+                SvgPicture.asset(
+                  'assets/images/tabs/vishnu.svg',
+                  height: 32,
+                  width: 32,
                 ),
               ],
             ),
           ),
           const Spacer(),
           // Notifications bell
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_outlined,
-              color: AppColors.onSurface,
-            ),
-            onPressed: () {},
-          ),
           const SizedBox(width: 4),
           // Avatar — shows logged-in user's actual profile picture
           GestureDetector(
@@ -341,7 +325,7 @@ class _FeedHeader extends StatelessWidget {
                 return UserAvatar(
                   seed: seed,
                   photoUrl: avatarUrl,
-                  size: 36,
+                  size: 32,
                   borderRadius: 10,
                 );
               },

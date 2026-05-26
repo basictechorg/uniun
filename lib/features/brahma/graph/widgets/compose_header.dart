@@ -43,12 +43,6 @@ class ComposeHeader extends StatelessWidget {
               letterSpacing: -0.3,
             ),
           ),
-          const Spacer(),
-          Icon(
-            Icons.edit_note_rounded,
-            size: 22,
-            color: AppColors.primary.withValues(alpha: 0.6),
-          ),
         ],
       ),
     );

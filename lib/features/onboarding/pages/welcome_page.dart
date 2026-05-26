@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -26,8 +27,8 @@ class WelcomePage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // ── UNIUN brand ──────────────────────────────────────────
-                Image.asset(
-                  'assets/images/uniun-logo.png',
+                SvgPicture.asset(
+                  'assets/images/uniun-logo.svg',
                   width: 72,
                   height: 72,
                 ),

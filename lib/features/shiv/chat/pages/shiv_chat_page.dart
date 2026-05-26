@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
@@ -141,7 +142,7 @@ class _ShivChatHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      padding: EdgeInsets.only(left: 20, right: 8, top: top + 12, bottom: 12),
+      padding: EdgeInsets.only(left: 20, right: 8, top: top + 8, bottom: 8),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.85),
         boxShadow: [
@@ -155,62 +156,44 @@ class _ShivChatHeader extends StatelessWidget {
       child: Row(
         children: [
           // SHIV + thread title
+          SvgPicture.asset(
+            'assets/images/tabs/shiva.svg',
+            height: 30,
+            colorFilter: const ColorFilter.mode(AppColors.onSurfaceVariant, BlendMode.srcIn),
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.shivName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3,
-                    color: AppColors.primary,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        threadTitle,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          letterSpacing: 0.8,
-                          color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (ragContextCount > 0) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          '● $ragContextCount notes',
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
+            child: Text(
+              threadTitle,
+              style: const TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.8,
+                color: AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (ragContextCount > 0) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(
+                '● $ragContextCount notes',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ],
           // History — back to conversation list
           _HeaderIcon(
             icon: Icons.history_rounded,
@@ -222,7 +205,6 @@ class _ShivChatHeader extends StatelessWidget {
             icon: Icons.account_tree_outlined,
             onTap: onTreeTap,
             tooltip: l10n.shivBranchTreeTooltip,
-            isActive: true,
           ),
         ],
       ),
@@ -235,13 +217,11 @@ class _HeaderIcon extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.tooltip,
-    this.isActive = false,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final String tooltip;
-  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +235,7 @@ class _HeaderIcon extends StatelessWidget {
           child: Icon(
             icon,
             size: 22,
-            color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+            color: AppColors.onSurfaceVariant,
           ),
         ),
       ),

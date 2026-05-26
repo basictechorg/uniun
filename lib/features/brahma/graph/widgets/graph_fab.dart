@@ -15,6 +15,7 @@ class GraphFab extends StatelessWidget {
       backgroundColor: AppColors.primary,
       foregroundColor: AppColors.onPrimary,
       elevation: 4,
+      shape: const CircleBorder(),
       child: const Icon(Icons.add_rounded, size: 28),
     );
   }

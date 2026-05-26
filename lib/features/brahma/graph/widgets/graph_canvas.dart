@@ -52,6 +52,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
   // Inflate the collision disc so the label of one node never overlaps the
   // circle or label of another.
   static const double _labelFootprint = 24;
+  // Label SizedBox width — drives Column intrinsic width, so the Positioned
+  // is shifted by (label - circle)/2 to keep node.x as the circle's top-left.
+  static const double _labelWidth = 88;
   static const int _collideIters = 3;
   static const double _velocityDecay = 0.4;
   static const double _alphaMin = 0.001;
@@ -83,7 +86,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
   double _sizeFor(String nodeId) {
     final connections = widget.adjacency[nodeId]?.length ?? 0;
-    return (46.0 + connections * 3.0).clamp(46.0, 70.0);
+    return (24.0 + connections * 3.0).clamp(24.0, 50.0);
   }
 
   Graph _buildGraph(List<GraphNodeData> nodes) {
@@ -419,7 +422,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                           : 1.0;
 
                       return Positioned(
-                        left: node.x,
+                        left: node.x - (_labelWidth - nodeSize) / 2,
                         top: node.y,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
@@ -500,7 +503,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                 ),
                                 const SizedBox(height: 5),
                                 SizedBox(
-                                  width: 88,
+                                  width: _labelWidth,
                                   child: Text(
                                     _labelFor(nodeId),
                                     style: TextStyle(

@@ -169,9 +169,9 @@ class _TypeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (type) {
-      GraphNodeType.saved => (l10n.graphLegendSaved, const Color(0xFF319BED)),
-      GraphNodeType.own   => (l10n.graphLegendOwn,   const Color(0xFF059669)),
-      GraphNodeType.draft => (l10n.graphLegendDraft,  const Color(0xFFD97706)),
+      GraphNodeType.saved => (l10n.graphLegendSaved, AppColors.graphSaved),
+      GraphNodeType.own   => (l10n.graphLegendOwn,   AppColors.graphOwn),
+      GraphNodeType.draft => (l10n.graphLegendDraft, AppColors.graphDraft),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

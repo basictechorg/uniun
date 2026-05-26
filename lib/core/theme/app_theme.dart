@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 /// PRIMARY: #319BED — the single brand blue used on all buttons, active states,
 /// icons, and text highlights. Change only this const to retheme the entire app.
 abstract class AppColors {
-  static const primary = Color(0xFF319BED);
-  static const primaryContainer = Color(0xFF1A7EC8);
+  static const primary = Color(0xFF0075f2);
+  static const primaryContainer = Color(0xFF55a7ff);
   static const onPrimary = Color(0xFFFFFFFF);
   static const onPrimaryContainer = Color(0xFFFEFCFF);
 
@@ -37,11 +37,15 @@ abstract class AppColors {
 
   static const outline = Color(0xFF727785);
   static const outlineVariant = Color(0xFFC1C6D5);
+  static const someColor = Color(0xFFcaccce);
 
   static const inverseSurface = Color(0xFF2E3132);
   static const inverseOnSurface = Color(0xFFF0F1F3);
   static const inversePrimary = Color(0xFFABC7FF);
 
+  static const graphSaved = Color(0xFF0075f2);
+  static const graphOwn = Color(0xFF059669);
+  static const graphDraft = Color(0xFFD97706);
 }
 
 class AppTheme {
