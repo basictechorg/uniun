@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -10,14 +11,34 @@ import 'package:uniun/features/brahma/graph/widgets/graph_fab.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_header.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_node_panel.dart';
 
-class GraphPage extends StatefulWidget {
+class GraphPage extends StatelessWidget {
   const GraphPage({super.key});
 
   @override
-  State<GraphPage> createState() => _GraphPageState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<GraphBloc>()..add(const LoadGraphEvent()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              getIt<BrahmaCreateBloc>()..add(const LoadDraftsEvent()),
+        ),
+      ],
+      child: const _GraphView(),
+    );
+  }
 }
 
-class _GraphPageState extends State<GraphPage> {
+class _GraphView extends StatefulWidget {
+  const _GraphView();
+
+  @override
+  State<_GraphView> createState() => _GraphViewState();
+}
+
+class _GraphViewState extends State<_GraphView> {
   bool _isGraphInteracting = false;
   bool _hasSelectedNode = false;
 

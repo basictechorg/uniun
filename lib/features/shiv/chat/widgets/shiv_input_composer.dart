@@ -55,14 +55,14 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // When keyboard is open: pad by keyboard height + 10px gap so input sits above keyboard.
     // When keyboard is closed: pad 104px to float above the floating nav.
-    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 104.0;
+    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0;
 
     return Container(
-      color: AppColors.surfaceContainerLow,
+      color: AppColors.surfaceContainerLowest,
       padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
+          color: AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: canSend

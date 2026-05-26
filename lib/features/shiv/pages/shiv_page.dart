@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -179,35 +180,17 @@ class _ShivLanding extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // SHIV + tagline
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.shivName,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 3,
-                          color: AppColors.primary,
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l10n.shivTagline,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          letterSpacing: 0.8,
-                          color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                // SHIV icon
+                SvgPicture.asset(
+                  'assets/images/tabs/shiva.svg',
+                  width: 36,
+                  height: 36,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.onSurfaceVariant,
+                    BlendMode.srcIn,
                   ),
                 ),
+                const Spacer(),
                 // History — ctx is a descendant of this Scaffold so openDrawer works
                 _HeaderIcon(
                   icon: Icons.history_rounded,

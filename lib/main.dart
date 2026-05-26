@@ -27,13 +27,10 @@ import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
 import 'package:uniun/features/dm/chat/pages/dm_chat_page.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
-import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_compose_page.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
 import 'package:uniun/gateway/gateway.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -105,36 +102,26 @@ class UniunApp extends StatelessWidget {
         ),
         AppRoutes.aiModelSelection: (_) => const AIModelSelectionPage(),
         AppRoutes.savedNotes: (_) => const SavedNotesPage(),
-        AppRoutes.graph: (_) => const GraphPage(),
         AppRoutes.createDm: (_) => const CreateDmPage(),
         AppRoutes.chatDm: (_) => const DmChatPage(),
-        AppRoutes.graph: (_) => MultiBlocProvider(
-          providers: [
-            BlocProvider(
-              create: (_) => getIt<GraphBloc>()..add(const LoadGraphEvent()),
-            ),
-            BlocProvider(
-              create: (_) =>
-                  getIt<BrahmaCreateBloc>()..add(const LoadDraftsEvent()),
-            ),
-          ],
-          child: const GraphPage(),
-        ),
         AppRoutes.brahmaCreate: (ctx) {
-          final args = ModalRoute.of(ctx)!.settings.arguments;
-          String? draftId;
-          bool autoPublish = false;
-          if (args is String?) {
-            draftId = args;
-          } else if (args is Map) {
-            draftId = args['draftId'] as String?;
-            autoPublish = args['autoPublish'] as bool? ?? false;
-          }
+          final args = ModalRoute.of(ctx)!.settings.arguments as Map?;
           return GraphComposePage(
-            initialDraftId: draftId,
-            autoPublish: autoPublish,
+            initialDraftId: args?['draftId'] as String?,
+            autoPublish: args?['autoPublish'] as bool? ?? false,
           );
         },
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == AppRoutes.graph) {
+          return PageRouteBuilder(
+            settings: settings,
+            pageBuilder: (_, __, ___) => const GraphPage(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          );
+        }
+        return null;
       },
     );
   }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 const graphNodeTypeColors = {
-  GraphNodeType.saved: Color(0xFF319BED),
-  GraphNodeType.own:   Color(0xFF059669),
-  GraphNodeType.draft: Color(0xFFD97706),
+  GraphNodeType.saved: AppColors.graphSaved,
+  GraphNodeType.own:   AppColors.graphOwn,
+  GraphNodeType.draft: AppColors.graphDraft,
 };
 
 /// Top header: back arrow, title, colour legend.
@@ -18,7 +19,6 @@ class GraphHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.only(
-        left: 8,
         right: 16,
         top: MediaQuery.of(context).padding.top + 8,
         bottom: 12,
@@ -36,13 +36,13 @@ class GraphHeader extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 16),
-          Text(
-            l10n.navBrahma,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-              letterSpacing: 2,
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: SvgPicture.asset(
+              'assets/images/tabs/brahma.svg',
+              fit: BoxFit.contain,
+              semanticsLabel: l10n.navBrahma,
             ),
           ),
           const Spacer(),

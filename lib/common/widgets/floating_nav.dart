@@ -17,16 +17,17 @@ class FloatingNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final items = [
-      _NavItem(asset: 'assets/images/tabs/vishnu.svg', label: l10n.navVishnu),
-      _NavItem(asset: 'assets/images/tabs/brahma.svg', label: l10n.navBrahma),
-      _NavItem(asset: 'assets/images/tabs/shiva.svg', label: l10n.navShiv),
+      _NavItem(asset: 'assets/images/tabs/vishnu2.svg', label: l10n.navVishnu),
+      _NavItem(asset: 'assets/images/tabs/brahma2.svg', label: l10n.navBrahma),
+      _NavItem(asset: 'assets/images/tabs/shiv2.svg', label: l10n.navShiv),
     ];
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border(
+          top: BorderSide(color: AppColors.outlineVariant),
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: Row(
@@ -63,7 +64,7 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.onSurfaceVariant;
+    final color = selected ? AppColors.primary : AppColors.someColor;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -71,32 +72,16 @@ class _NavTab extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 28,
-              height: 28,
+              width: 36,
+              height: 36,
               child: SvgPicture.asset(
                 item.asset,
                 fit: BoxFit.contain,
-                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: color,
-                letterSpacing: 1.2,
+                theme: SvgTheme(currentColor: color),
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -55,10 +56,25 @@ class _SplashPageState extends State<SplashPage>
       backgroundColor: AppColors.surface,
       body: FadeTransition(
         opacity: _fade,
-        child: const Center(
-          child: Image(
-            image: AssetImage('assets/images/splash.png'),
-            width: 200,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/images/uniun-logo.svg',
+                width: 200,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'UNIUN',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
           ),
         ),
       ),
