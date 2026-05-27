@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Shared top bar used across all onboarding screens.
@@ -18,18 +19,18 @@ class OnboardingAppBar extends StatelessWidget {
                 color: AppColors.primary),
             onPressed: onBack,
           ),
-          const Expanded(
+          Expanded(
             child: Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image(
-                    image: AssetImage('assets/images/uniun-logo.png'),
+                  SvgPicture.asset(
+                    'assets/images/uniun-logo.svg',
                     height: 24,
                     width: 24,
                   ),
-                  SizedBox(width: 6),
-                  Text(
+                  const SizedBox(width: 6),
+                  const Text(
                     'UNIUN',
                     style: TextStyle(
                       color: AppColors.primary,

@@ -4,8 +4,8 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
-import 'package:uniun/gateway/central_relay_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
+import 'package:uniun/gateway/orchestrator/gateway_orchestrator.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
 import 'package:uniun/domain/services/nip17_encryption_service.dart';
 
@@ -29,7 +29,7 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
       name: Isar.defaultName,
     );
 
-    final manager = CentralRelayManager(
+    final orchestrator = GatewayOrchestrator(
       isar: isar,
       activePubkey: init.pubkeyHex,
     );
@@ -38,7 +38,7 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
       privkeyHex: init.privkeyHex,
     );
 
-    await manager.start();
+    await orchestrator.start();
     nip17Service.start();
 
     debugPrint("Gateway isolate fully started!");
