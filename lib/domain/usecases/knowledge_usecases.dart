@@ -11,6 +11,7 @@ import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
 import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/repositories/graph_repository.dart';
 import 'package:uniun/domain/repositories/memory_repository.dart';
+import 'package:uniun/domain/repositories/pending_extraction_repository.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart';
 import 'package:uniun/features/shiv/services/ai_model_runner.dart';
@@ -30,6 +31,7 @@ class ExtractKnowledgeUseCase
   final SearchVectorNotesUseCase _searchVector;
   final GraphRepository _graph;
   final MemoryRepository _memory;
+  final PendingExtractionRepository _pending;
 
   ExtractKnowledgeUseCase(
     this._runner,
@@ -37,6 +39,7 @@ class ExtractKnowledgeUseCase
     this._searchVector,
     this._graph,
     this._memory,
+    this._pending,
   );
 
   @override
@@ -55,6 +58,15 @@ class ExtractKnowledgeUseCase
       return;
     }
     debugPrint('🔎 Extract: start $shortId');
+
+    // Mark this note as pending before any LLM work. If the chat path preempts
+    // us, the model crashes, or the app dies, the row survives and the Shiv
+    // tab's close-time drainer will retry. Only deleted on a clean finish.
+    try {
+      await _pending.mark(noteId, content, queryVec);
+    } catch (e) {
+      debugPrint('⚠️ Extract: failed to mark pending $shortId: $e');
+    }
 
     try {
       final similarResult = await _searchVector.call((queryVec, 5, 0.3));
@@ -87,6 +99,12 @@ class ExtractKnowledgeUseCase
           'relations=${parsed.relations.length} keyPoints=${parsed.keyPoints.length}');
 
       await _persistExtraction(noteId, parsed);
+      // Success — remove the pending row so the drainer won't retry.
+      try {
+        await _pending.clear(noteId);
+      } catch (e) {
+        debugPrint('⚠️ Extract: failed to clear pending $shortId: $e');
+      }
       debugPrint('✅ Extract: persisted graph+memory for $shortId');
     } catch (e, st) {
       debugPrint('❌ Extract failed for $shortId: $e\n$st');
@@ -336,6 +354,41 @@ class GetGraphNodesByKeysUseCase
     bool cached = false,
   }) =>
       _graph.getNodesByKeys(keys);
+}
+
+/// Replays every pending extraction row through [ExtractKnowledgeUseCase].
+/// Used by [ShivAIBloc.close] so any extraction that was preempted by chat is
+/// rebuilt the moment the user leaves the AI tab.
+@lazySingleton
+class DrainPendingExtractionsUseCase extends NoParamsUseCase<void> {
+  final PendingExtractionRepository _pending;
+  final ExtractKnowledgeUseCase _extract;
+  DrainPendingExtractionsUseCase(this._pending, this._extract);
+
+  bool _running = false;
+
+  @override
+  Future<void> call() async {
+    if (_running) return;
+    _running = true;
+    try {
+      final items = await _pending.all();
+      if (items.isEmpty) {
+        debugPrint('🔁 Drain: no pending extractions');
+        return;
+      }
+      debugPrint('🔁 Drain: replaying ${items.length} pending extraction(s)');
+      for (final item in items) {
+        // ExtractKnowledgeUseCase clears the row itself on success; on failure
+        // it stays and gets retried next drain.
+        await _extract.call((item.noteId, item.content, item.vec));
+      }
+    } catch (e, st) {
+      debugPrint('❌ Drain failed: $e\n$st');
+    } finally {
+      _running = false;
+    }
+  }
 }
 
 @lazySingleton

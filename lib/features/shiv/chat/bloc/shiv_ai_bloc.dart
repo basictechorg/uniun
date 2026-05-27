@@ -7,6 +7,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
+import 'package:uniun/domain/usecases/knowledge_usecases.dart';
 import 'package:uniun/domain/usecases/shiv_usecases.dart';
 import 'package:uniun/features/shiv/rag/pipeline/rag_pipeline.dart';
 import 'package:uniun/features/shiv/services/ai_model_runner.dart';
@@ -30,6 +31,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final AIModelRunner _runner;
   final RagPipeline _rag;
   final ModelTaskQueue _modelQueue;
+  final DrainPendingExtractionsUseCase _drainPending;
 
   StreamSubscription<String>? _streamSub;
 
@@ -45,14 +47,14 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     this._runner,
     this._rag,
     this._modelQueue,
+    this._drainPending,
   ) : super(const ShivAIState()) {
-    // While the AI tab is open we want the model dedicated to the user.
-    // Background graph-extraction jobs from Brahma/Vishnu/Thread are paused
-    // here and resumed in [close]. Any extraction already mid-flight is also
-    // preempted right away so the user never has to wait it out before
-    // sending their first chat.
-    _modelQueue.pauseLowPriority();
-    _runner.preemptExtraction('shiv-tab-open');
+    // Tab enter/leave hooks (pause/resume + preempt + drain) live on
+    // [onEnterShivTab] / [onLeaveShivTab]. They are driven by the parent
+    // widget watching the bottom-nav index. We cannot do it from the bloc's
+    // own constructor / [close] because [HomePage] uses an IndexedStack,
+    // which keeps [ShivPage] mounted across tab switches — so the bloc never
+    // actually disposes on tab change.
     on<_LoadConversations>(_onLoadConversations, transformer: droppable());
     on<_CreateConversation>(_onCreateConversation, transformer: droppable());
     on<_OpenConversation>(_onOpenConversation, transformer: droppable());
@@ -410,12 +412,32 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     return branch;
   }
 
+  /// Called by [ShivPage] when the user navigates onto the AI tab. Pauses
+  /// background extraction and kills any extraction already mid-flight so the
+  /// user's first chat doesn't have to wait it out.
+  void onEnterShivTab() {
+    _modelQueue.pauseLowPriority();
+    _runner.preemptExtraction('shiv-tab-enter');
+  }
+
+  /// Called by [ShivPage] when the user navigates away from the AI tab.
+  /// Resumes background extraction and replays any extraction that got
+  /// preempted while the user was chatting, so the graph/memory for those
+  /// notes gets built before the next visit. Fire-and-forget; the drainer
+  /// uses the low-priority lane and is internally guarded against overlap.
+  void onLeaveShivTab() {
+    _modelQueue.resumeLowPriority();
+    unawaited(_drainPending.call());
+  }
+
   @override
   Future<void> close() async {
     _streamSub?.cancel();
     await _runner.close();
-    // User left the AI tab — let background extractions drain again.
+    // Safety net for logout / HomePage teardown — make sure the queue isn't
+    // left paused and any pending extractions get a final chance to drain.
     _modelQueue.resumeLowPriority();
+    unawaited(_drainPending.call());
     return super.close();
   }
 

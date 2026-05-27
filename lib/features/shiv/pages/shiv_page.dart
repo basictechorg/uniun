@@ -87,7 +87,10 @@ class _ShivPageState extends State<ShivPage> {
           BlocProvider(
             create: (_) =>
                 getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
-            child: _ShivRoot(onDrawerChanged: _onDrawerChanged),
+            child: _ShivRoot(
+              currentIndex: widget.currentIndex,
+              onDrawerChanged: _onDrawerChanged,
+            ),
           ),
           Positioned(
             left: 20,
@@ -120,9 +123,46 @@ class _ShivPageState extends State<ShivPage> {
   }
 }
 
-class _ShivRoot extends StatelessWidget {
-  const _ShivRoot({required this.onDrawerChanged});
+/// Watches the bottom-nav index and pings the bloc when the user enters or
+/// leaves the Shiv tab. We can't piggy-back on widget disposal because
+/// [HomePage] uses an [IndexedStack] — ShivPage stays mounted on every tab.
+const int _kShivTabIndex = 2;
+
+class _ShivRoot extends StatefulWidget {
+  const _ShivRoot({
+    required this.currentIndex,
+    required this.onDrawerChanged,
+  });
+  final int currentIndex;
   final ValueChanged<bool> onDrawerChanged;
+
+  @override
+  State<_ShivRoot> createState() => _ShivRootState();
+}
+
+class _ShivRootState extends State<_ShivRoot> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.currentIndex == _kShivTabIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<ShivAIBloc>().onEnterShivTab();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ShivRoot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasShiv = oldWidget.currentIndex == _kShivTabIndex;
+    final isShiv = widget.currentIndex == _kShivTabIndex;
+    if (wasShiv == isShiv) return;
+    if (isShiv) {
+      context.read<ShivAIBloc>().onEnterShivTab();
+    } else {
+      context.read<ShivAIBloc>().onLeaveShivTab();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,9 +172,9 @@ class _ShivRoot extends StatelessWidget {
           (curr.activeConversation == null),
       builder: (context, state) {
         if (state.activeConversation != null) {
-          return ShivChatPage(onDrawerChanged: onDrawerChanged);
+          return ShivChatPage(onDrawerChanged: widget.onDrawerChanged);
         }
-        return _ShivLanding(onDrawerChanged: onDrawerChanged);
+        return _ShivLanding(onDrawerChanged: widget.onDrawerChanged);
       },
     );
   }

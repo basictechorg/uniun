@@ -35,6 +35,8 @@ import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
 import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
 import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
+import 'package:uniun/data/repositories/pending_extraction_repository_impl.dart'
+    as _i754;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
 import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
@@ -60,6 +62,8 @@ import 'package:uniun/domain/repositories/followed_note_repository.dart'
 import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
 import 'package:uniun/domain/repositories/memory_repository.dart' as _i331;
 import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
+import 'package:uniun/domain/repositories/pending_extraction_repository.dart'
+    as _i1000;
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
@@ -177,6 +181,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i189.DmConversationRepository>(
       () => _i1011.DmConversationRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i1000.PendingExtractionRepository>(
+      () => _i754.PendingExtractionRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i47.NoteRepository>(
       () => _i348.NoteRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -516,6 +523,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1039.EventQueueRepository>(),
       ),
     );
+    gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
+      () => _i179.ExtractKnowledgeUseCase(
+        gh<_i847.AIModelRunner>(),
+        gh<_i207.PromptBuilder>(),
+        gh<_i756.SearchVectorNotesUseCase>(),
+        gh<_i649.GraphRepository>(),
+        gh<_i331.MemoryRepository>(),
+        gh<_i1000.PendingExtractionRepository>(),
+      ),
+    );
     gh.factory<_i331.SettingsCubit>(
       () => _i331.SettingsCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -563,15 +580,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i926.JoinPrivateChannelBloc(
         gh<_i78.JoinPrivateChannelUsecase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
-      () => _i179.ExtractKnowledgeUseCase(
-        gh<_i847.AIModelRunner>(),
-        gh<_i207.PromptBuilder>(),
-        gh<_i756.SearchVectorNotesUseCase>(),
-        gh<_i649.GraphRepository>(),
-        gh<_i331.MemoryRepository>(),
       ),
     );
     gh.factory<_i666.DrawerBloc>(
@@ -628,6 +636,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
+      () => _i179.DrainPendingExtractionsUseCase(
+        gh<_i1000.PendingExtractionRepository>(),
+        gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
     );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
@@ -713,6 +727,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i847.AIModelRunner>(),
         gh<_i681.RagPipeline>(),
         gh<_i973.ModelTaskQueue>(),
+        gh<_i179.DrainPendingExtractionsUseCase>(),
       ),
     );
     return this;
