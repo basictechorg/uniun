@@ -1,6 +1,6 @@
 # uniun-backend — Relay Server
 
-This is the Go server that sits between the internet and the Flutter app. It is a **Nostr relay** — meaning it speaks the Nostr WebSocket protocol and stores events. The Flutter app's EmbeddedServer connects to it and syncs data.
+This is the Go server that sits between the internet and the Flutter app. It is a **Nostr relay** — meaning it speaks the Nostr WebSocket protocol and stores events. The Flutter app's Gateway isolate connects to it and syncs data.
 
 ---
 
@@ -25,7 +25,8 @@ The relay speaks a simple protocol over WebSocket:
 | **MySQL** | Optional mirror | For extra durability or analytics. BadgerDB is primary, MySQL gets a copy |
 | **Blossom** | Media blob storage protocol | How the Flutter app uploads images (Brahma feature) |
 | **Azure Blob Storage** | Where media files live | Cloud storage for photos uploaded by users |
-| **zerolog** | Logging | Fast structured logging |
+| **zerolog** | Logging | Fast structured logging to stderr + optional log file |
+| **Negentropy** | Set reconciliation | Enabled (`relay.Negentropy = true`) — efficient sync between relay and clients |
 
 ---
 
@@ -33,40 +34,58 @@ The relay speaks a simple protocol over WebSocket:
 
 ```
 uniun-backend/
-├── main.go        — starts everything: relay config, BadgerDB, MySQL, Blossom, graceful shutdown
-├── config.go      — reads all settings from environment variables
-├── logger.go      — sets up zerolog structured logger
-└── azure_blob.go  — wires Azure Blob Storage as the Blossom upload/download backend
+├── main.go        — relay setup, BadgerDB + MySQL wiring, Blossom, graceful shutdown
+├── config.go      — all settings from environment variables
+├── logger.go      — zerolog setup: console + file logging, structured helpers
+├── azure_blob.go  — Azure Blob Storage backend for Blossom media uploads
+└── db/            — BadgerDB data files (auto-created at WORKING_DIR/db)
 ```
 
-### main.go — the heart
+### main.go
 
-Sets up the Khatru relay, connects storage backends, registers event hooks, starts the WebSocket server.
+Sets up the Khatru relay, wires storage backends, registers event + filter hooks, starts the WebSocket server. Key behaviours:
 
-Two important placeholder functions that need real logic:
-- `RejectEvent` — currently accepts every event from anyone. Needs kind allowlist + rate limiting.
-- `RejectFilter` — currently allows any subscription query. Needs protection against queries that dump the entire database.
+- **`relay.Negentropy = true`** — enables NIP-77 set reconciliation for efficient catch-up sync
+- **`liveConnections`** — tracked via `OnConnect`/`OnDisconnect` hooks (used for health reporting)
+- **`RejectEvent`** — currently logs all events and returns `false` (accepts everything). Needs kind allowlist before public launch.
+- **`RejectFilter`** — currently accepts all subscription queries. Needs protection before public launch.
+- **Blossom** — wired via `EventStoreBlobIndexWrapper` so blob metadata is indexed in BadgerDB alongside events
 
-### config.go — all settings from environment variables
+### config.go
 
-Nothing is hardcoded. Every setting comes from an env var with a sensible default.
+All settings from environment variables with sensible defaults. No hardcoded values.
 
-Key variables:
 ```
-RELAY_URL       — the public WebSocket URL of this relay (e.g. wss://relay.uniun.app)
-RELAY_PORT      — port to listen on (default: 8080)
-WORKING_DIR     — where BadgerDB files are stored (default: current dir)
-MYSQL_DSN       — MySQL connection string (empty = MySQL disabled)
-AZURE_FOR_BLOSSOM — true/false, enables Azure for media storage
+RELAY_BIND          — bind address (default: 0.0.0.0)
+RELAY_PORT          — port (default: 8080)
+RELAY_URL           — public WebSocket URL (e.g. wss://relay.uniun.app)
+WORKING_DIR         — where BadgerDB files live (default: .)
+MYSQL_DSN           — MySQL connection string (empty = disabled)
+RELAY_NAME          — NIP-11 relay name
+RELAY_DESCRIPTION   — NIP-11 description
+RELAY_CONTACT       — NIP-11 contact
+RELAY_PUBKEY        — NIP-11 operator pubkey (hex)
+RELAY_ICON          — NIP-11 icon URL
+RELAY_BANNER        — NIP-11 banner URL
+AZURE_FOR_BLOSSOM   — true/false, enables Azure for media storage
+AZURE_STORAGE_ACCOUNT_NAME — Azure account name
+AZURE_STORAGE_ACCOUNT_KEY  — Azure account key
+AZURE_BLOSSOM_CONTAINER    — container name (default: blossom)
+LOG_LEVEL           — zerolog level: trace/debug/info/warn/error (default: info)
+LOG_FILE            — path to log file (default: ./uniun.log); empty = no file
 ```
 
-### azure_blob.go — media storage
+### logger.go
 
-When `AZURE_FOR_BLOSSOM=true`, images uploaded from the Flutter app's Brahma (create note) feature go to Azure Blob Storage instead of local disk.
+Structured logging via zerolog. Writes to stderr (console, human-readable) and optionally a log file simultaneously. Helper functions: `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Fatal`, `Panic`. Key/value pairs are formatted correctly regardless of type (Stringer, error, []byte → hex, anything else → JSON).
+
+### azure_blob.go
+
+When `AZURE_FOR_BLOSSOM=true`, images uploaded via Blossom go to Azure Blob Storage.
 
 Upload flow:
-1. Flutter app calls `PUT /upload` on this relay (Blossom protocol)
-2. `azure_blob.go` receives the file bytes + SHA-256 hash
+1. Flutter Brahma calls `PUT /upload` (Blossom BUD-01 protocol)
+2. `azure_blob.go` receives file bytes + SHA-256 hash
 3. Stores as `{sha256}.{ext}` in the Azure container
 4. Returns the public Azure URL
 5. Flutter embeds that URL in the Nostr event's `imeta` tag
@@ -86,43 +105,40 @@ Gateway isolate (lib/gateway/)
                                       → wss://relay.uniun.app (prod)
 ```
 
-The Flutter UI **never** calls this relay directly. Only the Gateway isolate (running independently) manages WebSocket connections. The UI only reads/writes Isar; Isar watchers bridge the two isolates.
+The Flutter UI **never** calls this relay directly. Only the Gateway isolate manages WebSocket connections. The UI reads/writes Isar only; Isar watchers bridge the two isolates.
 
 ---
 
 ## What Events This Relay Handles
 
-The relay should only accept these Nostr event kinds (defined in `RejectEvent`):
-
 | Kind | What it is | Used by | Status |
 |------|-----------|---------|--------|
 | 0 | User profile (name, avatar, bio) | Profile display, NIP-05 | ✅ Active |
-| 1 | Short text note | Vishnu feed, threads, graph | ✅ Active |
+| 1 | Short text note | Vishnu feed, threads, knowledge graph | ✅ Active |
 | 7 | Reaction (like/emoji) | Note reactions | ✅ Active |
-| 14 | DM chat message (Kind 14 rumor) | DMs (NIP-17) | 🔲 In progress |
+| 14 | DM chat message (Kind 14 rumor) | DMs (NIP-17) — schema done, UI pending | 🔲 UI pending |
 | 13 | Seal (DM encryption layer 2) | DMs — full 3-layer wrap | 🔲 Future |
-| 40 | Channel creation | Channels (NIP-28) | ✅ Active |
-| 41 | Channel metadata update | Channels | ✅ Active |
-| 42 | Channel message | Channels | ✅ Active |
+| 40 | Channel creation | Public channels (NIP-28) | ✅ Active |
+| 41 | Channel metadata update | Public channels | ✅ Active |
+| 42 | Channel message | Public channels + Private channels (E2EE payload inside content) | ✅ Active |
 | 1059 | Gift wrap (DM outer envelope) | DMs — full 3-layer wrap | 🔲 Future |
 | 10063 | User's Blossom server list | Media uploads | ✅ Active |
 | 24242 | Blossom auth token | Media upload authorization | ✅ Active |
 
-Not accepted:
-- Kind 6 (repost) — not implemented in Flutter client yet; leave out of allowlist for now.
-- Everything else should be rejected.
+**Private channels** use Kind 42 on the relay — the MLS-encrypted payload is inside the `content` field. The relay is unaware of private channel semantics; it just stores and routes Kind 42 events like any other.
+
+Not accepted (should be added to `RejectEvent` allowlist before public launch):
+- Kind 6 (repost) — not implemented in Flutter client yet
+- Everything else
 
 ---
 
-## What Needs To Be Built
+## What Still Needs To Be Done
 
-### Priority 1 — Make it safe to run (without this the relay is wide open)
-
-**`RejectEvent` rules** (currently a stub that accepts everything):
+### Priority 1 — Add `RejectEvent` allowlist (relay is currently wide open)
 
 ```go
 func RejectEvent(ctx context.Context, event *nostr.Event) (reject bool, msg string) {
-    // 1. Only accept kinds we actually use
     allowedKinds := map[int]bool{
         0: true, 1: true, 7: true, 13: true, 14: true,
         40: true, 41: true, 42: true, 1059: true, 10063: true, 24242: true,
@@ -130,99 +146,45 @@ func RejectEvent(ctx context.Context, event *nostr.Event) (reject bool, msg stri
     if !allowedKinds[event.Kind] {
         return true, "blocked: kind not supported"
     }
-
-    // 2. No giant content (spam protection)
-    if len(event.Content) > 65536 { // 64KB max
+    if len(event.Content) > 65536 {
         return true, "blocked: content too large"
     }
-
-    // 3. No events too far in the future (clock manipulation)
     if event.CreatedAt.Time().After(time.Now().Add(time.Hour)) {
         return true, "blocked: event timestamp too far in future"
     }
-
     return false, ""
 }
 ```
 
-**`RejectFilter` rules** (currently a stub that allows everything):
+### Priority 2 — Add `RejectFilter` protection
 
 ```go
 func RejectFilter(ctx context.Context, filter nostr.Filter) (reject bool, msg string) {
-    // Don't allow completely open queries — would return the entire database
     if filter.Authors == nil && filter.IDs == nil && len(filter.Tags) == 0 {
-        return true, "blocked: filter too broad — add authors, ids, or tags"
+        return true, "blocked: filter too broad"
     }
     return false, ""
 }
 ```
 
-### Priority 2 — Local development setup
+### Priority 3 — Local dev setup
 
-- [ ] Create `.env.example` — document every env var with example values
-- [ ] Create `Dockerfile` — so the relay can run in a container
-- [ ] Create `docker-compose.yml` — relay + optional MySQL, one command startup
-- [ ] Verify `go mod download && go build ./...` succeeds
+- [ ] Create `.env.example` with all env vars documented
+- [ ] Create `Dockerfile`
+- [ ] Create `docker-compose.yml` (relay + optional MySQL)
 
-**`.env.example`:**
-```
-RELAY_BIND=0.0.0.0
-RELAY_PORT=8080
-RELAY_URL=ws://localhost:8080
-WORKING_DIR=./data
-MYSQL_DSN=
-RELAY_NAME=Uniun Relay
-RELAY_DESCRIPTION=Uniun social relay
-RELAY_CONTACT=
-RELAY_PUBKEY=
-RELAY_ICON=
-RELAY_BANNER=
-AZURE_FOR_BLOSSOM=false
-AZURE_STORAGE_ACCOUNT_NAME=
-AZURE_STORAGE_ACCOUNT_KEY=
-AZURE_BLOSSOM_CONTAINER=blossom
-LOG_LEVEL=info
-```
+### Priority 4 — Rate limiting (before public launch)
 
-### Priority 3 — Health check endpoint
+Per-pubkey: max 60 events/minute via in-memory sliding window in `RejectEvent`.
 
-Add a `/health` route so monitoring tools can check if the relay is alive:
+### Priority 5 — Production deployment
 
-```go
-// In main.go, before relay.Start():
-http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]any{
-        "status":      "ok",
-        "uptime":      time.Since(startTime).String(),
-        "connections": liveConnections,
-    })
-})
-```
-
-### Priority 4 — NIP-11 relay info
-
-Khatru automatically serves relay metadata at `GET /` with `Accept: application/nostr+json`. Just make sure `RELAY_PUBKEY` is set to the operator's actual pubkey hex.
-
-Test with:
-```bash
-curl -H "Accept: application/nostr+json" http://localhost:8080/
-```
-
-Should return JSON with name, description, pubkey, etc.
-
-### Priority 5 — Rate limiting (future, before public launch)
-
-Add per-pubkey rate limiting in `RejectEvent`: max 60 events per minute. Use a simple in-memory map with a sliding window counter. Not needed for development, needed before public.
-
-### Priority 6 — Production deployment
-
-- [ ] Nginx reverse proxy for TLS (relay must be `wss://` in prod, not `ws://`)
+- [ ] Nginx reverse proxy for TLS (`wss://` required in prod)
 - [ ] Set `RELAY_URL=wss://relay.yourdomain.com`
-- [ ] Enable `AZURE_FOR_BLOSSOM=true` and set Azure credentials
-- [ ] Set `MYSQL_DSN` for durable event mirror
+- [ ] `AZURE_FOR_BLOSSOM=true` + Azure credentials
+- [ ] `MYSQL_DSN` for durable event mirror
+- [ ] `LOG_LEVEL=warn` to reduce noise
 - [ ] Docker container with restart policy
-- [ ] Set `LOG_LEVEL=warn` (reduce log noise in prod)
 
 ---
 
@@ -231,22 +193,14 @@ Add per-pubkey rate limiting in `RejectEvent`: max 60 events per minute. Use a s
 ```bash
 cd uniun-backend
 
-# 1. Copy env file and fill in values
+# 1. Copy env and fill in values (once .env.example exists)
 cp .env.example .env
 
-# 2. Download Go dependencies
-go mod download
-
-# 3. Run the relay
+# 2. Run
 go run .
 
 # Relay is now at ws://localhost:8080
-# Test NIP-11: curl -H "Accept: application/nostr+json" http://localhost:8080/
-```
-
-With Docker (once Dockerfile exists):
-```bash
-docker-compose up
+# NIP-11 info: curl -H "Accept: application/nostr+json" http://localhost:8080/
 ```
 
 ---
@@ -254,22 +208,23 @@ docker-compose up
 ## Architecture Position
 
 ```
-Flutter App (Vishnu feed, Brahma create, Channels, DMs)
-      ↕ WebSocket NIP-01
-uniun-backend  (this relay — Khatru + BadgerDB)
+Flutter App (Vishnu, Brahma, Shiv, Channels, Private Channels, DMs)
+      ↕ WebSocket NIP-01 + NIP-77 (Negentropy)
+uniun-backend  (Khatru + BadgerDB)
       ↕ optional write mirror
 MySQL
 
-Flutter Brahma (attach image)
-      → PUT /upload  (Blossom BUD-01 protocol)
+Flutter Brahma (image attach)
+      → PUT /upload  (Blossom BUD-01)
 uniun-backend Blossom handler
-      → Azure Blob Storage → returns public URL → embedded in Nostr event
+      → Azure Blob Storage → public URL → imeta tag in Nostr event
 ```
 
 ---
 
 ## What NOT to Change
 
-- Do not modify `EmbeddedServer` on the Flutter side — that is a separate team's code.
-- Do not add custom REST endpoints for app-specific logic — the relay speaks only Nostr protocol.
-- Do not store user private keys anywhere on the relay — the relay only sees public keys and signed events.
+- Do not modify `Gateway` isolate on the Flutter side — that is a separate team's code.
+- Do not add custom REST endpoints for app-specific logic — the relay speaks Nostr protocol only.
+- Do not store user private keys anywhere on the relay — it only sees public keys and signed events.
+- Private channel MLS encryption is handled entirely in the Flutter app — the relay never decrypts anything.

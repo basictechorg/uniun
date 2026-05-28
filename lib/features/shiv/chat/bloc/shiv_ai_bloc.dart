@@ -7,9 +7,11 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
+import 'package:uniun/domain/usecases/knowledge_usecases.dart';
 import 'package:uniun/domain/usecases/shiv_usecases.dart';
 import 'package:uniun/features/shiv/rag/pipeline/rag_pipeline.dart';
 import 'package:uniun/features/shiv/services/ai_model_runner.dart';
+import 'package:uniun/features/shiv/services/model_task_queue.dart';
 import 'package:uuid/uuid.dart';
 
 part 'shiv_ai_event.dart';
@@ -28,6 +30,8 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final UpdateActiveLeafUseCase _updateActiveLeaf;
   final AIModelRunner _runner;
   final RagPipeline _rag;
+  final ModelTaskQueue _modelQueue;
+  final DrainPendingExtractionsUseCase _drainPending;
 
   StreamSubscription<String>? _streamSub;
 
@@ -42,7 +46,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     this._updateActiveLeaf,
     this._runner,
     this._rag,
+    this._modelQueue,
+    this._drainPending,
   ) : super(const ShivAIState()) {
+    // Tab enter/leave hooks (pause/resume + preempt + drain) live on
+    // [onEnterShivTab] / [onLeaveShivTab]. They are driven by the parent
+    // widget watching the bottom-nav index. We cannot do it from the bloc's
+    // own constructor / [close] because [HomePage] uses an IndexedStack,
+    // which keeps [ShivPage] mounted across tab switches — so the bloc never
+    // actually disposes on tab change.
     on<_LoadConversations>(_onLoadConversations, transformer: droppable());
     on<_CreateConversation>(_onCreateConversation, transformer: droppable());
     on<_OpenConversation>(_onOpenConversation, transformer: droppable());
@@ -209,18 +221,49 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     ));
 
     // 3 — RAG: embed query → retrieve notes → build per-turn user message.
-    //     No history in here — InferenceChat tracks turns internally.
     final ragMsg = await _rag.buildMessage(userQuestion: text);
     emit(state.copyWith(ragContextCount: ragMsg.contextCount));
 
-    // 4 — Stream inference.
+    // 4 — Pair up prior turns as clean (Q, A) tuples. We exclude the
+    //     placeholder we just appended; cap to last 3 pairs so the prompt
+    //     stays small but the model still has continuity for follow-ups.
+    final cleanHistory = _pairCleanHistory(
+      state.messages.where((m) => m.messageId != userMsgId && m.messageId != assistantMsgId).toList(),
+      maxPairs: 3,
+    );
+
+    // 5 — Stream inference through the priority queue.
     _streamSub?.cancel();
-    _streamSub = _runner.sendAndStream(ragMsg.userMessage).listen(
+    _streamSub = _runner
+        .sendAndStream(ragMsg.userMessage, cleanHistory: cleanHistory)
+        .listen(
       (token) => add(ShivAIEvent.tokenReceived(token)),
       onDone: () => add(const ShivAIEvent.streamDone()),
       onError: (Object e) => add(ShivAIEvent.streamError(e.toString())),
       cancelOnError: true,
     );
+  }
+
+  /// Walk the message list in order and emit (user, assistant) pairs.
+  /// Skips empty assistant placeholders and orphan user turns at the tail.
+  List<(String, String)> _pairCleanHistory(
+    List<ShivMessageEntity> messages, {
+    required int maxPairs,
+  }) {
+    final pairs = <(String, String)>[];
+    String? pendingUser;
+    for (final m in messages) {
+      final content = m.content.trim();
+      if (content.isEmpty) continue;
+      if (m.role == MessageRole.user) {
+        pendingUser = content;
+      } else if (pendingUser != null) {
+        pairs.add((pendingUser, content));
+        pendingUser = null;
+      }
+    }
+    if (pairs.length <= maxPairs) return pairs;
+    return pairs.sublist(pairs.length - maxPairs);
   }
 
   /// User tapped stop during streaming. Cancel the native token stream, keep
@@ -369,10 +412,32 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     return branch;
   }
 
+  /// Called by [ShivPage] when the user navigates onto the AI tab. Pauses
+  /// background extraction and kills any extraction already mid-flight so the
+  /// user's first chat doesn't have to wait it out.
+  void onEnterShivTab() {
+    _modelQueue.pauseLowPriority();
+    _runner.preemptExtraction('shiv-tab-enter');
+  }
+
+  /// Called by [ShivPage] when the user navigates away from the AI tab.
+  /// Resumes background extraction and replays any extraction that got
+  /// preempted while the user was chatting, so the graph/memory for those
+  /// notes gets built before the next visit. Fire-and-forget; the drainer
+  /// uses the low-priority lane and is internally guarded against overlap.
+  void onLeaveShivTab() {
+    _modelQueue.resumeLowPriority();
+    unawaited(_drainPending.call());
+  }
+
   @override
   Future<void> close() async {
     _streamSub?.cancel();
     await _runner.close();
+    // Safety net for logout / HomePage teardown — make sure the queue isn't
+    // left paused and any pending extractions get a final chance to drain.
+    _modelQueue.resumeLowPriority();
+    unawaited(_drainPending.call());
     return super.close();
   }
 

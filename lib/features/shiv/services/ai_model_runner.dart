@@ -3,108 +3,124 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/features/shiv/services/model_task_queue.dart';
 
 /// Wraps flutter_gemma 0.13.x for token-streaming inference.
 ///
-/// One [InferenceChat] session is kept alive per conversation.
-/// [systemInstruction] is set once at session creation — it contains the
-/// Shiv persona + user personalization. Each subsequent call to
-/// [sendAndStream] passes ONLY the current user turn (with any RAG context
-/// prepended) — flutter_gemma manages conversation history internally so we
-/// never duplicate it in our own prompt.
+/// Each user turn opens a fresh [InferenceChat] session built from:
+///   - the persona/personalization system instruction (constant per session)
+///   - last N clean (Q, A) pairs from the bloc's saved messages
+///   - the per-turn RAG-enriched message
+///
+/// The native chat is closed at end of every turn. flutter_gemma's
+/// `InferenceChat` accumulates the full RAG-enriched prompt in its internal
+/// history; keeping it alive across turns bloats context with stale RAG dumps
+/// from earlier turns. Re-opening each turn is the cost of clean history.
+///
+/// All model access flows through [ModelTaskQueue]:
+///   - [sendAndStream] uses the high-priority lane.
+///   - [generateOneShot] uses the low-priority lane (extraction).
 @lazySingleton
 class AIModelRunner {
-  InferenceChat? _chat;
-  String? _pendingSystemInstruction;
-  bool _firstMessageSent = false;
+  final ModelTaskQueue _queue;
 
-  /// Mutex for stateless one-shot inference calls. flutter_gemma's native
-  /// MediaPipe session only allows one active invocation at a time — firing
-  /// a second extraction while the first is still running throws
-  /// `IllegalStateException: Previous invocation still processing`. We
-  /// serialize all one-shot calls through a Future chain so concurrent
-  /// saves queue up instead of colliding.
-  Future<void> _oneShotLock = Future.value();
+  String? _systemInstruction;
+
+  /// Reference to the currently running extraction's native chat session.
+  /// When a chat turn arrives we close this to preempt the extraction so the
+  /// user's chat starts immediately instead of waiting out a 60-150s
+  /// extraction prefill on weak hardware.
+  InferenceChat? _activeOneShot;
+
+  AIModelRunner(this._queue);
 
   bool get hasActiveModel => FlutterGemma.hasActiveModel();
-  bool get hasChatSession => _chat != null;
+  bool get hasChatSession => _systemInstruction != null;
 
-  /// Initialize a new chat session for the active model.
-  ///
-  /// [systemInstruction] is prepended to the first user message because
-  /// flutter_gemma's Qwen template silently drops the systemInstruction
-  /// parameter from createChat() — the prompt sent to the model is only
-  /// the user turn (confirmed by result length=17 in logs).
+  /// Initialise a chat *session* by remembering the system instruction.
+  /// No native chat is opened here — each turn opens its own.
   Future<void> initChat({String? systemInstruction}) async {
     if (!FlutterGemma.hasActiveModel()) {
       throw StateError('No AI model is active. Please select a model first.');
     }
-    await _chat?.close();
-    final model = await FlutterGemma.getActiveModel(maxTokens: 4096);
-    _chat = await model.createChat(
-      temperature: 0.8,
-      topK: 40,
-      tokenBuffer: 512,
-    );
-    _pendingSystemInstruction = systemInstruction;
-    _firstMessageSent = false;
+    _systemInstruction = systemInstruction;
   }
 
   /// Send the current user [message] (question + RAG context if any) and
   /// stream text tokens back.
   ///
-  /// On the first turn, the system instruction is prepended directly to the
-  /// message so the model actually sees it regardless of chat template support.
-  ///
-  /// Throws [StateError] if [initChat] was not called first.
-  Stream<String> sendAndStream(String message) async* {
-    final chat = _chat;
-    if (chat == null) {
+  /// [cleanHistory] is the previous turns of this conversation as bare
+  /// (user, assistant) text pairs — no RAG, no system prompt. They are
+  /// replayed into the freshly-opened chat so the model has continuity
+  /// without the bloat.
+  Stream<String> sendAndStream(
+    String message, {
+    List<(String, String)> cleanHistory = const [],
+  }) async* {
+    if (_systemInstruction == null) {
       throw StateError('Call initChat() before sending messages.');
     }
 
-    String finalMessage = message;
-    if (!_firstMessageSent && _pendingSystemInstruction != null) {
-      finalMessage = '${_pendingSystemInstruction!}\n\n$message';
-      _firstMessageSent = true;
-    }
+    // Preempt any in-flight extraction. Closing the native chat causes its
+    // stream loop to exit, the low-priority task completes, and the queue
+    // immediately drains the chat task we're about to enqueue.
+    await preemptExtraction('chat-preempt');
 
-    await chat.addQuery(Message.text(text: finalMessage));
+    final tokens = StreamController<String>();
+    // Run the inference inside the high-priority lane; tokens flow out via
+    // the controller while the lane future completes when generation ends.
+    final running = _queue.runHigh<void>(() async {
+      InferenceChat? chat;
+      try {
+        final model = await FlutterGemma.getActiveModel(maxTokens: 4096);
+        chat = await model.createChat(
+          temperature: 0.8,
+          topK: 40,
+          tokenBuffer: 512,
+        );
 
-    await for (final response in chat.generateChatResponseAsync()) {
-      if (response is TextResponse && response.token.isNotEmpty) {
-        yield response.token;
+        final prompt = _composePrompt(
+          systemInstruction: _systemInstruction!,
+          cleanHistory: cleanHistory,
+          currentMessage: message,
+        );
+
+        await chat.addQuery(Message.text(text: prompt));
+        await for (final response in chat.generateChatResponseAsync()) {
+          if (response is TextResponse && response.token.isNotEmpty) {
+            tokens.add(response.token);
+          }
+        }
+      } catch (e, st) {
+        tokens.addError(e, st);
+      } finally {
+        await chat?.close();
+        await tokens.close();
       }
-    }
+    }, label: 'chat');
+
+    // Unawaited; consumer reads tokens.stream until done. The future is
+    // only used to propagate the queue's lifecycle.
+    unawaited(running);
+    yield* tokens.stream;
   }
 
-  /// Dispose the current chat session.
+  /// Dispose the current chat session (just forgets the system instruction).
   Future<void> close() async {
-    await _chat?.close();
-    _chat = null;
+    _systemInstruction = null;
   }
 
-  /// Stateless one-shot completion. Creates a throwaway chat, sends the
-  /// prompt, accumulates the full response, closes the session.
-  ///
-  /// Used by extraction tasks (entities/relations/summary). Does NOT touch the
-  /// user-facing chat session in [_chat]. Returns null when no model is active
-  /// so callers can safely fire-and-forget during graceful-degradation paths.
-  Future<String?> generateOneShot(String prompt, {int maxTokens = 1024}) async {
+  /// Stateless one-shot completion. Goes through the low-priority lane so
+  /// chat turns always cut in front.
+  Future<String?> generateOneShot(String prompt, {int maxTokens = 1024}) {
     if (!FlutterGemma.hasActiveModel()) {
       debugPrint('⏭️ generateOneShot: no active model');
-      return null;
+      return Future.value(null);
     }
-    // Serialise: wait for any in-flight one-shot to finish before starting.
-    final previous = _oneShotLock;
-    final gate = Completer<void>();
-    _oneShotLock = gate.future;
-    try {
-      await previous;
-      return await _doGenerateOneShot(prompt, maxTokens);
-    } finally {
-      gate.complete();
-    }
+    return _queue.runLow<String?>(
+      () => _doGenerateOneShot(prompt, maxTokens),
+      label: 'extract',
+    );
   }
 
   Future<String?> _doGenerateOneShot(String prompt, int maxTokens) async {
@@ -117,6 +133,7 @@ class AIModelRunner {
         topK: 20,
         tokenBuffer: 256,
       );
+      _activeOneShot = oneShot;
       await oneShot.addQuery(Message.text(text: prompt));
       final buffer = StringBuffer();
       await for (final response in oneShot.generateChatResponseAsync()) {
@@ -125,10 +142,59 @@ class AIModelRunner {
       debugPrint('🧪 generateOneShot: done (${buffer.length} chars)');
       return buffer.toString();
     } catch (e, st) {
-      debugPrint('❌ generateOneShot failed: $e\n$st');
+      debugPrint('⏭️ generateOneShot terminated: $e\n$st');
       return null;
     } finally {
-      await oneShot?.close();
+      if (identical(_activeOneShot, oneShot)) _activeOneShot = null;
+      try {
+        await oneShot?.close();
+      } catch (_) {
+        // close may throw if already closed via preemption; safe to ignore.
+      }
     }
+  }
+
+  /// Cancel any in-flight extraction. Called by the chat path before a new
+  /// turn and by [ShivAIBloc] the moment the Shiv tab opens.
+  Future<void> preemptExtraction(String reason) =>
+      _cancelActiveOneShot(reason);
+
+  Future<void> _cancelActiveOneShot(String reason) async {
+    final active = _activeOneShot;
+    if (active == null) return;
+    debugPrint('⚡ Preempting in-flight extraction ($reason)');
+    _activeOneShot = null;
+    try {
+      await active.close();
+    } catch (_) {
+      // Native may throw if already closing; that's the goal here.
+    }
+  }
+
+  /// Build the per-turn prompt: persona/system + clean history + new turn.
+  ///
+  /// Format keeps it explicit so the model knows turn boundaries:
+  ///   <system>
+  ///   User: <q1>
+  ///   Assistant: <a1>
+  ///   User: <q2>
+  ///   Assistant: <a2>
+  ///   <current message, which already contains RAG + question>
+  String _composePrompt({
+    required String systemInstruction,
+    required List<(String, String)> cleanHistory,
+    required String currentMessage,
+  }) {
+    final buf = StringBuffer();
+    buf.write(systemInstruction);
+    if (!systemInstruction.endsWith('\n')) buf.writeln();
+    for (final (q, a) in cleanHistory) {
+      buf.writeln();
+      buf.writeln('User: $q');
+      buf.writeln('Assistant: $a');
+    }
+    buf.writeln();
+    buf.write(currentMessage);
+    return buf.toString();
   }
 }

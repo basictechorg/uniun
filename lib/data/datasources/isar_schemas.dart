@@ -24,6 +24,7 @@ import 'package:uniun/data/models/private_channel_join_request_model.dart';
 import 'package:uniun/data/models/graph_node_model.dart';
 import 'package:uniun/data/models/graph_edge_model.dart';
 import 'package:uniun/data/models/memory_node_model.dart';
+import 'package:uniun/data/models/pending_extraction_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -49,5 +50,6 @@ final List<CollectionSchema> isarSchemas = [
   GraphNodeModelSchema,
   GraphEdgeModelSchema,
   MemoryNodeModelSchema,
+  PendingExtractionModelSchema,
 ];
 

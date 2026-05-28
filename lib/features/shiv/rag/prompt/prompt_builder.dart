@@ -273,7 +273,7 @@ class PromptBuilder {
     var any = false;
     for (final m in memories) {
       if (m.summary.trim().isEmpty) continue;
-      final line = '- ${_shortNoteId(m.noteId)}: ${m.summary}\n';
+      final line = '- ${m.summary}\n';
       final lineTokens = PromptBudget.estimateTokens(line);
       if (used + lineTokens > tokenCap && any) break;
       buf.write(line);
@@ -282,9 +282,6 @@ class PromptBuilder {
     }
     return any ? buf.toString().trimRight() : null;
   }
-
-  String _shortNoteId(String noteId) =>
-      noteId.length > 12 ? noteId.substring(0, 12) : noteId;
 
   // ── Extraction (one-shot, not user-facing) ────────────────────────────────
 

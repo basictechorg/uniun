@@ -1,3 +1,71 @@
+# CLAUDE.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
 # UNIUN — AI Context & Rules
 
 This file is the single source of truth for any AI assistant working on this codebase. Read it completely before touching any file.
@@ -255,7 +323,7 @@ Note composition and publishing.
 
 ### Shiv — AI Assistant
 
-On-device AI assistant using RAG over the user's own notes. Fully implemented.
+On-device AI assistant using GraphRAG over the user's saved notes. Fully implemented.
 
 **Model selection:**
 - `AIModelSelectionPage` + `SelectAIModelCubit` — user picks from supported models (Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B).
@@ -270,35 +338,66 @@ Phase 1 — session open (once per conversation):
 3. `AIModelRunner.initChat(systemInstruction:)` — opens an `InferenceChat` session via `flutter_gemma ^0.13.1`. The system instruction is prepended to the first user turn because Qwen templates ignore the systemInstruction parameter from `createChat()`.
 
 Phase 2 — each user message:
-1. `RagPipeline.buildMessage(userQuestion:)` → `EmbeddingService.embed(query)` → `VectorSearchService.search()` (cosine similarity, top-K) → `PromptBuilder.buildUserMessage()` emits RAG context + question.
-2. `AIModelRunner.sendAndStream(message)` → `chat.addQuery()` + `chat.generateChatResponseAsync()` → streams `TextResponse` tokens.
-3. `InferenceChat` manages conversation history internally — we never duplicate it in our own prompt.
+1. `RagPipeline.buildMessage(userQuestion:)` returns a `RagMessage` containing the assembled per-turn string.
+2. Internally: `EmbeddingService.embed(query)` → `VectorSearchService.search()` (cosine similarity, top-K) → 1-hop graph expansion via `GetGraphNeighboursUseCase` → memory lookup via `GetMemoriesByNoteIdsUseCase` → all results packaged into `EnrichedContext`.
+3. `PromptBuilder.buildUserMessage(enrichedContext, PromptBudget)` — lays out the context within a per-model token budget. Priority order: user query → top seed notes → strong graph relations → remaining notes → memory summaries.
+4. `AIModelRunner.sendAndStream(message)` → `chat.addQuery()` + `chat.generateChatResponseAsync()` → streams `TextResponse` tokens.
+5. `InferenceChat` manages conversation history internally — we never duplicate it in our own prompt.
+
+**Key classes in RAG:**
+- `EnrichedContext` — bundle: `seedNotes` (vector hits) + `graphNodes` + `graphEdges` (1-hop expansion) + `memories` (wiki summaries via `MemoryNodeModel`).
+- `PromptBudget` — per-model token allocation split across priority buckets (dynamic: smaller models = smaller budgets).
+- `RagMessage` — output of `buildMessage()`: `userMessage` string + `contextCount` (how many items were injected).
+
+**Thinking tag handling:**
+- Models like DeepSeek R1 emit `<think>...</think>` blocks before the actual response.
+- `ShivMessageBubble._parseThinking()` splits the raw text into `thinking` (collapsible) and `response` (visible) parts.
+- The thinking block is capped at `maxThinkChars` if the model hits token limit mid-reasoning.
+- **Bug to watch:** `<think>` tags only make sense inside Shiv. If they appear in channel thread or feed, the NoteCard does NOT strip them — that is a known issue caused by notes containing raw AI output text. No fix in place yet.
 
 **Conversation persistence:**
 - `ShivConversationModel` (Isar) — conversationId, title, activeLeafMessageId (branch pointer), createdAt, updatedAt.
 - `ShivMessageModel` (Isar) — messageId, conversationId, parentId (linked-list for branching), role (user/assistant), content, createdAt.
-- Tree structure: parentId chain allows future branch-tree view. Current UI shows linear (activeLeaf) path.
+- `parentId` chain enables the branch tree view. `activeLeafMessageId` tracks which leaf the user is reading.
 - Auto-title: first user message → first 40 chars become the conversation title via `UpdateConversationTitleUseCase`.
 
-**BLoC**: `ShivAIBloc`
-- `LoadConversations` → `RagPipeline.init()` + `GetConversationsUseCase`
-- `CreateConversation` → `CreateConversationUseCase` → prepends to list immediately
-- `OpenConversation` → `GetMessagesUseCase` + `AIModelRunner.initChat()`
-- `SendMessage` → `SaveMessageUseCase` (user) → `RagPipeline.buildMessage()` → `AIModelRunner.sendAndStream()` → token events → `UpdateMessageContentUseCase` (assistant)
-- `DeleteConversation` → `DeleteConversationUseCase`
-- `TokenReceived`, `StreamDone`, `StreamError` — internal streaming events
+**Memory nodes (new):**
+- `MemoryNodeModel` (Isar) — wiki-style summaries associated with graph nodes, used as additional RAG context.
+- Linked to notes via graph edges. Loaded by `GetMemoriesByNoteIdsUseCase` during RAG Phase 2.
+
+**BLoC**: `ShivAIBloc` (events via `@freezed`)
+- `loadConversations` → `RagPipeline.init()` + `GetConversationsUseCase`
+- `createConversation` → `CreateConversationUseCase` → prepends to list immediately
+- `openConversation(id)` → `GetMessagesUseCase` + `AIModelRunner.initChat()`
+- `closeConversation` → return to conversation list view
+- `sendMessage(text)` → RAG pipeline → streaming tokens
+- `stopStreaming` → cancel native stream, persist partial response
+- `switchBranch(leafMessageId)` → walk parentId chain from leaf to root, reload that path
+- `createBranchFrom(parentMessageId)` → fork conversation from any node
+- `selectGraphNode(messageId?)` → show action panel in branch tree view
+- `tokenReceived`, `streamDone`, `streamError` — internal streaming events
 
 **Use cases** (`lib/domain/usecases/shiv_usecases.dart`):
 `GetConversationsUseCase`, `CreateConversationUseCase`, `DeleteConversationUseCase`, `GetMessagesUseCase`, `SaveMessageUseCase`, `UpdateMessageContentUseCase`, `UpdateConversationTitleUseCase`, `UpdateActiveLeafUseCase`
 
-**UI structure** (`lib/shiv/`):
+**UI structure** (`lib/features/shiv/`):
 - `shiv/pages/shiv_page.dart` — model check → landing or active chat
 - `shiv/chat/pages/shiv_chat_page.dart` — message list + streaming bubble
+- `shiv/chat/tree/pages/shiv_branch_tree_page.dart` — visual conversation branch tree
+- `shiv/chat/tree/widgets/branch_tree_graph.dart` — force-directed graph of message nodes
+- `shiv/chat/tree/widgets/node_action_panel.dart` — action panel on node tap (branch/switch)
 - `shiv/chat/widgets/shiv_history_drawer.dart` — side drawer (Scaffold.drawer), lists conversations
 - `shiv/chat/widgets/shiv_conversation_tile.dart` — dismissible tile, swipe-to-delete
 - `shiv/chat/widgets/shiv_input_composer.dart` — send bar with streaming lock
-- `shiv/chat/widgets/shiv_message_bubble.dart` — user/assistant bubbles with streaming support
+- `shiv/chat/widgets/shiv_message_bubble.dart` — user/assistant bubbles; parses `<think>` blocks
 - `shiv/model_select/` — model picker UI (cubit + page + widgets)
+- `shiv/rag/embedding/` — EmbeddingService (TFLite)
+- `shiv/rag/pipeline/rag_pipeline.dart` — orchestrator
+- `shiv/rag/prompt/prompt_builder.dart` — assembles LLM prompt
+- `shiv/rag/prompt/prompt_budget.dart` — per-model token budgets
+- `shiv/rag/retrieval/enriched_context.dart` — retrieval bundle type
+- `shiv/rag/retrieval/vector_search_service.dart` — cosine similarity search
+- `shiv/services/ai_model_runner.dart` — InferenceChat wrapper
 
 ### Channels — Public Chat (NIP-28)
 
@@ -307,7 +406,21 @@ Phase 2 — each user message:
 - Channel metadata updates via Kind 41 (creator only).
 - Unread tracking via `ChannelReadStateModel` (same `lastReadEventId` pattern as feed).
 - `DrawerBloc` manages channel list and DM list for the app drawer.
-- No private channels in MVP. NIP-28 is public-only.
+- Join public channel: `JoinChannelPage` + `JoinChannelQrScanPage` — user pastes a channel ID or scans a QR code. QR payload format: `{name, channel_id, relays}` (parsed by `JoinChannelQrParser`).
+- Channel QR card: `UniunChannelQrCard.channel()` — shows channel header (name, about) + QR code using shared `UniunQrView`. Triggered from channel feed app bar.
+- User profile QR card: `UniunQrCard.user()` — minimal dialog with `UniunQrView`. Triggered from drawer.
+- QR scanner: `QrScannerPage` at `AppRoutes.scanQr` — scans any UNIUN QR and routes based on decoded payload kind.
+
+### Private Channels (NIP-28 extension)
+
+- Private channels use encrypted group messaging on top of Nostr Kind 42.
+- Group ID is the channel identifier. Admin controls membership.
+- Create: `CreatePrivateChannelPage` + `CreatePrivateChannelBloc`
+- Join: `JoinPrivateChannelPage` + `JoinPrivateChannelBloc` — user pastes a group ID shared by admin.
+- Chat: `PrivateChannelDetailPage` + `PrivateChannelDetailBloc` — message list, send, join request management for admin.
+- Pending join requests shown in admin's app bar with badge count.
+- `PrivateChannelModel`, `PrivateChannelMessageModel`, `PrivateChannelJoinRequestModel` — Isar collections.
+- TODO: Add QR share button to private channel detail page (currently only "Copy Group ID" is in the popup menu). Needs `UniunChannelQrCard` wired to the group ID.
 
 ### DMs — Direct Messages (NIP-17)
 
@@ -349,7 +462,6 @@ lib/gateway/
   - `EventQueueModel` watcher → new queue rows trigger immediate send on all write `WebSocketService`s.
   - `RelayModel` watcher → syncs `_services` map when relays are added/removed at runtime.
   - `FollowedNoteModel` watcher → refreshes `#e` REQ subscriptions.
-  - `ChannelModel` watcher → re-runs channel NIP-28 sync (kinds 41, 42 + kind 40 fetch) when the user joins or leaves a channel.
   - `_dequeueTimer` (5 min) → purges queue entries older than 30 minutes.
 
 **`WebSocketService` (one per relay):**
@@ -366,7 +478,7 @@ lib/gateway/
 // Followed note references — refreshed when FollowedNoteModel changes
 {"kinds": [1], "#e": ["followedNoteId1", "followedNoteId2", ...]}
 
-// Channel messages — one row per joined channel in ChannelModel drives #e filter
+// Channel messages (per SubscriptionRecordEntity)
 {"kinds": [41, 42], "#e": ["channelId"], "limit": 100}
 
 // DMs (future — gift wraps addressed to this user)
@@ -570,8 +682,10 @@ Core identity, feed, threading, followed notes, settings, and onboarding are all
 | Brahma create note — BLoC, compose page, graph preview | ✅ Done |
 | Shiv AI — model selection, RAG pipeline, conversation persistence, chat UI | ✅ Done |
 | Gateway isolate (CentralRelayManager + WebSocketService) | ✅ Done |
-| Channels create flow (NIP-28 Kind 40) — CreateChannelBloc + usecase | ✅ Done |
-| Channels feed/messaging UI | 🔲 Pending |
+| Public channels — create, feed, thread, join by QR (NIP-28) | ✅ Done |
+| Private channels — create, join, chat, admin join-requests | ✅ Done |
+| QR card + scanner (UniunQrCard / UniunChannelQrCard / QrScannerPage) | ✅ Done |
+| Private channel QR share button | 🔲 Pending (add to PrivateChannelDetailPage) |
 | DMs (NIP-17) | 🔲 Pending |
 
 **NIP-09 (event deletion) is permanently excluded.** Notes are forever — this is a core product principle, not a gap. Never add a `deleted` field, Kind 5 event handling, or any soft-delete mechanism anywhere in the codebase.
@@ -787,20 +901,28 @@ lib/
 │   ├── locator.config.dart        # Generated injectable config
 │   ├── snackbar.dart              # Global snackbar helpers
 │   └── widgets/                   # Truly shared widgets (used by 2+ features)
-│       └── user_avatar.dart
+│       ├── user_avatar.dart
+│       └── floating_nav.dart
 │
 ├── core/
-│   ├── api/                       # HTTP client (Dio) — legacy, not used for Nostr
-│   ├── bloc/                      # Global app-level BLoCs
-│   ├── constants/                 # App-wide constants, endpoints, keys
+│   ├── constants/                 # App-wide constants
 │   ├── enum/
-│   │   └── note_type.dart         # NoteType: text | image | link | reference
+│   │   ├── note_type.dart         # NoteType: text | image | link | reference
+│   │   ├── message_role.dart      # MessageRole: user | assistant
+│   │   ├── outbound_status.dart
+│   │   └── relay_status.dart
 │   ├── error/
-│   │   ├── failures.dart          # Failure freezed union
-│   │   └── failures.freezed.dart  # Generated
-│   ├── extensions/                # Dart extension methods (String, List, DateTime…)
+│   │   └── failures.dart          # Failure freezed union
+│   ├── extensions/                # Dart extension methods
 │   ├── router/
-│   │   └── app_routes.dart        # Named route constants
+│   │   └── app_routes.dart        # Named route constants (see routes list below)
+│   ├── scan/                      # QR + OCR scanner widgets (not feature-specific)
+│   │   ├── uniun_qr_card.dart     # UniunQrCard.user() + UniunChannelQrCard.channel() + UniunQrView
+│   │   ├── uniun_qr_payload.dart  # UniunQrPayload encode/decode
+│   │   ├── qr_scanner_page.dart   # QrScannerPage (MobileScanner)
+│   │   ├── uniun_card.dart        # Legacy OCR card (kept, not in use)
+│   │   ├── uniun_payload.dart     # Legacy OCR payload (kept, not in use)
+│   │   └── text_scanner_page.dart # Legacy OCR scanner (kept, AppRoutes.scanCard)
 │   ├── theme/
 │   │   └── app_theme.dart         # AppColors, AppTextStyles, ThemeData
 │   └── usecases/
@@ -808,113 +930,117 @@ lib/
 │
 ├── data/
 │   ├── datasources/
-│   │   └── isar_module.dart       # Isar singleton — all schemas registered here
+│   │   ├── isar_module.dart       # Isar singleton — all schemas registered here
+│   │   ├── isar_schemas.dart      # Schema list extracted for clarity
+│   │   └── tostore_module.dart    # ToStore vector DB module
 │   ├── models/                    # Isar @Collection models (mutable, no @freezed)
-│   │   ├── note_model.dart
-│   │   ├── note_model.g.dart      # Generated
+│   │   ├── notes/note_model.dart
 │   │   ├── profile_model.dart
-│   │   ├── profile_model.g.dart   # Generated
-│   │   └── user_key_model.dart
+│   │   ├── user_key_model.dart
+│   │   ├── channel_model.dart
+│   │   ├── channel_message_model.dart
+│   │   ├── private_channel_model.dart
+│   │   ├── private_channel_message_model.dart
+│   │   ├── private_channel_join_request_model.dart
+│   │   ├── dm/dm_conversation_model.dart
+│   │   ├── dm/dm_message_model.dart
+│   │   ├── dm/encrypted_dm_model.dart
+│   │   ├── shiv_conversation_model.dart
+│   │   ├── shiv_message_model.dart
+│   │   ├── memory_node_model.dart     # Wiki summaries for GraphRAG
+│   │   ├── graph_node_model.dart
+│   │   ├── graph_edge_model.dart
+│   │   ├── saved_note_model.dart
+│   │   ├── followed_note_model.dart
+│   │   ├── event_queue_model.dart
+│   │   ├── relay_model.dart
+│   │   ├── app_settings_model.dart
+│   │   ├── ai_model_selection_model.dart
+│   │   └── missing_profile_pubkey_model.dart
 │   └── repositories/              # Repository implementations (@Injectable)
-│       ├── note_repository_impl.dart
-│       ├── profile_repository_impl.dart
-│       └── user_repository_impl.dart
 │
 ├── domain/
-│   ├── entities/                  # Freezed domain entities (immutable)
-│   │   ├── note/
-│   │   │   ├── note_entity.dart
-│   │   │   └── note_entity.freezed.dart
-│   │   ├── profile/
-│   │   │   ├── profile_entity.dart
-│   │   │   └── profile_entity.freezed.dart
-│   │   └── user_key/
-│   │       ├── user_key_entity.dart
-│   │       └── user_key_entity.freezed.dart
-│   ├── inputs/                    # Input parameter classes for use cases
+│   ├── entities/                  # Freezed domain entities (immutable, @freezed abstract class)
 │   ├── repositories/              # Abstract repository interfaces
-│   │   ├── note_repository.dart
-│   │   ├── profile_repository.dart
-│   │   └── user_repository.dart
-│   └── usecases/                  # Business logic (@lazySingleton)
-│       ├── get_feed_usecase.dart
-│       ├── get_note_by_id_usecase.dart
-│       ├── get_replies_usecase.dart
-│       ├── save_note_usecase.dart
-│       └── mark_seen_usecase.dart
+│   ├── usecases/                  # Business logic (@lazySingleton, grouped by feature)
+│   │   ├── shiv_usecases.dart
+│   │   ├── ai_model_usecases.dart
+│   │   ├── knowledge_usecases.dart  # graph + memory use cases
+│   │   ├── user_usecases.dart
+│   │   ├── profile_usecases.dart
+│   │   └── ...
+│   └── inputs/                    # Input parameter classes for use cases
 │
 ├── l10n/                          # Auto-generated localization
 │
-│ ── ── ── FEATURE MODULES ── ── ──
+├── gateway/                       # Relay sync isolate (do not modify — Parjaniya's code)
+│   ├── gateway.dart
+│   ├── gateway_init_message.dart
+│   ├── central_relay_manager.dart
+│   └── websocket_service.dart
 │
-├── onboarding/                    # Auth + identity setup flow
-│   └── pages/
-│       ├── splash_page.dart
-│       ├── welcome_page.dart
-│       ├── about_you_page.dart
-│       ├── your_identity_keys_page.dart
-│       └── import_identity_page.dart
+│ ── ── ── FEATURE MODULES (all under lib/features/) ── ── ──
 │
-├── home/                          # App shell (ZoomDrawer + tab nav)
-│   └── pages/
-│       └── home_page.dart
-│
-├── drawer/                        # Slide-out drawer (channels, DMs, settings nav)
-│   ├── bloc/
-│   │   ├── drawer_bloc.dart
-│   │   ├── drawer_event.dart      # (if separate)
-│   │   └── drawer_state.dart
-│   └── widgets/
-│       └── vishnu_drawer.dart
-│
-├── vishnu/                        # Feed tab (Kind 1 notes, chronological)
-│   ├── bloc/
-│   │   ├── vishnu_feed_bloc.dart
-│   │   ├── vishnu_feed_event.dart
-│   │   └── vishnu_feed_state.dart
-│   ├── pages/
-│   │   └── vishnu_feed_page.dart
-│   └── widgets/
-│       └── note_card.dart
-│
-├── brahma/                        # Create Note tab
-│   ├── bloc/
-│   │   ├── brahma_create_bloc.dart
-│   │   ├── brahma_create_event.dart
-│   │   └── brahma_create_state.dart
-│   ├── pages/
-│   │   └── brahma_create_page.dart
-│   └── widgets/
-│
-├── shiv/                          # AI Assistant tab
-│   ├── bloc/
-│   │   ├── shiv_ai_bloc.dart
-│   │   ├── shiv_ai_event.dart
-│   │   └── shiv_ai_state.dart
-│   ├── pages/
-│   │   └── shiv_page.dart
-│   └── widgets/
-│
-├── channels/                      # Public channels (NIP-28)
-│   ├── bloc/
-│   ├── pages/
-│   └── widgets/
-│
-├── dms/                           # Direct messages (NIP-17)
-│   ├── bloc/
-│   ├── pages/
-│   └── widgets/
-│
-└── settings/                      # User settings + profile edit
-    ├── cubit/
-    │   ├── settings_cubit.dart
-    │   ├── settings_state.dart
-    │   ├── edit_profile_cubit.dart
-    │   └── edit_profile_state.dart
-    └── pages/
-        ├── settings_page.dart
-        ├── edit_profile_page.dart
-        └── privacy_policy_page.dart
+└── features/
+    ├── onboarding/pages/          # Splash, Welcome, AboutYou, YourIdentityKeys, ImportIdentity
+    ├── home/pages/                # HomePage (app shell)
+    ├── vishnu/                    # Feed tab
+    │   ├── bloc/                  # VishnuFeedBloc (event, state, freezed)
+    │   ├── drawer/bloc/           # DrawerBloc
+    │   ├── drawer/widgets/        # vishnu_drawer.dart
+    │   ├── pages/                 # vishnu_feed_page.dart
+    │   └── widgets/               # note_card.dart, feed_filter_chips.dart
+    ├── brahma/                    # Create Note tab
+    │   ├── bloc/                  # BrahmaCreateBloc
+    │   ├── graph/bloc/            # GraphBloc
+    │   ├── graph/pages/           # GraphPage, GraphComposePage
+    │   └── pages/
+    ├── shiv/                      # AI Assistant tab
+    │   ├── chat/bloc/             # ShivAIBloc (event, state, freezed)
+    │   ├── chat/pages/            # ShivChatPage
+    │   ├── chat/tree/pages/       # ShivBranchTreePage (visual conv tree)
+    │   ├── chat/tree/widgets/     # BranchTreeGraph, NodeActionPanel
+    │   ├── chat/widgets/          # ShivHistoryDrawer, ConversationTile, InputComposer, MessageBubble
+    │   ├── model_select/          # SelectAIModelCubit, AIModelSelectionPage, widgets
+    │   ├── pages/                 # ShivPage
+    │   ├── rag/embedding/         # EmbeddingService (TFLite)
+    │   ├── rag/pipeline/          # RagPipeline
+    │   ├── rag/prompt/            # PromptBuilder, PromptBudget
+    │   ├── rag/retrieval/         # VectorSearchService, EnrichedContext
+    │   └── services/              # AIModelRunner
+    ├── thread/                    # Thread view (BFS replies)
+    │   ├── bloc/                  # ThreadBloc
+    │   ├── pages/                 # ThreadPage
+    │   └── widgets/
+    ├── channels/                  # Public channels (NIP-28)
+    │   ├── create/                # CreateChannelBloc + CreateChannelPage
+    │   ├── feed/                  # ChannelFeedBloc + ChannelFeedPage + ChannelMessageComposer
+    │   ├── thread/                # ChannelThreadBloc + ChannelThreadPage
+    │   └── join/                  # JoinChannelBloc + JoinChannelPage + JoinChannelQrScanPage
+    │                              #   join_channel_qr_parser.dart — payload: {name, channel_id, relays}
+    ├── private_channels/          # Private channels
+    │   ├── create/                # CreatePrivateChannelBloc + page
+    │   ├── join/                  # JoinPrivateChannelBloc + page
+    │   └── detail/                # PrivateChannelDetailBloc + page
+    ├── dm/                        # Direct messages (NIP-17, UI pending)
+    │   ├── create/                # CreateDmBloc + CreateDmPage
+    │   └── chat/                  # DmChatPage
+    ├── followed_notes/cubit/      # FollowedNotesCubit
+    ├── saved_notes/               # SavedNotesCubit + SavedNotesPage
+    └── settings/                  # SettingsCubit, EditProfileCubit, StorageCubit + pages/widgets
+```
+
+**Named routes** (`lib/core/router/app_routes.dart`):
+```dart
+splash, welcome, importIdentity, yourIdentityKeys, aboutYou
+home, settings, editProfile, privacyPolicy
+thread, followedNoteDetail
+aiModelSelection, graph, brahmaCreate
+createChannel, joinChannel, channelDetail
+createPrivateChannel, joinPrivateChannel, privateChannelDetail
+savedNotes, createDm, chatDm
+scanCard   ← legacy OCR scanner (kept)
+scanQr     ← QR scanner (active)
 ```
 
 ---

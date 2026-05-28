@@ -850,12 +850,17 @@ CreateChannelBloc
 CreateChannelUseCase
   ├── Builds Kind 40 event (NIP-28): content = JSON(name, about, picture)
   ├── channelId = kind40.id  ← the event's id IS the channel id, forever
-  ├── Saves ChannelEntity to ChannelRepository (row = subscribed)
-  └── Enqueues Kind 40 in EventQueueRepository (Gateway sends it)
+  ├── Saves ChannelEntity to ChannelRepository
+  ├── Enqueues Kind 40 in EventQueueRepository (Gateway sends it)
+  └── Saves SubscriptionRecordEntity (kinds 41,42,43,44 + #e=channelId)
 
 ChannelModel (Isar)
   ├── channelId, name, about, picture, creatorPubKey
-  └── relays: List<String>  ← channel messages routed to these relay URLs; Gateway REQ `#e` uses all stored channel ids
+  └── relays: List<String>  ← channel messages routed to these relay URLs
+
+SubscriptionRecordEntity
+  ├── channelId, kinds: [41,42,43,44], eTags: [channelId]
+  └── lastUntilByRelay: Map<url, int>  ← pagination cursor per relay
 ```
 
 **NIP-28 rules:**
@@ -988,7 +993,9 @@ GetSavedNotesUseCase → NoteRepository → IsarDataSource
 
 ## PART 3 — Folder to Responsibility Mapping
 
-### Proposed Folder Structure
+### Actual Folder Structure (post PR #36 restructure)
+
+> **Note:** All feature modules now live under `lib/features/`. The flat structure below (`lib/vishnu/`, `lib/shiv/` etc.) is the original design doc — actual paths use `lib/features/vishnu/`, `lib/features/shiv/` etc. `lib/core/`, `lib/data/`, `lib/domain/`, `lib/gateway/`, `lib/common/` are unchanged.
 
 ```
 lib/
