@@ -14,7 +14,7 @@ import 'package:uniun/domain/entities/channel_message/channel_message_entity.dar
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/features/vishnu/widgets/note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 class ChannelFeedPage extends StatelessWidget {
   const ChannelFeedPage({super.key, required this.channelId});

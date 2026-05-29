@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
+import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
-import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 class DmChatPage extends StatelessWidget {
@@ -139,10 +140,17 @@ class _DmChatViewState extends State<_DmChatView> {
                         itemCount: state.messages.length,
                         itemBuilder: (context, index) {
                           final msg = state.messages[index];
-                          final isMe =
-                              _myPubkeyHex != null &&
-                              msg.receiverPubkey != _myPubkeyHex;
-                          return _ChatBubble(message: msg, isMe: isMe);
+                          final isMe = _myPubkeyHex != null &&
+                              msg.authorPubkey == _myPubkeyHex;
+                          return isMe
+                              ? DmOwnNoteCard(
+                                  key: ValueKey(msg.eventId),
+                                  note: msg,
+                                )
+                              : DmNoteCard(
+                                  key: ValueKey(msg.eventId),
+                                  note: msg,
+                                );
                         },
                       ),
               ),
@@ -155,44 +163,6 @@ class _DmChatViewState extends State<_DmChatView> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  final DmMessageEntity message;
-  final bool isMe;
-
-  const _ChatBubble({required this.message, required this.isMe});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: isMe ? AppColors.primary : AppColors.surfaceContainerHigh,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
-          ),
-        ),
-        child: Text(
-          message.content,
-          style: TextStyle(
-            fontSize: 15,
-            color: isMe ? AppColors.onPrimary : AppColors.onSurface,
-            height: 1.3,
-          ),
-        ),
-      ),
     );
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/common/widgets/user_avatar.dart';
+import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/features/thread/utils/thread_formatters.dart';
 
 /// Renders the ancestor chain ABOVE the focused note (X/Twitter style).
 /// Oldest ancestor is first; the last item connects via thread line to the
@@ -77,15 +76,36 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
           ),
         ...List.generate(visible.length, (i) {
           final isLast = i == visible.length - 1;
-          return _ParentNoteRow(
-            note: visible[i],
-            profile: widget.profiles[visible[i].authorPubkey],
-            onTap: () => widget.onNoteTap(visible[i].id),
-            // Sibling mode: only the last VISIBLE row connects down to root
-            // (unless collapsed — then the "Show more" button bridges).
-            showConnector: widget.isSiblingGroup
-                ? (isLast && !collapse)
-                : true,
+          // Sibling mode: only the last VISIBLE row connects down to root
+          // (unless collapsed — then the "Show more" button bridges).
+          final showConnector = widget.isSiblingGroup
+              ? (isLast && !collapse)
+              : true;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Stack(
+              children: [
+                if (showConnector)
+                  Positioned(
+                    left: 18,
+                    top: 40,
+                    bottom: 0,
+                    child: Container(
+                      width: 2,
+                      decoration: BoxDecoration(
+                        color:
+                            AppColors.outlineVariant.withValues(alpha: 0.30),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ReferenceNoteCard(
+                  note: visible[i],
+                  profile: widget.profiles[visible[i].authorPubkey],
+                  onTap: () => widget.onNoteTap(visible[i].id),
+                ),
+              ],
+            ),
           );
         }),
         if (collapse)
@@ -117,114 +137,3 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
   }
 }
 
-class _ParentNoteRow extends StatelessWidget {
-  const _ParentNoteRow({
-    required this.note,
-    required this.profile,
-    required this.onTap,
-    required this.showConnector,
-  });
-
-  final NoteEntity note;
-  final ProfileEntity? profile;
-  final VoidCallback onTap;
-  final bool showConnector;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayName = profile?.name ??
-        profile?.username ??
-        threadShortPubkey(note.authorPubkey);
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar + thread line column
-            SizedBox(
-              width: 40,
-              child: Column(
-                children: [
-                  UserAvatar(
-                    seed: note.authorPubkey,
-                    photoUrl: profile?.avatarUrl,
-                    size: 38,
-                    borderRadius: 19,
-                  ),
-                  // Connector — only shown when this row connects down (chain
-                  // mode: always; sibling mode: only the last row).
-                  if (showConnector)
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          width: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.outlineVariant.withValues(alpha: 0.30),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Content — muted, no action buttons
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name · time
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            displayName,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '· ${threadTimeAgo(note.created)}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Content — muted, capped to avoid overshadowing root note
-                    Text(
-                      note.content,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.onSurface.withValues(alpha: 0.55),
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

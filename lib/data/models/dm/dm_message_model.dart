@@ -167,6 +167,8 @@ NoteType _inferTypeFromUrl(String content) {
 extension DmMessageModelExtension on DmMessageModel {
   DmMessageEntity toDomain() => DmMessageEntity(
     eventId: eventId,
+    sig: sig,
+    authorPubkey: authorPubkey,
     conversationId: conversationId,
     receiverPubkey: pTagRefs.isNotEmpty ? pTagRefs.first : '',
     replyToEventId: replyToEventId,

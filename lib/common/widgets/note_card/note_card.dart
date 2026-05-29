@@ -119,12 +119,7 @@ class _NoteCardState extends State<NoteCard> {
                             ),
                           ],
                         ),
-                      ),
-                      const Icon(
-                        Icons.more_horiz_rounded,
-                        size: 18,
-                        color: AppColors.outlineVariant,
-                      ),
+                      )
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -164,19 +159,11 @@ class _NoteCardState extends State<NoteCard> {
                   const SizedBox(height: 12),
 
                   // ── Action row ────────────────────────────────────────
-                  Row(
+                  Padding(
+                    padding: const EdgeInsets.only(right: 32),
+                    child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Follow / Following
-                      _ActionChip(
-                        icon: widget.isFollowed
-                            ? Icons.link_rounded
-                            : Icons.add_link_rounded,
-                        color: widget.isFollowed
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
-                        onTap: widget.onFollowTap ?? () {},
-                      ),
-                      const SizedBox(width: 20),
 
                       // Reply count
                       _ActionChip(
@@ -187,15 +174,12 @@ class _NoteCardState extends State<NoteCard> {
                       ),
 
                       // Reference count — shown when the note references others
-                      const SizedBox(width: 20),
                       _ActionChip(
                         icon: Icons.link_rounded,
                         label: '$refCount',
                         color: AppColors.onSurfaceVariant,
                         onTap: widget.onTap,
                       ),
-
-                      const SizedBox(width: 20),
 
                       // Save toggle — optimistic UI, parent persists
                       _ActionChip(
@@ -210,7 +194,24 @@ class _NoteCardState extends State<NoteCard> {
                           widget.onSaveTap?.call();
                         },
                       ),
+                      // Follow / Following
+                      _ActionChip(
+                        icon: widget.isFollowed
+                            ? Icons.notifications
+                            : Icons.notifications_none,
+                        color: widget.isFollowed
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
+                        onTap: widget.onFollowTap ?? () {},
+                      ),
+                      _ActionChip(
+                        icon: Icons.share_outlined,
+                        color: AppColors.onSurfaceVariant,
+                        onTap: () {}, // TODO: implement share sheet
+                      )
+
                     ],
+                  ),
                   ),
                 ],
               ),

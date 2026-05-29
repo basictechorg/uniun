@@ -9,7 +9,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/saved_notes/cubit/saved_notes_cubit.dart';
 import 'package:uniun/features/saved_notes/cubit/saved_notes_state.dart';
 import 'package:uniun/features/thread/pages/thread_page.dart';
-import 'package:uniun/features/vishnu/widgets/note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 class SavedNotesPage extends StatelessWidget {
   const SavedNotesPage({super.key});

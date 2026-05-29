@@ -108,7 +108,6 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
 
   PrivateChannelMessageEntity _mapMessage(PrivateChannelMessageModel model) {
     return PrivateChannelMessageEntity(
-      id: model.id,
       eventId: model.eventId,
       groupId: model.groupId,
       senderPubkey: model.senderPubkey,

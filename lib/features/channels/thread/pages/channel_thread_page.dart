@@ -14,8 +14,8 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
 import 'package:uniun/features/thread/widgets/thread_reply_composer.dart';
-import 'package:uniun/features/thread/widgets/thread_reply_item.dart';
-import 'package:uniun/features/thread/widgets/thread_root_note_card.dart';
+import 'package:uniun/features/channels/thread/widgets/thread_reply_item.dart';
+import 'package:uniun/common/widgets/note_card/large_note_card.dart';
 
 class ChannelThreadPage extends StatelessWidget {
   const ChannelThreadPage({
@@ -263,7 +263,7 @@ class _ChannelThreadViewState extends State<_ChannelThreadView> {
                           right: 20,
                         ),
                         sliver: SliverToBoxAdapter(
-                          child: ThreadRootNoteCard(
+                          child: LargeNoteCard(
                             note: root.toNoteEntity(),
                             profile: state.profiles[root.authorPubkey],
                             replyCount: state.replies.length,
