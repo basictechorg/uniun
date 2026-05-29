@@ -12,7 +12,7 @@ import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawe
 import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
-import 'package:uniun/features/vishnu/widgets/note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 class VishnuFeedPage extends StatefulWidget {
   const VishnuFeedPage({

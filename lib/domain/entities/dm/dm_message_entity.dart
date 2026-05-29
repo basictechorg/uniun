@@ -1,20 +1,67 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 
-part 'dm_message_entity.freezed.dart';
+class DmMessageEntity implements NoteEntity {
+  final String eventId;
+  @override
+  final String sig;
+  @override
+  final String authorPubkey;
+  final int conversationId;
+  final String receiverPubkey;
+  @override
+  final String? replyToEventId;
+  @override
+  final String content;
+  @override
+  final String? subject;
+  final int kind;
+  @override
+  final NoteType type;
+  @override
+  final DateTime created;
+  @override
+  final bool isSeen;
 
-@freezed
-abstract class DmMessageEntity with _$DmMessageEntity {
-  const factory DmMessageEntity({
-    required String eventId,
-    required int conversationId,
-    required String receiverPubkey,
-    String? replyToEventId,
-    required String content,
-    String? subject,
-    required int kind,
-    required NoteType type,
-    required DateTime created,
-    required bool isSeen,
-  }) = _DmMessageEntity;
+  const DmMessageEntity({
+    required this.eventId,
+    required this.sig,
+    required this.authorPubkey,
+    required this.conversationId,
+    required this.receiverPubkey,
+    this.replyToEventId,
+    required this.content,
+    this.subject,
+    required this.kind,
+    required this.type,
+    required this.created,
+    required this.isSeen,
+  });
+
+  @override
+  String get id => eventId;
+
+  @override
+  List<String> get eTagRefs =>
+      replyToEventId != null ? [replyToEventId!] : const [];
+
+  @override
+  List<String> get pTagRefs => [receiverPubkey];
+
+  @override
+  List<String> get tTags => const [];
+
+  @override
+  String? get rootEventId => null;
+
+  @override
+  int get cachedReplyCount => 0;
+
+  @override
+  $NoteEntityCopyWith<NoteEntity> get copyWith =>
+      throw UnimplementedError('copyWith not supported on DmMessageEntity');
+
+  @override
+  Map<String, dynamic> toJson() =>
+      throw UnimplementedError('toJson not supported on DmMessageEntity');
 }

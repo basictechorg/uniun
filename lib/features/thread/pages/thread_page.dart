@@ -10,8 +10,8 @@ import 'package:uniun/features/thread/widgets/thread_app_bar.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
 import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
 import 'package:uniun/features/thread/widgets/thread_reply_composer.dart';
-import 'package:uniun/features/thread/widgets/thread_reply_item.dart';
-import 'package:uniun/features/thread/widgets/thread_root_note_card.dart';
+import 'package:uniun/common/widgets/note_card/large_note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 /// Route argument for [ThreadPage]. Pass either a plain [String] (eventId)
 /// or a [ThreadRouteArgs] when opening from a followed note with unread state.
@@ -233,7 +233,7 @@ class _ThreadBody extends StatelessWidget {
             right: 20,
           ),
           sliver: SliverToBoxAdapter(
-            child: ThreadRootNoteCard(
+            child: LargeNoteCard(
               note: root,
               profile: state.profileFor(root.authorPubkey),
               replyCount: state.replies.length,
@@ -255,34 +255,11 @@ class _ThreadBody extends StatelessWidget {
               delegate: SliverChildBuilderDelegate(
                 (ctx, i) {
                   final reply = state.replies[i];
-                  final name = state.profileFor(reply.authorPubkey)?.name ??
-                      reply.authorPubkey.substring(0, 8);
-                  return ThreadReplyItem(
+                  return NoteCard(
                     key: ValueKey(reply.id),
-                    reply: reply,
+                    note: reply,
                     profile: state.profileFor(reply.authorPubkey),
-                    nestedReplies: state.nestedReplies[reply.id] ?? [],
-                    nestedProfiles: state.profiles,
-                    allNestedReplies: state.nestedReplies,
-                    showThreadLine: i < state.replies.length - 1,
-                    hasUnread: state.hasUnread,
-                    onReplyTap: () {
-                      ctx.read<ThreadBloc>().add(
-                            SetReplyTargetEvent(
-                                replyToId: reply.id, replyToName: name),
-                          );
-                      focusNode.requestFocus();
-                    },
-                    onExpandReplies: (id) =>
-                        ctx.read<ThreadBloc>().add(ExpandReplyEvent(id)),
-                    onNestedReplyTap: (id, nestedName) {
-                      ctx.read<ThreadBloc>().add(SetReplyTargetEvent(
-                            replyToId: id,
-                            replyToName: nestedName,
-                          ));
-                      focusNode.requestFocus();
-                    },
-                    // Tapping the content area opens the reply's own thread view
+                    replyCount: reply.cachedReplyCount,
                     onTap: () => onOpenThread(ctx, reply.id),
                   );
                 },

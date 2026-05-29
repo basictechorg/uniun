@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
-import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/core/router/app_routes.dart';
 
 class PrivateChannelDetailPage extends StatelessWidget {
@@ -31,22 +30,6 @@ class _PrivateChannelDetailView extends StatefulWidget {
 class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
-  String? _myPubkeyHex;
-
-  @override
-  void initState() {
-    super.initState();
-    _resolveActiveUser();
-  }
-
-  Future<void> _resolveActiveUser() async {
-    final res = await getIt<GetActiveUserUseCase>().call();
-    if (mounted) {
-      setState(() {
-        _myPubkeyHex = res.fold((_) => null, (u) => u.pubkeyHex);
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -230,12 +213,12 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                         ),
                         itemCount: state.messages.length,
                         itemBuilder: (context, index) {
-                          // The query returns descending by timestamp if defined
                           final msg = state.messages[index];
-                          final isMe =
-                              _myPubkeyHex != null &&
-                              msg.senderPubkey == _myPubkeyHex;
-                          return _ChatBubble(message: msg, isMe: isMe);
+                          return NoteCard(
+                            key: ValueKey(msg.eventId),
+                            note: msg,
+                            onTap: () {},
+                          );
                         },
                       ),
               ),
@@ -247,61 +230,6 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  final PrivateChannelMessageEntity message;
-  final bool isMe;
-
-  const _ChatBubble({required this.message, required this.isMe});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: isMe ? AppColors.primary : AppColors.surfaceContainerHigh,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isMe)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  message.senderPubkey.substring(0, 8),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppColors.onSurfaceVariant,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            Text(
-              message.decryptedContent,
-              style: TextStyle(
-                fontSize: 15,
-                color: isMe ? AppColors.onPrimary : AppColors.onSurface,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

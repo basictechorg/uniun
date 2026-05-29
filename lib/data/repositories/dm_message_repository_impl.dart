@@ -26,8 +26,8 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
 
       final model = DmMessageModel(
         eventId: entity.eventId,
-        sig: '',
-        authorPubkey: '',
+        sig: entity.sig,
+        authorPubkey: entity.authorPubkey,
         conversationId: entity.conversationId,
         pTagRefs: [entity.receiverPubkey],
         content: entity.content,

@@ -8,7 +8,7 @@ import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/features/vishnu/widgets/note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 /// Slides up from the bottom when a graph node is tapped.
 class GraphNodePanel extends StatelessWidget {
@@ -106,7 +106,7 @@ class GraphNodePanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            // Note content — NoteCard for saved/own, plain text for drafts
+            // Note content — NoteCard for saved/own, styled preview for drafts
             if (noteEntity != null)
               Flexible(
                 child: SingleChildScrollView(
@@ -122,35 +122,22 @@ class GraphNodePanel extends StatelessWidget {
                   ),
                 ),
               )
-            else
+            else if (isDraft)
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    node.content,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.onSurface,
-                      height: 1.6,
-                    ),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                  child: _DraftPreview(
+                    content: node.content,
+                    draftId: node.eventId,
+                    eTagRefs: node.eTagRefs,
+                    tTags: node.tTags,
+                    onClose: onClose,
+                    onEditTap: onEditTap,
+                    onPublishTap: onPublishTap,
+                    l10n: l10n,
                   ),
                 ),
               ),
-
-            // Draft action buttons
-            if (isDraft) ...[
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _DraftActions(
-                  draftId: node.eventId,
-                  onClose: onClose,
-                  onEditTap: onEditTap,
-                  onPublishTap: onPublishTap,
-                  l10n: l10n,
-                ),
-              ),
-            ],
 
             const SizedBox(height: 20),
           ],
@@ -202,16 +189,22 @@ class _TypeBadge extends StatelessWidget {
   }
 }
 
-// ── Draft actions (Edit / Publish / Delete) ─────────────────────────────────
-class _DraftActions extends StatelessWidget {
-  const _DraftActions({
+// ── Draft preview (content + actions) ──────────────────────────────────────
+class _DraftPreview extends StatelessWidget {
+  const _DraftPreview({
+    required this.content,
     required this.draftId,
+    required this.eTagRefs,
+    required this.tTags,
     required this.onClose,
     required this.l10n,
     this.onEditTap,
     this.onPublishTap,
   });
+  final String content;
   final String draftId;
+  final List<String> eTagRefs;
+  final List<String> tTags;
   final VoidCallback onClose;
   final void Function(String)? onEditTap;
   final void Function(String)? onPublishTap;
@@ -219,44 +212,167 @@ class _DraftActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ActionBtn(
-          label: l10n.graphDraftEdit,
-          color: AppColors.onSurfaceVariant,
-          bgColor: AppColors.surfaceContainerLow,
-          onTap: () {
-            onClose();
-            onEditTap?.call(draftId);
-          },
+    final isEmpty = content.trim().isEmpty;
+    final refCount = eTagRefs.toSet().length;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.graphDraft.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.graphDraft.withValues(alpha: 0.2),
+          width: 1,
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionBtn(
-            label: l10n.brahmaPublish,
-            color: AppColors.onPrimary,
-            bgColor: AppColors.primary,
-            fullWidth: true,
-            onTap: () {
-              onClose();
-              onPublishTap?.call(draftId);
-            },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Draft icon in place of avatar
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.graphDraft.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.edit_note_rounded,
+                  size: 22,
+                  color: AppColors.graphDraft,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Title + body
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          l10n.graphLegendDraft,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.brahmaDraftSaved,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isEmpty ? '—' : content,
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.55,
+                        color: isEmpty
+                            ? AppColors.onSurfaceVariant
+                            : const Color(0xFF1E293B),
+                        fontStyle:
+                            isEmpty ? FontStyle.italic : FontStyle.normal,
+                      ),
+                    ),
+                    if (tTags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: tTags
+                            .take(3)
+                            .map(
+                              (t) => Text(
+                                '#$t',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                    if (refCount > 0) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.link_rounded,
+                            size: 18,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '$refCount',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 8),
-        // Delete
-        _ActionBtn(
-          label: l10n.graphDraftDelete,
-          color: AppColors.error,
-          bgColor: AppColors.errorContainer,
-          onTap: () {
-            onClose();
-            context
-                .read<GraphBloc>()
-                .add(DeleteDraftNodeEvent(draftId));
-          },
-        ),
-      ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _ActionBtn(
+                label: l10n.graphDraftEdit,
+                color: AppColors.onSurfaceVariant,
+                bgColor: AppColors.surfaceContainerLow,
+                onTap: () {
+                  onClose();
+                  onEditTap?.call(draftId);
+                },
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ActionBtn(
+                  label: l10n.brahmaPublish,
+                  color: AppColors.onPrimary,
+                  bgColor: AppColors.primary,
+                  fullWidth: true,
+                  onTap: () {
+                    onClose();
+                    onPublishTap?.call(draftId);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              _ActionBtn(
+                label: l10n.graphDraftDelete,
+                color: AppColors.error,
+                bgColor: AppColors.errorContainer,
+                onTap: () {
+                  onClose();
+                  context
+                      .read<GraphBloc>()
+                      .add(DeleteDraftNodeEvent(draftId));
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
-import 'package:uniun/features/thread/utils/thread_formatters.dart';
+import 'package:uniun/features/channels/thread/utils/thread_formatters.dart';
 
 // ── Top-level reply item (Twitter/X style) ────────────────────────────────────
 
@@ -237,14 +238,16 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
               final nestedName = nestedProfile?.name ??
                   nestedProfile?.username ??
                   threadShortPubkey(nested.authorPubkey);
-              return _InlineReplyItem(
-                reply: nested,
-                profile: nestedProfile,
-                displayName: nestedName,
-                replyCount: nested.cachedReplyCount,
-                onReplyTap: () {
-                  widget.onNestedReplyTap?.call(nested.id, nestedName);
-                },
+              return Padding(
+                padding: const EdgeInsets.only(left: 52, bottom: 14),
+                child: NoteCard(
+                  note: nested,
+                  profile: nestedProfile,
+                  replyCount: nested.cachedReplyCount,
+                  onTap: () {
+                    widget.onNestedReplyTap?.call(nested.id, nestedName);
+                  },
+                ),
               );
             })
           else if (widget.reply.cachedReplyCount > 0)
@@ -257,107 +260,6 @@ class _ThreadReplyItemState extends State<ThreadReplyItem> {
           color: AppColors.outlineVariant.withValues(alpha: 0.12),
         ),
       ],
-    );
-  }
-}
-
-// ── Inline sub-reply (one level, compact) ─────────────────────────────────────
-
-class _InlineReplyItem extends StatelessWidget {
-  const _InlineReplyItem({
-    required this.reply,
-    required this.profile,
-    required this.displayName,
-    required this.replyCount,
-    required this.onReplyTap,
-  });
-
-  final NoteEntity reply;
-  final ProfileEntity? profile;
-  final String displayName;
-  final int replyCount;
-  final VoidCallback onReplyTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 52, bottom: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          UserAvatar(
-            seed: reply.authorPubkey,
-            photoUrl: profile?.avatarUrl,
-            size: 30,
-            borderRadius: 15,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        displayName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '· ${threadTimeAgo(reply.created)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  reply.content,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.onSurface,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: onReplyTap,
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                        child: Icon(Icons.reply_rounded,
-                            size: 16, color: AppColors.onSurfaceVariant),
-                      ),
-                    ),
-                    if (replyCount > 0) ...[
-                      const SizedBox(width: 10),
-                      Text(
-                        '$replyCount ${replyCount == 1 ? 'reply' : 'replies'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
