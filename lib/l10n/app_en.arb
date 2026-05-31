@@ -254,6 +254,12 @@
   "vishnuReferenceUnavailable": "Referenced note not available",
   "@vishnuReferenceUnavailable": { "description": "Shown when a referenced note is not in local Isar" },
 
+  "vishnuNewNotesBanner": "{count, plural, one{1 new note} other{{count} new notes}}",
+  "@vishnuNewNotesBanner": {
+    "description": "Sticky banner shown when new feed items arrived since the page was loaded",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
   "homeShivTitle": "Shiv — AI Assistant",
   "@homeShivTitle": { "description": "Placeholder title for the Shiv tab" },
 

@@ -20,7 +20,9 @@ abstract class ChannelMessageEntity with _$ChannelMessageEntity {
     String? rootEventId,
     String? replyToEventId,
     required DateTime created,
+    @Default(false) bool isSeen,
     @Default(0) int cachedReplyCount,
+    @Default(0) int referenceCount,
   }) = _ChannelMessageEntity;
 }
 
@@ -45,9 +47,12 @@ extension ChannelMessageToNote on ChannelMessageEntity {
       pTagRefs: pTagRefs,
       tTags: const [],
       created: created,
-      isSeen: true,
+      isSeen: isSeen,
       replyToEventId: replyToEventId,
       cachedReplyCount: cachedReplyCount,
+      referenceCount: referenceCount,
+      sourceChannelId: channelId,
+      // sourceLabel filled by FeedRepository (knows the channel name)
     );
   }
 }

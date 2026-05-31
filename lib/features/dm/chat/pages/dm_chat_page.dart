@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_button.dart';
+import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
@@ -39,6 +42,7 @@ class _DmChatViewState extends State<_DmChatView> {
 
   // To identify if a message is ours.
   String? _myPubkeyHex;
+  String? _myNpub;
 
   @override
   void initState() {
@@ -50,9 +54,24 @@ class _DmChatViewState extends State<_DmChatView> {
     final res = await getIt<GetActiveUserProfileUseCase>().call();
     if (mounted) {
       res.fold((_) {}, (profile) {
-        setState(() => _myPubkeyHex = profile.pubkeyHex);
+        setState(() {
+          _myPubkeyHex = profile.pubkeyHex;
+          _myNpub = Nip19.encodePubkey(profile.pubkeyHex);
+        });
       });
     }
+  }
+
+  void _showQr(String otherPubkeyHex) {
+    if (_myNpub == null) return;
+    final partnerNpub = Nip19.encodePubkey(otherPubkeyHex);
+    showDialog<void>(
+      context: context,
+      builder: (_) => UniunQrCard.dmConversation(
+        partnerNpub: partnerNpub,
+        myNpub: _myNpub!,
+      ),
+    );
   }
 
   @override
@@ -118,6 +137,11 @@ class _DmChatViewState extends State<_DmChatView> {
               ],
             ),
             actions: [
+              if (state.otherPubkey != null && _myNpub != null)
+                UniunQrButton(
+                  onTap: () => _showQr(state.otherPubkey!),
+                  tooltip: 'Share keys',
+                ),
               IconButton(
                 icon: const Icon(
                   Icons.refresh,

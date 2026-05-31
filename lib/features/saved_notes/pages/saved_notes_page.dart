@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
@@ -180,7 +181,9 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                                     followedIds.contains(note.eventId);
                                 return NoteCard(
                                   note: note.toNoteEntity(
-                                      savedEventIds: savedEventIds),
+                                    savedEventIds: savedEventIds,
+                                    sourceLabel: state.sourceLabels[note.eventId],
+                                  ),
                                   profile: state.profiles[note.authorPubkey],
                                   replyCount: note.cachedReplyCount,
                                   isSaved: true,
@@ -199,15 +202,22 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                                       );
                                     }
                                   },
-                                  onTap: () => Navigator.push(
-                                    ctx,
-                                    MaterialPageRoute(
-                                      builder: (_) => ThreadPage(
-                                        noteId: note.eventId,
-                                        savedOnly: true,
+                                  onTap: () async {
+                                    await openEventThread(
+                                      ctx,
+                                      note.eventId,
+                                      openAsNote: () => Navigator.push(
+                                        ctx,
+                                        MaterialPageRoute(
+                                          builder: (_) => ThreadPage(
+                                            noteId: note.eventId,
+                                            savedOnly: true,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ).then((_) => cubit.load()),
+                                    );
+                                    cubit.load();
+                                  },
                                 );
                               },
                             );

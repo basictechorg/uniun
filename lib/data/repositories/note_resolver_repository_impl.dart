@@ -140,7 +140,9 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
         isSeen: true,
         rootEventId: m.rootEventId,
         replyToEventId: m.replyToEventId,
-        cachedReplyCount: m.cachedReplyCount,
+        // Reply count now comes from NoteRelationRepository in the feed
+        // pipeline. The resolver is used for one-off lookups (thread root,
+        // mentions) where the live count isn't displayed, so default to 0.
       );
 
   NoteEntity _fromPrivate(PrivateChannelMessageModel m) => NoteEntity(

@@ -7,6 +7,7 @@ import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/gateway/orchestrator/gateway_orchestrator.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/services/nip17_encryption_service.dart';
 
 /// Entry point for the Gateway isolate (Isolate 2).
@@ -35,6 +36,7 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
     );
     final nip17Service = Nip17EncryptionService(
       isar,
+      NoteRelationRepositoryImpl(isar: isar),
       privkeyHex: init.privkeyHex,
     );
 

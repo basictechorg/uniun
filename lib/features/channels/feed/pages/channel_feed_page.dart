@@ -1,8 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
@@ -87,74 +85,15 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   }
 
   void _showChannelQrSheet(BuildContext context, ChannelFeedState state) {
-    final l10n = AppLocalizations.of(context)!;
     final channel = state.channel;
     if (channel == null) return;
-
-    final payload = jsonEncode({
-      'name': channel.name,
-      'channel_id': channel.channelId,
-      'relays': channel.relays,
-    });
-
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (_) => UniunQrCard.publicChannel(
+        name: channel.name,
+        channelId: channel.channelId,
+        relays: channel.relays,
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.channelShareQrTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.channelShareQrBody,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: QrImageView(
-                    data: payload,
-                    version: QrVersions.auto,
-                    size: 240,
-                    backgroundColor: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '#${channel.name}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 

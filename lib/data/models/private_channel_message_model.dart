@@ -29,5 +29,10 @@ class PrivateChannelMessageModel {
 
   late List<String> pTagRefs;
 
+  @Index()
   late DateTime timestamp;
+
+  /// Composite (isSeen, timestamp) — Vishnu feed bucket queries.
+  @Index(composite: [CompositeIndex('timestamp')])
+  late bool isSeen = false;
 }

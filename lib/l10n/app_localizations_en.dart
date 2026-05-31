@@ -271,6 +271,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vishnuReferenceUnavailable => 'Referenced note not available';
 
   @override
+  String vishnuNewNotesBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new notes',
+      one: '1 new note',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get homeShivTitle => 'Shiv — AI Assistant';
 
   @override

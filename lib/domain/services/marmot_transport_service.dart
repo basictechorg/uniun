@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
+import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
 import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/services/marmot_mls_service.dart';
 
 import 'package:injectable/injectable.dart';
@@ -15,9 +18,10 @@ import 'package:injectable/injectable.dart';
 class MarmotTransportService {
   final Isar _isar;
   final MarmotMlsService _mlsService;
+  final NoteRelationRepository _relations;
   StreamSubscription<void>? _subscription;
 
-  MarmotTransportService(this._isar, this._mlsService);
+  MarmotTransportService(this._isar, this._mlsService, this._relations);
 
   void start() {
     _processPendingMessages();
@@ -106,8 +110,25 @@ class MarmotTransportService {
 
         await _isar.writeTxn(() async {
           await _isar.privateChannelMessageModels.put(decryptedMsg);
+          // Reference edges via the shared repo. eTagRefs are currently empty
+          // on decrypted MLS payloads, so this is a no-op today, but routes
+          // any future NIP-10-style refs through the single edge table.
+          final parents = replyEdgeParentIds(
+            replyToEventId: null,
+            rootEventId: null,
+            eTagRefs: decryptedMsg.eTagRefs,
+          );
+          await _relations.addEdgesInTxn(
+            parents: parents,
+            childId: decryptedMsg.eventId,
+          );
           await _isar.encryptedMessageModels.delete(encrypted.id);
         });
+        // Outside the txn — flag the sender for profile fetch if unknown.
+        // Profiles subscription will pick this up and fill the username so the
+        // NoteCard stops showing the raw pubkey.
+        await MissingProfileTracker(_isar)
+            .trackPubkey(decryptedMsg.senderPubkey);
       } catch (e) {
         // Leave in queue if epoch mismatch or other retryable error.
       }
@@ -381,6 +402,15 @@ class MarmotTransportService {
 
     await _isar.writeTxn(() async {
       await _isar.privateChannelMessageModels.put(localMessage);
+      final parents = replyEdgeParentIds(
+        replyToEventId: null,
+        rootEventId: null,
+        eTagRefs: localMessage.eTagRefs,
+      );
+      await _relations.addEdgesInTxn(
+        parents: parents,
+        childId: localMessage.eventId,
+      );
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
     });
   }

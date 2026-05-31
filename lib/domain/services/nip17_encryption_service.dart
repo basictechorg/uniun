@@ -4,23 +4,30 @@ import 'package:crypto/crypto.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nip44/nip44.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
+import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 // user_key_model not needed — privkey is injected via constructor
 import 'package:uniun/core/enum/note_type.dart';
 
 class Nip17EncryptionService {
   final Isar _isar;
+  final NoteRelationRepository _relations;
 
   /// The active user's private key as raw 32-byte hex.
   /// Passed in from the gateway isolate bootstrap (read from FlutterSecureStorage
   /// in the main isolate before spawn, since SecureStorage is unavailable in isolates).
   final String? _privkeyHex;
 
-  Nip17EncryptionService(this._isar, {String? privkeyHex})
-    : _privkeyHex = privkeyHex;
+  Nip17EncryptionService(
+    this._isar,
+    this._relations, {
+    String? privkeyHex,
+  }) : _privkeyHex = privkeyHex;
 
   /// Start watching the Isar collection for new incoming encrypted DMs
   /// (e.g., from the gateway's WebSocketService)
@@ -156,9 +163,22 @@ class Nip17EncryptionService {
           );
 
           await _isar.dmMessageModels.put(dmModel);
+          // Record reference edges via the shared repo. The unique
+          // (parentId, childId) index keeps re-delivery idempotent.
+          final parents = replyEdgeParentIds(
+            replyToEventId: replyTo,
+            rootEventId: null,
+            eTagRefs: replyTo != null ? [replyTo] : const [],
+          );
+          await _relations.addEdgesInTxn(
+            parents: parents,
+            childId: parsedEventId,
+          );
           // Consume encrypted wrapper from queue
           await _isar.encryptedDmModels.delete(dm.id);
         });
+        // Flag the seal-sender for profile fetch if we don't have one yet.
+        await MissingProfileTracker(_isar).trackPubkey(sealSenderPubkey);
       } catch (e, st) {
         print("Failed to decrypt GiftWrap ${dm.eventId}: $e\n$st");
         // Always delete on failure so we don't indefinitely panic on bad cryptography
@@ -180,9 +200,20 @@ class Nip17EncryptionService {
     try {
       final myPubkey = Keychain(myPrivkey).public;
 
-      // 1. Immediately store unencrypted Dm in local DB
+      // 1. Immediately store unencrypted Dm in local DB + reference edges.
       await _isar.writeTxn(() async {
         await _isar.dmMessageModels.put(unsignedModel);
+        final parents = replyEdgeParentIds(
+          replyToEventId: unsignedModel.replyToEventId,
+          rootEventId: null,
+          eTagRefs: unsignedModel.replyToEventId != null
+              ? [unsignedModel.replyToEventId!]
+              : const [],
+        );
+        await _relations.addEdgesInTxn(
+          parents: parents,
+          childId: unsignedModel.eventId,
+        );
       });
 
       final now = DateTime.now();

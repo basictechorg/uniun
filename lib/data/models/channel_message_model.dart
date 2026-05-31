@@ -30,10 +30,13 @@ class ChannelMessageModel {
 
   late List<String> pTagRefs;
 
+  @Index()
   late DateTime created;
 
-  /// Denormalised reply count — incremented in saveMessage when a reply is saved.
-  int cachedReplyCount = 0;
+  /// Composite index: (isSeen, created) — same role as NoteModel.isSeen so the
+  /// unified Vishnu feed buckets are indexed scans on this collection too.
+  @Index(composite: [CompositeIndex('created')])
+  late bool isSeen = false;
 }
 
 extension ChannelMessageModelExtension on ChannelMessageModel {
@@ -48,6 +51,6 @@ extension ChannelMessageModelExtension on ChannelMessageModel {
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
         created: created,
-        cachedReplyCount: cachedReplyCount,
+        isSeen: isSeen,
       );
 }

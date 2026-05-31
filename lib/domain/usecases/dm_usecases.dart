@@ -7,6 +7,7 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
+import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
@@ -136,7 +137,11 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
               .toString();
 
           // Spin up a transient encryption service using the decoded privkey hex.
-          final service = Nip17EncryptionService(_isar, privkeyHex: privkeyHex);
+          final service = Nip17EncryptionService(
+            _isar,
+            NoteRelationRepositoryImpl(isar: _isar),
+            privkeyHex: privkeyHex,
+          );
 
           final dm = DmMessageModel(
             eventId: localId,
@@ -183,6 +188,7 @@ class GetDmUseCase extends NoParamsUseCase<Either<Failure, Unit>> {
       return keysResult.fold((f) => Left(f), (keys) async {
         final service = Nip17EncryptionService(
           _isar,
+          NoteRelationRepositoryImpl(isar: _isar),
           privkeyHex: keys.privkeyHex,
         );
         await service.processInboundQueue();

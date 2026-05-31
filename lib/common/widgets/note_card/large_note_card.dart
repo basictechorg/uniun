@@ -56,14 +56,8 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
         ? '@${profile!.username}'
         : '@${formatShortPubkey(widget.note.authorPubkey)}';
 
-    final mentionRefs = widget.note.eTagRefs
-        .where((id) =>
-            id != widget.note.rootEventId && id != widget.note.replyToEventId)
-        .toSet()
-        .length;
-    final hasParent = widget.note.rootEventId != null ||
-        widget.note.replyToEventId != null;
-    final refCount = mentionRefs + (hasParent ? 1 : 0);
+    // Outgoing reference count comes from the edge table via the entity.
+    final refCount = widget.note.referenceCount;
 
     return Container(
       decoration: BoxDecoration(

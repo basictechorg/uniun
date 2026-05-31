@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart';
-import 'package:uniun/core/router/app_routes.dart';
 
 class JoinPrivateChannelPage extends StatelessWidget {
   const JoinPrivateChannelPage({super.key});
@@ -29,6 +28,19 @@ class _JoinPrivateChannelView extends StatefulWidget {
 class _JoinPrivateChannelViewState extends State<_JoinPrivateChannelView> {
   final _groupIdController = TextEditingController();
   final _relayController = TextEditingController();
+  bool _appliedArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedArgs) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is UniunQrPayload && args.kind == UniunQrKind.privateChannel) {
+      _appliedArgs = true;
+      _groupIdController.text = args.id;
+      _relayController.text = args.relays.join(', ');
+    }
+  }
 
   @override
   void dispose() {

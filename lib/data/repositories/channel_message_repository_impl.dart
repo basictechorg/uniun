@@ -2,15 +2,21 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 
 @Injectable(as: ChannelMessageRepository)
 class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
   final Isar isar;
+  final NoteRelationRepository _relations;
 
-  ChannelMessageRepositoryImpl({required this.isar});
+  ChannelMessageRepositoryImpl({
+    required this.isar,
+    required NoteRelationRepository relations,
+  }) : _relations = relations;
 
   @override
   Future<Either<Failure, ChannelMessageEntity>> saveMessage(
@@ -37,30 +43,14 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
         ..replyToEventId = message.replyToEventId
         ..created = message.created;
 
+      final parents = replyEdgeParentIds(
+        replyToEventId: message.replyToEventId,
+        rootEventId: message.rootEventId,
+        eTagRefs: message.eTagRefs,
+      );
       await isar.writeTxn(() async {
         await isar.channelMessageModels.put(model);
-        // Increment direct parent + mention-refs (not the channel root ID which
-        // is always message.rootEventId/channelId — that's a Kind 40 event, not
-        // a channel message, so it will never be found and is safe to skip).
-        final toIncrement = <String>{};
-        if (message.replyToEventId != null) {
-          toIncrement.add(message.replyToEventId!);
-        }
-        for (final ref in message.eTagRefs) {
-          if (ref != message.rootEventId && ref != message.replyToEventId) {
-            toIncrement.add(ref);
-          }
-        }
-        for (final refId in toIncrement) {
-          final parent = await isar.channelMessageModels
-              .where()
-              .eventIdEqualTo(refId)
-              .findFirst();
-          if (parent != null) {
-            parent.cachedReplyCount++;
-            await isar.channelMessageModels.put(parent);
-          }
-        }
+        await _relations.addEdgesInTxn(parents: parents, childId: message.id);
       });
 
       return Right(model.toDomain());
@@ -94,37 +84,25 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
             .findAll();
       }
 
-      await _backfillReplyCountsIfNeeded(rows);
-      return Right(rows.map((m) => m.toDomain()).toList());
+      return Right(await _withReplyCounts(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
-  Future<void> _backfillReplyCountsIfNeeded(
-      List<ChannelMessageModel> models) async {
-    final toUpdate = <ChannelMessageModel>[];
-    for (final m in models) {
-      // Count all messages that reference m — both direct replies
-      // (replyToEventId == m.eventId) and mention-refs (m.eventId in eTagRefs
-      // but not as rootEventId). For channel messages rootEventId is always
-      // the Kind-40 channel ID, never another channel message, so
-      // eTagRefsElementEqualTo gives the correct union of both cases.
-      final count = await isar.channelMessageModels
-          .filter()
-          .eTagRefsElementEqualTo(m.eventId)
-          .count();
-      if (count != m.cachedReplyCount) {
-        m.cachedReplyCount = count;
-        toUpdate.add(m);
-      }
-    }
-    if (toUpdate.isEmpty) return;
-    await isar.writeTxn(() async {
-      for (final m in toUpdate) {
-        await isar.channelMessageModels.put(m);
-      }
-    });
+  /// Stitches the live reply + reference counts onto each entity from the
+  /// edge table (reply = edges pointing to it; reference = edges from it).
+  Future<List<ChannelMessageEntity>> _withReplyCounts(
+    List<ChannelMessageModel> models,
+  ) async {
+    final entities = models.map((m) => m.toDomain()).toList();
+    return [
+      for (final e in entities)
+        e.copyWith(
+          cachedReplyCount: await _relations.replyCount(e.id),
+          referenceCount: await _relations.referenceCount(e.id),
+        ),
+    ];
   }
 
   @override
@@ -154,7 +132,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
           .eTagRefsElementEqualTo(messageId)
           .sortByCreated()
           .findAll();
-      return Right(rows.map((m) => m.toDomain()).toList());
+      return Right(await _withReplyCounts(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -165,11 +143,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
     String messageId,
   ) async {
     try {
-      final count = await isar.channelMessageModels
-          .filter()
-          .eTagRefsElementEqualTo(messageId)
-          .count();
-      return Right(count);
+      return Right(await _relations.replyCount(messageId));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

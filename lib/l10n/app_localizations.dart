@@ -574,6 +574,12 @@ abstract class AppLocalizations {
   /// **'Referenced note not available'**
   String get vishnuReferenceUnavailable;
 
+  /// Sticky banner shown when new feed items arrived since the page was loaded
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 new note} other{{count} new notes}}'**
+  String vishnuNewNotesBanner(int count);
+
   /// Placeholder title for the Shiv tab
   ///
   /// In en, this message translates to:

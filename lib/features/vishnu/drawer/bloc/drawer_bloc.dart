@@ -57,13 +57,13 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       final user = userResult.fold((_) => null, (u) => u);
 
       String displayName = 'Anonymous';
-      String npubShort = '';
+      String npub = '';
       String? avatarUrl;
 
       if (user != null) {
-        npubShort = user.npub.length > 12
-            ? '${user.npub.substring(0, 12)}...'
-            : user.npub;
+        // Keep the FULL npub in state. UI is responsible for truncating
+        // for display only — Copy must always paste the complete value.
+        npub = user.npub;
 
         final profileResult = await _getOwnProfile.call(user.pubkeyHex);
         final profile = profileResult.fold((_) => null, (p) => p);
@@ -117,7 +117,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
 
       emit(DrawerLoaded(
         userName: displayName,
-        npub: npubShort,
+        npub: npub,
         pubkeyHex: user?.pubkeyHex ?? '',
         avatarUrl: avatarUrl,
         followedNotes: followedNotes,

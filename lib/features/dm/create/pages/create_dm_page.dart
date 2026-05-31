@@ -27,6 +27,18 @@ class _CreateDmView extends StatefulWidget {
 class _CreateDmViewState extends State<_CreateDmView> {
   final _pubkeyController = TextEditingController();
   final List<String> _selectedRelays = [];
+  bool _appliedArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedArgs) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && args.isNotEmpty) {
+      _appliedArgs = true;
+      _pubkeyController.text = args;
+    }
+  }
 
   @override
   void dispose() {

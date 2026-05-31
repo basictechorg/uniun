@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const LoadFeedEvent());
+    _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
     _followedNotesCubit = getIt<FollowedNotesCubit>()..load();
   }
 

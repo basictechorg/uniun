@@ -22,4 +22,5 @@ abstract class AppRoutes {
   static const createPrivateChannel = '/create-private-channel';
   static const joinPrivateChannel = '/join-private-channel';
   static const privateChannelDetail = '/private-channel-detail';
+  static const scanQr = '/scan-qr';
 }

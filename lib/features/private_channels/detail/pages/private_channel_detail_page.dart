@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_button.dart';
+import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
@@ -176,22 +177,25 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                       ),
                   ],
                 ),
+              if (state.channel != null)
+                UniunQrButton(
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => UniunQrCard.privateChannel(
+                      name: state.channel!.name,
+                      groupId: state.groupId,
+                      relays: state.channel!.relays,
+                    ),
+                  ),
+                  tooltip: 'Share QR',
+                ),
               PopupMenuButton<String>(
                 onSelected: (val) {
-                  if (val == 'share') {
-                    Clipboard.setData(ClipboardData(text: state.groupId));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Group ID copied to clipboard")),
-                    );
-                  } else if (val == 'leave') {
+                  if (val == 'leave') {
                     context.read<PrivateChannelDetailBloc>().add(LeavePrivateChannelEvent());
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'share',
-                    child: Text('Copy Group ID'),
-                  ),
                   const PopupMenuItem(
                     value: 'leave',
                     child: Text('Leave Channel', style: TextStyle(color: AppColors.error)),
@@ -223,6 +227,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                                 final card = NoteCard(
                                   key: ValueKey(msg.eventId),
                                   note: msg,
+                                  profile: state.profiles[msg.senderPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 );
                                 if (refIds.isEmpty) return card;

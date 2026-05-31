@@ -1,5 +1,7 @@
 import 'package:isar_community/isar.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/channel_message_model.dart';
+import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
@@ -73,6 +75,22 @@ class Kind42Handler implements KindHandler {
             .findFirst();
         if (existing != null) return;
         await isar.channelMessageModels.put(model);
+
+        // Reference edges: reply target + mentions, minus the channel root.
+        // Unique (parentId, childId) index keeps re-delivery idempotent.
+        final parents = replyEdgeParentIds(
+          replyToEventId: replyEventId,
+          rootEventId: channelId,
+          eTagRefs: eTagRefs,
+        );
+        for (final parentId in parents) {
+          await isar.noteRelationModels.put(
+            NoteRelationModel()
+              ..parentId = parentId
+              ..childId = eventId
+              ..createdAt = EventParser.dateTimeFromSec(createdAtSec),
+          );
+        }
       });
     } catch (_) {
       return;

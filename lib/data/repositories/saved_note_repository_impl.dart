@@ -5,12 +5,17 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/saved_note_repository.dart';
 
 @Injectable(as: SavedNoteRepository)
 class SavedNoteRepositoryImpl extends SavedNoteRepository {
   final Isar isar;
-  SavedNoteRepositoryImpl({required this.isar});
+  final NoteRelationRepository _relations;
+  SavedNoteRepositoryImpl({
+    required this.isar,
+    required NoteRelationRepository relations,
+  }) : _relations = relations;
 
   @override
   Future<Either<Failure, SavedNoteEntity>> saveNote(NoteEntity note) async {
@@ -33,32 +38,12 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
         ..pTagRefs = note.pTagRefs
         ..tTags = note.tTags
         ..created = note.created
-        ..savedAt = DateTime.now();
+        ..savedAt = DateTime.now()
+        ..sourceChannelId = note.sourceChannelId
+        ..sourcePrivateGroupId = note.sourcePrivateGroupId;
 
       await isar.writeTxn(() async {
         await isar.savedNoteModels.put(model);
-        // Increment counts on saved notes that this note references.
-        // Same exclusion logic as NoteRepository: only direct parent +
-        // mention-refs, not the root-tag when a deeper reply target exists.
-        final toIncrement = <String>{};
-        if (note.replyToEventId != null) {
-          toIncrement.add(note.replyToEventId!);
-        }
-        for (final ref in note.eTagRefs) {
-          if (ref != note.rootEventId && ref != note.replyToEventId) {
-            toIncrement.add(ref);
-          }
-        }
-        for (final refId in toIncrement) {
-          final ref = await isar.savedNoteModels
-              .where()
-              .eventIdEqualTo(refId)
-              .findFirst();
-          if (ref != null) {
-            ref.cachedReplyCount++;
-            await isar.savedNoteModels.put(ref);
-          }
-        }
       });
 
       return Right(model.toDomain());
@@ -76,26 +61,6 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
             .eventIdEqualTo(eventId)
             .findFirst();
         if (model == null) return;
-        // Decrement counts on saved notes this note was referencing.
-        final toDecrement = <String>{};
-        if (model.replyToEventId != null) {
-          toDecrement.add(model.replyToEventId!);
-        }
-        for (final ref in model.eTagRefs) {
-          if (ref != model.rootEventId && ref != model.replyToEventId) {
-            toDecrement.add(ref);
-          }
-        }
-        for (final refId in toDecrement) {
-          final ref = await isar.savedNoteModels
-              .where()
-              .eventIdEqualTo(refId)
-              .findFirst();
-          if (ref != null && ref.cachedReplyCount > 0) {
-            ref.cachedReplyCount--;
-            await isar.savedNoteModels.put(ref);
-          }
-        }
         await isar.savedNoteModels.delete(model.id);
       });
       return const Right(unit);
@@ -124,42 +89,36 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
           .where()
           .sortBySavedAtDesc()
           .findAll();
-      await _backfillReplyCountsIfNeeded(all);
-      return Right(all.map((m) => m.toDomain()).toList());
+      final savedIds = {for (final m in all) m.eventId};
+      return Right(<SavedNoteEntity>[
+        for (final m in all)
+          m.toDomain().copyWith(
+                cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
+                referenceCount: await _savedReferenceCount(m.eventId, savedIds),
+              ),
+      ]);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
-  Future<void> _backfillReplyCountsIfNeeded(List<SavedNoteModel> models) async {
-    final toUpdate = <SavedNoteModel>[];
-    for (final m in models) {
-      // Count only OTHER saved notes that reference this one — not all relay notes.
-      final totalEtag = await isar.savedNoteModels
-          .filter()
-          .eTagRefsElementEqualTo(m.eventId)
-          .count();
-      // Subtract nested thread replies (saved notes that have m as root but
-      // reply to someone else — they shouldn't count as a direct interaction).
-      final nestedOnly = await isar.savedNoteModels
-          .filter()
-          .rootEventIdEqualTo(m.eventId)
-          .not()
-          .replyToEventIdEqualTo(m.eventId)
-          .replyToEventIdIsNotNull()
-          .count();
-      final count = totalEtag - nestedOnly;
-      if (count != m.cachedReplyCount) {
-        m.cachedReplyCount = count;
-        toUpdate.add(m);
-      }
-    }
-    if (toUpdate.isEmpty) return;
-    await isar.writeTxn(() async {
-      for (final m in toUpdate) {
-        await isar.savedNoteModels.put(m);
-      }
-    });
+  /// Saved-scoped reply count: how many OTHER saved notes reference [eventId].
+  /// Saved-scoped reply count: how many of [eventId]'s replies/references are
+  /// themselves saved. Reads the global edge table (so it works even for
+  /// channel messages, whose saved eTagRefs are stripped) and keeps only edges
+  /// whose child is in [savedIds]. The edge set already excludes the thread
+  /// root, so there is no nested-reply over-count to subtract.
+  Future<int> _savedReplyCount(String eventId, Set<String> savedIds) async {
+    final childIds = await _relations.childIdsOf(eventId);
+    return childIds.where(savedIds.contains).length;
+  }
+
+  /// Saved-scoped outgoing reference count: how many notes [eventId] references
+  /// that are themselves saved. Reads the edge table by childId (works for
+  /// channel messages whose saved eTagRefs are stripped).
+  Future<int> _savedReferenceCount(String eventId, Set<String> savedIds) async {
+    final parentIds = await _relations.parentIdsOf(eventId);
+    return parentIds.where(savedIds.contains).length;
   }
 
   @override
@@ -173,5 +132,67 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
+  }
+
+  @override
+  Future<Either<Failure, List<SavedNoteEntity>>> getSavedReplies(
+    String parentId,
+  ) async {
+    try {
+      final childIds = await _relations.childIdsOf(parentId);
+      if (childIds.isEmpty) return const Right([]);
+
+      final replies = await isar.savedNoteModels
+          .filter()
+          .anyOf(childIds.toSet(), (q, id) => q.eventIdEqualTo(id))
+          .sortByCreated()
+          .findAll();
+      if (replies.isEmpty) return const Right([]);
+
+      final savedIds = await _allSavedIds();
+      return Right(<SavedNoteEntity>[
+        for (final m in replies)
+          m.toDomain().copyWith(
+                cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
+                referenceCount: await _savedReferenceCount(m.eventId, savedIds),
+              ),
+      ]);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<SavedNoteEntity>>> getSavedReferences(
+    String childId,
+  ) async {
+    try {
+      final parentIds = await _relations.parentIdsOf(childId);
+      if (parentIds.isEmpty) return const Right([]);
+
+      final refs = await isar.savedNoteModels
+          .filter()
+          .anyOf(parentIds.toSet(), (q, id) => q.eventIdEqualTo(id))
+          .sortByCreated()
+          .findAll();
+      if (refs.isEmpty) return const Right([]);
+
+      final savedIds = await _allSavedIds();
+      return Right(<SavedNoteEntity>[
+        for (final m in refs)
+          m.toDomain().copyWith(
+                cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
+                referenceCount: await _savedReferenceCount(m.eventId, savedIds),
+              ),
+      ]);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  Future<Set<String>> _allSavedIds() async {
+    final ids =
+        await isar.savedNoteModels.where().eventIdProperty().findAll();
+    return ids.toSet();
   }
 }

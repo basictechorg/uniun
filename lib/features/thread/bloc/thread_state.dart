@@ -15,6 +15,7 @@ class ThreadState {
     this.postStatus = ThreadPostStatus.idle,
     this.errorMessage,
     this.savedOnly = false,
+    this.savedOnlyIds = const {},
   });
 
   final ThreadStatus status;
@@ -28,6 +29,9 @@ class ThreadState {
   final ThreadPostStatus postStatus;
   final String? errorMessage;
   final bool savedOnly;
+  /// Event IDs of all saved notes. Populated in both modes: the visible
+  /// universe in savedOnly mode, and the bookmark-marking set in normal mode.
+  final Set<String> savedOnlyIds;
 
   NoteEntity? get rootNote => root?.note;
 
@@ -41,6 +45,7 @@ class ThreadState {
     ThreadPostStatus? postStatus,
     String? errorMessage,
     bool? savedOnly,
+    Set<String>? savedOnlyIds,
   }) {
     return ThreadState(
       status: status ?? this.status,
@@ -52,6 +57,7 @@ class ThreadState {
       postStatus: postStatus ?? this.postStatus,
       errorMessage: errorMessage,
       savedOnly: savedOnly ?? this.savedOnly,
+      savedOnlyIds: savedOnlyIds ?? this.savedOnlyIds,
     );
   }
 }
