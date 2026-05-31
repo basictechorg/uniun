@@ -84,9 +84,9 @@ class _GraphViewState extends State<_GraphView> {
 
             // FloatingNav — hides while graph is being touched or node panel is open
             Positioned(
-              left: 20,
-              right: 20,
-              bottom: 20,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: AnimatedSlide(
                 offset: _navVisible ? Offset.zero : const Offset(0, 1.5),
                 duration: const Duration(milliseconds: 220),

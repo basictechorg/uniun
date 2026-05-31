@@ -55,13 +55,19 @@ class SendDmParams {
   final String otherPubkey;
   final String content;
   final NoteType type;
+  final String? rootEventId;
   final String? replyToEventId;
+
+  /// Event ids of messages referenced (NIP-10 "mention" e-tags).
+  final List<String> mentionRefs;
 
   SendDmParams({
     required this.otherPubkey,
     required this.content,
     this.type = NoteType.text,
+    this.rootEventId,
     this.replyToEventId,
+    this.mentionRefs = const [],
   });
 }
 
@@ -143,7 +149,13 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
             type: params.type,
             created: DateTime.now(),
             isSeen: true,
+            rootEventId: params.rootEventId,
             replyToEventId: params.replyToEventId,
+            eTagRefs: [
+              if (params.rootEventId != null) params.rootEventId!,
+              if (params.replyToEventId != null) params.replyToEventId!,
+              ...params.mentionRefs,
+            ],
           );
 
           await service.sendDm(dm, receiverPubkey: resolvedOtherPubkey);

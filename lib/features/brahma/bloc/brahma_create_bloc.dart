@@ -331,9 +331,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       final result = await _getNoteById.call(id);
       result.fold((_) {}, (note) => notes.add(note));
     }
-    if (notes.isNotEmpty) {
-      emit(state.copyWith(selectedMentions: notes));
-    }
+    // Always emit so the picker can also clear all selected mentions.
+    emit(state.copyWith(selectedMentions: notes));
   }
 
 }

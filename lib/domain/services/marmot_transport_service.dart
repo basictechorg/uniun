@@ -91,12 +91,16 @@ class MarmotTransportService {
           groupIdIsBase64: true,
         );
 
+        final envelope = _decodeMessageEnvelope(utf8.decode(decryptedBytes));
+
         final decryptedMsg = PrivateChannelMessageModel()
           ..eventId = encrypted.eventId
           ..groupId = encrypted.groupId
           ..senderPubkey = encrypted.senderPubkey
-          ..decryptedContent = utf8.decode(decryptedBytes)
-          ..eTagRefs = []
+          ..decryptedContent = envelope.content
+          ..eTagRefs = envelope.eTagRefs
+          ..rootEventId = envelope.rootEventId
+          ..replyToEventId = envelope.replyToEventId
           ..pTagRefs = []
           ..timestamp = encrypted.timestamp;
 
@@ -113,6 +117,58 @@ class MarmotTransportService {
   // ─────────────────────────────────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────────────────────────────────
+
+  /// Encodes a message body + its reference ids + NIP-10 threading markers into
+  /// the encrypted MLS payload. Plain text is sent verbatim when there is no
+  /// metadata (backward compatible); otherwise a small JSON envelope carries the
+  /// e-tag ids (`e`), the root marker (`r`) and the reply marker (`y`).
+  String _encodeMessageEnvelope(
+    String content,
+    List<String> eTagRefs, {
+    String? rootEventId,
+    String? replyToEventId,
+  }) {
+    if (eTagRefs.isEmpty && rootEventId == null && replyToEventId == null) {
+      return content;
+    }
+    return jsonEncode({
+      'c': content,
+      'e': eTagRefs,
+      if (rootEventId != null) 'r': rootEventId,
+      if (replyToEventId != null) 'y': replyToEventId,
+    });
+  }
+
+  /// Inverse of [_encodeMessageEnvelope]. Legacy/plain payloads decode to the
+  /// raw text with no references or markers.
+  ({
+    String content,
+    List<String> eTagRefs,
+    String? rootEventId,
+    String? replyToEventId,
+  }) _decodeMessageEnvelope(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map &&
+          decoded['c'] is String &&
+          decoded['e'] is List) {
+        return (
+          content: decoded['c'] as String,
+          eTagRefs: (decoded['e'] as List).cast<String>(),
+          rootEventId: decoded['r'] as String?,
+          replyToEventId: decoded['y'] as String?,
+        );
+      }
+    } catch (_) {
+      // Not an envelope — fall through to plain text.
+    }
+    return (
+      content: raw,
+      eTagRefs: const [],
+      rootEventId: null,
+      replyToEventId: null,
+    );
+  }
 
   /// Builds an [EventQueueModel] from a fully-signed [Event].
   ///
@@ -278,6 +334,9 @@ class MarmotTransportService {
     required String content,
     required String authorPubkey,
     required String privkeyHex,
+    List<String> mentionRefs = const [],
+    String? rootEventId,
+    String? replyToEventId,
   }) async {
     final channel = await _findChannel(groupId);
     if (channel == null) {
@@ -289,7 +348,12 @@ class MarmotTransportService {
 
     final encryptedPayload = await _mlsService.encryptMessage(
       groupId: channel.mlsGroupId,
-      content: content,
+      content: _encodeMessageEnvelope(
+        content,
+        mentionRefs,
+        rootEventId: rootEventId,
+        replyToEventId: replyToEventId,
+      ),
       groupIdIsBase64: true,
     );
 
@@ -309,7 +373,9 @@ class MarmotTransportService {
       ..groupId = groupId
       ..senderPubkey = authorPubkey
       ..decryptedContent = content
-      ..eTagRefs = []
+      ..eTagRefs = mentionRefs
+      ..rootEventId = rootEventId
+      ..replyToEventId = replyToEventId
       ..pTagRefs = []
       ..timestamp = now;
 

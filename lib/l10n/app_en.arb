@@ -138,6 +138,9 @@
   "channelMessageHint": "Message channel…",
   "@channelMessageHint": { "description": "Placeholder text in the channel message composer input" },
 
+  "chatMessageHint": "Message…",
+  "@chatMessageHint": { "description": "Placeholder text in the DM and private channel composer input" },
+
   "channelShareQrTitle": "Share Channel QR",
   "@channelShareQrTitle": { "description": "Title for the share-channel QR bottom sheet and tooltip" },
 
@@ -193,6 +196,18 @@
 
   "brahmaMentionSelected": "Mentioned",
   "@brahmaMentionSelected": { "description": "Badge shown on an already-selected note in the search sheet" },
+
+  "composerReferenceTitle": "Add reference",
+  "@composerReferenceTitle": { "description": "Title of the full-screen reference picker" },
+
+  "composerReferenceSearchHint": "Search…",
+  "@composerReferenceSearchHint": { "description": "Hint text in the reference picker search field" },
+
+  "composerReferenceEmpty": "No results",
+  "@composerReferenceEmpty": { "description": "Empty state in the reference picker" },
+
+  "composerReferenceSelected": "Added",
+  "@composerReferenceSelected": { "description": "Badge on an already-selected reference in the picker" },
 
   "brahmaCreateNote": "Create Note",
   "@brahmaCreateNote": { "description": "Submit button in the compose card" },

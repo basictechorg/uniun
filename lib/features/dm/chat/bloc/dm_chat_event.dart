@@ -10,7 +10,8 @@ final class DmChatLoadEvent extends DmChatEvent {
 
 final class DmChatSendEvent extends DmChatEvent {
   final String content;
-  DmChatSendEvent({required this.content});
+  final List<String> mentionRefs;
+  DmChatSendEvent({required this.content, this.mentionRefs = const []});
 }
 
 final class DmChatRefreshEvent extends DmChatEvent {}

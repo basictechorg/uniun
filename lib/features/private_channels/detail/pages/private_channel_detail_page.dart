@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 class PrivateChannelDetailPage extends StatelessWidget {
   final String groupId;
@@ -28,22 +32,16 @@ class _PrivateChannelDetailView extends StatefulWidget {
 }
 
 class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
-  final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
   @override
   void dispose() {
-    _textController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onSend() {
-    if (_textController.text.trim().isEmpty) return;
-    context.read<PrivateChannelDetailBloc>().add(
-      SendPrivateChannelMessageEvent(_textController.text),
-    );
-    _textController.clear();
+  void _openThread(BuildContext context, String messageId) {
+    Navigator.pushNamed(context, AppRoutes.thread, arguments: messageId);
   }
 
   void _showJoinRequests(BuildContext context) {
@@ -124,6 +122,9 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
       builder: (context, state) {
         final title = state.channel?.name ?? "Private Channel";
         final requestsCount = state.joinRequests.length;
+        final messagesById = <String, NoteEntity>{
+          for (final m in state.messages) m.id: m,
+        };
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -199,106 +200,107 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
               ),
             ],
           ),
-          body: Column(
-            children: [
-              Expanded(
-                child: state.isLoading && state.messages.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : ListView.builder(
-                        controller: _scrollController,
-                        reverse: false, // oldest at top, newest at bottom
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        itemCount: state.messages.length,
-                        itemBuilder: (context, index) {
-                          final msg = state.messages[index];
-                          return NoteCard(
-                            key: ValueKey(msg.eventId),
-                            note: msg,
-                            onTap: () {},
-                          );
-                        },
-                      ),
-              ),
-              _ChatInputArea(
-                controller: _textController,
-                onSend: _onSend,
-              ),
-            ],
-          ),
+          body: state.isPendingApproval
+              ? const _PendingApprovalView()
+              : Column(
+                  children: [
+                    Expanded(
+                      child: state.isLoading && state.messages.isEmpty
+                          ? const Center(child: CircularProgressIndicator())
+                          : ListView.builder(
+                              controller: _scrollController,
+                              reverse: false, // oldest at top, newest at bottom
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              itemCount: state.messages.length,
+                              itemBuilder: (context, index) {
+                                final msg = state.messages[index];
+                                final refIds = msg.eTagRefs
+                                    .where((id) => id != msg.replyToEventId)
+                                    .toList();
+                                final card = NoteCard(
+                                  key: ValueKey(msg.eventId),
+                                  note: msg,
+                                  onTap: () => _openThread(context, msg.id),
+                                );
+                                if (refIds.isEmpty) return card;
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    ReferencedMessages(
+                                      refs: refIds
+                                          .map((id) => messagesById[id])
+                                          .toList(),
+                                      unavailableLabel: AppLocalizations.of(
+                                              context)!
+                                          .vishnuReferenceUnavailable,
+                                      onTapRef: (note) => _openThread(
+                                          context, note.id),
+                                    ),
+                                    card,
+                                  ],
+                                );
+                              },
+                            ),
+                    ),
+                    ComposerHost(
+                      hintText: AppLocalizations.of(context)!.chatMessageHint,
+                      referenceCandidates: state.messages.cast<NoteEntity>(),
+                      onSend: (text, refs) =>
+                          context.read<PrivateChannelDetailBloc>().add(
+                                SendPrivateChannelMessageEvent(text,
+                                    mentionRefs: refs),
+                              ),
+                    ),
+                  ],
+                ),
         );
       },
     );
   }
 }
 
-class _ChatInputArea extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onSend;
-
-  const _ChatInputArea({
-    required this.controller,
-    required this.onSend,
-  });
+class _PendingApprovalView extends StatelessWidget {
+  const _PendingApprovalView();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.5),
-          ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.hourglass_top_rounded,
+              size: 56,
+              color: AppColors.outline,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Pending approval",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your request to join has been sent. You'll be able to read and send messages once the channel admin approves you.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 5,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                decoration: const InputDecoration(
-                  hintText: 'Message...',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.send_rounded, color: AppColors.onPrimary),
-              onPressed: onSend,
-            ),
-          ),
-        ],
       ),
     );
   }
 }
+

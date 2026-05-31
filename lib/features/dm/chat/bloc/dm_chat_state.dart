@@ -6,6 +6,9 @@ class DmChatState {
   final bool isSending;
   final String? otherPubkey;
   final List<DmMessageEntity> messages;
+
+  /// pubkeyHex → ProfileEntity (for author display names / avatars).
+  final Map<String, ProfileEntity> profiles;
   final String? errorMessage;
 
   const DmChatState({
@@ -13,6 +16,7 @@ class DmChatState {
     this.isSending = false,
     this.otherPubkey,
     this.messages = const [],
+    this.profiles = const {},
     this.errorMessage,
   });
 
@@ -21,6 +25,7 @@ class DmChatState {
     bool? isSending,
     String? otherPubkey,
     List<DmMessageEntity>? messages,
+    Map<String, ProfileEntity>? profiles,
     String? errorMessage,
   }) {
     return DmChatState(
@@ -28,6 +33,7 @@ class DmChatState {
       isSending: isSending ?? this.isSending,
       otherPubkey: otherPubkey ?? this.otherPubkey,
       messages: messages ?? this.messages,
+      profiles: profiles ?? this.profiles,
       errorMessage: errorMessage,
     );
   }

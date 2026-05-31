@@ -3,30 +3,26 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/thread/bloc/thread_bloc.dart';
 import 'package:uniun/features/thread/widgets/thread_app_bar.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
-import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
-import 'package:uniun/features/thread/widgets/thread_reply_composer.dart';
-import 'package:uniun/common/widgets/note_card/large_note_card.dart';
-import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/common/widgets/thread/message_thread_page.dart';
 
-/// Route argument for [ThreadPage]. Pass either a plain [String] (eventId)
-/// or a [ThreadRouteArgs] when opening from a followed note with unread state.
+/// Route argument for [ThreadPage]. Pass either a plain [String] (eventId) or a
+/// [ThreadRouteArgs] when the thread should filter to saved notes only.
 class ThreadRouteArgs {
-  const ThreadRouteArgs(this.noteId, {this.hasUnread = false, this.savedOnly = false});
+  const ThreadRouteArgs(this.noteId, {this.savedOnly = false});
   final String noteId;
-  final bool hasUnread;
   final bool savedOnly;
 }
 
+/// The single thread screen for every note, regardless of which collection
+/// holds it. [ThreadBloc] resolves the id across all collections.
 class ThreadPage extends StatelessWidget {
-  const ThreadPage({super.key, required this.noteId, this.savedOnly = false, this.hasUnread = false});
+  const ThreadPage({super.key, required this.noteId, this.savedOnly = false});
   final String noteId;
   final bool savedOnly;
-  final bool hasUnread;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +30,7 @@ class ThreadPage extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (_) => getIt<ThreadBloc>()
-            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly, hasUnread: hasUnread)),
+            ..add(LoadThreadEvent(noteId, savedOnly: savedOnly)),
         ),
         BlocProvider(
           create: (_) => getIt<FollowedNotesCubit>()..load(),
@@ -45,8 +41,6 @@ class ThreadPage extends StatelessWidget {
   }
 }
 
-// ── View ──────────────────────────────────────────────────────────────────────
-
 class _ThreadView extends StatefulWidget {
   const _ThreadView({required this.noteId});
   final String noteId;
@@ -56,37 +50,23 @@ class _ThreadView extends StatefulWidget {
 }
 
 class _ThreadViewState extends State<_ThreadView> {
-  // Tracks all noteIds currently open as a ThreadPage anywhere in the stack.
-  // Prevents pushing a duplicate of a page that already exists in the back stack.
+  // Note ids currently open as a ThreadPage anywhere in the stack — prevents
+  // pushing a duplicate of a page that already exists in the back stack.
   static final Set<String> _openNoteIds = {};
-
-  final _replyController = TextEditingController();
-  final _focusNode = FocusNode();
-  String? _avatarUrl;
-  String _pubkeySeed = '';
 
   @override
   void initState() {
     super.initState();
     _openNoteIds.add(widget.noteId);
-    _loadUserProfile();
   }
 
-  Future<void> _loadUserProfile() async {
-    final result = await getIt<GetActiveUserProfileUseCase>().call();
-    result.fold((_) {}, (userProfile) {
-      if (mounted) {
-        setState(() {
-          _pubkeySeed = userProfile.pubkeyHex;
-          _avatarUrl = userProfile.avatarUrl;
-        });
-      }
-    });
+  @override
+  void dispose() {
+    _openNoteIds.remove(widget.noteId);
+    super.dispose();
   }
 
   void _openThread(BuildContext ctx, String noteId) {
-    // If this noteId is already open somewhere in the back stack, pop back to
-    // it instead of creating a duplicate page.
     if (_openNoteIds.contains(noteId)) {
       Navigator.of(ctx).popUntil((route) {
         final args = route.settings.arguments;
@@ -100,33 +80,21 @@ class _ThreadViewState extends State<_ThreadView> {
       return;
     }
     final bloc = context.read<ThreadBloc>();
-    // Propagate savedOnly so child threads also filter to saved notes only.
-    final args = bloc.state.savedOnly
-        ? ThreadRouteArgs(noteId, savedOnly: true)
-        : noteId as Object;
-    // Reload this thread when the child thread is popped so reply counts and
-    // newly created nested replies are reflected without a manual refresh.
+    final savedOnly = bloc.state.savedOnly;
+    final args = savedOnly ? ThreadRouteArgs(noteId, savedOnly: true) : noteId;
+    // Reload this thread when the child pops so new nested replies are reflected.
     Navigator.pushNamed(ctx, AppRoutes.thread, arguments: args).then((_) {
-      if (mounted) bloc.add(LoadThreadEvent(widget.noteId, savedOnly: bloc.state.savedOnly));
+      if (mounted) {
+        bloc.add(LoadThreadEvent(widget.noteId, savedOnly: savedOnly));
+      }
     });
-  }
-
-  @override
-  void dispose() {
-    _openNoteIds.remove(widget.noteId);
-    _replyController.dispose();
-    _focusNode.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ThreadBloc, ThreadState>(
+      listenWhen: (prev, curr) => prev.postStatus != curr.postStatus,
       listener: (context, state) {
-        if (state.postStatus == ThreadPostStatus.posted) {
-          _replyController.clear();
-          _focusNode.unfocus();
-        }
         if (state.postStatus == ThreadPostStatus.error &&
             state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -137,138 +105,51 @@ class _ThreadViewState extends State<_ThreadView> {
         }
       },
       builder: (context, state) {
-        return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Scaffold(
+        if (state.status == ThreadStatus.loading ||
+            state.status == ThreadStatus.initial) {
+          return const Scaffold(
+            backgroundColor: AppColors.surface,
+            appBar: ThreadAppBar(),
+            body: Center(
+              child: CircularProgressIndicator(
+                  color: AppColors.primary, strokeWidth: 2),
+            ),
+          );
+        }
+        if (state.status == ThreadStatus.error || state.rootNote == null) {
+          return Scaffold(
             backgroundColor: AppColors.surface,
             appBar: const ThreadAppBar(),
-            body: switch (state.status) {
-              ThreadStatus.loading || ThreadStatus.initial => const Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 2),
-                ),
-              ThreadStatus.error => ThreadErrorBody(
-                  message: state.errorMessage ?? 'Failed to load thread'),
-              _ => _ThreadBody(
-                  state: state,
-                  focusNode: _focusNode,
-                  onOpenThread: _openThread,
-                ),
-            },
-            bottomNavigationBar: ThreadReplyComposer(
-              controller: _replyController,
-              focusNode: _focusNode,
-              avatarUrl: _avatarUrl,
-              pubkeySeed: _pubkeySeed,
-              canPost: state.canPost,
-              isSending: state.postStatus == ThreadPostStatus.posting,
-              replyingToName: state.replyingToName,
-              onSend: () => context.read<ThreadBloc>().add(const PostReplyEvent()),
-              onClearReply: () => context.read<ThreadBloc>().add(const SetReplyTargetEvent()),
-              onTextChanged: (v) => context.read<ThreadBloc>().add(UpdateReplyTextEvent(v)),
-            ),
-          ),
+            body: ThreadErrorBody(
+                message: state.errorMessage ?? 'Failed to load thread'),
+          );
+        }
+
+        final bloc = context.read<ThreadBloc>();
+        // Notes available to reference from the composer — everything visible in
+        // this thread, de-duplicated (the root itself is already the reply target).
+        final seen = <String>{state.rootNote!.id};
+        final referenceCandidates = [
+          ...state.parentNotes,
+          ...state.mentionedNotes,
+          ...state.replies,
+        ].where((n) => seen.add(n.id)).toList();
+
+        return MessageThreadPage(
+          appBar: const ThreadAppBar(),
+          root: state.rootNote!,
+          profiles: state.profiles,
+          parentNotes: state.parentNotes,
+          mentionedNotes: state.mentionedNotes,
+          replies: state.replies,
+          replyCount: state.replies.length,
+          isSending: state.postStatus == ThreadPostStatus.posting,
+          referenceCandidates: referenceCandidates,
+          onSendReply: (text, refs) =>
+              bloc.add(PostReplyEvent(text, mentionRefs: refs)),
+          onOpenThread: (id) => _openThread(context, id),
         );
       },
     );
   }
 }
-
-// ── Body — scroll + sliver layout ────────────────────────────────────────────
-
-class _ThreadBody extends StatelessWidget {
-  const _ThreadBody({
-    required this.state,
-    required this.focusNode,
-    required this.onOpenThread,
-  });
-  final ThreadState state;
-  final FocusNode focusNode;
-  final void Function(BuildContext, String) onOpenThread;
-
-  @override
-  Widget build(BuildContext context) {
-    final root = state.rootNote!;
-
-    final hasTopContext =
-        state.parentChain.isNotEmpty || state.mentionedNotes.isNotEmpty;
-
-    return CustomScrollView(
-      slivers: [
-        // ── Immediate NIP-10 parent (1 level only) ────────────────────────────
-        if (state.parentChain.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
-            sliver: SliverToBoxAdapter(
-              child: ThreadParentContext(
-                notes: state.parentChain,
-                profiles: state.profiles,
-                onNoteTap: (noteId) => onOpenThread(context, noteId),
-              ),
-            ),
-          ),
-
-        // ── Outgoing references — rendered as sibling "parents" above the
-        //    root note. Each referenced note is an independent sibling; only
-        //    the last row connects down to the root card. ─────────────────────
-        if (state.mentionedNotes.isNotEmpty)
-          SliverPadding(
-            padding: EdgeInsets.only(
-                top: state.parentChain.isEmpty ? 16 : 0, left: 20, right: 20),
-            sliver: SliverToBoxAdapter(
-              child: ThreadParentContext(
-                notes: state.mentionedNotes,
-                profiles: state.profiles,
-                isSiblingGroup: true,
-                onNoteTap: (noteId) => onOpenThread(context, noteId),
-              ),
-            ),
-          ),
-
-        // ── Focused / root note card ───────────────────────────────────────────
-        SliverPadding(
-          padding: EdgeInsets.only(
-            top: hasTopContext ? 0 : 16,
-            left: 20,
-            right: 20,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: LargeNoteCard(
-              note: root,
-              profile: state.profileFor(root.authorPubkey),
-              replyCount: state.replies.length,
-            ),
-          ),
-        ),
-
-        // ── Replies ───────────────────────────────────────────────────────────
-        if (state.replies.isEmpty)
-          const SliverFillRemaining(
-            hasScrollBody: false,
-            child: ThreadEmptyReplies(),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.only(
-                left: 20, right: 20, top: 12, bottom: 120),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) {
-                  final reply = state.replies[i];
-                  return NoteCard(
-                    key: ValueKey(reply.id),
-                    note: reply,
-                    profile: state.profileFor(reply.authorPubkey),
-                    replyCount: reply.cachedReplyCount,
-                    onTap: () => onOpenThread(ctx, reply.id),
-                  );
-                },
-                childCount: state.replies.length,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-

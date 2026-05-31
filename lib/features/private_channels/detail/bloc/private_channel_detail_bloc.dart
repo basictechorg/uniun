@@ -17,7 +17,8 @@ class LoadPrivateChannelEvent extends PrivateChannelDetailEvent {
 
 class SendPrivateChannelMessageEvent extends PrivateChannelDetailEvent {
   final String content;
-  SendPrivateChannelMessageEvent(this.content);
+  final List<String> mentionRefs;
+  SendPrivateChannelMessageEvent(this.content, {this.mentionRefs = const []});
 }
 
 class ApproveJoinRequestEvent extends PrivateChannelDetailEvent {
@@ -26,6 +27,11 @@ class ApproveJoinRequestEvent extends PrivateChannelDetailEvent {
 }
 
 class LeavePrivateChannelEvent extends PrivateChannelDetailEvent {}
+
+class _PrivateChannelUpdated extends PrivateChannelDetailEvent {
+  final PrivateChannelEntity? channel;
+  _PrivateChannelUpdated(this.channel);
+}
 
 class _PrivateChannelMessagesUpdated extends PrivateChannelDetailEvent {
   final List<PrivateChannelMessageEntity> messages;
@@ -59,6 +65,15 @@ class PrivateChannelDetailState {
     this.isAdmin = false,
     this.isLeft = false,
   });
+
+  /// True once the channel is loaded but the user is still awaiting admin
+  /// approval — i.e. no MLS Welcome has been received yet, so [mlsGroupId] is
+  /// still empty. Admins are members by construction and are never pending.
+  bool get isPendingApproval =>
+      !isLoading &&
+      channel != null &&
+      !isAdmin &&
+      channel!.mlsGroupId.isEmpty;
 
   PrivateChannelDetailState copyWith({
     bool? isLoading,
@@ -94,8 +109,10 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   final LeavePrivateChannelUsecase _leaveChannel;
   final GetActiveUserUseCase _getActiveUser;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
+  StreamSubscription<PrivateChannelEntity?>? _channelSubscription;
   StreamSubscription<List<PrivateChannelMessageEntity>>? _messagesSubscription;
   StreamSubscription<List<PrivateChannelJoinRequestEntity>>? _joinRequestsSubscription;
+  String? _activeUserPubkey;
 
   PrivateChannelDetailBloc(
     this._getChannel,
@@ -112,6 +129,13 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     on<SendPrivateChannelMessageEvent>(_onSend);
     on<ApproveJoinRequestEvent>(_onApprove);
     on<LeavePrivateChannelEvent>(_onLeave);
+    on<_PrivateChannelUpdated>((event, emit) {
+      final channel = event.channel;
+      if (channel == null) return; // leave/delete is handled via isLeft.
+      final isAdmin =
+          _activeUserPubkey != null && channel.adminPubkey == _activeUserPubkey;
+      emit(state.copyWith(channel: channel, isAdmin: isAdmin));
+    });
     on<_PrivateChannelMessagesUpdated>((event, emit) {
       emit(state.copyWith(messages: event.messages));
     });
@@ -129,6 +153,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
       final userResult = await _getActiveUser.call();
       final user = userResult.fold((_) => null, (u) => u);
       if (user == null) throw Exception('No active user');
+      _activeUserPubkey = user.pubkeyHex;
 
       final channel = await _getChannel.execute(event.groupId);
       if (channel == null) throw Exception('Channel not found locally.');
@@ -137,8 +162,15 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
 
       emit(state.copyWith(isLoading: false, channel: channel, isAdmin: isAdmin));
 
+      await _channelSubscription?.cancel();
       await _messagesSubscription?.cancel();
       await _joinRequestsSubscription?.cancel();
+
+      // Watch the channel so the UI flips from "pending approval" to the chat
+      // the moment the admin's MLS Welcome populates mlsGroupId.
+      _channelSubscription = _getChannel.watch(event.groupId).listen(
+        (channel) => add(_PrivateChannelUpdated(channel)),
+      );
 
       _messagesSubscription = _getMessages.execute(event.groupId).listen(
         (messages) => add(_PrivateChannelMessagesUpdated(messages)),
@@ -164,6 +196,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
         content: event.content,
         authorPubkey: keys.pubkeyHex,
         privkeyHex: keys.privkeyHex,
+        mentionRefs: event.mentionRefs,
       );
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to send message: $e'));
@@ -213,6 +246,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
 
   @override
   Future<void> close() async {
+    await _channelSubscription?.cancel();
     await _messagesSubscription?.cancel();
     await _joinRequestsSubscription?.cancel();
     return super.close();

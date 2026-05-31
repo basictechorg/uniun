@@ -358,6 +358,12 @@ abstract class AppLocalizations {
   /// **'Message channel…'**
   String get channelMessageHint;
 
+  /// Placeholder text in the DM and private channel composer input
+  ///
+  /// In en, this message translates to:
+  /// **'Message…'**
+  String get chatMessageHint;
+
   /// Title for the share-channel QR bottom sheet and tooltip
   ///
   /// In en, this message translates to:
@@ -459,6 +465,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mentioned'**
   String get brahmaMentionSelected;
+
+  /// Title of the full-screen reference picker
+  ///
+  /// In en, this message translates to:
+  /// **'Add reference'**
+  String get composerReferenceTitle;
+
+  /// Hint text in the reference picker search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search…'**
+  String get composerReferenceSearchHint;
+
+  /// Empty state in the reference picker
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get composerReferenceEmpty;
+
+  /// Badge on an already-selected reference in the picker
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get composerReferenceSelected;
 
   /// Submit button in the compose card
   ///

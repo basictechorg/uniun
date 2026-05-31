@@ -6,7 +6,10 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'dm_chat_event.dart';
 part 'dm_chat_state.dart';
@@ -16,6 +19,8 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
   final FetchDmUseCase _fetchDmUseCase;
   final SendDmUseCase _sendDmUseCase;
   final GetDmUseCase _getDmUseCase;
+  final GetProfileUseCase _getProfileUseCase;
+  final GetActiveUserProfileUseCase _getActiveUserProfileUseCase;
   final Isar _isar;
   StreamSubscription<void>? _messageWatcher;
 
@@ -23,6 +28,8 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
     this._fetchDmUseCase,
     this._sendDmUseCase,
     this._getDmUseCase,
+    this._getProfileUseCase,
+    this._getActiveUserProfileUseCase,
     this._isar,
   ) : super(const DmChatState()) {
     on<DmChatLoadEvent>(_onLoad);
@@ -42,18 +49,23 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
 
     try {
       final result = await _fetchDmUseCase.call(event.otherPubkey);
-      result.fold(
-        (failure) => emit(state.copyWith(
+      await result.fold(
+        (failure) async => emit(state.copyWith(
           isLoading: false,
           errorMessage: failure.toMessage(),
         )),
-        (messages) => emit(state.copyWith(
-          isLoading: false,
-          messages: messages,
-          errorMessage: null,
-        ))
+        (messages) async {
+          final profiles = await _loadProfiles(event.otherPubkey);
+          emit(state.copyWith(
+            isLoading: false,
+            messages: messages,
+            profiles: profiles,
+            errorMessage: null,
+          ));
+        },
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('DM_LOAD_ERROR: $e\n$st');
       emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
   }
@@ -66,6 +78,7 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
       final params = SendDmParams(
         otherPubkey: state.otherPubkey!,
         content: event.content.trim(),
+        mentionRefs: event.mentionRefs,
       );
 
       final result = await _sendDmUseCase.call(params);
@@ -80,7 +93,8 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
           emit(state.copyWith(isSending: false, errorMessage: null));
         }
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('DM_SEND_ERROR: $e\n$st');
       emit(state.copyWith(isSending: false, errorMessage: e.toString()));
     }
   }
@@ -91,6 +105,21 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
     if (state.otherPubkey != null) {
       add(DmChatLoadEvent(otherPubkey: state.otherPubkey!));
     }
+  }
+
+  /// A DM has exactly two participants: the active user and [otherPubkey].
+  /// Resolve those two profiles instead of scanning every message author.
+  Future<Map<String, ProfileEntity>> _loadProfiles(String otherPubkey) async {
+    final pubkeys = <String>{otherPubkey};
+    final me = await _getActiveUserProfileUseCase.call();
+    me.fold((_) => null, (p) => pubkeys.add(p.pubkeyHex));
+
+    final profiles = <String, ProfileEntity>{};
+    for (final pk in pubkeys) {
+      final result = await _getProfileUseCase.call(pk);
+      result.fold((_) => null, (p) => profiles[pk] = p);
+    }
+    return profiles;
   }
 
   @override
