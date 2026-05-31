@@ -6,12 +6,11 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
-import 'package:uniun/features/channels/feed/widgets/channel_message_composer.dart';
-import 'package:uniun/features/channels/thread/pages/channel_thread_page.dart';
+import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
-import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
@@ -46,28 +45,11 @@ class _ChannelFeedView extends StatefulWidget {
 class _ChannelFeedViewState extends State<_ChannelFeedView> {
   final _scrollController = ScrollController();
   bool _didScrollToBottom = false;
-  String? _userPubkey;
-  String? _userAvatarUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
-  }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadUserProfile() async {
-    final profileResult = await getIt<GetActiveUserProfileUseCase>().call();
-    if (!mounted) return;
-    setState(() {
-      _userPubkey = profileResult.fold((_) => null, (p) => p.pubkeyHex);
-      _userAvatarUrl = profileResult.fold((_) => null, (p) => p.avatarUrl);
-    });
   }
 
   void _scrollToBottom() {
@@ -96,17 +78,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
 
   void _openThread(BuildContext ctx, ChannelMessageEntity msg, String channelName) {
     final bloc = ctx.read<ChannelFeedBloc>();
-    Navigator.push(
-      ctx,
-      MaterialPageRoute(
-        builder: (_) => ChannelThreadPage(
-          channelId: widget.channelId,
-          messageId: msg.id,
-          channelName: channelName,
-          parentBloc: bloc,
-        ),
-      ),
-    ).then((_) {
+    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: msg.id).then((_) {
       // Silent refresh — no loading spinner, scroll position preserved.
       // listenWhen fires only if new messages arrived, scrolling to bottom
       // only when there is genuinely new content to show.
@@ -258,10 +230,17 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           body: Column(
             children: [
               Expanded(child: _buildMessageList(context, state, channelName)),
-              ChannelMessageComposer(
-                channelId: widget.channelId,
-                avatarUrl: _userAvatarUrl,
-                pubkeySeed: _userPubkey ?? '',
+              ComposerHost(
+                hintText: l10n.channelMessageHint,
+                isSending: state.isSending,
+                referenceCandidates:
+                    state.messages.map((m) => m.toNoteEntity()).toList(),
+                onSend: (text, refs) =>
+                    context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
+                          channelId: widget.channelId,
+                          content: text,
+                          mentionRefs: refs,
+                        )),
               ),
             ],
           ),

@@ -93,9 +93,9 @@ class _ShivPageState extends State<ShivPage> {
             ),
           ),
           Positioned(
-            left: 20,
-            right: 20,
-            bottom: 20,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: KeyboardVisibilityBuilder(
               builder: (context, isKeyboardVisible) => AnimatedSlide(
                 offset: (isKeyboardVisible || _drawerOpen)

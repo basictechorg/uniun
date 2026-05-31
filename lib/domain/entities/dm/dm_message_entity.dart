@@ -10,7 +10,11 @@ class DmMessageEntity implements NoteEntity {
   final int conversationId;
   final String receiverPubkey;
   @override
+  final String? rootEventId;
+  @override
   final String? replyToEventId;
+  @override
+  final List<String> eTagRefs;
   @override
   final String content;
   @override
@@ -29,7 +33,9 @@ class DmMessageEntity implements NoteEntity {
     required this.authorPubkey,
     required this.conversationId,
     required this.receiverPubkey,
+    this.rootEventId,
     this.replyToEventId,
+    this.eTagRefs = const [],
     required this.content,
     this.subject,
     required this.kind,
@@ -42,17 +48,10 @@ class DmMessageEntity implements NoteEntity {
   String get id => eventId;
 
   @override
-  List<String> get eTagRefs =>
-      replyToEventId != null ? [replyToEventId!] : const [];
-
-  @override
   List<String> get pTagRefs => [receiverPubkey];
 
   @override
   List<String> get tTags => const [];
-
-  @override
-  String? get rootEventId => null;
 
   @override
   int get cachedReplyCount => 0;

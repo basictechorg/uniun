@@ -8,7 +8,6 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
-import 'package:uniun/features/thread/pages/thread_page.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
@@ -79,10 +78,7 @@ class VishnuDrawer extends StatelessWidget {
                         await Navigator.pushNamed(
                           context,
                           AppRoutes.thread,
-                          arguments: ThreadRouteArgs(
-                            item.eventId,
-                            hasUnread: item.newReferenceCount > 0,
-                          ),
+                          arguments: item.eventId,
                         );
                         // ignore: use_build_context_synchronously
                         if (context.mounted) {
@@ -445,7 +441,7 @@ class _FollowedNoteRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
           children: [
-            const Icon(Icons.link_rounded, size: 16, color: AppColors.outline),
+            const Icon(Icons.notifications, size: 16, color: AppColors.outline),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

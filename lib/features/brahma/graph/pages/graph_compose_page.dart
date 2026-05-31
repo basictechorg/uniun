@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
-import 'package:uniun/features/brahma/graph/widgets/compose_action_bar.dart';
 import 'package:uniun/features/brahma/graph/widgets/compose_header.dart';
-import 'package:uniun/features/brahma/graph/widgets/mention_chips.dart';
-import 'package:uniun/features/brahma/graph/widgets/mention_search_panel.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/uniun_composer.dart';
+import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Compose page opened from the graph FAB or draft edit button.
@@ -54,7 +54,19 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
   final _focusNode = FocusNode();
   bool _didPrefill = false;
   bool _didAutoPublish = false;
-  bool _showMentionPanel = false;
+  bool _hasText = false;
+  String? _avatarUrl;
+  String _pubkeySeed = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final has = _controller.text.trim().isNotEmpty;
+      if (has != _hasText) setState(() => _hasText = has);
+    });
+    _loadUserProfile();
+  }
 
   @override
   void dispose() {
@@ -63,17 +75,51 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
     super.dispose();
   }
 
-  void _closeMentionPanel() {
-    context.read<BrahmaCreateBloc>().add(const ClearMentionSearchEvent());
-    setState(() => _showMentionPanel = false);
+  Future<void> _loadUserProfile() async {
+    final result = await getIt<GetActiveUserProfileUseCase>().call();
+    result.fold((_) {}, (profile) {
+      if (mounted) {
+        setState(() {
+          _pubkeySeed = profile.pubkeyHex;
+          _avatarUrl = profile.avatarUrl;
+        });
+      }
+    });
   }
 
-  void _onMentionSelected(NoteEntity note, bool isSelected) {
+  Future<void> _openReferencePicker(BrahmaCreateState state) async {
+    final l10n = AppLocalizations.of(context)!;
     final bloc = context.read<BrahmaCreateBloc>();
-    if (isSelected) {
-      bloc.add(RemoveMentionEvent(note.id));
-    } else {
-      bloc.add(AddMentionEvent(note));
+    final selected = state.selectedMentions
+        .map((n) => ComposerReference(id: n.id, label: n.content))
+        .toList();
+
+    final result = await Navigator.push<List<ComposerReference>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReferencePickerPage(
+          title: l10n.composerReferenceTitle,
+          searchHint: l10n.brahmaMentionSearchHint,
+          emptyLabel: l10n.brahmaMentionEmpty,
+          selectedLabel: l10n.composerReferenceSelected,
+          initialSelected: selected,
+          onSearch: (q) async {
+            if (q.trim().isEmpty) return const [];
+            final notes = await getIt<SearchNotesUseCase>().call(q.trim());
+            return notes.fold(
+              (_) => const <ComposerReference>[],
+              (list) => list
+                  .map((n) => ComposerReference(id: n.id, label: n.content))
+                  .toList(),
+            );
+          },
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      // Rebuild selected mentions from the returned ids.
+      bloc.add(RestoreDraftMentionsEvent(result.map((r) => r.id).toList()));
     }
   }
 
@@ -157,70 +203,32 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
             child: Column(
               children: [
                 ComposeHeader(l10n: l10n),
-
-                if (state.selectedMentions.isNotEmpty)
-                  MentionChips(
-                    mentions: state.selectedMentions,
-                    onRemove: (id) => context
-                        .read<BrahmaCreateBloc>()
-                        .add(RemoveMentionEvent(id)),
-                  ),
-
-                // Text area — auto-expands, scrolls internally when constrained
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.45,
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      autofocus: true,
-                      minLines: 4,
-                      maxLines: null,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.onSurface,
-                        height: 1.6,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: l10n.brahmaHintText,
-                        hintStyle: const TextStyle(
-                          color: AppColors.onSurfaceVariant,
-                          fontSize: 16,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ),
-
-                ComposeActionBar(
-                  state: state,
+                UniunComposer(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  autofocus: true,
+                  minLines: 8,
+                  maxLines: 14,
+                  applyBottomInset: false,
+                  avatarUrl: _avatarUrl,
+                  avatarSeed: _pubkeySeed,
+                  hintText: l10n.brahmaHintText,
+                  canSend: _hasText,
+                  isSending: state.isSubmitting,
+                  references: state.selectedMentions
+                      .map((n) => ComposerReference(id: n.id, label: n.content))
+                      .toList(),
+                  onRemoveReference: (id) => context
+                      .read<BrahmaCreateBloc>()
+                      .add(RemoveMentionEvent(id)),
+                  onAddReference: () => _openReferencePicker(state),
                   onDraft: () => _saveDraft(state),
-                  onPublish: () => _publish(state),
-                  onMentionTap: () {
-                    _focusNode.unfocus();
-                    setState(() => _showMentionPanel = true);
-                  },
-                  l10n: l10n,
+                  draftLabel: l10n.brahmaDraft,
+                  onSend: () => _publish(state),
                 ),
               ],
             ),
           ),
-
-          bottomSheet: _showMentionPanel
-              ? MentionSearchPanel(
-                  state: state,
-                  onClose: _closeMentionPanel,
-                  onSelect: _onMentionSelected,
-                  l10n: l10n,
-                )
-              : null,
         );
       },
     );

@@ -86,7 +86,7 @@ class UniunApp extends StatelessWidget {
         AppRoutes.thread: (ctx) {
           final args = ModalRoute.of(ctx)!.settings.arguments;
           if (args is ThreadRouteArgs) {
-            return ThreadPage(noteId: args.noteId, hasUnread: args.hasUnread, savedOnly: args.savedOnly);
+            return ThreadPage(noteId: args.noteId, savedOnly: args.savedOnly);
           }
           return ThreadPage(noteId: args as String);
         },

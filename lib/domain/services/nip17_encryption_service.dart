@@ -83,13 +83,25 @@ class Nip17EncryptionService {
         // Ensure subject falls back to null if empty
         String? subject;
         final pTagRefs = <String>[];
+        final eTagRefs = <String>[];
+        String? rootTo;
         String? replyTo;
 
         final tagsList = chatEvent['tags'] as List<dynamic>? ?? [];
         for (final tagObj in tagsList) {
           if (tagObj is! List<dynamic> || tagObj.isEmpty) continue;
           if (tagObj[0] == 'p' && tagObj.length >= 2) pTagRefs.add(tagObj[1] as String);
-          if (tagObj[0] == 'e' && tagObj.length >= 2) replyTo ??= tagObj[1] as String;
+          if (tagObj[0] == 'e' && tagObj.length >= 2) {
+            eTagRefs.add(tagObj[1] as String);
+            // Marker (index 3): "mention" is a reference only, "root" marks the
+            // thread root; otherwise it's the direct parent.
+            final marker = tagObj.length >= 4 ? tagObj[3] : null;
+            if (marker == 'root') {
+              rootTo ??= tagObj[1] as String;
+            } else if (marker != 'mention') {
+              replyTo ??= tagObj[1] as String;
+            }
+          }
           if (tagObj[0] == 'subject' && tagObj.length >= 2) subject = tagObj[1] as String;
         }
 
@@ -130,7 +142,9 @@ class Nip17EncryptionService {
             authorPubkey: chatEvent['pubkey'] as String? ?? '',
             conversationId: conv.id,
             pTagRefs: pTagRefs,
+            rootEventId: rootTo,
             replyToEventId: replyTo,
+            eTagRefs: eTagRefs,
             content: contentVal,
             subject: subject,
             kind: chatEvent['kind'] as int? ?? 14,
@@ -174,6 +188,13 @@ class Nip17EncryptionService {
       final now = DateTime.now();
       final currentSec = now.millisecondsSinceEpoch ~/ 1000;
 
+      // Mention refs = all e-tag ids except the NIP-10 root/reply markers.
+      final mentionRefs = unsignedModel.eTagRefs
+          .where((id) =>
+              id != unsignedModel.replyToEventId &&
+              id != unsignedModel.rootEventId)
+          .toList();
+
       // Build the NIP-14 unsigned payload
       final chatPayload = {
         'pubkey': myPubkey,
@@ -181,7 +202,11 @@ class Nip17EncryptionService {
         'kind': unsignedModel.kind,
         'tags': [
           ['p', receiverPubkey],
-          if (unsignedModel.replyToEventId != null) ['e', unsignedModel.replyToEventId]
+          if (unsignedModel.rootEventId != null)
+            ['e', unsignedModel.rootEventId, '', 'root'],
+          if (unsignedModel.replyToEventId != null)
+            ['e', unsignedModel.replyToEventId, '', 'reply'],
+          for (final id in mentionRefs) ['e', id, '', 'mention'],
         ],
         'content': unsignedModel.content,
       };

@@ -50,6 +50,17 @@ class GetPrivateChannelEntityUsecase {
       return null;
     }
   }
+
+  /// Reactive variant: emits the channel each time it changes (e.g. when the
+  /// MLS Welcome arrives and populates [PrivateChannelEntity.mlsGroupId]).
+  Stream<PrivateChannelEntity?> watch(String groupId) {
+    return repository.watchChannels().map((channels) {
+      for (final c in channels) {
+        if (c.groupId == groupId) return c;
+      }
+      return null;
+    });
+  }
 }
 
 @lazySingleton
@@ -82,12 +93,18 @@ class SendPrivateChannelMessageUsecase {
     required String content,
     required String authorPubkey,
     required String privkeyHex,
+    List<String> mentionRefs = const [],
+    String? rootEventId,
+    String? replyToEventId,
   }) async {
     await transportService.sendChannelMessage(
       groupId: groupId,
       content: content,
       authorPubkey: authorPubkey,
       privkeyHex: privkeyHex,
+      mentionRefs: mentionRefs,
+      rootEventId: rootEventId,
+      replyToEventId: replyToEventId,
     );
   }
 }

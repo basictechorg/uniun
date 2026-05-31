@@ -146,6 +146,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelMessageHint => 'Message channel…';
 
   @override
+  String get chatMessageHint => 'Message…';
+
+  @override
   String get channelShareQrTitle => 'Share Channel QR';
 
   @override
@@ -198,6 +201,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get brahmaMentionSelected => 'Mentioned';
+
+  @override
+  String get composerReferenceTitle => 'Add reference';
+
+  @override
+  String get composerReferenceSearchHint => 'Search…';
+
+  @override
+  String get composerReferenceEmpty => 'No results';
+
+  @override
+  String get composerReferenceSelected => 'Added';
 
   @override
   String get brahmaCreateNote => 'Create Note';

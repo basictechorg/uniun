@@ -4,39 +4,17 @@ sealed class ThreadEvent {
   const ThreadEvent();
 }
 
+/// Loads (or reloads) the thread for [noteId], resolving it from whichever
+/// collection holds it. [savedOnly] filters replies to saved notes (feed only).
 final class LoadThreadEvent extends ThreadEvent {
-  const LoadThreadEvent(this.noteId, {this.savedOnly = false, this.hasUnread = false});
+  const LoadThreadEvent(this.noteId, {this.savedOnly = false});
   final String noteId;
-  /// When true, only replies that are also in Saved Notes are shown.
   final bool savedOnly;
-  /// When true, reply items show an unread dot (opened from a followed note).
-  final bool hasUnread;
 }
 
-final class UpdateReplyTextEvent extends ThreadEvent {
-  const UpdateReplyTextEvent(this.text);
-  final String text;
-}
-
-/// null replyToId = replying to the root note
-final class SetReplyTargetEvent extends ThreadEvent {
-  const SetReplyTargetEvent({this.replyToId, this.replyToName});
-  final String? replyToId;
-  final String? replyToName;
-}
-
+/// Posts a reply to the current root, routed by source via [PostReplyUseCase].
 final class PostReplyEvent extends ThreadEvent {
-  const PostReplyEvent();
-}
-
-final class SwitchTabEvent extends ThreadEvent {
-  const SwitchTabEvent(this.index);
-  final int index;
-}
-
-/// Fired when the user taps the reply-count badge on a reply.
-/// Fetches that reply's direct children lazily.
-final class ExpandReplyEvent extends ThreadEvent {
-  const ExpandReplyEvent(this.replyId);
-  final String replyId;
+  const PostReplyEvent(this.content, {this.mentionRefs = const []});
+  final String content;
+  final List<String> mentionRefs;
 }

@@ -113,6 +113,9 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
       senderPubkey: model.senderPubkey,
       decryptedContent: model.decryptedContent,
       timestamp: model.timestamp,
+      eTagRefs: model.eTagRefs,
+      rootEventId: model.rootEventId,
+      replyToEventId: model.replyToEventId,
     );
   }
 

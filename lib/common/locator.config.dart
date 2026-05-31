@@ -35,6 +35,8 @@ import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
 import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
 import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
+import 'package:uniun/data/repositories/note_resolver_repository_impl.dart'
+    as _i526;
 import 'package:uniun/data/repositories/pending_extraction_repository_impl.dart'
     as _i754;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
@@ -62,6 +64,8 @@ import 'package:uniun/domain/repositories/followed_note_repository.dart'
 import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
 import 'package:uniun/domain/repositories/memory_repository.dart' as _i331;
 import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
+import 'package:uniun/domain/repositories/note_resolver_repository.dart'
+    as _i789;
 import 'package:uniun/domain/repositories/pending_extraction_repository.dart'
     as _i1000;
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
@@ -87,6 +91,7 @@ import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
+import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
 import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
 import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
@@ -211,6 +216,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i635.E2EEGroupRepository>(
       () => _i896.E2EEGroupRepositoryImpl(gh<_i214.Isar>()),
+    );
+    gh.factory<_i789.NoteResolverRepository>(
+      () => _i526.NoteResolverRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -592,14 +600,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
-    gh.factory<_i60.DmChatBloc>(
-      () => _i60.DmChatBloc(
-        gh<_i1023.FetchDmUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i1023.GetDmUseCase>(),
-        gh<_i214.Isar>(),
-      ),
-    );
     gh.factory<_i830.GraphBloc>(
       () => _i830.GraphBloc(
         gh<_i858.GetAllSavedNotesUseCase>(),
@@ -649,6 +649,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetOwnProfileUseCase>(),
         gh<_i391.SaveProfileUseCase>(),
         gh<_i391.PublishProfileMetadataUseCase>(),
+      ),
+    );
+    gh.factory<_i60.DmChatBloc>(
+      () => _i60.DmChatBloc(
+        gh<_i1023.FetchDmUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1023.GetDmUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i214.Isar>(),
       ),
     );
     gh.factory<_i687.SelectAIModelCubit>(
@@ -703,15 +713,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i894.GetActiveAIModelUseCase>(),
       ),
     );
-    gh.factory<_i807.ThreadBloc>(
-      () => _i807.ThreadBloc(
-        gh<_i475.GetNoteByIdUseCase>(),
-        gh<_i475.GetRepliesUseCase>(),
+    gh.lazySingleton<_i924.PostReplyUseCase>(
+      () => _i924.PostReplyUseCase(
         gh<_i475.PublishNoteUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i1023.SendDmUseCase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
     gh.factory<_i190.ShivAIBloc>(
@@ -728,6 +737,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i681.RagPipeline>(),
         gh<_i973.ModelTaskQueue>(),
         gh<_i179.DrainPendingExtractionsUseCase>(),
+      ),
+    );
+    gh.factory<_i807.ThreadBloc>(
+      () => _i807.ThreadBloc(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i924.PostReplyUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
     return this;

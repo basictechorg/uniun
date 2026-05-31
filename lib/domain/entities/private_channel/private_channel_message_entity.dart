@@ -7,6 +7,12 @@ class PrivateChannelMessageEntity implements NoteEntity {
   final String senderPubkey;
   final String decryptedContent;
   final DateTime timestamp;
+  @override
+  final List<String> eTagRefs;
+  @override
+  final String? rootEventId;
+  @override
+  final String? replyToEventId;
 
   const PrivateChannelMessageEntity({
     required this.eventId,
@@ -14,6 +20,9 @@ class PrivateChannelMessageEntity implements NoteEntity {
     required this.senderPubkey,
     required this.decryptedContent,
     required this.timestamp,
+    this.eTagRefs = const [],
+    this.rootEventId,
+    this.replyToEventId,
   });
 
   @override
@@ -32,17 +41,11 @@ class PrivateChannelMessageEntity implements NoteEntity {
   @override
   NoteType get type => NoteType.text;
   @override
-  List<String> get eTagRefs => const [];
-  @override
   List<String> get pTagRefs => const [];
   @override
   List<String> get tTags => const [];
   @override
   bool get isSeen => true;
-  @override
-  String? get rootEventId => null;
-  @override
-  String? get replyToEventId => null;
   @override
   int get cachedReplyCount => 0;
 

@@ -30,11 +30,19 @@ class DmMessageModel {
   /// All 'p' tag pubkeys. 
   late List<String> pTagRefs;
 
+  /// NIP-10 "root" marker — the top of the thread this message belongs to.
+  /// null = this is itself a top-level message.
+  @Index()
+  String? rootEventId;
+
   /// NIP-10 / NIP-17: event id of the message this is replying to.
   /// null = top-level message in the conversation.
   @Index()
   String? replyToEventId;
 
+  /// All 'e' tag event ids on the message — includes [replyToEventId] plus any
+  /// "mention" references the sender attached. Mirrors NoteModel.eTagRefs.
+  List<String> eTagRefs = const [];
 
   late String content;
   String? subject;
@@ -56,7 +64,9 @@ class DmMessageModel {
     required this.authorPubkey,
     required this.conversationId,
     required this.pTagRefs,
+    this.rootEventId,
     this.replyToEventId,
+    this.eTagRefs = const [],
     required this.content,
     this.subject,
     required this.kind,
@@ -76,18 +86,27 @@ class DmMessageModel {
   ///   'e'       → replyToEventId  (NIP-17: first/only 'e' tag = direct parent)
   ///   'subject' → subject
   factory DmMessageModel.fromEvent(Event event, {required int conversationId}) {
+    String? rootEventId;
     String? replyToEventId;
     String? subject;
     final pTagRefs = <String>[];
+    final eTagRefs = <String>[];
 
     for (final tag in event.tags) {
       if (tag.isEmpty) continue;
       final tagName = tag[0];
 
       if (tagName == 'e' && tag.length >= 2) {
-        // NIP-17 Kind 14: a single 'e' tag marks the direct parent — no
-        // root/reply markers. We take the first one; extras are ignored.
-        replyToEventId ??= tag[1];
+        eTagRefs.add(tag[1]);
+        // Marker (NIP-10 style) lives at index 3 when present. A "mention"
+        // marker is a reference only; "root" marks the thread root; anything
+        // else is the direct parent.
+        final marker = tag.length >= 4 ? tag[3] : null;
+        if (marker == 'root') {
+          rootEventId ??= tag[1];
+        } else if (marker != 'mention') {
+          replyToEventId ??= tag[1];
+        }
       } else if (tagName == 'p' && tag.length >= 2) {
         pTagRefs.add(tag[1]);
       } else if (tagName == 'subject' && tag.length >= 2) {
@@ -104,7 +123,9 @@ class DmMessageModel {
       authorPubkey: event.pubkey,
       conversationId: conversationId,
       pTagRefs: pTagRefs,
+      rootEventId: rootEventId,
       replyToEventId: replyToEventId,
+      eTagRefs: eTagRefs,
       content: event.content,
       subject: subject,
       kind: event.kind,
@@ -123,7 +144,7 @@ class DmMessageModel {
       conversationId: conversationId,
       // NoteModel stores all p-tags; for DMs pTagRefs[0] is always the receiver.
       pTagRefs: note.pTagRefs,
-      // NIP-17 has no "root" concept for DMs — replyToEventId is enough.
+      rootEventId: note.rootEventId,
       replyToEventId: note.replyToEventId,
       content: note.content,
       subject: note.subject,
@@ -171,7 +192,9 @@ extension DmMessageModelExtension on DmMessageModel {
     authorPubkey: authorPubkey,
     conversationId: conversationId,
     receiverPubkey: pTagRefs.isNotEmpty ? pTagRefs.first : '',
+    rootEventId: rootEventId,
     replyToEventId: replyToEventId,
+    eTagRefs: eTagRefs,
     content: content,
     subject: subject,
     kind: kind,

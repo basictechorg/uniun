@@ -29,7 +29,12 @@ class FloatingNav extends StatelessWidget {
           top: BorderSide(color: AppColors.outlineVariant),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: EdgeInsets.fromLTRB(
+        6,
+        4,
+        6,
+        4 + MediaQuery.of(context).padding.bottom,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
+import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
+import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 class DmChatPage extends StatelessWidget {
   const DmChatPage({super.key});
@@ -30,10 +35,9 @@ class _DmChatView extends StatefulWidget {
 }
 
 class _DmChatViewState extends State<_DmChatView> {
-  final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
-  // To identify if message is ours
+  // To identify if a message is ours.
   String? _myPubkeyHex;
 
   @override
@@ -43,27 +47,22 @@ class _DmChatViewState extends State<_DmChatView> {
   }
 
   Future<void> _resolveActiveUser() async {
-    final res = await getIt<GetActiveUserUseCase>().call();
+    final res = await getIt<GetActiveUserProfileUseCase>().call();
     if (mounted) {
-      setState(() {
-        _myPubkeyHex = res.fold((_) => null, (u) => u.pubkeyHex);
+      res.fold((_) {}, (profile) {
+        setState(() => _myPubkeyHex = profile.pubkeyHex);
       });
     }
   }
 
   @override
   void dispose() {
-    _textController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onSend() {
-    if (_textController.text.trim().isEmpty) return;
-    context.read<DmChatBloc>().add(
-      DmChatSendEvent(content: _textController.text),
-    );
-    _textController.clear();
+  void _openThread(BuildContext context, String messageId) {
+    Navigator.pushNamed(context, AppRoutes.thread, arguments: messageId);
   }
 
   @override
@@ -84,6 +83,11 @@ class _DmChatViewState extends State<_DmChatView> {
             state.otherPubkey != null && state.otherPubkey!.length > 12
             ? '${state.otherPubkey!.substring(0, 12)}...'
             : state.otherPubkey ?? 'Chat';
+
+        final l10n = AppLocalizations.of(context)!;
+        final messagesById = <String, NoteEntity>{
+          for (final m in state.messages) m.id: m,
+        };
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -142,107 +146,53 @@ class _DmChatViewState extends State<_DmChatView> {
                           final msg = state.messages[index];
                           final isMe = _myPubkeyHex != null &&
                               msg.authorPubkey == _myPubkeyHex;
-                          return isMe
+                          final refIds = msg.eTagRefs
+                              .where((id) => id != msg.replyToEventId)
+                              .toList();
+                          final card = isMe
                               ? DmOwnNoteCard(
                                   key: ValueKey(msg.eventId),
                                   note: msg,
+                                  profile: state.profiles[msg.authorPubkey],
+                                  onTap: () => _openThread(context, msg.id),
                                 )
                               : DmNoteCard(
                                   key: ValueKey(msg.eventId),
                                   note: msg,
+                                  profile: state.profiles[msg.authorPubkey],
+                                  onTap: () => _openThread(context, msg.id),
                                 );
+                          if (refIds.isEmpty) return card;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ReferencedMessages(
+                                refs: refIds
+                                    .map((id) => messagesById[id])
+                                    .toList(),
+                                unavailableLabel:
+                                    l10n.vishnuReferenceUnavailable,
+                                onTapRef: (note) =>
+                                    _openThread(context, note.id),
+                              ),
+                              card,
+                            ],
+                          );
                         },
                       ),
               ),
-              _ChatInputArea(
-                controller: _textController,
+              ComposerHost(
+                hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
-                onSend: _onSend,
+                referenceCandidates: state.messages.cast<NoteEntity>(),
+                onSend: (text, refs) => context.read<DmChatBloc>().add(
+                      DmChatSendEvent(content: text, mentionRefs: refs),
+                    ),
               ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _ChatInputArea extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isSending;
-  final VoidCallback onSend;
-
-  const _ChatInputArea({
-    required this.controller,
-    required this.isSending,
-    required this.onSend,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: TextField(
-                controller: controller,
-                minLines: 1,
-                maxLines: 5,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                decoration: const InputDecoration(
-                  hintText: 'Message...',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: isSending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: AppColors.onPrimary,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(Icons.send_rounded, color: AppColors.onPrimary),
-              onPressed: isSending ? null : onSend,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
