@@ -2,38 +2,44 @@ import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
-/// Vishnu unified feed repository (two-band layout).
+/// Vishnu unified feed repository.
 ///
-/// Feed = [seen band, newest-first] then [unseen band, newest-first]. Seen
-/// items stay in the feed forever; unseen items move into the seen band as
-/// they're scrolled past. New arrivals land in the unseen band by timestamp.
+/// Merges two collections — Kind 1 notes and Kind 42 public channel messages
+/// from joined channels — under one read model. Three derived buckets keyed
+/// off the persisted [feedLoadedAt] anchor + per-row `isSeen`:
+///
+///   - **New buffer**: `!isSeen && created >  feedLoadedAt` — banner only.
+///   - **Queue**:      `!isSeen && created <= feedLoadedAt` — top of feed.
+///   - **Seen**:       `isSeen`                             — after queue.
 abstract class FeedRepository {
-  /// Page of SEEN notes/messages, newest-first.
-  Future<Either<Failure, List<NoteEntity>>> getSeenPage({
+  /// Reads the persisted anchor (creates it as `now` on first call).
+  Future<Either<Failure, DateTime>> getOrInitFeedLoadedAt();
+
+  /// Snaps the anchor forward (called on banner tap / pull-to-refresh).
+  Future<Either<Failure, Unit>> setFeedLoadedAt(DateTime ts);
+
+  /// Bucket **B** — unseen notes/channel-msgs created at-or-before [loadedAt].
+  /// Returns up to [limit] items, merged and sorted by `created` desc.
+  /// [before] is the previous page's last item's created (cursor).
+  Future<Either<Failure, List<NoteEntity>>> getUnseenQueue({
+    required DateTime loadedAt,
     required int limit,
     DateTime? before,
   });
 
-  /// Page of UNSEEN notes/messages, newest-first.
-  Future<Either<Failure, List<NoteEntity>>> getUnseenPage({
+  /// Bucket **C** — seen notes/channel-msgs, `created` desc, paginated by
+  /// [before].
+  Future<Either<Failure, List<NoteEntity>>> getSeen({
     required int limit,
     DateTime? before,
   });
 
-  /// Unseen notes/messages strictly newer than [topCursor], newest-first.
-  /// Used by LoadMore in the unseen band so that any new arrivals (since the
-  /// last fetch) are merged into the next page — without disturbing items
-  /// already on screen.
-  Future<Either<Failure, List<NoteEntity>>> getUnseenAbove({
-    required DateTime topCursor,
-    required int limit,
-  });
+  /// Live count of bucket **A** — new arrivals since [loadedAt]. Drives the
+  /// "X new notes" banner. Emits the current value immediately, then again
+  /// whenever the underlying collections change.
+  Stream<int> watchNewBufferCount(DateTime loadedAt);
 
-  /// Live count of unseen items strictly newer than [topCursor]. Drives the
-  /// "↑ N new" pill. Pass `DateTime.fromMillisecondsSinceEpoch(0)` when the
-  /// in-memory list is empty.
-  Stream<int> watchUnseenAbove(DateTime topCursor);
-
-  /// Flip `isSeen = true` for the given note/public-msg/private-msg id.
+  /// Flip `isSeen = true` for a note or channel message. The repo figures out
+  /// which collection the id lives in. No-op if already seen or unknown.
   Future<Either<Failure, Unit>> markSeen(String eventId);
 }

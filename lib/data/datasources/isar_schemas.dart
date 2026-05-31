@@ -26,6 +26,7 @@ import 'package:uniun/data/models/graph_edge_model.dart';
 import 'package:uniun/data/models/memory_node_model.dart';
 import 'package:uniun/data/models/pending_extraction_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
+import 'package:uniun/data/models/feed_read_state_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -53,5 +54,6 @@ final List<CollectionSchema> isarSchemas = [
   MemoryNodeModelSchema,
   PendingExtractionModelSchema,
   NoteRelationModelSchema,
+  FeedReadStateModelSchema,
 ];
 

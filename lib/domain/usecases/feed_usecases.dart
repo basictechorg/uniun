@@ -5,66 +5,87 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/feed_repository.dart';
 
+// ── Anchor ───────────────────────────────────────────────────────────────────
+
+@lazySingleton
+class GetOrInitFeedLoadedAtUseCase
+    extends NoParamsUseCase<Either<Failure, DateTime>> {
+  final FeedRepository _repo;
+  const GetOrInitFeedLoadedAtUseCase(this._repo);
+
+  @override
+  Future<Either<Failure, DateTime>> call() => _repo.getOrInitFeedLoadedAt();
+}
+
+@lazySingleton
+class SetFeedLoadedAtUseCase extends UseCase<Either<Failure, Unit>, DateTime> {
+  final FeedRepository _repo;
+  const SetFeedLoadedAtUseCase(this._repo);
+
+  @override
+  Future<Either<Failure, Unit>> call(DateTime ts, {bool cached = false}) =>
+      _repo.setFeedLoadedAt(ts);
+}
+
+// ── Pagination ───────────────────────────────────────────────────────────────
+
 class FeedPageInput {
+  final DateTime loadedAt;
   final int limit;
   final DateTime? before;
-  const FeedPageInput({required this.limit, this.before});
+  const FeedPageInput({
+    required this.loadedAt,
+    required this.limit,
+    this.before,
+  });
 }
 
 @lazySingleton
-class GetSeenFeedPageUseCase
+class GetUnseenQueuePageUseCase
     extends UseCase<Either<Failure, List<NoteEntity>>, FeedPageInput> {
   final FeedRepository _repo;
-  const GetSeenFeedPageUseCase(this._repo);
+  const GetUnseenQueuePageUseCase(this._repo);
 
   @override
   Future<Either<Failure, List<NoteEntity>>> call(
     FeedPageInput input, {
     bool cached = false,
   }) =>
-      _repo.getSeenPage(limit: input.limit, before: input.before);
+      _repo.getUnseenQueue(
+        loadedAt: input.loadedAt,
+        limit: input.limit,
+        before: input.before,
+      );
 }
 
-@lazySingleton
-class GetUnseenFeedPageUseCase
-    extends UseCase<Either<Failure, List<NoteEntity>>, FeedPageInput> {
-  final FeedRepository _repo;
-  const GetUnseenFeedPageUseCase(this._repo);
-
-  @override
-  Future<Either<Failure, List<NoteEntity>>> call(
-    FeedPageInput input, {
-    bool cached = false,
-  }) =>
-      _repo.getUnseenPage(limit: input.limit, before: input.before);
-}
-
-class UnseenAboveInput {
-  final DateTime topCursor;
+class SeenPageInput {
   final int limit;
-  const UnseenAboveInput({required this.topCursor, required this.limit});
+  final DateTime? before;
+  const SeenPageInput({required this.limit, this.before});
 }
 
 @lazySingleton
-class GetUnseenAboveUseCase
-    extends UseCase<Either<Failure, List<NoteEntity>>, UnseenAboveInput> {
+class GetSeenPageUseCase
+    extends UseCase<Either<Failure, List<NoteEntity>>, SeenPageInput> {
   final FeedRepository _repo;
-  const GetUnseenAboveUseCase(this._repo);
+  const GetSeenPageUseCase(this._repo);
 
   @override
   Future<Either<Failure, List<NoteEntity>>> call(
-    UnseenAboveInput input, {
+    SeenPageInput input, {
     bool cached = false,
   }) =>
-      _repo.getUnseenAbove(topCursor: input.topCursor, limit: input.limit);
+      _repo.getSeen(limit: input.limit, before: input.before);
 }
 
-@lazySingleton
-class WatchUnseenAboveUseCase {
-  final FeedRepository _repo;
-  const WatchUnseenAboveUseCase(this._repo);
+// ── Banner + mark-seen ───────────────────────────────────────────────────────
 
-  Stream<int> call(DateTime topCursor) => _repo.watchUnseenAbove(topCursor);
+@lazySingleton
+class WatchNewBufferCountUseCase {
+  final FeedRepository _repo;
+  const WatchNewBufferCountUseCase(this._repo);
+
+  Stream<int> call(DateTime loadedAt) => _repo.watchNewBufferCount(loadedAt);
 }
 
 @lazySingleton

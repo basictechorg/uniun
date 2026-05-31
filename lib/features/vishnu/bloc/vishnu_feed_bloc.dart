@@ -13,20 +13,15 @@ import 'package:uniun/domain/usecases/vector_usecases.dart';
 part 'vishnu_feed_event.dart';
 part 'vishnu_feed_state.dart';
 
-const _pageSize = 10;
+const _pageSize = 20;
 
-/// Two-band feed bloc:
-///   1) Seen rows (newest-first) — pulled until exhausted.
-///   2) Unseen rows + new arrivals (newest-first) — paginated next.
-/// A single fetched page may straddle the band boundary so users never see a
-/// gap. `MarkFeedItemSeenEvent` only writes to DB; it does NOT mutate the
-/// in-memory items list so scroll position stays put.
 @injectable
 class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
-  final GetSeenFeedPageUseCase _getSeenPage;
-  final GetUnseenFeedPageUseCase _getUnseenPage;
-  final GetUnseenAboveUseCase _getUnseenAbove;
-  final WatchUnseenAboveUseCase _watchAbove;
+  final GetOrInitFeedLoadedAtUseCase _getOrInitLoadedAt;
+  final SetFeedLoadedAtUseCase _setLoadedAt;
+  final GetUnseenQueuePageUseCase _getQueuePage;
+  final GetSeenPageUseCase _getSeenPage;
+  final WatchNewBufferCountUseCase _watchNewCount;
   final MarkFeedItemSeenUseCase _markSeen;
   final GetProfileUseCase _getProfile;
   final GetAllSavedNotesUseCase _getAllSavedNotes;
@@ -35,13 +30,15 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final EmbedAndStoreNoteUseCase _embedAndStore;
 
   StreamSubscription<int>? _newCountSub;
+  final Set<String> _loadedIds = <String>{};
   final Set<String> _markedThisSession = <String>{};
 
   VishnuFeedBloc(
+    this._getOrInitLoadedAt,
+    this._setLoadedAt,
+    this._getQueuePage,
     this._getSeenPage,
-    this._getUnseenPage,
-    this._getUnseenAbove,
-    this._watchAbove,
+    this._watchNewCount,
     this._markSeen,
     this._getProfile,
     this._getAllSavedNotes,
@@ -51,11 +48,12 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   ) : super(const VishnuFeedState()) {
     on<FeedOpenedEvent>(_onOpened, transformer: droppable());
     on<LoadMoreFeedEvent>(_onLoadMore, transformer: droppable());
+    on<LoadNewNotesEvent>(_onLoadNew, transformer: droppable());
     on<RefreshFeedEvent>(_onRefresh, transformer: droppable());
     on<MarkFeedItemSeenEvent>(_onMarkSeen, transformer: sequential());
     on<SaveFeedNoteEvent>(_onSave, transformer: sequential());
     on<UnsaveFeedNoteEvent>(_onUnsave, transformer: sequential());
-    on<_NewAboveCountChangedEvent>(_onNewAboveCountChanged);
+    on<_NewBufferCountChangedEvent>(_onNewCountChanged);
   }
 
   @override
@@ -64,7 +62,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     return super.close();
   }
 
-  // ── First page / refresh ───────────────────────────────────────────────────
+  // ── Anchor + first page ────────────────────────────────────────────────────
 
   Future<void> _onOpened(
     FeedOpenedEvent event,
@@ -72,115 +70,115 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   ) async {
     if (state.status != VishnuFeedStatus.initial) return;
     emit(state.copyWith(status: VishnuFeedStatus.loading));
-    await _resetAndFetchFirstPage(emit);
+    final loadedAtRes = await _getOrInitLoadedAt.call();
+    final loadedAt = loadedAtRes.fold((_) => DateTime.now(), (t) => t);
+    emit(state.copyWith(loadedAt: loadedAt));
+    _subscribeNewCount(loadedAt);
+    await _resetAndFetchFirstPage(emit, loadedAt);
+  }
+
+  Future<void> _onLoadNew(
+    LoadNewNotesEvent event,
+    Emitter<VishnuFeedState> emit,
+  ) async {
+    final now = DateTime.now();
+    await _setLoadedAt.call(now);
+    emit(state.copyWith(loadedAt: now, newCount: 0));
+    _subscribeNewCount(now);
+    emit(state.copyWith(status: VishnuFeedStatus.loading));
+    await _resetAndFetchFirstPage(emit, now);
   }
 
   Future<void> _onRefresh(
     RefreshFeedEvent event,
     Emitter<VishnuFeedState> emit,
   ) async {
-    emit(state.copyWith(
-      status: VishnuFeedStatus.loading,
-      newAboveCount: 0,
-    ));
-    await _resetAndFetchFirstPage(emit);
+    // Same semantics as banner tap.
+    add(const LoadNewNotesEvent());
   }
 
-  Future<void> _resetAndFetchFirstPage(Emitter<VishnuFeedState> emit) async {
+  Future<void> _resetAndFetchFirstPage(
+    Emitter<VishnuFeedState> emit,
+    DateTime loadedAt,
+  ) async {
+    _loadedIds.clear();
     emit(state.copyWith(
       items: const [],
-      band: FeedBand.seen,
+      bucket: FeedBucket.queue,
       clearCursor: true,
-      clearTopUnseen: true,
     ));
-    await _fetchPage(emit);
-    _subscribeUnseenAbove();
+    await _fetchPage(emit, loadedAt: loadedAt);
   }
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
+  // ── Infinite scroll ────────────────────────────────────────────────────────
 
   Future<void> _onLoadMore(
     LoadMoreFeedEvent event,
     Emitter<VishnuFeedState> emit,
   ) async {
-    if (!state.hasMore) return;
     if (state.status == VishnuFeedStatus.loadingMore) return;
+    if (state.bucket == FeedBucket.exhausted) return;
+    if (state.loadedAt == null) return;
     if (state.items.isEmpty) return;
     emit(state.copyWith(status: VishnuFeedStatus.loadingMore));
-    await _fetchPage(emit);
+    await _fetchPage(emit, loadedAt: state.loadedAt!);
   }
 
-  /// One page = one screen of items. May straddle the seen → unseen boundary
-  /// in a single fetch when the seen band partially fills the page, so users
-  /// see no gap.
-  ///
-  /// In the unseen band, also prepends any items that arrived above the
-  /// current top-of-unseen since the last fetch — so LoadMore turns "EFGH"
-  /// into "NEFGH" when N arrived during scroll, without disturbing items
-  /// already on screen.
-  Future<void> _fetchPage(Emitter<VishnuFeedState> emit) async {
+  /// One page = one screen of items. May straddle bucket B → C in a single
+  /// fetch when the queue partially fills the page, so users see no gap.
+  Future<void> _fetchPage(
+    Emitter<VishnuFeedState> emit, {
+    required DateTime loadedAt,
+  }) async {
     final newItems = <NoteEntity>[];
-    var band = state.band;
+    var bucket = state.bucket;
     DateTime? cursor = state.cursor;
-    DateTime? topUnseen = state.topUnseenCursor;
 
-    // Band 1 — SEEN
-    if (band == FeedBand.seen) {
-      final res = await _getSeenPage.call(
-        FeedPageInput(limit: _pageSize, before: cursor),
+    // Bucket B (queue)
+    if (bucket == FeedBucket.queue) {
+      final queueRes = await _getQueuePage.call(
+        FeedPageInput(loadedAt: loadedAt, limit: _pageSize, before: cursor),
       );
-      final items = res.fold((f) {
-        emit(state.copyWith(
-          status: VishnuFeedStatus.error,
-          errorMessage: f.toMessage(),
-        ));
-        return <NoteEntity>[];
-      }, (l) => l);
-      newItems.addAll(items);
-      if (items.length < _pageSize) {
-        band = FeedBand.unseen;
+      final queueItems = queueRes.fold(
+        (f) {
+          emit(state.copyWith(
+            status: VishnuFeedStatus.error,
+            errorMessage: f.toMessage(),
+          ));
+          return <NoteEntity>[];
+        },
+        (l) => l,
+      );
+      _appendDedup(newItems, queueItems);
+      if (queueItems.length < _pageSize) {
+        bucket = FeedBucket.seen;
         cursor = null;
       } else {
-        cursor = items.last.created;
+        cursor = queueItems.last.created;
       }
     }
 
-    // Band 2 — UNSEEN (fills remaining slots if seen ran out mid-page)
-    if (band == FeedBand.unseen && newItems.length < _pageSize) {
+    // Bucket C (seen) — fills any remaining slots in this page
+    if (bucket == FeedBucket.seen && newItems.length < _pageSize) {
       final remaining = _pageSize - newItems.length;
-
-      // 2a) New arrivals above the unseen items already on screen. Only
-      //     applies when we've already loaded some unseen rows — first entry
-      //     into the band starts fresh.
-      if (topUnseen != null) {
-        final aboveRes = await _getUnseenAbove.call(
-          UnseenAboveInput(topCursor: topUnseen, limit: _pageSize),
-        );
-        final above = aboveRes.fold((_) => const <NoteEntity>[], (l) => l);
-        if (above.isNotEmpty) {
-          newItems.addAll(above);
-          topUnseen = above.first.created;
-        }
-      }
-
-      // 2b) Next chunk below the cursor.
-      final res = await _getUnseenPage.call(
-        FeedPageInput(limit: remaining, before: cursor),
+      final seenRes = await _getSeenPage.call(
+        SeenPageInput(limit: remaining, before: cursor),
       );
-      final items = res.fold((f) {
-        emit(state.copyWith(
-          status: VishnuFeedStatus.error,
-          errorMessage: f.toMessage(),
-        ));
-        return <NoteEntity>[];
-      }, (l) => l);
-      newItems.addAll(items);
-      if (items.isEmpty) {
-        band = FeedBand.exhausted;
+      final seenItems = seenRes.fold(
+        (f) {
+          emit(state.copyWith(
+            status: VishnuFeedStatus.error,
+            errorMessage: f.toMessage(),
+          ));
+          return <NoteEntity>[];
+        },
+        (l) => l,
+      );
+      _appendDedup(newItems, seenItems);
+      if (seenItems.isEmpty) {
+        bucket = FeedBucket.exhausted;
       } else {
-        cursor = items.last.created;
-        // First-ever unseen items loaded → seed topUnseenCursor.
-        topUnseen ??= items.first.created;
+        cursor = seenItems.last.created;
       }
     }
 
@@ -192,17 +190,17 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
       items: combined,
       profiles: profiles,
       savedIds: savedIds,
-      status: combined.isEmpty
-          ? VishnuFeedStatus.empty
-          : VishnuFeedStatus.loaded,
-      band: band,
+      status: VishnuFeedStatus.loaded,
+      bucket: bucket,
       cursor: cursor,
-      clearCursor: band == FeedBand.exhausted,
-      topUnseenCursor: topUnseen,
+      clearCursor: bucket == FeedBucket.exhausted,
     ));
+  }
 
-    // Banner cursor moved → re-subscribe so the pill count is correct.
-    _subscribeUnseenAbove();
+  void _appendDedup(List<NoteEntity> out, List<NoteEntity> incoming) {
+    for (final e in incoming) {
+      if (_loadedIds.add(e.id)) out.add(e);
+    }
   }
 
   Future<Map<String, ProfileEntity>> _hydrateProfiles(
@@ -236,30 +234,26 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   ) async {
     if (_markedThisSession.contains(event.eventId)) return;
     _markedThisSession.add(event.eventId);
-    // DB only — don't mutate items so the scroll position holds. Next refresh
-    // will resort the row into the seen band.
+    // DB write only. We deliberately do not mutate state.items — the user is
+    // still reading this load and the position must not shift.
     await _markSeen.call(event.eventId);
   }
 
-  // ── Pill subscription ──────────────────────────────────────────────────────
+  // ── Banner subscription ────────────────────────────────────────────────────
 
-  void _subscribeUnseenAbove() {
+  void _subscribeNewCount(DateTime loadedAt) {
     _newCountSub?.cancel();
-    // Count unseen items that arrived above the topmost unseen row already in
-    // memory. Before any unseen has loaded we count everything (epoch 0).
-    final cursor = state.topUnseenCursor ??
-        DateTime.fromMillisecondsSinceEpoch(0);
-    _newCountSub = _watchAbove
-        .call(cursor)
-        .listen((n) => add(_NewAboveCountChangedEvent(n)));
+    _newCountSub = _watchNewCount
+        .call(loadedAt)
+        .listen((n) => add(_NewBufferCountChangedEvent(n)));
   }
 
-  void _onNewAboveCountChanged(
-    _NewAboveCountChangedEvent event,
+  void _onNewCountChanged(
+    _NewBufferCountChangedEvent event,
     Emitter<VishnuFeedState> emit,
   ) {
-    if (event.count == state.newAboveCount) return;
-    emit(state.copyWith(newAboveCount: event.count));
+    if (event.count == state.newCount) return;
+    emit(state.copyWith(newCount: event.count));
   }
 
   // ── Save / Unsave ──────────────────────────────────────────────────────────

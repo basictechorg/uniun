@@ -71,9 +71,9 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
           children: [
             _VishnuFeedView(onScrollDirection: _onScrollDirection),
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
+              left: 20,
+              right: 20,
+              bottom: 20,
               child: AnimatedSlide(
                 offset: _navVisible ? Offset.zero : const Offset(0, 1.5),
                 duration: const Duration(milliseconds: 250),
@@ -136,7 +136,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
   }
 
   Future<void> _onLoadNewNotes() async {
-    context.read<VishnuFeedBloc>().add(const RefreshFeedEvent());
+    context.read<VishnuFeedBloc>().add(const LoadNewNotesEvent());
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
@@ -307,9 +307,9 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             left: 0,
                             right: 0,
                             child: IgnorePointer(
-                              ignoring: feedState.newAboveCount <= 0,
+                              ignoring: feedState.newCount <= 0,
                               child: NewNotesBanner(
-                                count: feedState.newAboveCount,
+                                count: feedState.newCount,
                                 onTap: _onLoadNewNotes,
                               ),
                             ),

@@ -576,17 +576,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1039.EventQueueRepository>(),
       ),
     );
-    gh.lazySingleton<_i837.GetSeenFeedPageUseCase>(
-      () => _i837.GetSeenFeedPageUseCase(gh<_i250.FeedRepository>()),
+    gh.lazySingleton<_i837.GetOrInitFeedLoadedAtUseCase>(
+      () => _i837.GetOrInitFeedLoadedAtUseCase(gh<_i250.FeedRepository>()),
     );
-    gh.lazySingleton<_i837.GetUnseenFeedPageUseCase>(
-      () => _i837.GetUnseenFeedPageUseCase(gh<_i250.FeedRepository>()),
+    gh.lazySingleton<_i837.SetFeedLoadedAtUseCase>(
+      () => _i837.SetFeedLoadedAtUseCase(gh<_i250.FeedRepository>()),
     );
-    gh.lazySingleton<_i837.GetUnseenAboveUseCase>(
-      () => _i837.GetUnseenAboveUseCase(gh<_i250.FeedRepository>()),
+    gh.lazySingleton<_i837.GetUnseenQueuePageUseCase>(
+      () => _i837.GetUnseenQueuePageUseCase(gh<_i250.FeedRepository>()),
     );
-    gh.lazySingleton<_i837.WatchUnseenAboveUseCase>(
-      () => _i837.WatchUnseenAboveUseCase(gh<_i250.FeedRepository>()),
+    gh.lazySingleton<_i837.GetSeenPageUseCase>(
+      () => _i837.GetSeenPageUseCase(gh<_i250.FeedRepository>()),
+    );
+    gh.lazySingleton<_i837.WatchNewBufferCountUseCase>(
+      () => _i837.WatchNewBufferCountUseCase(gh<_i250.FeedRepository>()),
     );
     gh.lazySingleton<_i837.MarkFeedItemSeenUseCase>(
       () => _i837.MarkFeedItemSeenUseCase(gh<_i250.FeedRepository>()),
@@ -763,20 +766,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i894.GetActiveAIModelUseCase>(),
       ),
     );
-    gh.factory<_i1039.VishnuFeedBloc>(
-      () => _i1039.VishnuFeedBloc(
-        gh<_i837.GetSeenFeedPageUseCase>(),
-        gh<_i837.GetUnseenFeedPageUseCase>(),
-        gh<_i837.GetUnseenAboveUseCase>(),
-        gh<_i837.WatchUnseenAboveUseCase>(),
-        gh<_i837.MarkFeedItemSeenUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i858.SaveNoteUseCase>(),
-        gh<_i858.UnsaveNoteUseCase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i924.PostReplyUseCase>(
       () => _i924.PostReplyUseCase(
         gh<_i475.PublishNoteUseCase>(),
@@ -801,6 +790,21 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i681.RagPipeline>(),
         gh<_i973.ModelTaskQueue>(),
         gh<_i179.DrainPendingExtractionsUseCase>(),
+      ),
+    );
+    gh.factory<_i1039.VishnuFeedBloc>(
+      () => _i1039.VishnuFeedBloc(
+        gh<_i837.GetOrInitFeedLoadedAtUseCase>(),
+        gh<_i837.SetFeedLoadedAtUseCase>(),
+        gh<_i837.GetUnseenQueuePageUseCase>(),
+        gh<_i837.GetSeenPageUseCase>(),
+        gh<_i837.WatchNewBufferCountUseCase>(),
+        gh<_i837.MarkFeedItemSeenUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i858.SaveNoteUseCase>(),
+        gh<_i858.UnsaveNoteUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
       ),
     );
     gh.factory<_i807.ThreadBloc>(

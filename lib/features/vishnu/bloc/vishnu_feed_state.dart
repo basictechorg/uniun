@@ -1,9 +1,9 @@
 part of 'vishnu_feed_bloc.dart';
 
-enum VishnuFeedStatus { initial, loading, loaded, loadingMore, empty, error }
+enum VishnuFeedStatus { initial, loading, loaded, loadingMore, error }
 
-/// Which band the *next* page reads from. `exhausted` = end-of-feed.
-enum FeedBand { seen, unseen, exhausted }
+/// Where the next page comes from.
+enum FeedBucket { queue, seen, exhausted }
 
 class VishnuFeedState {
   const VishnuFeedState({
@@ -11,49 +11,53 @@ class VishnuFeedState {
     this.profiles = const {},
     this.savedIds = const {},
     this.status = VishnuFeedStatus.initial,
-    this.band = FeedBand.seen,
+    this.bucket = FeedBucket.queue,
     this.cursor,
-    this.topUnseenCursor,
-    this.newAboveCount = 0,
+    this.loadedAt,
+    this.newCount = 0,
     this.errorMessage,
   });
 
-  /// Combined feed items in display order — seen rows first (newest-first),
-  /// then unseen rows (newest-first).
+  /// Unified feed items (Kind 1 notes + Kind 42 channel messages from
+  /// joined channels), already in display order.
   final List<NoteEntity> items;
-  final Map<String, ProfileEntity> profiles;
-  final Set<String> savedIds;
-  final VishnuFeedStatus status;
-  final FeedBand band;
 
-  /// `created` of the last item in the current band (cursor for the next page
-  /// fetch from the same band). Null when starting a new band.
+  /// pubkey → ProfileEntity (loaded lazily after each page fetch)
+  final Map<String, ProfileEntity> profiles;
+
+  /// IDs the user has saved/bookmarked.
+  final Set<String> savedIds;
+
+  final VishnuFeedStatus status;
+
+  /// Which collection the *next* page reads from. `exhausted` = end-of-feed.
+  final FeedBucket bucket;
+
+  /// Last loaded item's `created` — passed as `before` to the next page.
+  /// Null on first page of a bucket.
   final DateTime? cursor;
 
-  /// `created` of the newest unseen item already loaded into [items]. Used
-  /// both by LoadMore (to fetch any newer-arrived unseen items) and by the
-  /// banner watch. Null until the unseen band has been entered.
-  final DateTime? topUnseenCursor;
+  /// The persisted anchor that splits queue from new-buffer.
+  final DateTime? loadedAt;
 
-  /// Pill count — unseen items newer than [topUnseenCursor].
-  final int newAboveCount;
+  /// Banner count — number of unseen items newer than [loadedAt].
+  final int newCount;
 
   final String? errorMessage;
 
-  bool get hasMore => band != FeedBand.exhausted;
   bool get isEmpty => items.isEmpty;
+  bool get hasMore => bucket != FeedBucket.exhausted;
 
   VishnuFeedState copyWith({
     List<NoteEntity>? items,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
     VishnuFeedStatus? status,
-    FeedBand? band,
+    FeedBucket? bucket,
     DateTime? cursor,
     bool clearCursor = false,
-    DateTime? topUnseenCursor,
-    bool clearTopUnseen = false,
-    int? newAboveCount,
+    DateTime? loadedAt,
+    int? newCount,
     String? errorMessage,
   }) {
     return VishnuFeedState(
@@ -61,12 +65,10 @@ class VishnuFeedState {
       profiles: profiles ?? this.profiles,
       savedIds: savedIds ?? this.savedIds,
       status: status ?? this.status,
-      band: band ?? this.band,
+      bucket: bucket ?? this.bucket,
       cursor: clearCursor ? null : (cursor ?? this.cursor),
-      topUnseenCursor: clearTopUnseen
-          ? null
-          : (topUnseenCursor ?? this.topUnseenCursor),
-      newAboveCount: newAboveCount ?? this.newAboveCount,
+      loadedAt: loadedAt ?? this.loadedAt,
+      newCount: newCount ?? this.newCount,
       errorMessage: errorMessage,
     );
   }

@@ -4,7 +4,7 @@ sealed class VishnuFeedEvent {
   const VishnuFeedEvent();
 }
 
-/// Tab/app opened — load the first page. Idempotent.
+/// Tab/app opened — load the persisted anchor and first page. Idempotent.
 final class FeedOpenedEvent extends VishnuFeedEvent {
   const FeedOpenedEvent();
 }
@@ -14,14 +14,17 @@ final class LoadMoreFeedEvent extends VishnuFeedEvent {
   const LoadMoreFeedEvent();
 }
 
-/// Pill tap or pull-to-refresh — clear the list and re-fetch page 1.
+/// Banner tap — advance `feedLoadedAt = now`, re-bucket, reload from top.
+final class LoadNewNotesEvent extends VishnuFeedEvent {
+  const LoadNewNotesEvent();
+}
+
+/// Pull-to-refresh — same as banner tap.
 final class RefreshFeedEvent extends VishnuFeedEvent {
   const RefreshFeedEvent();
 }
 
-/// A note scrolled past the viewport — flip `isSeen = true` in DB. The item
-/// stays in [items] for the current session so the scroll position holds; it
-/// will be excluded from the next page-1 query.
+/// A note scrolled past the viewport — flip `isSeen = true` in DB.
 final class MarkFeedItemSeenEvent extends VishnuFeedEvent {
   const MarkFeedItemSeenEvent(this.eventId);
   final String eventId;
@@ -37,8 +40,8 @@ final class UnsaveFeedNoteEvent extends VishnuFeedEvent {
   final String noteId;
 }
 
-/// Internal — emitted by the unseen-above watcher.
-final class _NewAboveCountChangedEvent extends VishnuFeedEvent {
-  const _NewAboveCountChangedEvent(this.count);
+/// Internal — emitted by the banner-count watcher.
+final class _NewBufferCountChangedEvent extends VishnuFeedEvent {
+  const _NewBufferCountChangedEvent(this.count);
   final int count;
 }
