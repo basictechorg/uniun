@@ -31,9 +31,9 @@ class FloatingNav extends StatelessWidget {
       ),
       padding: EdgeInsets.fromLTRB(
         6,
-        4,
+        10,
         6,
-        4 + MediaQuery.of(context).padding.bottom,
+        10 + MediaQuery.of(context).padding.bottom,
       ),
       child: Center(
         child: ConstrainedBox(

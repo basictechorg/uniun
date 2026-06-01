@@ -117,12 +117,7 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Private Channels (collapsible) ────────────────────────────
                     _CollapsiblePrivateChannelSection(
                       items: loaded?.privateChannels ?? [],
-                      onCreate: () {
-                        _close(context);
-                        Navigator.pushNamed(
-                            context, AppRoutes.privateChannelEntry);
-                      },
-                      onJoin: () {
+                      onAdd: () {
                         _close(context);
                         Navigator.pushNamed(
                             context, AppRoutes.privateChannelEntry);
@@ -600,14 +595,12 @@ class _CollapsibleChannelSectionState
 class _CollapsiblePrivateChannelSection extends StatefulWidget {
   const _CollapsiblePrivateChannelSection({
     required this.items,
-    required this.onCreate,
-    required this.onJoin,
+    required this.onAdd,
     required this.onItemTap,
   });
 
   final List<app_drawer.DrawerPrivateChannelItem> items;
-  final VoidCallback onCreate;
-  final VoidCallback onJoin;
+  final VoidCallback onAdd;
   final ValueChanged<String> onItemTap;
 
   @override
@@ -644,34 +637,7 @@ class _CollapsiblePrivateChannelSectionState
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: AppColors.surface,
-                      builder: (ctx) => SafeArea(
-                        child: Wrap(
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.add_rounded, color: AppColors.primary),
-                              title: const Text('Create Private Channel'),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                widget.onCreate();
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.login_rounded, color: AppColors.primary),
-                              title: const Text('Join Private Channel'),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                widget.onJoin();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: widget.onAdd,
                   child: const Icon(Icons.add_rounded,
                       size: 18, color: AppColors.outline),
                 ),

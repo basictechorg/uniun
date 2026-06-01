@@ -79,19 +79,29 @@ class RelayRepositoryImpl extends RelayRepository {
     }
   }
 
+  static const _kSystemRelayUrls = <String>{'wss://dev.uniun.in:8080'};
+
   @override
   Future<void> insertDefaultRelayIfEmpty() async {
-    final count = await isar.relayModels.count();
-    if (count == 0) {
-      await isar.writeTxn(() async {
-        final defaultRelay = RelayModel()
-          ..url = 'wss://dev.uniun.in:8080'
-          ..read = true
-          ..write = true
-          ..status = RelayStatus.disconnected
-          ..isSystem = true;
-        await isar.relayModels.put(defaultRelay);
-      });
-    }
+    await isar.writeTxn(() async {
+      for (final url in _kSystemRelayUrls) {
+        final existing =
+            await isar.relayModels.where().urlEqualTo(url).findFirst();
+        if (existing != null && !existing.isSystem) {
+          await isar.relayModels.delete(existing.id);
+        }
+        final stillThere =
+            await isar.relayModels.where().urlEqualTo(url).findFirst();
+        if (stillThere != null) continue;
+        await isar.relayModels.put(
+          RelayModel()
+            ..url = url
+            ..read = true
+            ..write = true
+            ..status = RelayStatus.disconnected
+            ..isSystem = true,
+        );
+      }
+    });
   }
 }
