@@ -35,14 +35,22 @@ class FloatingNav extends StatelessWidget {
         6,
         4 + MediaQuery.of(context).padding.bottom,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(
-          items.length,
-          (i) => _NavTab(
-            item: items[i],
-            selected: currentIndex == i,
-            onTap: () => onTap(i),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width >= 600 ? 480 : double.infinity,
+          ),
+          child: Row(
+            children: List.generate(
+              items.length,
+              (i) => Expanded(
+                child: _NavTab(
+                  item: items[i],
+                  selected: currentIndex == i,
+                  onTap: () => onTap(i),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -76,7 +84,7 @@ class _NavTab extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

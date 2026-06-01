@@ -3,7 +3,7 @@ import 'dart:convert';
 /// What a scanned QR represents. Drives downstream routing.
 enum UniunQrKind { user, publicChannel, privateChannel }
 
-/// Cross-feature QR payload. Encoded as JSON `{uniun, kind, id, name, relays}`.
+/// Cross-feature QR payload. Encoded as JSON `{kind, id, name?, relays?}`.
 class UniunQrPayload {
   const UniunQrPayload({
     required this.kind,
@@ -28,7 +28,6 @@ class UniunQrPayload {
 
   String encode() {
     return jsonEncode({
-      'uniun': 1,
       'kind': switch (kind) {
         UniunQrKind.user => 'user',
         UniunQrKind.publicChannel => 'public',
@@ -43,11 +42,8 @@ class UniunQrPayload {
   /// Decode any QR raw value into a payload, or throw FormatException.
   ///
   /// Accepts:
-  ///   1. Native envelope: `{uniun:1, kind:..., id:..., name?, relays?}`.
-  ///   2. Legacy public-channel form: `{name, channel_id, relays}` (the shape
-  ///      produced by the pre-unified scanner) — promoted to publicChannel.
-  ///   3. Bare `nostr:npub1...` URI — promoted to user.
-  ///   4. Bare `npub1...` string — promoted to user.
+  ///   1. JSON object `{kind, id, name?, relays?}`.
+  ///   2. Bare `nostr:npub1...` or `npub1...` string — promoted to user kind.
   static UniunQrPayload decode(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) {
@@ -71,45 +67,21 @@ class UniunQrPayload {
       throw const FormatException('QR payload must be a JSON object.');
     }
 
-    if (decoded['uniun'] != null) {
-      return _fromNativeMap(decoded);
-    }
-    if (decoded['channel_id'] != null) {
-      return _fromLegacyChannelMap(decoded);
-    }
-    throw const FormatException('Unrecognized QR payload.');
-  }
-
-  static UniunQrPayload _fromNativeMap(Map<String, dynamic> m) {
-    final kind = switch (m['kind']) {
+    final kind = switch (decoded['kind']) {
       'user' => UniunQrKind.user,
       'public' => UniunQrKind.publicChannel,
       'private' => UniunQrKind.privateChannel,
       _ => throw const FormatException('Unknown QR kind.'),
     };
-    final id = (m['id'] as String? ?? '').trim();
+    final id = (decoded['id'] as String? ?? '').trim();
     if (id.isEmpty) {
       throw const FormatException('QR id is missing.');
     }
     return UniunQrPayload(
       kind: kind,
       id: id,
-      name: (m['name'] as String?)?.trim(),
-      relays: _readRelays(m['relays']),
-    );
-  }
-
-  static UniunQrPayload _fromLegacyChannelMap(Map<String, dynamic> m) {
-    final name = (m['name'] as String? ?? '').trim();
-    final channelId = (m['channel_id'] as String? ?? '').trim();
-    if (channelId.isEmpty) {
-      throw const FormatException('channel_id missing in QR payload.');
-    }
-    return UniunQrPayload(
-      kind: UniunQrKind.publicChannel,
-      id: channelId,
-      name: name.isEmpty ? null : name,
-      relays: _readRelays(m['relays']),
+      name: (decoded['name'] as String?)?.trim(),
+      relays: _readRelays(decoded['relays']),
     );
   }
 
