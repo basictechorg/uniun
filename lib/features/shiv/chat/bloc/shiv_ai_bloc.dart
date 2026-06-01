@@ -413,11 +413,16 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   }
 
   /// Called by [ShivPage] when the user navigates onto the AI tab. Pauses
-  /// background extraction and kills any extraction already mid-flight so the
-  /// user's first chat doesn't have to wait it out.
+  /// background extraction so the queue doesn't pick up new low-priority
+  /// work while the user is chatting. We deliberately do NOT call
+  /// `stopGeneration` on the in-flight extraction: flutter_gemma 0.13.x
+  /// shares a single native LiteRT-LM session across Dart [InferenceChat]
+  /// objects, so cancelling extraction's wrapper also cancels the chat
+  /// stream and leaves the session in a state that null-derefs on the
+  /// next `nativeSendMessageAsync`. Any in-flight extraction finishes on
+  /// its own.
   void onEnterShivTab() {
     _modelQueue.pauseLowPriority();
-    _runner.preemptExtraction('shiv-tab-enter');
   }
 
   /// Called by [ShivPage] when the user navigates away from the AI tab.

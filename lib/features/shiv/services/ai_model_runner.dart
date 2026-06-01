@@ -26,12 +26,6 @@ class AIModelRunner {
 
   String? _systemInstruction;
 
-  /// Reference to the currently running extraction's native chat session.
-  /// When a chat turn arrives we close this to preempt the extraction so the
-  /// user's chat starts immediately instead of waiting out a 60-150s
-  /// extraction prefill on weak hardware.
-  InferenceChat? _activeOneShot;
-
   AIModelRunner(this._queue);
 
   bool get hasActiveModel => FlutterGemma.hasActiveModel();
@@ -61,10 +55,12 @@ class AIModelRunner {
       throw StateError('Call initChat() before sending messages.');
     }
 
-    // Preempt any in-flight extraction. Closing the native chat causes its
-    // stream loop to exit, the low-priority task completes, and the queue
-    // immediately drains the chat task we're about to enqueue.
-    await preemptExtraction('chat-preempt');
+    // We do NOT preempt the in-flight extraction here. flutter_gemma 0.13.x
+    // routes both Dart [InferenceChat] wrappers through one shared native
+    // LiteRT-LM session; calling `stopGeneration` on the extraction wrapper
+    // cancels whatever chat is currently streaming and leaves the next
+    // `nativeSendMessageAsync` dereferencing a freed session pointer.
+    // The queue serialises so chat runs immediately once extraction ends.
 
     final tokens = StreamController<String>();
     // Run the inference inside the high-priority lane; tokens flow out via
@@ -133,7 +129,6 @@ class AIModelRunner {
         topK: 20,
         tokenBuffer: 256,
       );
-      _activeOneShot = oneShot;
       await oneShot.addQuery(Message.text(text: prompt));
       final buffer = StringBuffer();
       await for (final response in oneShot.generateChatResponseAsync()) {
@@ -145,29 +140,11 @@ class AIModelRunner {
       debugPrint('⏭️ generateOneShot terminated: $e\n$st');
       return null;
     } finally {
-      if (identical(_activeOneShot, oneShot)) _activeOneShot = null;
       try {
         await oneShot?.close();
       } catch (_) {
-        // close may throw if already closed via preemption; safe to ignore.
+        // Safe to ignore — session may already be in a closing state.
       }
-    }
-  }
-
-  /// Cancel any in-flight extraction. Called by the chat path before a new
-  /// turn and by [ShivAIBloc] the moment the Shiv tab opens.
-  Future<void> preemptExtraction(String reason) =>
-      _cancelActiveOneShot(reason);
-
-  Future<void> _cancelActiveOneShot(String reason) async {
-    final active = _activeOneShot;
-    if (active == null) return;
-    debugPrint('⚡ Preempting in-flight extraction ($reason)');
-    _activeOneShot = null;
-    try {
-      await active.close();
-    } catch (_) {
-      // Native may throw if already closing; that's the goal here.
     }
   }
 
