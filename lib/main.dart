@@ -18,8 +18,10 @@ import 'package:uniun/features/onboarding/pages/splash_page.dart';
 import 'package:uniun/features/onboarding/pages/welcome_page.dart';
 import 'package:uniun/features/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
+import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
 import 'package:uniun/features/channels/join/pages/join_channel_page.dart';
 import 'package:uniun/features/private_channels/create/pages/create_private_channel_page.dart';
+import 'package:uniun/features/private_channels/entry/pages/private_channel_entry_page.dart';
 import 'package:uniun/features/private_channels/join/pages/join_private_channel_page.dart';
 import 'package:uniun/features/private_channels/detail/pages/private_channel_detail_page.dart';
 import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
@@ -91,8 +93,10 @@ class UniunApp extends StatelessWidget {
           }
           return ThreadPage(noteId: args as String);
         },
+        AppRoutes.channelEntry: (_) => const ChannelEntryPage(),
         AppRoutes.createChannel: (_) => const CreateChannelPage(),
         AppRoutes.joinChannel: (_) => const JoinChannelPage(),
+        AppRoutes.privateChannelEntry: (_) => const PrivateChannelEntryPage(),
         AppRoutes.createPrivateChannel: (_) => const CreatePrivateChannelPage(),
         AppRoutes.joinPrivateChannel: (_) => const JoinPrivateChannelPage(),
         AppRoutes.privateChannelDetail: (ctx) => PrivateChannelDetailPage(

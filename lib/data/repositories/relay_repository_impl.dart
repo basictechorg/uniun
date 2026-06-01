@@ -43,7 +43,8 @@ class RelayRepositoryImpl extends RelayRepository {
             ..read = relay.read
             ..write = relay.write
             ..status = RelayStatus.disconnected
-            ..lastConnectedAt = null;
+            ..lastConnectedAt = null
+            ..isSystem = relay.isSystem;
           await isar.relayModels.put(model);
         }
       });
@@ -66,9 +67,11 @@ class RelayRepositoryImpl extends RelayRepository {
             .where()
             .urlEqualTo(url)
             .findFirst();
-        if (existing != null) {
-          await isar.relayModels.delete(existing.id);
+        if (existing == null) return;
+        if (existing.isSystem) {
+          throw Exception('System relays cannot be deleted.');
         }
+        await isar.relayModels.delete(existing.id);
       });
       return const Right(unit);
     } catch (e) {
@@ -85,7 +88,8 @@ class RelayRepositoryImpl extends RelayRepository {
           ..url = 'wss://dev.uniun.in:8080'
           ..read = true
           ..write = true
-          ..status = RelayStatus.disconnected;
+          ..status = RelayStatus.disconnected
+          ..isSystem = true;
         await isar.relayModels.put(defaultRelay);
       });
     }

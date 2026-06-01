@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/usecases/get_relays_usecase.dart';
+import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 
 /// Universal QR scanner. Decodes any [UniunQrPayload] and dispatches:
 ///   - user           → CreateDmPage (npub prefilled as a String argument)
@@ -27,7 +30,7 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
     super.dispose();
   }
 
-  void _handleRaw(String raw) {
+  Future<void> _handleRaw(String raw) async {
     if (_handled) return;
     final UniunQrPayload payload;
     try {
@@ -43,13 +46,31 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
     }
     _handled = true;
 
+    await _ensureRelaysPresent(payload.relays);
+    if (!mounted) return;
+
     final route = switch (payload.kind) {
       UniunQrKind.user => AppRoutes.createDm,
       UniunQrKind.publicChannel => AppRoutes.joinChannel,
       UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
     };
-    final args = payload.kind == UniunQrKind.user ? payload.id : payload;
-    Navigator.of(context).pushReplacementNamed(route, arguments: args);
+    Navigator.of(context).pushReplacementNamed(route, arguments: payload);
+  }
+
+  /// Add any scanned relay we don't already have to the local relay list, so
+  /// the user can join/DM seamlessly without manual setup.
+  Future<void> _ensureRelaysPresent(List<String> relays) async {
+    if (relays.isEmpty) return;
+    final existing = await getIt<GetRelaysUseCase>().call();
+    final known = existing.fold(
+      (_) => <String>{},
+      (list) => list.map((r) => r.url).toSet(),
+    );
+    final save = getIt<SaveRelayUseCase>();
+    for (final url in relays) {
+      if (url.isEmpty || known.contains(url)) continue;
+      await save.call(url);
+    }
   }
 
   Future<void> _pickFromGallery() async {

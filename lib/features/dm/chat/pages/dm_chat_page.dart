@@ -9,6 +9,7 @@ import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
 import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -43,6 +44,7 @@ class _DmChatViewState extends State<_DmChatView> {
   // To identify if a message is ours.
   String? _myPubkeyHex;
   String? _myNpub;
+  List<String> _conversationRelays = const [];
 
   @override
   void initState() {
@@ -62,6 +64,15 @@ class _DmChatViewState extends State<_DmChatView> {
     }
   }
 
+  Future<void> _loadConversationRelays(String otherPubkeyHex) async {
+    final result = await getIt<DmConversationRepository>()
+        .getConversationByOtherPubkey(otherPubkeyHex);
+    if (!mounted) return;
+    setState(() {
+      _conversationRelays = result.fold((_) => const [], (c) => c.relays);
+    });
+  }
+
   void _showQr(String otherPubkeyHex) {
     if (_myNpub == null) return;
     final partnerNpub = Nip19.encodePubkey(otherPubkeyHex);
@@ -70,6 +81,7 @@ class _DmChatViewState extends State<_DmChatView> {
       builder: (_) => UniunQrCard.dmConversation(
         partnerNpub: partnerNpub,
         myNpub: _myNpub!,
+        conversationRelays: _conversationRelays,
       ),
     );
   }
@@ -87,6 +99,9 @@ class _DmChatViewState extends State<_DmChatView> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DmChatBloc, DmChatState>(
+      listenWhen: (prev, curr) =>
+          prev.otherPubkey != curr.otherPubkey ||
+          prev.errorMessage != curr.errorMessage,
       listener: (context, state) {
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -95,6 +110,9 @@ class _DmChatViewState extends State<_DmChatView> {
               backgroundColor: AppColors.error,
             ),
           );
+        }
+        if (state.otherPubkey != null && _conversationRelays.isEmpty) {
+          _loadConversationRelays(state.otherPubkey!);
         }
       },
       builder: (context, state) {

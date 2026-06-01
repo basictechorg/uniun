@@ -91,6 +91,7 @@ import 'package:uniun/domain/usecases/ai_model_usecases.dart' as _i894;
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart'
     as _i524;
 import 'package:uniun/domain/usecases/create_channel_usecase.dart' as _i1033;
+import 'package:uniun/domain/usecases/delete_relay_usecase.dart' as _i700;
 import 'package:uniun/domain/usecases/dm_usecases.dart' as _i1023;
 import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/feed_usecases.dart' as _i837;
@@ -549,6 +550,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
+    );
+    gh.lazySingleton<_i700.DeleteRelayUseCase>(
+      () => _i700.DeleteRelayUseCase(gh<_i993.RelayRepository>()),
     );
     gh.lazySingleton<_i985.GetRelaysUseCase>(
       () => _i985.GetRelaysUseCase(gh<_i993.RelayRepository>()),

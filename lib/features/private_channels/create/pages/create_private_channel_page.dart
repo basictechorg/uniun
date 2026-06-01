@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_channels/create/bloc/create_private_channel_bloc.dart';
-import 'package:uniun/core/router/app_routes.dart';
 
 class CreatePrivateChannelPage extends StatelessWidget {
   const CreatePrivateChannelPage({super.key});
@@ -29,13 +29,12 @@ class _CreatePrivateChannelView extends StatefulWidget {
 class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _relayController = TextEditingController();
+  final List<String> _selectedRelays = [];
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _relayController.dispose();
     super.dispose();
   }
 
@@ -43,16 +42,11 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
     final name = _nameController.text.trim();
     if (name.isEmpty) return;
 
-    final relaysText = _relayController.text.trim();
-    final relays = relaysText.isEmpty
-        ? <String>[]
-        : relaysText.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-
     context.read<CreatePrivateChannelBloc>().add(
       SubmitCreatePrivateChannelEvent(
         name: name,
         description: _descController.text.trim(),
-        relays: relays,
+        relays: _selectedRelays,
       ),
     );
   }
@@ -74,8 +68,8 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
         }
         if (state.isSuccess) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Private channel created successfully!"),
+            SnackBar(
+              content: Text(l10n.createPrivateChannelSuccess),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -96,9 +90,9 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: const Text(
-              "Create Private Channel",
-              style: TextStyle(
+            title: Text(
+              l10n.createPrivateChannelTitle,
+              style: const TextStyle(
                 color: AppColors.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -112,17 +106,17 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Start a new Private Channel",
-                      style: TextStyle(
+                    Text(
+                      l10n.createPrivateChannelHeading,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.",
-                      style: TextStyle(
+                    Text(
+                      l10n.createPrivateChannelDescription,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.onSurfaceVariant,
                       ),
@@ -131,7 +125,7 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
                     TextField(
                       controller: _nameController,
                       decoration: InputDecoration(
-                        labelText: 'Channel Name',
+                        labelText: l10n.createPrivateChannelNameLabel,
                         labelStyle: const TextStyle(
                           color: AppColors.onSurfaceVariant,
                         ),
@@ -152,7 +146,7 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
                       controller: _descController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        labelText: 'Description',
+                        labelText: l10n.createPrivateChannelDescLabel,
                         labelStyle: const TextStyle(
                           color: AppColors.onSurfaceVariant,
                         ),
@@ -169,25 +163,11 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _relayController,
-                      decoration: InputDecoration(
-                        labelText: 'Relays (comma separated)',
-                        hintText: 'wss://relay1.com, wss://relay2.com',
-                        labelStyle: const TextStyle(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
-                        ),
-                      ),
+                    RelaySelectorField(
+                      selected: _selectedRelays,
+                      onChanged: (next) => setState(() => _selectedRelays
+                        ..clear()
+                        ..addAll(next)),
                     ),
                     const SizedBox(height: 32),
                     SizedBox(
@@ -211,9 +191,9 @@ class _CreatePrivateChannelViewState extends State<_CreatePrivateChannelView> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text(
-                                'Create Channel',
-                                style: TextStyle(
+                            : Text(
+                                l10n.createPrivateChannelAction,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),

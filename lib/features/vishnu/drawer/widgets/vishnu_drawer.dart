@@ -100,7 +100,7 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.channels ?? [],
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.createChannel);
+                        Navigator.pushNamed(context, AppRoutes.channelEntry);
                       },
                       onItemTap: (channelId) {
                         _close(context);
@@ -119,11 +119,13 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.privateChannels ?? [],
                       onCreate: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.createPrivateChannel);
+                        Navigator.pushNamed(
+                            context, AppRoutes.privateChannelEntry);
                       },
                       onJoin: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.joinPrivateChannel);
+                        Navigator.pushNamed(
+                            context, AppRoutes.privateChannelEntry);
                       },
                       onItemTap: (groupId) {
                         _close(context);

@@ -101,12 +101,15 @@ class UniunQrCard extends StatefulWidget {
   }
 
   /// DM-chat card with a "Their key | My key" toggle. Both branches encode
-  /// a [UniunQrKind.user] payload.
+  /// a [UniunQrKind.user] payload. [conversationRelays] are the relays this DM
+  /// is configured to use; they ride along in the QR so the scanner can
+  /// auto-add them on the receiver's device.
   factory UniunQrCard.dmConversation({
     required String partnerNpub,
     String? partnerName,
     required String myNpub,
     String? myName,
+    List<String> conversationRelays = const [],
   }) {
     return UniunQrCard._(
       titleLeading: null,
@@ -119,6 +122,7 @@ class UniunQrCard extends StatefulWidget {
             kind: UniunQrKind.user,
             id: partnerNpub,
             name: partnerName,
+            relays: conversationRelays,
           ),
           copyLabel: 'Copy npub',
           tabLabel: 'Their key',
@@ -131,6 +135,7 @@ class UniunQrCard extends StatefulWidget {
             kind: UniunQrKind.user,
             id: myNpub,
             name: myName,
+            relays: conversationRelays,
           ),
           copyLabel: 'Copy npub',
           tabLabel: 'My key',

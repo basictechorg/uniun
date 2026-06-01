@@ -4,7 +4,10 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/relay/relay_entity.dart';
+import 'package:uniun/domain/usecases/delete_relay_usecase.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
+import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 
@@ -82,6 +85,7 @@ class IdentityCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceContainerLowest,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -376,7 +380,7 @@ class _RelaysSheet extends StatefulWidget {
 
 class _RelaysSheetState extends State<_RelaysSheet> {
   bool _loading = true;
-  List<String> _relays = [];
+  List<RelayEntity> _relays = [];
 
   @override
   void initState() {
@@ -385,23 +389,96 @@ class _RelaysSheetState extends State<_RelaysSheet> {
   }
 
   Future<void> _loadRelays() async {
-    final getRelays = getIt<GetRelaysUseCase>();
-    final result = await getRelays.call();
-    if (mounted) {
-      setState(() {
-        _relays = result.fold(
-          (failure) => [],
-          (list) => list.map((r) => r.url).toList(),
-        );
-        _loading = false;
-      });
-    }
+    final result = await getIt<GetRelaysUseCase>().call();
+    if (!mounted) return;
+    setState(() {
+      _relays = result.fold((_) => <RelayEntity>[], (list) => list);
+      _loading = false;
+    });
+  }
+
+  Future<void> _showAddDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        title: Text(l10n.relayAddDialogTitle),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: InputDecoration(
+            hintText: l10n.relayAddDialogHint,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.relayAddDialogAction,
+                style: const TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+    if (url == null || url.isEmpty) return;
+    final result = await getIt<SaveRelayUseCase>().call(url);
+    if (!mounted) return;
+    result.fold(
+      (f) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.relayAddDialogError(f.toString()))),
+      ),
+      (_) => _loadRelays(),
+    );
+  }
+
+  Future<void> _confirmDelete(RelayEntity relay) async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        title: Text(l10n.relayRemoveDialogTitle),
+        content: Text(l10n.relayRemoveDialogBody(relay.url)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.relayRemoveDialogAction,
+                style: const TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final result = await getIt<DeleteRelayUseCase>().call(relay.url);
+    if (!mounted) return;
+    result.fold(
+      (f) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(f.toString())),
+      ),
+      (_) => _loadRelays(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        MediaQuery.of(context).viewInsets.bottom + 40,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,19 +494,34 @@ class _RelaysSheetState extends State<_RelaysSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            AppLocalizations.of(context)!.identityRelaysSheetTitle,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,
-              letterSpacing: -0.3,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context)!.identityRelaysSheetTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add_circle_outline_rounded,
+                    color: AppColors.primary),
+                tooltip: AppLocalizations.of(context)!.relaySelectorAddTooltip,
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
             AppLocalizations.of(context)!.identityRelaysSubtitle,
-            style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 20),
           if (_loading)
@@ -439,77 +531,73 @@ class _RelaysSheetState extends State<_RelaysSheet> {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.primary),
                 ),
               ),
             )
           else if (_relays.isEmpty)
-            const Center(
-               child: Padding(
-                 padding: EdgeInsets.all(16),
-                 child: Text("No relays found.", style: TextStyle(color: AppColors.onSurfaceVariant)),
-               ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(AppLocalizations.of(context)!.relayManageEmpty,
+                    style: const TextStyle(color: AppColors.onSurfaceVariant)),
+              ),
             )
           else
             ..._relays.map(
               (relay) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(
-                    width: 8,
-                    height: 8,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      relay,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontFamily: 'monospace',
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline_rounded,
-                    size: 15, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context)!.identityRelaysComingSoon,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.primary),
-                  ),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              ],
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 8,
+                      height: 8,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        relay.url,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                    ),
+                    if (relay.isSystem)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
+                        child: Icon(Icons.shield_outlined,
+                            size: 16, color: AppColors.onSurfaceVariant),
+                      )
+                    else
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _confirmDelete(relay),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 18, color: AppColors.error),
+                        tooltip:
+                            AppLocalizations.of(context)!.relayManageRemoveTooltip,
+                      ),
+                  ],
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );

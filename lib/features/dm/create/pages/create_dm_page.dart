@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart';
@@ -37,6 +39,12 @@ class _CreateDmViewState extends State<_CreateDmView> {
     if (args is String && args.isNotEmpty) {
       _appliedArgs = true;
       _pubkeyController.text = args;
+    } else if (args is UniunQrPayload && args.kind == UniunQrKind.user) {
+      _appliedArgs = true;
+      _pubkeyController.text = args.id;
+      _selectedRelays
+        ..clear()
+        ..addAll(args.relays);
     }
   }
 
@@ -52,54 +60,6 @@ class _CreateDmViewState extends State<_CreateDmView> {
         otherPubkey: _pubkeyController.text,
         selectedRelays: _selectedRelays,
       ),
-    );
-  }
-
-  void _showRelaySelectorDialog(List<String> availableRelays) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: AppColors.surfaceContainerLowest,
-              title: const Text('Select Relays', style: TextStyle(color: AppColors.onSurface)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: availableRelays.length,
-                  itemBuilder: (context, index) {
-                    final relay = availableRelays[index];
-                    final isSelected = _selectedRelays.contains(relay);
-                    return CheckboxListTile(
-                      activeColor: AppColors.primary,
-                      title: Text(relay, style: const TextStyle(fontSize: 14)),
-                      value: isSelected,
-                      onChanged: (val) {
-                        setStateDialog(() {
-                           if (val == true) {
-                             _selectedRelays.add(relay);
-                           } else {
-                             _selectedRelays.remove(relay);
-                           }
-                        });
-                        setState(() {}); // Update background UI
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Done', style: TextStyle(color: AppColors.primary)),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 
@@ -168,52 +128,13 @@ class _CreateDmViewState extends State<_CreateDmView> {
                   ),
                   const SizedBox(height: 16),
                   
-                  if (state.isLoadingRelays)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    InkWell(
-                      onTap: () => _showRelaySelectorDialog(state.availableRelays),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.outlineVariant),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _selectedRelays.isEmpty
-                                    ? 'Select Relays'
-                                    : '${_selectedRelays.length} Relays Selected',
-                                style: TextStyle(
-                                  color: _selectedRelays.isEmpty ? AppColors.onSurfaceVariant : AppColors.onSurface,
-                                  fontWeight: _selectedRelays.isEmpty ? FontWeight.normal : FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const Icon(Icons.arrow_drop_down_rounded, color: AppColors.onSurfaceVariant),
-                          ],
-                        ),
-                      ),
-                    ),
-                  
-                  if (_selectedRelays.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12.0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedRelays.map((r) => Chip(
-                          label: Text(r, style: const TextStyle(fontSize: 11)),
-                          onDeleted: () {
-                            setState(() {
-                              _selectedRelays.remove(r);
-                            });
-                          },
-                        )).toList(),
-                      ),
-                    ),
+                  RelaySelectorField(
+                    selected: _selectedRelays,
+                    onChanged: (next) =>
+                        setState(() => _selectedRelays
+                          ..clear()
+                          ..addAll(next)),
+                  ),
 
                   const SizedBox(height: 48),
                   

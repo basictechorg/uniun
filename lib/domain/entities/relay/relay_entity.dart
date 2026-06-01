@@ -11,5 +11,6 @@ abstract class RelayEntity with _$RelayEntity {
     required bool write,
     required RelayStatus status,
     DateTime? lastConnectedAt,
+    @Default(false) bool isSystem,
   }) = _RelayEntity;
 }

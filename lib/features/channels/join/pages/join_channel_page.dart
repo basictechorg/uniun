@@ -31,6 +31,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
   final _channelIdController = TextEditingController();
   final _relayUrlController = TextEditingController();
   final List<String> _selectedRelays = [];
+  String _prefilledName = '';
   bool _appliedArgs = false;
 
   @override
@@ -41,6 +42,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
     if (args is UniunQrPayload && args.kind == UniunQrKind.publicChannel) {
       _appliedArgs = true;
       _channelIdController.text = args.id;
+      _prefilledName = args.name ?? '';
       _selectedRelays
         ..clear()
         ..addAll(args.relays);
@@ -59,7 +61,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
       SubmitJoinChannelEvent(
         channelId: _channelIdController.text,
         selectedRelays: _selectedRelays,
-        channelName: '',
+        channelName: _prefilledName,
       ),
     );
   }
