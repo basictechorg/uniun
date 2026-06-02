@@ -33,7 +33,7 @@ class FloatingNav extends StatelessWidget {
         6,
         10,
         6,
-        10 + MediaQuery.of(context).padding.bottom,
+        MediaQuery.of(context).padding.bottom,
       ),
       child: Center(
         child: ConstrainedBox(

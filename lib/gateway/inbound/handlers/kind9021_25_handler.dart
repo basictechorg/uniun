@@ -1,6 +1,7 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
@@ -10,6 +11,12 @@ import 'package:uniun/gateway/inbound/kind_handler.dart';
 /// - 9022–9025: encrypted message envelopes — stored verbatim for the main
 ///   isolate to decrypt.
 class Kind9021To9025Handler implements KindHandler {
+  /// The active user's public key (hex). Only the channel admin needs to retain
+  /// inbound join requests, so this is used to gate storage of kind 9021.
+  final String? activePubkey;
+
+  Kind9021To9025Handler({this.activePubkey});
+
   @override
   Set<int> get kinds => const {9021, 9022, 9023, 9024, 9025};
 
@@ -34,6 +41,19 @@ class Kind9021To9025Handler implements KindHandler {
     final timestamp = EventParser.dateTimeFromSec(createdAtSec);
 
     if (kind == 9021) {
+      // Only the channel admin can approve join requests, so only the admin
+      // needs to store them. Members (and the requester themselves) also receive
+      // the relayed 9021 event but must not persist it.
+      final channel = await isar.privateChannelModels
+          .where()
+          .groupIdEqualTo(groupId)
+          .findFirst();
+      if (channel == null ||
+          activePubkey == null ||
+          channel.adminPubkey != activePubkey) {
+        return;
+      }
+
       final model = PrivateChannelJoinRequestModel()
         ..eventId = eventId
         ..groupId = groupId

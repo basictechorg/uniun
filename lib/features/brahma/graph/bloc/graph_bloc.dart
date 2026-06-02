@@ -99,31 +99,33 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
 
     final allNodes = [...savedNodes, ...ownNotes, ...draftNodes];
 
-    // ── 5. Load profiles for non-draft nodes ─────────────────────────────────
-    final profiles = <String, ProfileEntity>{};
-    for (final node in allNodes) {
-      final pubkey = node.authorPubkey;
-      if (pubkey == null || pubkey.isEmpty || profiles.containsKey(pubkey)) {
-        continue;
-      }
-      final r = await _getProfile.call(pubkey);
-      r.fold((_) {}, (p) => profiles[p.pubkey] = p);
-    }
-
     emit(state.copyWith(
       status: GraphStatus.loaded,
       nodes: allNodes,
       adjacency: _buildAdjacency(allNodes),
-      profiles: profiles,
     ));
   }
 
-  void _onSelect(SelectGraphNodeEvent event, Emitter<GraphState> emit) {
+  Future<void> _onSelect(
+      SelectGraphNodeEvent event, Emitter<GraphState> emit) async {
     if (state.selectedNodeId == event.nodeId) {
       emit(state.copyWith(clearSelection: true));
-    } else {
-      emit(state.copyWith(selectedNodeId: event.nodeId));
+      return;
     }
+
+    emit(state.copyWith(selectedNodeId: event.nodeId));
+
+    // Lazily load the selected node's author profile — profiles are only
+    // needed by the node panel, which only renders on selection.
+    final node = state.selectedNode;
+    final pubkey = node?.authorPubkey;
+    if (pubkey == null || pubkey.isEmpty || state.profiles.containsKey(pubkey)) {
+      return;
+    }
+    final r = await _getProfile.call(pubkey);
+    r.fold((_) {}, (p) {
+      emit(state.copyWith(profiles: {...state.profiles, p.pubkey: p}));
+    });
   }
 
   void _onDeselect(DeselectGraphNodeEvent event, Emitter<GraphState> emit) {
