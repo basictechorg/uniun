@@ -17,15 +17,28 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     required List<String> tTags,
     required DateTime created,
     required DateTime savedAt,
-    /// Mirror of NoteModel.cachedReplyCount for saved-notes list display.
+    /// Saved-scoped incoming reply count (saved replies to this note).
     @Default(0) int cachedReplyCount,
+    /// Saved-scoped outgoing reference count (saved notes this one references).
+    @Default(0) int referenceCount,
+    /// Source channel id if the saved item was a Kind-42 public channel msg.
+    String? sourceChannelId,
+    /// Source group id if the saved item was a NIP-29 private channel msg.
+    String? sourcePrivateGroupId,
   }) = _SavedNoteEntity;
 }
 
 extension SavedNoteToNote on SavedNoteEntity {
   /// [savedEventIds] filters eTagRefs to only those that are also saved,
   /// so the ref count matches what savedOnly ThreadPage will actually show.
-  NoteEntity toNoteEntity({Set<String>? savedEventIds}) => NoteEntity(
+  /// [sourceLabel] is resolved at the cubit layer via
+  /// [ResolveSourceLabelsUseCase] and passed in so the NoteCard can render
+  /// the channel/group chip without the entity needing to know about Isar.
+  NoteEntity toNoteEntity({
+    Set<String>? savedEventIds,
+    String? sourceLabel,
+  }) =>
+      NoteEntity(
         id: eventId,
         sig: sig,
         authorPubkey: authorPubkey,
@@ -39,5 +52,9 @@ extension SavedNoteToNote on SavedNoteEntity {
         created: created,
         isSeen: true,
         cachedReplyCount: cachedReplyCount,
+        referenceCount: referenceCount,
+        sourceChannelId: sourceChannelId,
+        sourcePrivateGroupId: sourcePrivateGroupId,
+        sourceLabel: sourceLabel,
       );
 }

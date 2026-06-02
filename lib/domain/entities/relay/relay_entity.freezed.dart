@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$RelayEntity {
 
- String get url; bool get read; bool get write; RelayStatus get status; DateTime? get lastConnectedAt;
+ String get url; bool get read; bool get write; RelayStatus get status; DateTime? get lastConnectedAt; bool get isSystem;
 /// Create a copy of RelayEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $RelayEntityCopyWith<RelayEntity> get copyWith => _$RelayEntityCopyWithImpl<Rela
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RelayEntity&&(identical(other.url, url) || other.url == url)&&(identical(other.read, read) || other.read == read)&&(identical(other.write, write) || other.write == write)&&(identical(other.status, status) || other.status == status)&&(identical(other.lastConnectedAt, lastConnectedAt) || other.lastConnectedAt == lastConnectedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RelayEntity&&(identical(other.url, url) || other.url == url)&&(identical(other.read, read) || other.read == read)&&(identical(other.write, write) || other.write == write)&&(identical(other.status, status) || other.status == status)&&(identical(other.lastConnectedAt, lastConnectedAt) || other.lastConnectedAt == lastConnectedAt)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,url,read,write,status,lastConnectedAt);
+int get hashCode => Object.hash(runtimeType,url,read,write,status,lastConnectedAt,isSystem);
 
 @override
 String toString() {
-  return 'RelayEntity(url: $url, read: $read, write: $write, status: $status, lastConnectedAt: $lastConnectedAt)';
+  return 'RelayEntity(url: $url, read: $read, write: $write, status: $status, lastConnectedAt: $lastConnectedAt, isSystem: $isSystem)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $RelayEntityCopyWith<$Res>  {
   factory $RelayEntityCopyWith(RelayEntity value, $Res Function(RelayEntity) _then) = _$RelayEntityCopyWithImpl;
 @useResult
 $Res call({
- String url, bool read, bool write, RelayStatus status, DateTime? lastConnectedAt
+ String url, bool read, bool write, RelayStatus status, DateTime? lastConnectedAt, bool isSystem
 });
 
 
@@ -62,14 +62,15 @@ class _$RelayEntityCopyWithImpl<$Res>
 
 /// Create a copy of RelayEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? read = null,Object? write = null,Object? status = null,Object? lastConnectedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? read = null,Object? write = null,Object? status = null,Object? lastConnectedAt = freezed,Object? isSystem = null,}) {
   return _then(_self.copyWith(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String,read: null == read ? _self.read : read // ignore: cast_nullable_to_non_nullable
 as bool,write: null == write ? _self.write : write // ignore: cast_nullable_to_non_nullable
 as bool,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as RelayStatus,lastConnectedAt: freezed == lastConnectedAt ? _self.lastConnectedAt : lastConnectedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,isSystem: null == isSystem ? _self.isSystem : isSystem // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt,  bool isSystem)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RelayEntity() when $default != null:
-return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt);case _:
+return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt,_that.isSystem);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnecte
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt,  bool isSystem)  $default,) {final _that = this;
 switch (_that) {
 case _RelayEntity():
-return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt);case _:
+return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt,_that.isSystem);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +196,10 @@ return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnecte
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  bool read,  bool write,  RelayStatus status,  DateTime? lastConnectedAt,  bool isSystem)?  $default,) {final _that = this;
 switch (_that) {
 case _RelayEntity() when $default != null:
-return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt);case _:
+return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnectedAt,_that.isSystem);case _:
   return null;
 
 }
@@ -210,7 +211,7 @@ return $default(_that.url,_that.read,_that.write,_that.status,_that.lastConnecte
 
 
 class _RelayEntity implements RelayEntity {
-  const _RelayEntity({required this.url, required this.read, required this.write, required this.status, this.lastConnectedAt});
+  const _RelayEntity({required this.url, required this.read, required this.write, required this.status, this.lastConnectedAt, this.isSystem = false});
   
 
 @override final  String url;
@@ -218,6 +219,7 @@ class _RelayEntity implements RelayEntity {
 @override final  bool write;
 @override final  RelayStatus status;
 @override final  DateTime? lastConnectedAt;
+@override@JsonKey() final  bool isSystem;
 
 /// Create a copy of RelayEntity
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +231,16 @@ _$RelayEntityCopyWith<_RelayEntity> get copyWith => __$RelayEntityCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RelayEntity&&(identical(other.url, url) || other.url == url)&&(identical(other.read, read) || other.read == read)&&(identical(other.write, write) || other.write == write)&&(identical(other.status, status) || other.status == status)&&(identical(other.lastConnectedAt, lastConnectedAt) || other.lastConnectedAt == lastConnectedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RelayEntity&&(identical(other.url, url) || other.url == url)&&(identical(other.read, read) || other.read == read)&&(identical(other.write, write) || other.write == write)&&(identical(other.status, status) || other.status == status)&&(identical(other.lastConnectedAt, lastConnectedAt) || other.lastConnectedAt == lastConnectedAt)&&(identical(other.isSystem, isSystem) || other.isSystem == isSystem));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,url,read,write,status,lastConnectedAt);
+int get hashCode => Object.hash(runtimeType,url,read,write,status,lastConnectedAt,isSystem);
 
 @override
 String toString() {
-  return 'RelayEntity(url: $url, read: $read, write: $write, status: $status, lastConnectedAt: $lastConnectedAt)';
+  return 'RelayEntity(url: $url, read: $read, write: $write, status: $status, lastConnectedAt: $lastConnectedAt, isSystem: $isSystem)';
 }
 
 
@@ -249,7 +251,7 @@ abstract mixin class _$RelayEntityCopyWith<$Res> implements $RelayEntityCopyWith
   factory _$RelayEntityCopyWith(_RelayEntity value, $Res Function(_RelayEntity) _then) = __$RelayEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String url, bool read, bool write, RelayStatus status, DateTime? lastConnectedAt
+ String url, bool read, bool write, RelayStatus status, DateTime? lastConnectedAt, bool isSystem
 });
 
 
@@ -266,14 +268,15 @@ class __$RelayEntityCopyWithImpl<$Res>
 
 /// Create a copy of RelayEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? read = null,Object? write = null,Object? status = null,Object? lastConnectedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? read = null,Object? write = null,Object? status = null,Object? lastConnectedAt = freezed,Object? isSystem = null,}) {
   return _then(_RelayEntity(
 url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
 as String,read: null == read ? _self.read : read // ignore: cast_nullable_to_non_nullable
 as bool,write: null == write ? _self.write : write // ignore: cast_nullable_to_non_nullable
 as bool,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as RelayStatus,lastConnectedAt: freezed == lastConnectedAt ? _self.lastConnectedAt : lastConnectedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,isSystem: null == isSystem ? _self.isSystem : isSystem // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

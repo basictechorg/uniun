@@ -1,14 +1,16 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
 /// Kind 1 — short text note.
 ///
-/// Persists to [NoteModel] (idempotent), increments [NoteModel.cachedReplyCount]
-/// on the direct parent + non-root mention refs, and bumps
+/// Persists to [NoteModel] (idempotent), records reference edges in
+/// [NoteRelationModel] for the direct parent + non-root mention refs, and bumps
 /// [FollowedNoteModel.newReferenceCount] for any followed root referenced.
 class Kind1NoteHandler implements KindHandler {
   @override
@@ -30,27 +32,20 @@ class Kind1NoteHandler implements KindHandler {
         if (existing != null) return;
         await isar.noteModels.put(model);
 
-        // Increment direct parent + mention-refs. Exclude root-tag when it
-        // differs from replyToEventId so nested thread replies don't inflate
-        // the root note's count.
-        final toIncrement = <String>{};
-        if (model.replyToEventId != null) {
-          toIncrement.add(model.replyToEventId!);
-        }
-        for (final ref in model.eTagRefs) {
-          if (ref != model.rootEventId && ref != model.replyToEventId) {
-            toIncrement.add(ref);
-          }
-        }
-        for (final refId in toIncrement) {
-          final ref = await isar.noteModels
-              .where()
-              .eventIdEqualTo(refId)
-              .findFirst();
-          if (ref != null) {
-            ref.cachedReplyCount++;
-            await isar.noteModels.put(ref);
-          }
+        // Record one reference edge per parent. The unique (parentId, childId)
+        // index makes this idempotent against relay re-delivery.
+        final parents = replyEdgeParentIds(
+          replyToEventId: model.replyToEventId,
+          rootEventId: model.rootEventId,
+          eTagRefs: model.eTagRefs,
+        );
+        for (final parentId in parents) {
+          await isar.noteRelationModels.put(
+            NoteRelationModel()
+              ..parentId = parentId
+              ..childId = eventId
+              ..createdAt = DateTime.now(),
+          );
         }
       });
     } catch (_) {

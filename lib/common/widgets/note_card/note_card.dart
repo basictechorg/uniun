@@ -55,17 +55,8 @@ class _NoteCardState extends State<NoteCard> {
         profile?.username ??
         _shortName(widget.note.authorPubkey);
 
-    // Outgoing references — eTagRefs that are not NIP-10 root/reply markers.
-    // A reply note itself is an implicit reference to its parent, so +1 when
-    // this note has a parent (root or reply marker).
-    final mentionRefs = widget.note.eTagRefs
-        .where((id) =>
-            id != widget.note.rootEventId && id != widget.note.replyToEventId)
-        .toSet()
-        .length;
-    final hasParent = widget.note.rootEventId != null ||
-        widget.note.replyToEventId != null;
-    final refCount = mentionRefs + (hasParent ? 1 : 0);
+    // Outgoing reference count comes from the edge table via the entity.
+    final refCount = widget.note.referenceCount;
 
     return InkWell(
       onTap: widget.onTap,
@@ -117,6 +108,28 @@ class _NoteCardState extends State<NoteCard> {
                                 color: AppColors.outline,
                               ),
                             ),
+                            if (widget.note.sourceLabel != null) ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                widget.note.sourcePrivateGroupId != null
+                                    ? Icons.lock_outline
+                                    : Icons.tag_rounded,
+                                size: 13,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  widget.note.sourceLabel!,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       )

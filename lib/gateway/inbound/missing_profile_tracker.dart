@@ -13,6 +13,13 @@ class MissingProfileTracker {
 
   Future<void> track(Map<String, dynamic> event) async {
     final pubkey = event['pubkey'] as String?;
+    await trackPubkey(pubkey);
+  }
+
+  /// Direct-pubkey entry point — used by decrypt paths (private channel MLS,
+  /// NIP-17 DM seals) where there is no raw inbound event to inspect, only
+  /// the sender pubkey extracted from the decrypted payload.
+  Future<void> trackPubkey(String? pubkey) async {
     if (pubkey == null || pubkey.isEmpty) return;
 
     final existingProfile = await _isar.profileModels

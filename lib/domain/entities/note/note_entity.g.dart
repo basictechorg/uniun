@@ -25,6 +25,10 @@ _NoteEntity _$NoteEntityFromJson(Map<String, dynamic> json) => _NoteEntity(
   rootEventId: json['rootEventId'] as String?,
   replyToEventId: json['replyToEventId'] as String?,
   cachedReplyCount: (json['cachedReplyCount'] as num?)?.toInt() ?? 0,
+  referenceCount: (json['referenceCount'] as num?)?.toInt() ?? 0,
+  sourceChannelId: json['sourceChannelId'] as String?,
+  sourcePrivateGroupId: json['sourcePrivateGroupId'] as String?,
+  sourceLabel: json['sourceLabel'] as String?,
 );
 
 Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
@@ -43,6 +47,10 @@ Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
       'rootEventId': instance.rootEventId,
       'replyToEventId': instance.replyToEventId,
       'cachedReplyCount': instance.cachedReplyCount,
+      'referenceCount': instance.referenceCount,
+      'sourceChannelId': instance.sourceChannelId,
+      'sourcePrivateGroupId': instance.sourcePrivateGroupId,
+      'sourceLabel': instance.sourceLabel,
     };
 
 const _$NoteTypeEnumMap = {

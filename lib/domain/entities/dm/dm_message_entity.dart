@@ -55,6 +55,14 @@ class DmMessageEntity implements NoteEntity {
 
   @override
   int get cachedReplyCount => 0;
+  @override
+  int get referenceCount => 0;
+  @override
+  String? get sourceChannelId => null;
+  @override
+  String? get sourcePrivateGroupId => null;
+  @override
+  String? get sourceLabel => null;
 
   @override
   $NoteEntityCopyWith<NoteEntity> get copyWith =>

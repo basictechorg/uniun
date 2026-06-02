@@ -81,3 +81,35 @@ class GetSavedReplyCountUseCase extends UseCase<Either<Failure, int>, String> {
   Future<Either<Failure, int>> call(String eventId, {bool cached = false}) =>
       _repository.getSavedReplyCount(eventId);
 }
+
+// ── GetSavedRepliesUseCase ────────────────────────────────────────────────────
+
+@lazySingleton
+class GetSavedRepliesUseCase
+    extends UseCase<Either<Failure, List<SavedNoteEntity>>, String> {
+  final SavedNoteRepository _repository;
+  const GetSavedRepliesUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, List<SavedNoteEntity>>> call(
+    String parentId, {
+    bool cached = false,
+  }) =>
+      _repository.getSavedReplies(parentId);
+}
+
+// ── GetSavedReferencesUseCase ─────────────────────────────────────────────────
+
+@lazySingleton
+class GetSavedReferencesUseCase
+    extends UseCase<Either<Failure, List<SavedNoteEntity>>, String> {
+  final SavedNoteRepository _repository;
+  const GetSavedReferencesUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, List<SavedNoteEntity>>> call(
+    String childId, {
+    bool cached = false,
+  }) =>
+      _repository.getSavedReferences(childId);
+}

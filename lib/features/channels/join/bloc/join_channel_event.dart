@@ -26,9 +26,3 @@ final class SubmitJoinChannelEvent extends JoinChannelEvent {
   final List<String> selectedRelays;
   final String channelName;
 }
-
-final class SubmitJoinChannelQrEvent extends JoinChannelEvent {
-  const SubmitJoinChannelQrEvent({required this.rawPayload});
-
-  final String rawPayload;
-}

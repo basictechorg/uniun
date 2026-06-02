@@ -24,6 +24,7 @@ import 'package:uniun/gateway/outbound/temp_session_coordinator.dart';
 import 'package:uniun/gateway/subscriptions/nip77_synchronizer.dart';
 import 'package:uniun/gateway/subscriptions/providers/channels_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/dms_subscription.dart';
+import 'package:uniun/gateway/subscriptions/providers/feed_notes_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/followed_notes_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/private_channels_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/profiles_subscription.dart';
@@ -153,6 +154,7 @@ class GatewayOrchestrator {
   List<SubscriptionProvider> _subscriptionProviders() => [
         DmsSubscription(),
         ProfilesSubscription(),
+        FeedNotesSubscription(),
         FollowedNotesSubscription(),
         ChannelsSubscription(),
         PrivateChannelsSubscription(),

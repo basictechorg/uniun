@@ -17,20 +17,21 @@ const RelayModelSchema = CollectionSchema(
   name: r'Relay',
   id: -6541783426875531135,
   properties: {
+    r'isSystem': PropertySchema(id: 0, name: r'isSystem', type: IsarType.bool),
     r'lastConnectedAt': PropertySchema(
-      id: 0,
+      id: 1,
       name: r'lastConnectedAt',
       type: IsarType.dateTime,
     ),
-    r'read': PropertySchema(id: 1, name: r'read', type: IsarType.bool),
+    r'read': PropertySchema(id: 2, name: r'read', type: IsarType.bool),
     r'status': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'status',
       type: IsarType.string,
       enumMap: _RelayModelstatusEnumValueMap,
     ),
-    r'url': PropertySchema(id: 3, name: r'url', type: IsarType.string),
-    r'write': PropertySchema(id: 4, name: r'write', type: IsarType.bool),
+    r'url': PropertySchema(id: 4, name: r'url', type: IsarType.string),
+    r'write': PropertySchema(id: 5, name: r'write', type: IsarType.bool),
   },
 
   estimateSize: _relayModelEstimateSize,
@@ -79,11 +80,12 @@ void _relayModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.lastConnectedAt);
-  writer.writeBool(offsets[1], object.read);
-  writer.writeString(offsets[2], object.status.name);
-  writer.writeString(offsets[3], object.url);
-  writer.writeBool(offsets[4], object.write);
+  writer.writeBool(offsets[0], object.isSystem);
+  writer.writeDateTime(offsets[1], object.lastConnectedAt);
+  writer.writeBool(offsets[2], object.read);
+  writer.writeString(offsets[3], object.status.name);
+  writer.writeString(offsets[4], object.url);
+  writer.writeBool(offsets[5], object.write);
 }
 
 RelayModel _relayModelDeserialize(
@@ -94,13 +96,14 @@ RelayModel _relayModelDeserialize(
 ) {
   final object = RelayModel();
   object.id = id;
-  object.lastConnectedAt = reader.readDateTimeOrNull(offsets[0]);
-  object.read = reader.readBool(offsets[1]);
+  object.isSystem = reader.readBool(offsets[0]);
+  object.lastConnectedAt = reader.readDateTimeOrNull(offsets[1]);
+  object.read = reader.readBool(offsets[2]);
   object.status =
-      _RelayModelstatusValueEnumMap[reader.readStringOrNull(offsets[2])] ??
+      _RelayModelstatusValueEnumMap[reader.readStringOrNull(offsets[3])] ??
       RelayStatus.connected;
-  object.url = reader.readString(offsets[3]);
-  object.write = reader.readBool(offsets[4]);
+  object.url = reader.readString(offsets[4]);
+  object.write = reader.readBool(offsets[5]);
   return object;
 }
 
@@ -112,16 +115,18 @@ P _relayModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 1:
       return (reader.readBool(offset)) as P;
+    case 1:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 2:
+      return (reader.readBool(offset)) as P;
+    case 3:
       return (_RelayModelstatusValueEnumMap[reader.readStringOrNull(offset)] ??
               RelayStatus.connected)
           as P;
-    case 3:
-      return (reader.readString(offset)) as P;
     case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
       return (reader.readBool(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -396,6 +401,16 @@ extension RelayModelQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<RelayModel, RelayModel, QAfterFilterCondition> isSystemEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isSystem', value: value),
       );
     });
   }
@@ -795,6 +810,18 @@ extension RelayModelQueryLinks
 
 extension RelayModelQuerySortBy
     on QueryBuilder<RelayModel, RelayModel, QSortBy> {
+  QueryBuilder<RelayModel, RelayModel, QAfterSortBy> sortByIsSystem() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSystem', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RelayModel, RelayModel, QAfterSortBy> sortByIsSystemDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSystem', Sort.desc);
+    });
+  }
+
   QueryBuilder<RelayModel, RelayModel, QAfterSortBy> sortByLastConnectedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastConnectedAt', Sort.asc);
@@ -871,6 +898,18 @@ extension RelayModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<RelayModel, RelayModel, QAfterSortBy> thenByIsSystem() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSystem', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RelayModel, RelayModel, QAfterSortBy> thenByIsSystemDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSystem', Sort.desc);
+    });
+  }
+
   QueryBuilder<RelayModel, RelayModel, QAfterSortBy> thenByLastConnectedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastConnectedAt', Sort.asc);
@@ -935,6 +974,12 @@ extension RelayModelQuerySortThenBy
 
 extension RelayModelQueryWhereDistinct
     on QueryBuilder<RelayModel, RelayModel, QDistinct> {
+  QueryBuilder<RelayModel, RelayModel, QDistinct> distinctByIsSystem() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSystem');
+    });
+  }
+
   QueryBuilder<RelayModel, RelayModel, QDistinct> distinctByLastConnectedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastConnectedAt');
@@ -975,6 +1020,12 @@ extension RelayModelQueryProperty
   QueryBuilder<RelayModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<RelayModel, bool, QQueryOperations> isSystemProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSystem');
     });
   }
 

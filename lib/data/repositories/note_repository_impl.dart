@@ -2,15 +2,19 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/note_repository.dart';
 
 @Injectable(as: NoteRepository)
 class NoteRepositoryImpl extends NoteRepository {
   final Isar isar;
+  final NoteRelationRepository _relations;
 
-  NoteRepositoryImpl({required this.isar});
+  NoteRepositoryImpl({required this.isar, required NoteRelationRepository relations})
+      : _relations = relations;
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getFeed({
@@ -33,45 +37,23 @@ class NoteRepositoryImpl extends NoteRepository {
                 .limit(limit)
                 .findAll();
 
-      await _backfillReplyCountsIfNeeded(notes);
-      return Right(notes.map((n) => n.toDomain()).toList());
+      return Right(await _withReplyCounts(notes));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
-  /// One-time lazy migration: for notes created before cachedReplyCount was
-  /// added, compute the count from existing Isar records and persist it.
-  /// After the first run each note has the correct count and this is a no-op.
-  Future<void> _backfillReplyCountsIfNeeded(List<NoteModel> models) async {
-    final toUpdate = <NoteModel>[];
-    for (final m in models) {
-      // Total notes that have m in their eTagRefs.
-      final totalEtag = await isar.noteModels
-          .filter()
-          .eTagRefsElementEqualTo(m.eventId)
-          .count();
-      // Subtract nested-thread replies: notes where m is the root but
-      // replyToEventId points elsewhere (they are NOT direct replies to m).
-      final nestedOnly = await isar.noteModels
-          .filter()
-          .rootEventIdEqualTo(m.eventId)
-          .not()
-          .replyToEventIdEqualTo(m.eventId)
-          .replyToEventIdIsNotNull()
-          .count();
-      final count = totalEtag - nestedOnly;
-      if (count != m.cachedReplyCount) {
-        m.cachedReplyCount = count;
-        toUpdate.add(m);
-      }
-    }
-    if (toUpdate.isEmpty) return;
-    await isar.writeTxn(() async {
-      for (final m in toUpdate) {
-        await isar.noteModels.put(m);
-      }
-    });
+  /// Stitches the live reply + reference counts onto each entity from the
+  /// edge table. Indexed count queries — fast even with many notes.
+  Future<List<NoteEntity>> _withReplyCounts(List<NoteModel> models) async {
+    final entities = models.map((n) => n.toDomain()).toList();
+    return [
+      for (final e in entities)
+        e.copyWith(
+          cachedReplyCount: await _relations.replyCount(e.id),
+          referenceCount: await _relations.referenceCount(e.id),
+        ),
+    ];
   }
 
   @override
@@ -84,7 +66,10 @@ class NoteRepositoryImpl extends NoteRepository {
       if (note == null) {
         return const Left(Failure.errorFailure('Note not found'));
       }
-      return Right(note.toDomain());
+      return Right(note.toDomain().copyWith(
+            cachedReplyCount: await _relations.replyCount(eventId),
+            referenceCount: await _relations.referenceCount(eventId),
+          ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -128,7 +113,7 @@ class NoteRepositoryImpl extends NoteRepository {
 
       final merged = byEventId.values.toList()
         ..sort((a, b) => a.created.compareTo(b.created));
-      return Right(merged.map((n) => n.toDomain()).toList());
+      return Right(await _withReplyCounts(merged));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -154,7 +139,7 @@ class NoteRepositoryImpl extends NoteRepository {
 
       final all = [if (root != null) root, ...replies];
 
-      return Right(all.map((n) => n.toDomain()).toList());
+      return Right(await _withReplyCounts(all));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -188,34 +173,20 @@ class NoteRepositoryImpl extends NoteRepository {
         isSeen: note.isSeen,
       );
 
+      final parents = replyEdgeParentIds(
+        replyToEventId: note.replyToEventId,
+        rootEventId: note.rootEventId,
+        eTagRefs: note.eTagRefs,
+      );
       await isar.writeTxn(() async {
         await isar.noteModels.put(model);
-        // Increment the direct parent and any mention-references.
-        // Explicitly exclude the root-tag ref when it differs from the reply
-        // target — that avoids double-counting nested thread replies on the
-        // thread root (e.g. n4→n3 inside n1's thread must NOT increment n1).
-        final toIncrement = <String>{};
-        if (note.replyToEventId != null) {
-          toIncrement.add(note.replyToEventId!);
-        }
-        for (final ref in note.eTagRefs) {
-          if (ref != note.rootEventId && ref != note.replyToEventId) {
-            toIncrement.add(ref); // pure mention / reference
-          }
-        }
-        for (final refId in toIncrement) {
-          final ref = await isar.noteModels
-              .where()
-              .eventIdEqualTo(refId)
-              .findFirst();
-          if (ref != null) {
-            ref.cachedReplyCount++;
-            await isar.noteModels.put(ref);
-          }
-        }
+        await _relations.addEdgesInTxn(parents: parents, childId: note.id);
       });
 
-      return Right(model.toDomain());
+      return Right(model.toDomain().copyWith(
+            cachedReplyCount: await _relations.replyCount(note.id),
+            referenceCount: await _relations.referenceCount(note.id),
+          ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -224,21 +195,7 @@ class NoteRepositoryImpl extends NoteRepository {
   @override
   Future<Either<Failure, int>> getReplyCount(String eventId) async {
     try {
-      final replyIds = await isar.noteModels
-          .filter()
-          .replyToEventIdEqualTo(eventId)
-          .eventIdProperty()
-          .findAll();
-
-      final rootTagOnlyIds = await isar.noteModels
-          .filter()
-          .rootEventIdEqualTo(eventId)
-          .replyToEventIdIsNull()
-          .eventIdProperty()
-          .findAll();
-
-      final unique = {...replyIds, ...rootTagOnlyIds}..remove(eventId);
-      return Right(unique.length);
+      return Right(await _relations.replyCount(eventId));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

@@ -36,12 +36,13 @@ class NoteModel {
   late List<String> pTagRefs;
   late List<String> tTags;
 
+  @Index()
   late DateTime created;
-  late bool isSeen;
 
-  /// Denormalised reply count — incremented by Gateway and local saveNote
-  /// whenever a new note with an e-tag pointing to this note is stored.
-  int cachedReplyCount = 0;
+  /// Composite index: (isSeen, created) — feed buckets are an indexed scan
+  /// over `isSeen == false` then `isSeen == true`, each sorted by `created`.
+  @Index(composite: [CompositeIndex('created')])
+  late bool isSeen;
 
   NoteModel({
     required this.eventId,
@@ -57,7 +58,6 @@ class NoteModel {
     required this.tTags,
     required this.created,
     required this.isSeen,
-    this.cachedReplyCount = 0,
   });
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
@@ -142,6 +142,5 @@ extension NoteModelExtension on NoteModel {
         tTags: tTags,
         created: created,
         isSeen: isSeen,
-        cachedReplyCount: cachedReplyCount,
       );
 }

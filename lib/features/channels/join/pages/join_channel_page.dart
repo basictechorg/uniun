@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart';
-import 'package:uniun/features/channels/join/pages/join_channel_qr_scan_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -30,6 +31,23 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
   final _channelIdController = TextEditingController();
   final _relayUrlController = TextEditingController();
   final List<String> _selectedRelays = [];
+  String _prefilledName = '';
+  bool _appliedArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appliedArgs) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is UniunQrPayload && args.kind == UniunQrKind.publicChannel) {
+      _appliedArgs = true;
+      _channelIdController.text = args.id;
+      _prefilledName = args.name ?? '';
+      _selectedRelays
+        ..clear()
+        ..addAll(args.relays);
+    }
+  }
 
   @override
   void dispose() {
@@ -43,19 +61,15 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
       SubmitJoinChannelEvent(
         channelId: _channelIdController.text,
         selectedRelays: _selectedRelays,
-        channelName: '',
+        channelName: _prefilledName,
       ),
     );
   }
 
   Future<void> _joinByQr() async {
-    final rawPayload = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const JoinChannelQrScanPage()),
-    );
-    if (!mounted || rawPayload == null || rawPayload.isEmpty) return;
-    context.read<JoinChannelBloc>().add(
-      SubmitJoinChannelQrEvent(rawPayload: rawPayload),
-    );
+    // The unified scanner replaces this page with the right destination, so
+    // we just push and let it take over.
+    await Navigator.of(context).pushNamed(AppRoutes.scanQr);
   }
 
   Future<String?> _showAddRelayDialog() async {

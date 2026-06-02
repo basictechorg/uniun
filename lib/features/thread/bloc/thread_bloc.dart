@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
@@ -14,18 +15,25 @@ part 'thread_state.dart';
 
 /// Resolver-backed thread bloc. Reads a note from *any* collection by id and
 /// posts replies routed by source — one bloc for feed/channel/private/DM.
+/// In `savedOnly` mode (entry from Saved Notes), root/replies/refs come from
+/// the saved-note edge table so channel messages whose live row was evicted
+/// still render.
 @injectable
 class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final NoteResolverRepository _resolver;
   final PostReplyUseCase _postReply;
   final GetProfileUseCase _getProfile;
   final GetAllSavedNotesUseCase _getAllSavedNotes;
+  final GetSavedRepliesUseCase _getSavedReplies;
+  final GetSavedReferencesUseCase _getSavedReferences;
 
   ThreadBloc(
     this._resolver,
     this._postReply,
     this._getProfile,
     this._getAllSavedNotes,
+    this._getSavedReplies,
+    this._getSavedReferences,
   ) : super(const ThreadState()) {
     on<LoadThreadEvent>(_onLoad, transformer: droppable());
     on<PostReplyEvent>(_onPost, transformer: droppable());
@@ -34,47 +42,95 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   Future<void> _onLoad(LoadThreadEvent event, Emitter<ThreadState> emit) async {
     emit(state.copyWith(status: ThreadStatus.loading));
 
-    final rootResult = await _resolver.resolveById(event.noteId);
-    if (rootResult.isLeft()) {
-      emit(state.copyWith(
-        status: ThreadStatus.error,
-        errorMessage: rootResult.fold((f) => f.toMessage(), (_) => ''),
-      ));
-      return;
+    // Saved-note ids are loaded in BOTH modes: in saved mode they are the
+    // visible universe; in normal mode they drive the bookmark marking on
+    // reply cards (parity with the feed).
+    final savedResult = await _getAllSavedNotes.call();
+    final allSaved = savedResult.fold((_) => <SavedNoteEntity>[], (n) => n);
+    final savedOnlyIds = {for (final s in allSaved) s.eventId};
+
+    // ── Root note ──────────────────────────────────────────────────────────
+    // In saved mode the note may live only in savedNoteModels (a saved public
+    // channel message is never in noteModels), so resolve it from there.
+    final ResolvedNote? root;
+    if (event.savedOnly) {
+      SavedNoteEntity? rootSaved;
+      for (final s in allSaved) {
+        if (s.eventId == event.noteId) {
+          rootSaved = s;
+          break;
+        }
+      }
+      if (rootSaved == null) {
+        emit(state.copyWith(
+          status: ThreadStatus.error,
+          errorMessage:
+              const Failure.errorFailure('Note not found').toMessage(),
+        ));
+        return;
+      }
+      final rootNote =
+          rootSaved.toNoteEntity(savedEventIds: savedOnlyIds);
+      root = ResolvedNote(note: rootNote, source: NoteSource.feed);
+    } else {
+      final rootResult = await _resolver.resolveById(event.noteId);
+      if (rootResult.isLeft()) {
+        emit(state.copyWith(
+          status: ThreadStatus.error,
+          errorMessage: rootResult.fold((f) => f.toMessage(), (_) => ''),
+        ));
+        return;
+      }
+      root = rootResult.getOrElse(() => throw StateError('unreachable'));
     }
-    final root = rootResult.getOrElse(() => throw StateError('unreachable'));
     final rootNote = root.note;
 
-    // Parent (NIP-10 reply marker) and outgoing mention refs.
+    // ── Parent chain (NIP-10 reply marker) ─────────────────────────────────
     final parentNotes = <NoteEntity>[];
-    if (rootNote.replyToEventId != null) {
+    if (!event.savedOnly && rootNote.replyToEventId != null) {
       final p = await _resolver.resolveNoteById(rootNote.replyToEventId!);
       p.fold((_) {}, (note) {
         if (note != null) parentNotes.add(note);
       });
     }
 
-    final mentionIds = rootNote.eTagRefs
-        .where((id) =>
-            id != rootNote.rootEventId && id != rootNote.replyToEventId)
-        .toList();
-    final mentionedNotes = mentionIds.isEmpty
-        ? <NoteEntity>[]
-        : (await _resolver.resolveMany(mentionIds))
-            .fold((_) => <NoteEntity>[], (n) => n);
-
-    var replies = (await _resolver.resolveReplies(rootNote.id))
-        .fold((_) => <NoteEntity>[], (r) => r);
-
-    // Saved-only mode (feed): keep replies that are themselves saved.
-    if (event.savedOnly && root.source == NoteSource.feed) {
-      final saved = (await _getAllSavedNotes.call())
-          .fold((_) => <SavedNoteEntity>[], (n) => n);
-      final savedIds = {for (final s in saved) s.eventId};
-      replies = replies.where((r) => savedIds.contains(r.id)).toList();
+    // ── Mentions / references rendered above the root ──────────────────────
+    final mentionedNotes = <NoteEntity>[];
+    if (event.savedOnly) {
+      // Resolve refs from the edge table + saved set, so channel-sourced
+      // parents (with stripped eTagRefs) still render.
+      final refResult = await _getSavedReferences.call(event.noteId);
+      final refs = refResult.fold((_) => <SavedNoteEntity>[], (r) => r);
+      mentionedNotes.addAll(
+        refs.map((s) => s.toNoteEntity(savedEventIds: savedOnlyIds)),
+      );
+    } else {
+      final mentionIds = rootNote.eTagRefs
+          .where((id) =>
+              id != rootNote.rootEventId && id != rootNote.replyToEventId)
+          .toList();
+      if (mentionIds.isNotEmpty) {
+        final r = await _resolver.resolveMany(mentionIds);
+        mentionedNotes.addAll(r.fold((_) => <NoteEntity>[], (n) => n));
+      }
     }
 
-    // Profiles for every visible author.
+    // ── Replies ────────────────────────────────────────────────────────────
+    final List<NoteEntity> replies;
+    if (event.savedOnly) {
+      final repliesResult = await _getSavedReplies.call(event.noteId);
+      final savedReplies =
+          repliesResult.fold((_) => <SavedNoteEntity>[], (r) => r);
+      replies = savedReplies
+          .map((s) => s.toNoteEntity(savedEventIds: savedOnlyIds))
+          .toList()
+        ..sort((a, b) => a.created.compareTo(b.created));
+    } else {
+      final repliesResult = await _resolver.resolveReplies(rootNote.id);
+      replies = repliesResult.fold((_) => <NoteEntity>[], (r) => r);
+    }
+
+    // ── Profiles for every visible author ──────────────────────────────────
     final profiles = <String, ProfileEntity>{};
     final pubkeys = {
       rootNote.authorPubkey,
@@ -95,7 +151,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       replies: replies,
       profiles: profiles,
       savedOnly: event.savedOnly,
-      postStatus: ThreadPostStatus.idle,
+      savedOnlyIds: savedOnlyIds,
     ));
   }
 

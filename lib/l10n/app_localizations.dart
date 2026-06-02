@@ -574,6 +574,12 @@ abstract class AppLocalizations {
   /// **'Referenced note not available'**
   String get vishnuReferenceUnavailable;
 
+  /// Sticky banner shown when new feed items arrived since the page was loaded
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 new note} other{{count} new notes}}'**
+  String vishnuNewNotesBanner(int count);
+
   /// Placeholder title for the Shiv tab
   ///
   /// In en, this message translates to:
@@ -1995,6 +2001,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get graphDraftDelete;
+
+  /// Title of the public channel entry/chooser screen
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get channelEntryTitle;
+
+  /// Subtitle on the public channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Join an existing public channel using its ID or QR, or start a new one.'**
+  String get channelEntrySubtitle;
+
+  /// Join option on the public channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Join a channel'**
+  String get channelEntryJoin;
+
+  /// Create option on the public channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Create a channel'**
+  String get channelEntryCreate;
+
+  /// Title of the private channel entry/chooser screen
+  ///
+  /// In en, this message translates to:
+  /// **'Private Channels'**
+  String get privateChannelEntryTitle;
+
+  /// Subtitle on the private channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Request to join an existing private channel, or create your own.'**
+  String get privateChannelEntrySubtitle;
+
+  /// Join option on the private channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Join a private channel'**
+  String get privateChannelEntryJoin;
+
+  /// Create option on the private channel entry chooser
+  ///
+  /// In en, this message translates to:
+  /// **'Create a private channel'**
+  String get privateChannelEntryCreate;
+
+  /// App bar title on the create channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get createChannelTitle;
+
+  /// Section heading for channel details on create channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Channel Details'**
+  String get createChannelDetailsHeading;
+
+  /// Text field label for channel name
+  ///
+  /// In en, this message translates to:
+  /// **'Channel Name'**
+  String get createChannelNameLabel;
+
+  /// Text field label for channel about/description
+  ///
+  /// In en, this message translates to:
+  /// **'About (Theme/Rules)'**
+  String get createChannelAboutLabel;
+
+  /// Text field label for optional channel picture url
+  ///
+  /// In en, this message translates to:
+  /// **'Picture URL (Optional)'**
+  String get createChannelPictureLabel;
+
+  /// Section heading for publish relays on create channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Relays'**
+  String get createChannelPublishRelays;
+
+  /// Helper text under publish relays section on create channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Select the relays this channel should be broadcasted on.'**
+  String get createChannelPublishRelaysBody;
+
+  /// Primary create channel button label
+  ///
+  /// In en, this message translates to:
+  /// **'Create Channel'**
+  String get createChannelAction;
+
+  /// Snackbar shown after a channel is created
+  ///
+  /// In en, this message translates to:
+  /// **'Channel created successfully'**
+  String get createChannelSuccess;
+
+  /// App bar title on the create private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Create Private Channel'**
+  String get createPrivateChannelTitle;
+
+  /// Heading on the create private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new Private Channel'**
+  String get createPrivateChannelHeading;
+
+  /// Explanation of how private channels work
+  ///
+  /// In en, this message translates to:
+  /// **'Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.'**
+  String get createPrivateChannelDescription;
+
+  /// Text field label for private channel name
+  ///
+  /// In en, this message translates to:
+  /// **'Channel Name'**
+  String get createPrivateChannelNameLabel;
+
+  /// Text field label for private channel description
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get createPrivateChannelDescLabel;
+
+  /// Primary create private channel button label
+  ///
+  /// In en, this message translates to:
+  /// **'Create Channel'**
+  String get createPrivateChannelAction;
+
+  /// Snackbar shown after a private channel is created
+  ///
+  /// In en, this message translates to:
+  /// **'Private channel created successfully!'**
+  String get createPrivateChannelSuccess;
+
+  /// App bar title on the join private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Join Private Channel'**
+  String get joinPrivateChannelTitle;
+
+  /// Heading on the join private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Request to Join'**
+  String get joinPrivateChannelHeading;
+
+  /// Helper text under heading on join private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the Group ID to request access to a private channel.'**
+  String get joinPrivateChannelSubtitle;
+
+  /// Text field label for private channel group id
+  ///
+  /// In en, this message translates to:
+  /// **'Group ID'**
+  String get joinPrivateChannelGroupIdLabel;
+
+  /// Hint text in the group id input
+  ///
+  /// In en, this message translates to:
+  /// **'uniun\'...'**
+  String get joinPrivateChannelGroupIdHint;
+
+  /// Secondary button to open the QR scanner
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get joinPrivateChannelScanQr;
+
+  /// Primary submit button on join private channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Send Join Request'**
+  String get joinPrivateChannelAction;
+
+  /// Snackbar after submitting a join request to a private channel
+  ///
+  /// In en, this message translates to:
+  /// **'Join request sent! Wait for admin approval.'**
+  String get joinPrivateChannelSuccess;
+
+  /// Empty-state label inside the relay selector field
+  ///
+  /// In en, this message translates to:
+  /// **'Select Relays'**
+  String get relaySelectorPlaceholder;
+
+  /// Label showing how many relays are currently selected
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Relays Selected'**
+  String relaySelectorSelected(int count);
+
+  /// Title of the relay multi-select dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Select Relays'**
+  String get relaySelectorPickerTitle;
+
+  /// Empty-state copy inside the relay picker dialog
+  ///
+  /// In en, this message translates to:
+  /// **'No relays available. Tap + to add one.'**
+  String get relaySelectorEmpty;
+
+  /// Tooltip for the + icon that opens the add-relay dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Add relay'**
+  String get relaySelectorAddTooltip;
+
+  /// Title of the add-relay dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Add Relay'**
+  String get relayAddDialogTitle;
+
+  /// Hint text in the add-relay url input
+  ///
+  /// In en, this message translates to:
+  /// **'wss://relay.example.com'**
+  String get relayAddDialogHint;
+
+  /// Confirm button label on the add-relay dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get relayAddDialogAction;
+
+  /// Error snackbar when a relay could not be added
+  ///
+  /// In en, this message translates to:
+  /// **'Could not add relay: {error}'**
+  String relayAddDialogError(String error);
+
+  /// Title of the remove-relay confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Relay'**
+  String get relayRemoveDialogTitle;
+
+  /// Body of the remove-relay confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Stop using {url}?'**
+  String relayRemoveDialogBody(String url);
+
+  /// Confirm button label on the remove-relay dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get relayRemoveDialogAction;
+
+  /// Empty state when the user has no relays in the settings sheet
+  ///
+  /// In en, this message translates to:
+  /// **'No relays found.'**
+  String get relayManageEmpty;
+
+  /// Tooltip for the per-relay delete icon in the settings sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get relayManageRemoveTooltip;
+
+  /// Title of the pending join requests bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Pending join requests'**
+  String get pendingRequestsTitle;
+
+  /// Subtitle of the pending join requests bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Approve users so they can read and send messages.'**
+  String get pendingRequestsSubtitle;
+
+  /// Empty state of the pending join requests bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'No pending requests.'**
+  String get pendingRequestsEmpty;
+
+  /// Fallback name shown for a join request with no profile name
+  ///
+  /// In en, this message translates to:
+  /// **'New member'**
+  String get pendingRequestsNewMember;
+
+  /// Approve button label on a pending join request
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get pendingRequestsApprove;
 }
 
 class _AppLocalizationsDelegate

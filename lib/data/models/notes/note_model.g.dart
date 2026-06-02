@@ -22,44 +22,39 @@ const NoteModelSchema = CollectionSchema(
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'cachedReplyCount': PropertySchema(
-      id: 1,
-      name: r'cachedReplyCount',
-      type: IsarType.long,
-    ),
-    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
+    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
     r'created': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
-    r'isSeen': PropertySchema(id: 6, name: r'isSeen', type: IsarType.bool),
+    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
+    r'isSeen': PropertySchema(id: 5, name: r'isSeen', type: IsarType.bool),
     r'pTagRefs': PropertySchema(
-      id: 7,
+      id: 6,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 8,
+      id: 7,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 9,
+      id: 8,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 11, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 12, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 9, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 10, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 11, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 13,
+      id: 12,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -108,6 +103,37 @@ const NoteModelSchema = CollectionSchema(
           name: r'replyToEventId',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+      ],
+    ),
+    r'created': IndexSchema(
+      id: 9089682803336859617,
+      name: r'created',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'created',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+      ],
+    ),
+    r'isSeen_created': IndexSchema(
+      id: -4335404229533762258,
+      name: r'isSeen_created',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isSeen',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+        IndexPropertySchema(
+          name: r'created',
+          type: IndexType.value,
+          caseSensitive: false,
         ),
       ],
     ),
@@ -181,19 +207,18 @@ void _noteModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeLong(offsets[1], object.cachedReplyCount);
-  writer.writeString(offsets[2], object.content);
-  writer.writeDateTime(offsets[3], object.created);
-  writer.writeStringList(offsets[4], object.eTagRefs);
-  writer.writeString(offsets[5], object.eventId);
-  writer.writeBool(offsets[6], object.isSeen);
-  writer.writeStringList(offsets[7], object.pTagRefs);
-  writer.writeString(offsets[8], object.replyToEventId);
-  writer.writeString(offsets[9], object.rootEventId);
-  writer.writeString(offsets[10], object.sig);
-  writer.writeString(offsets[11], object.subject);
-  writer.writeStringList(offsets[12], object.tTags);
-  writer.writeString(offsets[13], object.type.name);
+  writer.writeString(offsets[1], object.content);
+  writer.writeDateTime(offsets[2], object.created);
+  writer.writeStringList(offsets[3], object.eTagRefs);
+  writer.writeString(offsets[4], object.eventId);
+  writer.writeBool(offsets[5], object.isSeen);
+  writer.writeStringList(offsets[6], object.pTagRefs);
+  writer.writeString(offsets[7], object.replyToEventId);
+  writer.writeString(offsets[8], object.rootEventId);
+  writer.writeString(offsets[9], object.sig);
+  writer.writeString(offsets[10], object.subject);
+  writer.writeStringList(offsets[11], object.tTags);
+  writer.writeString(offsets[12], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -204,20 +229,19 @@ NoteModel _noteModelDeserialize(
 ) {
   final object = NoteModel(
     authorPubkey: reader.readString(offsets[0]),
-    cachedReplyCount: reader.readLongOrNull(offsets[1]) ?? 0,
-    content: reader.readString(offsets[2]),
-    created: reader.readDateTime(offsets[3]),
-    eTagRefs: reader.readStringList(offsets[4]) ?? [],
-    eventId: reader.readString(offsets[5]),
-    isSeen: reader.readBool(offsets[6]),
-    pTagRefs: reader.readStringList(offsets[7]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[8]),
-    rootEventId: reader.readStringOrNull(offsets[9]),
-    sig: reader.readString(offsets[10]),
-    subject: reader.readStringOrNull(offsets[11]),
-    tTags: reader.readStringList(offsets[12]) ?? [],
+    content: reader.readString(offsets[1]),
+    created: reader.readDateTime(offsets[2]),
+    eTagRefs: reader.readStringList(offsets[3]) ?? [],
+    eventId: reader.readString(offsets[4]),
+    isSeen: reader.readBool(offsets[5]),
+    pTagRefs: reader.readStringList(offsets[6]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[7]),
+    rootEventId: reader.readStringOrNull(offsets[8]),
+    sig: reader.readString(offsets[9]),
+    subject: reader.readStringOrNull(offsets[10]),
+    tTags: reader.readStringList(offsets[11]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[13])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[12])] ??
         NoteType.text,
   );
   object.id = id;
@@ -234,30 +258,28 @@ P _noteModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset) ?? 0) as P;
+      return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
       return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readStringList(offset) ?? []) as P;
     case 4:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
+    case 5:
       return (reader.readBool(offset)) as P;
-    case 7:
+    case 6:
       return (reader.readStringList(offset) ?? []) as P;
+    case 7:
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
-    case 10:
       return (reader.readString(offset)) as P;
-    case 11:
+    case 10:
       return (reader.readStringOrNull(offset)) as P;
-    case 12:
+    case 11:
       return (reader.readStringList(offset) ?? []) as P;
-    case 13:
+    case 12:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -353,6 +375,22 @@ extension NoteModelQueryWhereSort
   QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyCreated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'created'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyIsSeenCreated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isSeen_created'),
+      );
     });
   }
 }
@@ -636,6 +674,278 @@ extension NoteModelQueryWhere
       }
     });
   }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> createdEqualTo(
+    DateTime created,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'created', value: [created]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> createdNotEqualTo(
+    DateTime created,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'created',
+                lower: [],
+                upper: [created],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'created',
+                lower: [created],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'created',
+                lower: [created],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'created',
+                lower: [],
+                upper: [created],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> createdGreaterThan(
+    DateTime created, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'created',
+          lower: [created],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> createdLessThan(
+    DateTime created, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'created',
+          lower: [],
+          upper: [created],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> createdBetween(
+    DateTime lowerCreated,
+    DateTime upperCreated, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'created',
+          lower: [lowerCreated],
+          includeLower: includeLower,
+          upper: [upperCreated],
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenEqualToAnyCreated(
+    bool isSeen,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'isSeen_created', value: [isSeen]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  isSeenNotEqualToAnyCreated(bool isSeen) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [],
+                upper: [isSeen],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [],
+                upper: [isSeen],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenCreatedEqualTo(
+    bool isSeen,
+    DateTime created,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'isSeen_created',
+          value: [isSeen, created],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  isSeenEqualToCreatedNotEqualTo(bool isSeen, DateTime created) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen],
+                upper: [isSeen, created],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen, created],
+                includeLower: false,
+                upper: [isSeen],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen, created],
+                includeLower: false,
+                upper: [isSeen],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'isSeen_created',
+                lower: [isSeen],
+                upper: [isSeen, created],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  isSeenEqualToCreatedGreaterThan(
+    bool isSeen,
+    DateTime created, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'isSeen_created',
+          lower: [isSeen, created],
+          includeLower: include,
+          upper: [isSeen],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  isSeenEqualToCreatedLessThan(
+    bool isSeen,
+    DateTime created, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'isSeen_created',
+          lower: [isSeen],
+          upper: [isSeen, created],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  isSeenEqualToCreatedBetween(
+    bool isSeen,
+    DateTime lowerCreated,
+    DateTime upperCreated, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'isSeen_created',
+          lower: [isSeen, lowerCreated],
+          includeLower: includeLower,
+          upper: [isSeen, upperCreated],
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
 }
 
 extension NoteModelQueryFilter
@@ -780,61 +1090,6 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'authorPubkey', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  cachedReplyCountEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'cachedReplyCount', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  cachedReplyCountGreaterThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'cachedReplyCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  cachedReplyCountLessThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'cachedReplyCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  cachedReplyCountBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'cachedReplyCount',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
       );
     });
   }
@@ -2643,19 +2898,6 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
-  sortByCachedReplyCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.desc);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -2776,19 +3018,6 @@ extension NoteModelQuerySortThenBy
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByAuthorPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'authorPubkey', Sort.desc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
-  thenByCachedReplyCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.desc);
     });
   }
 
@@ -2923,12 +3152,6 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'cachedReplyCount');
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByContent({
     bool caseSensitive = true,
   }) {
@@ -3030,12 +3253,6 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String, QQueryOperations> authorPubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authorPubkey');
-    });
-  }
-
-  QueryBuilder<NoteModel, int, QQueryOperations> cachedReplyCountProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'cachedReplyCount');
     });
   }
 

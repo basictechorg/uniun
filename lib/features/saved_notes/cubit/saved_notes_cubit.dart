@@ -4,6 +4,7 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
+import 'package:uniun/domain/usecases/source_label_usecases.dart';
 import 'saved_notes_state.dart';
 
 class SavedNotesCubit extends Cubit<SavedNotesState> {
@@ -19,14 +20,28 @@ class SavedNotesCubit extends Cubit<SavedNotesState> {
       )),
       (notes) async {
         final profiles = await _loadProfiles(notes);
+        final sourceLabels = await _resolveSourceLabels(notes);
         if (isClosed) return;
         emit(state.copyWith(
           status: SavedNotesStatus.loaded,
           notes: notes,
           profiles: profiles,
+          sourceLabels: sourceLabels,
         ));
       },
     );
+  }
+
+  Future<Map<String, String>> _resolveSourceLabels(
+      List<SavedNoteEntity> notes) async {
+    return getIt<ResolveSourceLabelsUseCase>().call([
+      for (final n in notes)
+        (
+          eventId: n.eventId,
+          channelId: n.sourceChannelId,
+          groupId: n.sourcePrivateGroupId,
+        ),
+    ]);
   }
 
   Future<Map<String, ProfileEntity>> _loadProfiles(

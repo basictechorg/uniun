@@ -6,13 +6,16 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
+import 'package:uniun/features/vishnu/widgets/new_notes_banner.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/common/note_thread_navigator.dart';
+import 'package:uniun/core/router/app_routes.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class VishnuFeedPage extends StatefulWidget {
   const VishnuFeedPage({
@@ -100,6 +103,7 @@ class _VishnuFeedView extends StatefulWidget {
 
 class _VishnuFeedViewState extends State<_VishnuFeedView> {
   final _scrollController = ScrollController();
+  final Set<String> _everVisible = <String>{};
 
   @override
   void initState() {
@@ -129,6 +133,28 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
       (s) => s.status != VishnuFeedStatus.loading,
       orElse: () => const VishnuFeedState(),
     );
+  }
+
+  Future<void> _onLoadNewNotes() async {
+    context.read<VishnuFeedBloc>().add(const LoadNewNotesEvent());
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  /// Per-note visibility callback. Marks as seen once the user has had the
+  /// note majority-visible at some point AND it has now left the viewport.
+  /// Debounced via [_everVisible] + bloc's [_markedThisSession] set.
+  void _onNoteVisibility(String eventId, VisibilityInfo info) {
+    if (info.visibleFraction >= 0.5) {
+      _everVisible.add(eventId);
+    } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      context.read<VishnuFeedBloc>().add(MarkFeedItemSeenEvent(eventId));
+    }
   }
 
   Future<void> _toggleFollow(
@@ -163,7 +189,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
               builder: (context, feedState) {
                 // Initial loading
                 if (feedState.status == VishnuFeedStatus.loading &&
-                    feedState.notes.isEmpty) {
+                    feedState.items.isEmpty) {
                   return const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primary,
@@ -172,19 +198,19 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                   );
                 }
 
-                // Error with no notes
+                // Error with no items
                 if (feedState.status == VishnuFeedStatus.error &&
-                    feedState.notes.isEmpty) {
+                    feedState.items.isEmpty) {
                   return _ErrorView(
                     message: feedState.errorMessage ?? 'Something went wrong',
                     onRetry: () => context.read<VishnuFeedBloc>().add(
-                      const LoadFeedEvent(),
+                      const FeedOpenedEvent(),
                     ),
                   );
                 }
 
                 // Empty feed
-                if (feedState.notes.isEmpty) {
+                if (feedState.items.isEmpty) {
                   return const _EmptyFeedView();
                 }
 
@@ -198,71 +224,97 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                     return RefreshIndicator(
                       color: AppColors.primary,
                       onRefresh: _onRefresh,
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).padding.bottom + 96,
-                        ),
-                        itemCount:
-                            feedState.notes.length +
-                            (feedState.status == VishnuFeedStatus.loadingMore
-                                ? 1
-                                : 0),
-                        itemBuilder: (context, i) {
-                          if (i == feedState.notes.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(20),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            );
-                          }
-
-                          final note = feedState.notes[i];
-                          final profile = feedState.profiles[note.authorPubkey];
-                          final isFollowed = followedIds.contains(note.id);
-
-                          return NoteCard(
-                            note: note,
-                            profile: profile,
-                            replyCount: note.cachedReplyCount,
-                            isFollowed: isFollowed,
-                            isSaved: feedState.savedIds.contains(note.id),
-                            onTap: () async {
-                              await Navigator.pushNamed(
-                                context,
-                                AppRoutes.thread,
-                                arguments: note.id,
-                              );
-                              if (context.mounted) {
-                                context.read<VishnuFeedBloc>().add(const RefreshFeedEvent());
-                              }
-                            },
-                            onFollowTap: () => _toggleFollow(
-                              context,
-                              note.id,
-                              note.content.length > 80
-                                  ? '${note.content.substring(0, 80)}…'
-                                  : note.content,
-                              isFollowed,
+                      child: Stack(
+                        children: [
+                          ListView.builder(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  MediaQuery.of(context).padding.bottom + 96,
                             ),
-                            onSaveTap: () {
-                              final bloc = context.read<VishnuFeedBloc>();
-                              final saved = feedState.savedIds.contains(
-                                note.id,
-                              );
-                              if (saved) {
-                                bloc.add(UnsaveFeedNoteEvent(note.id));
-                              } else {
-                                bloc.add(SaveFeedNoteEvent(note));
-                              }
-                            },
-                          );
-                        },
+                              itemCount: feedState.items.length +
+                                  (feedState.status ==
+                                          VishnuFeedStatus.loadingMore
+                                      ? 1
+                                      : 0),
+                              itemBuilder: (context, i) {
+                                if (i == feedState.items.length) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primary,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                final note = feedState.items[i];
+                                final profile =
+                                    feedState.profiles[note.authorPubkey];
+                                final isFollowed = followedIds.contains(note.id);
+
+                                return VisibilityDetector(
+                                  key: ValueKey('feed-${note.id}'),
+                                  onVisibilityChanged: (info) =>
+                                      _onNoteVisibility(note.id, info),
+                                  child: NoteCard(
+                                    note: note,
+                                    profile: profile,
+                                    replyCount: note.cachedReplyCount,
+                                    isFollowed: isFollowed,
+                                    isSaved:
+                                        feedState.savedIds.contains(note.id),
+                                    onTap: () => openEventThread(
+                                      context,
+                                      note.id,
+                                      openAsNote: () => Navigator.pushNamed(
+                                        context,
+                                        AppRoutes.thread,
+                                        arguments: note.id,
+                                      ),
+                                    ),
+                                    onFollowTap: () => _toggleFollow(
+                                      context,
+                                      note.id,
+                                      note.content.length > 80
+                                          ? '${note.content.substring(0, 80)}…'
+                                          : note.content,
+                                      isFollowed,
+                                    ),
+                                    onSaveTap: () {
+                                      final bloc =
+                                          context.read<VishnuFeedBloc>();
+                                      final saved = feedState.savedIds
+                                          .contains(note.id);
+                                      if (saved) {
+                                        bloc.add(UnsaveFeedNoteEvent(note.id));
+                                      } else {
+                                        bloc.add(SaveFeedNoteEvent(note));
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          // Floating overlay — sits above the listview with
+                          // no background of its own, so it doesn't steal
+                          // vertical space when there's nothing new.
+                          Positioned(
+                            top: 4,
+                            left: 0,
+                            right: 0,
+                            child: IgnorePointer(
+                              ignoring: feedState.newCount <= 0,
+                              child: NewNotesBanner(
+                                count: feedState.newCount,
+                                onTap: _onLoadNewNotes,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

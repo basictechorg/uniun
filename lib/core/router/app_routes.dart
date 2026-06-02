@@ -11,6 +11,7 @@ abstract class AppRoutes {
   static const followedNoteDetail = '/followed-note-detail';
   static const thread = '/thread';
   static const aiModelSelection = '/ai-model-selection';
+  static const channelEntry = '/channel-entry';
   static const createChannel = '/create-channel';
   static const joinChannel = '/join-channel';
   static const savedNotes = '/saved-notes';
@@ -19,7 +20,9 @@ abstract class AppRoutes {
   static const createDm = '/create-dm';
   static const chatDm = '/chat-dm';
   static const brahmaCreate = '/brahma-create';
+  static const privateChannelEntry = '/private-channel-entry';
   static const createPrivateChannel = '/create-private-channel';
   static const joinPrivateChannel = '/join-private-channel';
   static const privateChannelDetail = '/private-channel-detail';
+  static const scanQr = '/scan-qr';
 }

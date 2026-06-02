@@ -5,7 +5,9 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 abstract class PrivateChannelDetailEvent {}
@@ -51,6 +53,7 @@ class PrivateChannelDetailState {
   final PrivateChannelEntity? channel;
   final List<PrivateChannelMessageEntity> messages;
   final List<PrivateChannelJoinRequestEntity> joinRequests;
+  final Map<String, ProfileEntity> profiles;
   final bool isAdmin;
   final bool isLeft;
 
@@ -62,6 +65,7 @@ class PrivateChannelDetailState {
     this.channel,
     this.messages = const [],
     this.joinRequests = const [],
+    this.profiles = const {},
     this.isAdmin = false,
     this.isLeft = false,
   });
@@ -82,6 +86,7 @@ class PrivateChannelDetailState {
     PrivateChannelEntity? channel,
     List<PrivateChannelMessageEntity>? messages,
     List<PrivateChannelJoinRequestEntity>? joinRequests,
+    Map<String, ProfileEntity>? profiles,
     bool? isAdmin,
     bool? isLeft,
   }) {
@@ -93,6 +98,7 @@ class PrivateChannelDetailState {
       channel: channel ?? this.channel,
       messages: messages ?? this.messages,
       joinRequests: joinRequests ?? this.joinRequests,
+      profiles: profiles ?? this.profiles,
       isAdmin: isAdmin ?? this.isAdmin,
       isLeft: isLeft ?? this.isLeft,
     );
@@ -109,6 +115,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   final LeavePrivateChannelUsecase _leaveChannel;
   final GetActiveUserUseCase _getActiveUser;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
+  final GetProfileUseCase _getProfile;
   StreamSubscription<PrivateChannelEntity?>? _channelSubscription;
   StreamSubscription<List<PrivateChannelMessageEntity>>? _messagesSubscription;
   StreamSubscription<List<PrivateChannelJoinRequestEntity>>? _joinRequestsSubscription;
@@ -123,6 +130,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     this._leaveChannel,
     this._getActiveUser,
     this._getActiveUserKeys,
+    this._getProfile,
     @factoryParam String groupId,
   ) : super(PrivateChannelDetailState(groupId: groupId)) {
     on<LoadPrivateChannelEvent>(_onLoad);
@@ -136,8 +144,9 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
           _activeUserPubkey != null && channel.adminPubkey == _activeUserPubkey;
       emit(state.copyWith(channel: channel, isAdmin: isAdmin));
     });
-    on<_PrivateChannelMessagesUpdated>((event, emit) {
-      emit(state.copyWith(messages: event.messages));
+    on<_PrivateChannelMessagesUpdated>((event, emit) async {
+      final profiles = await _hydrateProfiles(event.messages);
+      emit(state.copyWith(messages: event.messages, profiles: profiles));
     });
     on<_PrivateChannelJoinRequestsUpdated>((event, emit) {
       emit(state.copyWith(joinRequests: event.joinRequests));
@@ -242,6 +251,21 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to leave channel: $e'));
     }
+  }
+
+  Future<Map<String, ProfileEntity>> _hydrateProfiles(
+    List<PrivateChannelMessageEntity> messages,
+  ) async {
+    final profiles = Map<String, ProfileEntity>.from(state.profiles);
+    final missing = messages
+        .map((m) => m.senderPubkey)
+        .toSet()
+        .where((k) => !profiles.containsKey(k));
+    for (final pubkey in missing) {
+      final r = await _getProfile.call(pubkey);
+      r.fold((_) {}, (p) => profiles[pubkey] = p);
+    }
+    return profiles;
   }
 
   @override

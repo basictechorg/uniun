@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_button.dart';
+import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
+import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -47,54 +51,26 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   void _showJoinRequests(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surfaceContainerLowest,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) {
         return BlocProvider.value(
           value: context.read<PrivateChannelDetailBloc>(),
-          child: BlocBuilder<PrivateChannelDetailBloc, PrivateChannelDetailState>(
+          child: BlocBuilder<PrivateChannelDetailBloc,
+              PrivateChannelDetailState>(
             builder: (ctx, state) {
-              return SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        "Pending Join Requests",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                    if (state.joinRequests.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Text("No pending requests."),
-                      ),
-                    ...state.joinRequests.map((req) {
-                      return ListTile(
-                        leading: const Icon(Icons.person),
-                        title: Text("Pubkey: ${req.senderPubkey.substring(0, 8)}..."),
-                        subtitle: const Text("Wants to join"),
-                        trailing: ElevatedButton(
-                          onPressed: state.isApproving
-                              ? null
-                              : () {
-                            ctx.read<PrivateChannelDetailBloc>().add(
-                                  ApproveJoinRequestEvent(req.keyPackageB64),
-                                );
-                            Navigator.pop(ctx);
-                          },
-                          child: state.isApproving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text("Approve"),
-                        ),
+              return _JoinRequestsSheet(
+                requests: state.joinRequests,
+                profiles: state.profiles,
+                isApproving: state.isApproving,
+                onApprove: (keyPackage) {
+                  ctx.read<PrivateChannelDetailBloc>().add(
+                        ApproveJoinRequestEvent(keyPackage),
                       );
-                    }),
-                  ],
-                ),
+                },
               );
             },
           ),
@@ -176,22 +152,25 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                       ),
                   ],
                 ),
+              if (state.channel != null)
+                UniunQrButton(
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => UniunQrCard.privateChannel(
+                      name: state.channel!.name,
+                      groupId: state.groupId,
+                      relays: state.channel!.relays,
+                    ),
+                  ),
+                  tooltip: 'Share QR',
+                ),
               PopupMenuButton<String>(
                 onSelected: (val) {
-                  if (val == 'share') {
-                    Clipboard.setData(ClipboardData(text: state.groupId));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Group ID copied to clipboard")),
-                    );
-                  } else if (val == 'leave') {
+                  if (val == 'leave') {
                     context.read<PrivateChannelDetailBloc>().add(LeavePrivateChannelEvent());
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'share',
-                    child: Text('Copy Group ID'),
-                  ),
                   const PopupMenuItem(
                     value: 'leave',
                     child: Text('Leave Channel', style: TextStyle(color: AppColors.error)),
@@ -223,6 +202,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                                 final card = NoteCard(
                                   key: ValueKey(msg.eventId),
                                   note: msg,
+                                  profile: state.profiles[msg.senderPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 );
                                 if (refIds.isEmpty) return card;
@@ -297,6 +277,217 @@ class _PendingApprovalView extends StatelessWidget {
                 color: AppColors.onSurface.withValues(alpha: 0.6),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JoinRequestsSheet extends StatelessWidget {
+  const _JoinRequestsSheet({
+    required this.requests,
+    required this.profiles,
+    required this.isApproving,
+    required this.onApprove,
+  });
+
+  final List requests;
+  final Map<String, ProfileEntity> profiles;
+  final bool isApproving;
+  final void Function(String keyPackageB64) onApprove;
+
+  String _shortNpub(String pubkeyHex) {
+    try {
+      final npub = Nip19.encodePubkey(pubkeyHex);
+      if (npub.length <= 18) return npub;
+      return '${npub.substring(0, 10)}…${npub.substring(npub.length - 6)}';
+    } catch (_) {
+      return '${pubkeyHex.substring(0, 8)}…';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.group_add_rounded,
+                    color: AppColors.primary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.pendingRequestsTitle,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.onSurface,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                if (requests.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${requests.length}',
+                      style: const TextStyle(
+                        color: AppColors.onPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.pendingRequestsSubtitle,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (requests.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    Icon(Icons.inbox_outlined,
+                        size: 36,
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.6)),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.pendingRequestsEmpty,
+                      style: const TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.55,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: requests.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (_, i) {
+                    final req = requests[i];
+                    final pubkey = req.senderPubkey as String;
+                    final profile = profiles[pubkey];
+                    final name = (profile?.name?.trim().isNotEmpty == true)
+                        ? profile!.name!
+                        : l10n.pendingRequestsNewMember;
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          UserAvatar(
+                            seed: pubkey,
+                            photoUrl: profile?.avatarUrl,
+                            size: 44,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _shortNpub(pubkey),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: isApproving
+                                ? null
+                                : () {
+                                    onApprove(req.keyPackageB64 as String);
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.onPrimary,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: isApproving
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.onPrimary,
+                                    ),
+                                  )
+                                : Text(
+                                    l10n.pendingRequestsApprove,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),

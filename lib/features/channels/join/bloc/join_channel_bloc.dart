@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/features/channels/join/utils/join_channel_qr_parser.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_channel_usecase.dart';
@@ -9,6 +8,8 @@ import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 
 part 'join_channel_event.dart';
 part 'join_channel_state.dart';
+
+final _hex64 = RegExp(r'^[0-9a-fA-F]{64}$');
 
 @injectable
 class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
@@ -24,7 +25,6 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
     on<LoadJoinRelaysEvent>(_onLoadRelays);
     on<AddJoinRelayEvent>(_onAddRelay);
     on<SubmitJoinChannelEvent>(_onSubmitJoin);
-    on<SubmitJoinChannelQrEvent>(_onSubmitJoinQr);
   }
 
   Future<void> _onLoadRelays(
@@ -71,7 +71,7 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
   ) async {
     final channelId = event.channelId.trim();
     final channelName = event.channelName.trim();
-    if (!JoinChannelQrParser.isValidChannelId(channelId)) {
+    if (!_hex64.hasMatch(channelId)) {
       emit(
         state.copyWith(errorMessage: 'Enter a valid 64-character channel id.'),
       );
@@ -130,23 +130,4 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
     );
   }
 
-  Future<void> _onSubmitJoinQr(
-    SubmitJoinChannelQrEvent event,
-    Emitter<JoinChannelState> emit,
-  ) async {
-    try {
-      final payload = JoinChannelQrParser.parse(event.rawPayload);
-      add(
-        SubmitJoinChannelEvent(
-          channelId: payload.channelId,
-          selectedRelays: payload.relays,
-          channelName: payload.channelName,
-        ),
-      );
-    } on FormatException catch (error) {
-      emit(state.copyWith(errorMessage: error.message));
-    } catch (_) {
-      emit(state.copyWith(errorMessage: 'Failed to parse QR code.'));
-    }
-  }
 }

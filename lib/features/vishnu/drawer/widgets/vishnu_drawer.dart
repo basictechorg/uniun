@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:uniun/common/qr/uniun_qr_button.dart';
+import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/features/thread/pages/thread_page.dart' show ThreadRouteArgs;
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
@@ -75,10 +77,14 @@ class VishnuDrawer extends StatelessWidget {
                       onItemTap: (item) async {
                         _close(context);
                         getIt<ClearNewReferencesUseCase>().call(item.eventId);
-                        await Navigator.pushNamed(
+                        await openEventThread(
                           context,
-                          AppRoutes.thread,
-                          arguments: item.eventId,
+                          item.eventId,
+                          openAsNote: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.thread,
+                            arguments: ThreadRouteArgs(item.eventId),
+                          ),
                         );
                         // ignore: use_build_context_synchronously
                         if (context.mounted) {
@@ -94,7 +100,7 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.channels ?? [],
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.createChannel);
+                        Navigator.pushNamed(context, AppRoutes.channelEntry);
                       },
                       onItemTap: (channelId) {
                         _close(context);
@@ -111,13 +117,10 @@ class VishnuDrawer extends StatelessWidget {
                     // ── Private Channels (collapsible) ────────────────────────────
                     _CollapsiblePrivateChannelSection(
                       items: loaded?.privateChannels ?? [],
-                      onCreate: () {
+                      onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.createPrivateChannel);
-                      },
-                      onJoin: () {
-                        _close(context);
-                        Navigator.pushNamed(context, AppRoutes.joinPrivateChannel);
+                        Navigator.pushNamed(
+                            context, AppRoutes.privateChannelEntry);
                       },
                       onItemTap: (groupId) {
                         _close(context);
@@ -207,131 +210,72 @@ class _DrawerHeader extends StatelessWidget {
   final String? avatarUrl;
 
   void _showQr(BuildContext context) {
+    if (npub.isEmpty) return;
     showDialog<void>(
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: AppColors.surface,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                npub,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              QrImageView(
-                data: pubkeyHex.isEmpty ? 'uniun' : 'nostr:$npub',
-                version: QrVersions.auto,
-                size: 200,
-                backgroundColor: Colors.white,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: Colors.black,
-                ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: npub));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!.drawerNpubCopied),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.copy_rounded, size: 16),
-                label: Text(AppLocalizations.of(context)!.drawerCopyNpub),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => UniunQrCard.user(npub: npub, name: name),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showQr(context),
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-            16, MediaQuery.of(context).padding.top + 16, 16, 16),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: AppColors.outlineVariant.withValues(alpha: 0.4),
-            ),
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          16, MediaQuery.of(context).padding.top + 16, 8, 16),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
-        child: Row(
-          children: [
-            Stack(
-              children: [
-                UserAvatar(
-                  seed: pubkeyHex,
-                  photoUrl: avatarUrl,
-                  size: 40,
-                  borderRadius: 10,
-                ),
-                Positioned(
-                  bottom: -1,
-                  right: -1,
-                  child: Container(
-                    width: 11,
-                    height: 11,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF22C55E),
-                      border: Border.all(color: AppColors.surface, width: 2),
-                    ),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              UserAvatar(
+                seed: pubkeyHex,
+                photoUrl: avatarUrl,
+                size: 40,
+                borderRadius: 10,
+              ),
+              Positioned(
+                bottom: -1,
+                right: -1,
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF22C55E),
+                    border: Border.all(color: AppColors.surface, width: 2),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const Icon(
-              Icons.qr_code_rounded,
-              color: AppColors.onSurfaceVariant,
-              size: 18,
-            ),
-          ],
-        ),
+          ),
+          UniunQrScanButton(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.scanQr),
+            tooltip: 'Scan QR',
+          ),
+          UniunQrButton(
+            onTap: () => _showQr(context),
+            tooltip: 'My QR',
+          ),
+        ],
       ),
     );
   }
@@ -651,14 +595,12 @@ class _CollapsibleChannelSectionState
 class _CollapsiblePrivateChannelSection extends StatefulWidget {
   const _CollapsiblePrivateChannelSection({
     required this.items,
-    required this.onCreate,
-    required this.onJoin,
+    required this.onAdd,
     required this.onItemTap,
   });
 
   final List<app_drawer.DrawerPrivateChannelItem> items;
-  final VoidCallback onCreate;
-  final VoidCallback onJoin;
+  final VoidCallback onAdd;
   final ValueChanged<String> onItemTap;
 
   @override
@@ -695,34 +637,7 @@ class _CollapsiblePrivateChannelSectionState
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: AppColors.surface,
-                      builder: (ctx) => SafeArea(
-                        child: Wrap(
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.add_rounded, color: AppColors.primary),
-                              title: const Text('Create Private Channel'),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                widget.onCreate();
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.login_rounded, color: AppColors.primary),
-                              title: const Text('Join Private Channel'),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                widget.onJoin();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: widget.onAdd,
                   child: const Icon(Icons.add_rounded,
                       size: 18, color: AppColors.outline),
                 ),

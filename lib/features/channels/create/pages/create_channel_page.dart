@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/features/channels/create/bloc/create_channel_bloc.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -52,60 +52,6 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
     );
   }
 
-  void _showRelaySelectorDialog(List<String> availableRelays) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: AppColors.surfaceContainerLowest,
-              title: const Text(
-                'Select Relays',
-                style: TextStyle(color: AppColors.onSurface),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: availableRelays.length,
-                  itemBuilder: (context, index) {
-                    final relay = availableRelays[index];
-                    final isSelected = _selectedRelays.contains(relay);
-                    return CheckboxListTile(
-                      activeColor: AppColors.primary,
-                      title: Text(relay, style: const TextStyle(fontSize: 14)),
-                      value: isSelected,
-                      onChanged: (val) {
-                        setStateDialog(() {
-                          if (val == true) {
-                            _selectedRelays.add(relay);
-                          } else {
-                            _selectedRelays.remove(relay);
-                          }
-                        });
-                        setState(() {}); // Update background UI
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -122,8 +68,8 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
         }
         if (state.isSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Success!'),
+            SnackBar(
+              content: Text(l10n.createChannelSuccess),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -143,9 +89,9 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text(
-              'Channel',
-              style: TextStyle(
+            title: Text(
+              l10n.createChannelTitle,
+              style: const TextStyle(
                 color: AppColors.onSurface,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -169,9 +115,9 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Channel Details',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.createChannelDetailsHeading,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
 
@@ -179,7 +125,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
             controller: _nameController,
             maxLength: 30,
             decoration: InputDecoration(
-              labelText: 'Channel Name',
+              labelText: l10n.createChannelNameLabel,
               labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -199,7 +145,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
             controller: _aboutController,
             maxLines: 3,
             decoration: InputDecoration(
-              labelText: 'About (Theme/Rules)',
+              labelText: l10n.createChannelAboutLabel,
               labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -211,7 +157,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
           TextField(
             controller: _pictureController,
             decoration: InputDecoration(
-              labelText: 'Picture URL (Optional)',
+              labelText: l10n.createChannelPictureLabel,
               labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -220,77 +166,24 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
           ),
 
           const SizedBox(height: 32),
-          const Text(
-            'Publish Relays',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.createChannelPublishRelays,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Select the relays this channel should be broadcasted on.',
-            style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+          Text(
+            l10n.createChannelPublishRelaysBody,
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
 
-          if (state.isLoadingRelays)
-            const Center(child: CircularProgressIndicator())
-          else
-            InkWell(
-              onTap: () => _showRelaySelectorDialog(state.availableRelays),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.outlineVariant),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _selectedRelays.isEmpty
-                            ? 'Select Relays'
-                            : '${_selectedRelays.length} Relays Selected',
-                        style: TextStyle(
-                          color: _selectedRelays.isEmpty
-                              ? AppColors.onSurfaceVariant
-                              : AppColors.onSurface,
-                          fontWeight: _selectedRelays.isEmpty
-                              ? FontWeight.normal
-                              : FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_drop_down_rounded,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          if (_selectedRelays.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 12.0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _selectedRelays
-                    .map(
-                      (r) => Chip(
-                        label: Text(r, style: const TextStyle(fontSize: 11)),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedRelays.remove(r);
-                          });
-                        },
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
+          RelaySelectorField(
+            selected: _selectedRelays,
+            onChanged: (next) => setState(() => _selectedRelays
+              ..clear()
+              ..addAll(next)),
+          ),
 
           const SizedBox(height: 48),
 
@@ -315,28 +208,13 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Text(
-                      'Create Channel',
-                      style: TextStyle(
+                  : Text(
+                      l10n.createChannelAction,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.joinChannel),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(l10n.joinChannelAction),
             ),
           ),
         ],

@@ -271,6 +271,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vishnuReferenceUnavailable => 'Referenced note not available';
 
   @override
+  String vishnuNewNotesBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new notes',
+      one: '1 new note',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get homeShivTitle => 'Shiv — AI Assistant';
 
   @override
@@ -1052,4 +1063,171 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get graphDraftDelete => 'Delete';
+
+  @override
+  String get channelEntryTitle => 'Channels';
+
+  @override
+  String get channelEntrySubtitle =>
+      'Join an existing public channel using its ID or QR, or start a new one.';
+
+  @override
+  String get channelEntryJoin => 'Join a channel';
+
+  @override
+  String get channelEntryCreate => 'Create a channel';
+
+  @override
+  String get privateChannelEntryTitle => 'Private Channels';
+
+  @override
+  String get privateChannelEntrySubtitle =>
+      'Request to join an existing private channel, or create your own.';
+
+  @override
+  String get privateChannelEntryJoin => 'Join a private channel';
+
+  @override
+  String get privateChannelEntryCreate => 'Create a private channel';
+
+  @override
+  String get createChannelTitle => 'Channel';
+
+  @override
+  String get createChannelDetailsHeading => 'Channel Details';
+
+  @override
+  String get createChannelNameLabel => 'Channel Name';
+
+  @override
+  String get createChannelAboutLabel => 'About (Theme/Rules)';
+
+  @override
+  String get createChannelPictureLabel => 'Picture URL (Optional)';
+
+  @override
+  String get createChannelPublishRelays => 'Publish Relays';
+
+  @override
+  String get createChannelPublishRelaysBody =>
+      'Select the relays this channel should be broadcasted on.';
+
+  @override
+  String get createChannelAction => 'Create Channel';
+
+  @override
+  String get createChannelSuccess => 'Channel created successfully';
+
+  @override
+  String get createPrivateChannelTitle => 'Create Private Channel';
+
+  @override
+  String get createPrivateChannelHeading => 'Start a new Private Channel';
+
+  @override
+  String get createPrivateChannelDescription =>
+      'Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.';
+
+  @override
+  String get createPrivateChannelNameLabel => 'Channel Name';
+
+  @override
+  String get createPrivateChannelDescLabel => 'Description';
+
+  @override
+  String get createPrivateChannelAction => 'Create Channel';
+
+  @override
+  String get createPrivateChannelSuccess =>
+      'Private channel created successfully!';
+
+  @override
+  String get joinPrivateChannelTitle => 'Join Private Channel';
+
+  @override
+  String get joinPrivateChannelHeading => 'Request to Join';
+
+  @override
+  String get joinPrivateChannelSubtitle =>
+      'Enter the Group ID to request access to a private channel.';
+
+  @override
+  String get joinPrivateChannelGroupIdLabel => 'Group ID';
+
+  @override
+  String get joinPrivateChannelGroupIdHint => 'uniun\'...';
+
+  @override
+  String get joinPrivateChannelScanQr => 'Scan QR';
+
+  @override
+  String get joinPrivateChannelAction => 'Send Join Request';
+
+  @override
+  String get joinPrivateChannelSuccess =>
+      'Join request sent! Wait for admin approval.';
+
+  @override
+  String get relaySelectorPlaceholder => 'Select Relays';
+
+  @override
+  String relaySelectorSelected(int count) {
+    return '$count Relays Selected';
+  }
+
+  @override
+  String get relaySelectorPickerTitle => 'Select Relays';
+
+  @override
+  String get relaySelectorEmpty => 'No relays available. Tap + to add one.';
+
+  @override
+  String get relaySelectorAddTooltip => 'Add relay';
+
+  @override
+  String get relayAddDialogTitle => 'Add Relay';
+
+  @override
+  String get relayAddDialogHint => 'wss://relay.example.com';
+
+  @override
+  String get relayAddDialogAction => 'Add';
+
+  @override
+  String relayAddDialogError(String error) {
+    return 'Could not add relay: $error';
+  }
+
+  @override
+  String get relayRemoveDialogTitle => 'Remove Relay';
+
+  @override
+  String relayRemoveDialogBody(String url) {
+    return 'Stop using $url?';
+  }
+
+  @override
+  String get relayRemoveDialogAction => 'Remove';
+
+  @override
+  String get relayManageEmpty => 'No relays found.';
+
+  @override
+  String get relayManageRemoveTooltip => 'Remove';
+
+  @override
+  String get pendingRequestsTitle => 'Pending join requests';
+
+  @override
+  String get pendingRequestsSubtitle =>
+      'Approve users so they can read and send messages.';
+
+  @override
+  String get pendingRequestsEmpty => 'No pending requests.';
+
+  @override
+  String get pendingRequestsNewMember => 'New member';
+
+  @override
+  String get pendingRequestsApprove => 'Approve';
 }

@@ -34,6 +34,10 @@ class RelayModel {
 
   /// Last time this relay successfully reached [RelayStatus.connected].
   DateTime? lastConnectedAt;
+
+  /// True for relays seeded by the app (e.g. the default Uniun relay).
+  /// The user cannot delete a system relay; only read/write toggles allowed.
+  late bool isSystem;
 }
 
 extension RelayModelExtension on RelayModel {
@@ -43,5 +47,6 @@ extension RelayModelExtension on RelayModel {
         write: write,
         status: status,
         lastConnectedAt: lastConnectedAt,
+        isSystem: isSystem,
       );
 }

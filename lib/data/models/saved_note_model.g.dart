@@ -22,47 +22,52 @@ const SavedNoteModelSchema = CollectionSchema(
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'cachedReplyCount': PropertySchema(
-      id: 1,
-      name: r'cachedReplyCount',
-      type: IsarType.long,
-    ),
-    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
+    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
     r'created': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
+    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
     r'pTagRefs': PropertySchema(
-      id: 6,
+      id: 5,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 6,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 7,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'savedAt': PropertySchema(
-      id: 9,
+      id: 8,
       name: r'savedAt',
       type: IsarType.dateTime,
     ),
-    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
-    r'tTags': PropertySchema(id: 11, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 9, name: r'sig', type: IsarType.string),
+    r'sourceChannelId': PropertySchema(
+      id: 10,
+      name: r'sourceChannelId',
+      type: IsarType.string,
+    ),
+    r'sourcePrivateGroupId': PropertySchema(
+      id: 11,
+      name: r'sourcePrivateGroupId',
+      type: IsarType.string,
+    ),
+    r'tTags': PropertySchema(id: 12, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'type',
       type: IsarType.string,
       enumMap: _SavedNoteModeltypeEnumValueMap,
@@ -173,6 +178,18 @@ int _savedNoteModelEstimateSize(
     }
   }
   bytesCount += 3 + object.sig.length * 3;
+  {
+    final value = object.sourceChannelId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.sourcePrivateGroupId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.tTags.length * 3;
   {
     for (var i = 0; i < object.tTags.length; i++) {
@@ -191,18 +208,19 @@ void _savedNoteModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeLong(offsets[1], object.cachedReplyCount);
-  writer.writeString(offsets[2], object.content);
-  writer.writeDateTime(offsets[3], object.created);
-  writer.writeStringList(offsets[4], object.eTagRefs);
-  writer.writeString(offsets[5], object.eventId);
-  writer.writeStringList(offsets[6], object.pTagRefs);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeDateTime(offsets[9], object.savedAt);
-  writer.writeString(offsets[10], object.sig);
-  writer.writeStringList(offsets[11], object.tTags);
-  writer.writeString(offsets[12], object.type.name);
+  writer.writeString(offsets[1], object.content);
+  writer.writeDateTime(offsets[2], object.created);
+  writer.writeStringList(offsets[3], object.eTagRefs);
+  writer.writeString(offsets[4], object.eventId);
+  writer.writeStringList(offsets[5], object.pTagRefs);
+  writer.writeString(offsets[6], object.replyToEventId);
+  writer.writeString(offsets[7], object.rootEventId);
+  writer.writeDateTime(offsets[8], object.savedAt);
+  writer.writeString(offsets[9], object.sig);
+  writer.writeString(offsets[10], object.sourceChannelId);
+  writer.writeString(offsets[11], object.sourcePrivateGroupId);
+  writer.writeStringList(offsets[12], object.tTags);
+  writer.writeString(offsets[13], object.type.name);
 }
 
 SavedNoteModel _savedNoteModelDeserialize(
@@ -213,20 +231,21 @@ SavedNoteModel _savedNoteModelDeserialize(
 ) {
   final object = SavedNoteModel();
   object.authorPubkey = reader.readString(offsets[0]);
-  object.cachedReplyCount = reader.readLong(offsets[1]);
-  object.content = reader.readString(offsets[2]);
-  object.created = reader.readDateTime(offsets[3]);
-  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
-  object.eventId = reader.readString(offsets[5]);
+  object.content = reader.readString(offsets[1]);
+  object.created = reader.readDateTime(offsets[2]);
+  object.eTagRefs = reader.readStringList(offsets[3]) ?? [];
+  object.eventId = reader.readString(offsets[4]);
   object.id = id;
-  object.pTagRefs = reader.readStringList(offsets[6]) ?? [];
-  object.replyToEventId = reader.readStringOrNull(offsets[7]);
-  object.rootEventId = reader.readStringOrNull(offsets[8]);
-  object.savedAt = reader.readDateTime(offsets[9]);
-  object.sig = reader.readString(offsets[10]);
-  object.tTags = reader.readStringList(offsets[11]) ?? [];
+  object.pTagRefs = reader.readStringList(offsets[5]) ?? [];
+  object.replyToEventId = reader.readStringOrNull(offsets[6]);
+  object.rootEventId = reader.readStringOrNull(offsets[7]);
+  object.savedAt = reader.readDateTime(offsets[8]);
+  object.sig = reader.readString(offsets[9]);
+  object.sourceChannelId = reader.readStringOrNull(offsets[10]);
+  object.sourcePrivateGroupId = reader.readStringOrNull(offsets[11]);
+  object.tTags = reader.readStringList(offsets[12]) ?? [];
   object.type =
-      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[12])] ??
+      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[13])] ??
       NoteType.text;
   return object;
 }
@@ -241,28 +260,30 @@ P _savedNoteModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
-    case 3:
       return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readStringList(offset) ?? []) as P;
     case 4:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 5:
       return (reader.readString(offset)) as P;
-    case 6:
+    case 5:
       return (reader.readStringList(offset) ?? []) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
-    case 9:
       return (reader.readDateTime(offset)) as P;
-    case 10:
+    case 9:
       return (reader.readString(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 13:
       return (_SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(
                 offset,
               )] ??
@@ -898,61 +919,6 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'authorPubkey', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  cachedReplyCountEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'cachedReplyCount', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  cachedReplyCountGreaterThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'cachedReplyCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  cachedReplyCountLessThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'cachedReplyCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  cachedReplyCountBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'cachedReplyCount',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
       );
     });
   }
@@ -2248,6 +2214,327 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'sourceChannelId'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'sourceChannelId'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'sourceChannelId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'sourceChannelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'sourceChannelId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'sourceChannelId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourceChannelIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'sourceChannelId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'sourcePrivateGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'sourcePrivateGroupId'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'sourcePrivateGroupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'sourcePrivateGroupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'sourcePrivateGroupId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'sourcePrivateGroupId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  sourcePrivateGroupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          property: r'sourcePrivateGroupId',
+          value: '',
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
   tTagsElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2605,20 +2892,6 @@ extension SavedNoteModelQuerySortBy
     });
   }
 
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  sortByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  sortByCachedReplyCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.desc);
-    });
-  }
-
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -2711,6 +2984,34 @@ extension SavedNoteModelQuerySortBy
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySourceChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceChannelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySourceChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceChannelId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySourcePrivateGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourcePrivateGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySourcePrivateGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourcePrivateGroupId', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> sortByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -2737,20 +3038,6 @@ extension SavedNoteModelQuerySortThenBy
   thenByAuthorPubkeyDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'authorPubkey', Sort.desc);
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  thenByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  thenByCachedReplyCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'cachedReplyCount', Sort.desc);
     });
   }
 
@@ -2858,6 +3145,34 @@ extension SavedNoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySourceChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceChannelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySourceChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceChannelId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySourcePrivateGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourcePrivateGroupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySourcePrivateGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourcePrivateGroupId', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> thenByType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'type', Sort.asc);
@@ -2877,13 +3192,6 @@ extension SavedNoteModelQueryWhereDistinct
   distinctByAuthorPubkey({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'authorPubkey', caseSensitive: caseSensitive);
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
-  distinctByCachedReplyCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'cachedReplyCount');
     });
   }
 
@@ -2952,6 +3260,26 @@ extension SavedNoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
+  distinctBySourceChannelId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'sourceChannelId',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
+  distinctBySourcePrivateGroupId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'sourcePrivateGroupId',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct> distinctByTTags() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tTags');
@@ -2979,13 +3307,6 @@ extension SavedNoteModelQueryProperty
   authorPubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authorPubkey');
-    });
-  }
-
-  QueryBuilder<SavedNoteModel, int, QQueryOperations>
-  cachedReplyCountProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'cachedReplyCount');
     });
   }
 
@@ -3044,6 +3365,20 @@ extension SavedNoteModelQueryProperty
   QueryBuilder<SavedNoteModel, String, QQueryOperations> sigProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sig');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, String?, QQueryOperations>
+  sourceChannelIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sourceChannelId');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, String?, QQueryOperations>
+  sourcePrivateGroupIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sourcePrivateGroupId');
     });
   }
 
