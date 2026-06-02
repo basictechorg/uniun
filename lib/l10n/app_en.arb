@@ -1128,5 +1128,74 @@
   "pendingRequestsNewMember": "New member",
   "@pendingRequestsNewMember": { "description": "Fallback name shown for a join request with no profile name" },
   "pendingRequestsApprove": "Approve",
-  "@pendingRequestsApprove": { "description": "Approve button label on a pending join request" }
+  "@pendingRequestsApprove": { "description": "Approve button label on a pending join request" },
+
+  "settingsCloudProvider": "Cloud AI",
+  "@settingsCloudProvider": { "description": "Section label for cloud LLM provider settings" },
+
+  "cloudProviderTitle": "OpenRouter",
+  "@cloudProviderTitle": { "description": "Title of the cloud provider settings card" },
+
+  "cloudProviderEmptyCta": "Connect API key",
+  "@cloudProviderEmptyCta": { "description": "CTA in cloud provider card when no API key is configured" },
+
+  "cloudProviderEmptySubtitle": "Run Shiv on any frontier model — paste an OpenRouter key to begin.",
+  "@cloudProviderEmptySubtitle": { "description": "Subtitle in cloud provider card when no API key is configured" },
+
+  "cloudProviderConnectedSubtitle": "Connected · Tap to manage",
+  "@cloudProviderConnectedSubtitle": { "description": "Subtitle in cloud provider card when an API key is configured" },
+
+  "cloudProviderDisconnect": "Disconnect",
+  "@cloudProviderDisconnect": { "description": "Action that removes the saved API key" },
+
+  "cloudProviderPasteKeyTitle": "Connect OpenRouter",
+  "@cloudProviderPasteKeyTitle": { "description": "Title of the dialog that asks the user to paste an API key" },
+
+  "cloudProviderPasteKeyHint": "sk-or-…",
+  "@cloudProviderPasteKeyHint": { "description": "Placeholder of the API key text field" },
+
+  "cloudProviderPasteKeyHelper": "Get a free key from openrouter.ai/keys",
+  "@cloudProviderPasteKeyHelper": { "description": "Helper text below the API key text field" },
+
+  "cloudProviderInvalidKey": "Invalid key — could not list models.",
+  "@cloudProviderInvalidKey": { "description": "Error shown when the pasted API key fails validation" },
+
+  "cloudProviderActiveModelLabel": "Active model",
+  "@cloudProviderActiveModelLabel": { "description": "Label preceding the currently-selected cloud model name" },
+
+  "cloudProviderNoActiveModel": "No model selected — pick one from the chat input.",
+  "@cloudProviderNoActiveModel": { "description": "Shown in cloud provider card when no cloud model has been selected yet" },
+
+  "cloudProviderUseCloud": "Use cloud backend",
+  "@cloudProviderUseCloud": { "description": "Toggle label that switches the active backend to cloud" },
+
+  "cloudProviderUseLocal": "Use on-device backend",
+  "@cloudProviderUseLocal": { "description": "Toggle label that switches the active backend back to local" },
+
+  "modelPickerTitle": "Pick a model",
+  "@modelPickerTitle": { "description": "Title of the chat input model picker bottom sheet" },
+
+  "modelPickerSearchHint": "Search models…",
+  "@modelPickerSearchHint": { "description": "Placeholder of the search field in the model picker" },
+
+  "modelPickerLocalSection": "On-device",
+  "@modelPickerLocalSection": { "description": "Section header in model picker for locally-downloaded models" },
+
+  "modelPickerCloudSection": "Cloud",
+  "@modelPickerCloudSection": { "description": "Section header in model picker for cloud OpenRouter models" },
+
+  "modelPickerManageLocalCta": "Manage on-device models",
+  "@modelPickerManageLocalCta": { "description": "Footer CTA in the model picker that opens the local model download page" },
+
+  "modelPickerConnectCloudCta": "Connect a cloud provider",
+  "@modelPickerConnectCloudCta": { "description": "Footer CTA in the model picker shown when no API key is configured" },
+
+  "modelPickerNoModels": "No models available.",
+  "@modelPickerNoModels": { "description": "Empty state shown in the model picker" },
+
+  "modelPickerLoadingCloud": "Fetching cloud models…",
+  "@modelPickerLoadingCloud": { "description": "Loading state shown while fetching the OpenRouter model list" },
+
+  "chatInputPickModelTooltip": "Pick model",
+  "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" }
 }

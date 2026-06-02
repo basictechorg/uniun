@@ -1230,4 +1230,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pendingRequestsApprove => 'Approve';
+
+  @override
+  String get settingsCloudProvider => 'Cloud AI';
+
+  @override
+  String get cloudProviderTitle => 'OpenRouter';
+
+  @override
+  String get cloudProviderEmptyCta => 'Connect API key';
+
+  @override
+  String get cloudProviderEmptySubtitle =>
+      'Run Shiv on any frontier model — paste an OpenRouter key to begin.';
+
+  @override
+  String get cloudProviderConnectedSubtitle => 'Connected · Tap to manage';
+
+  @override
+  String get cloudProviderDisconnect => 'Disconnect';
+
+  @override
+  String get cloudProviderPasteKeyTitle => 'Connect OpenRouter';
+
+  @override
+  String get cloudProviderPasteKeyHint => 'sk-or-…';
+
+  @override
+  String get cloudProviderPasteKeyHelper =>
+      'Get a free key from openrouter.ai/keys';
+
+  @override
+  String get cloudProviderInvalidKey => 'Invalid key — could not list models.';
+
+  @override
+  String get cloudProviderActiveModelLabel => 'Active model';
+
+  @override
+  String get cloudProviderNoActiveModel =>
+      'No model selected — pick one from the chat input.';
+
+  @override
+  String get cloudProviderUseCloud => 'Use cloud backend';
+
+  @override
+  String get cloudProviderUseLocal => 'Use on-device backend';
+
+  @override
+  String get modelPickerTitle => 'Pick a model';
+
+  @override
+  String get modelPickerSearchHint => 'Search models…';
+
+  @override
+  String get modelPickerLocalSection => 'On-device';
+
+  @override
+  String get modelPickerCloudSection => 'Cloud';
+
+  @override
+  String get modelPickerManageLocalCta => 'Manage on-device models';
+
+  @override
+  String get modelPickerConnectCloudCta => 'Connect a cloud provider';
+
+  @override
+  String get modelPickerNoModels => 'No models available.';
+
+  @override
+  String get modelPickerLoadingCloud => 'Fetching cloud models…';
+
+  @override
+  String get chatInputPickModelTooltip => 'Pick model';
 }

@@ -1,4 +1,6 @@
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 
 /// Per-model token budget for per-turn user-message assembly.
 ///
@@ -34,9 +36,28 @@ class PromptBudget {
   /// 2-hop for larger models (richer multi-hop reasoning).
   final int maxHops;
 
-  /// Returns the recommended budget for a given model. Falls back to a
-  /// conservative 2k budget when no model is active.
-  factory PromptBudget.forModel(AIModelId? modelId) {
+  /// Pick a budget that fits the active model's real capacity.
+  /// Cloud-backed [LlmModelInfo] → generous defaults (cloud context windows
+  /// dwarf any local model). Local → per-id table.
+  factory PromptBudget.forActiveModel(LlmModelInfo? model) {
+    if (model == null) return _local(null);
+    if (model.backend == LlmBackendType.openRouter) return _cloud(model);
+    return _local(_localIdFromName(model.id));
+  }
+
+  /// Local-model budget. Used directly when callers already have an
+  /// [AIModelId] (e.g. the existing `RagPipeline` path before backend
+  /// awareness was added).
+  factory PromptBudget.forModel(AIModelId? modelId) => _local(modelId);
+
+  static AIModelId? _localIdFromName(String name) {
+    for (final v in AIModelId.values) {
+      if (v.name == name) return v;
+    }
+    return null;
+  }
+
+  static PromptBudget _local(AIModelId? modelId) {
     final int max;
     final int topK;
     final int maxHops;
@@ -58,8 +79,25 @@ class PromptBudget {
         topK = 3;
         maxHops = 1;
     }
-    // Recommended split from wikiAI.md:
-    //   query 5-10%, topNotes 30-40%, graphRelations 15-20%, summaries 10-20%.
+    return _build(max, topK, maxHops);
+  }
+
+  /// Cloud models routinely expose 32k–200k context windows. We don't try
+  /// to fill them — too much context = noisy answers + higher token cost.
+  /// 16k is a sweet spot: deep enough for multi-hop graph context, small
+  /// enough that the price-per-turn stays reasonable.
+  ///
+  /// If [model.contextWindow] is reported (currently 0 from openrouter_api
+  /// 1.0.2), we cap our budget at half of it so we leave room for the
+  /// response.
+  static PromptBudget _cloud(LlmModelInfo model) {
+    final reported = model.contextWindow;
+    final cap = reported > 0 ? (reported ~/ 2).clamp(4096, 32768) : 16384;
+    return _build(cap, 15, 2);
+  }
+
+  static PromptBudget _build(int max, int topK, int maxHops) {
+    // Split: query 10%, topNotes 35%, graphRelations 20%, summaries 15%.
     return PromptBudget(
       maxTokens: max,
       queryTokens: (max * 0.10).round(),

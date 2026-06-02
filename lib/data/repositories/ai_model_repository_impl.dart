@@ -42,7 +42,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       isRecommended: false,
       optimization: AIModelOptimization.cpu,
       downloadUrl:
-          'https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
+          'https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm',
     ),
     AIModelEntity(
       modelId: AIModelId.deepseekR1,
@@ -77,23 +77,27 @@ class AIModelRepositoryImpl implements AIModelRepository {
   ];
 
   /// flutter_gemma engine params — separate from the public entity fields.
+  /// Each entry MUST match the chat template the model file was trained with;
+  /// passing the wrong [ModelType] to `openChat` makes the SDK render a
+  /// template that the model can't parse → leading whitespace tokens,
+  /// degraded quality.
   static const Map<AIModelId, ({ModelType modelType, ModelFileType fileType})>
       _gemmaParams = {
     AIModelId.qwen25_05b: (
-      modelType: ModelType.qwen,
-      fileType: ModelFileType.task
+      modelType: ModelType.qwen3,
+      fileType: ModelFileType.litertlm,
     ),
     AIModelId.deepseekR1: (
       modelType: ModelType.deepSeek,
-      fileType: ModelFileType.task
+      fileType: ModelFileType.task,
     ),
     AIModelId.gemma4E2b: (
-      modelType: ModelType.gemmaIt,
-      fileType: ModelFileType.litertlm
+      modelType: ModelType.gemma4,
+      fileType: ModelFileType.litertlm,
     ),
     AIModelId.gemma4E4b: (
-      modelType: ModelType.gemmaIt,
-      fileType: ModelFileType.litertlm
+      modelType: ModelType.gemma4,
+      fileType: ModelFileType.litertlm,
     ),
   };
 

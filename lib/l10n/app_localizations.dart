@@ -2307,6 +2307,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Approve'**
   String get pendingRequestsApprove;
+
+  /// Section label for cloud LLM provider settings
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud AI'**
+  String get settingsCloudProvider;
+
+  /// Title of the cloud provider settings card
+  ///
+  /// In en, this message translates to:
+  /// **'OpenRouter'**
+  String get cloudProviderTitle;
+
+  /// CTA in cloud provider card when no API key is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Connect API key'**
+  String get cloudProviderEmptyCta;
+
+  /// Subtitle in cloud provider card when no API key is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Run Shiv on any frontier model — paste an OpenRouter key to begin.'**
+  String get cloudProviderEmptySubtitle;
+
+  /// Subtitle in cloud provider card when an API key is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Connected · Tap to manage'**
+  String get cloudProviderConnectedSubtitle;
+
+  /// Action that removes the saved API key
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get cloudProviderDisconnect;
+
+  /// Title of the dialog that asks the user to paste an API key
+  ///
+  /// In en, this message translates to:
+  /// **'Connect OpenRouter'**
+  String get cloudProviderPasteKeyTitle;
+
+  /// Placeholder of the API key text field
+  ///
+  /// In en, this message translates to:
+  /// **'sk-or-…'**
+  String get cloudProviderPasteKeyHint;
+
+  /// Helper text below the API key text field
+  ///
+  /// In en, this message translates to:
+  /// **'Get a free key from openrouter.ai/keys'**
+  String get cloudProviderPasteKeyHelper;
+
+  /// Error shown when the pasted API key fails validation
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid key — could not list models.'**
+  String get cloudProviderInvalidKey;
+
+  /// Label preceding the currently-selected cloud model name
+  ///
+  /// In en, this message translates to:
+  /// **'Active model'**
+  String get cloudProviderActiveModelLabel;
+
+  /// Shown in cloud provider card when no cloud model has been selected yet
+  ///
+  /// In en, this message translates to:
+  /// **'No model selected — pick one from the chat input.'**
+  String get cloudProviderNoActiveModel;
+
+  /// Toggle label that switches the active backend to cloud
+  ///
+  /// In en, this message translates to:
+  /// **'Use cloud backend'**
+  String get cloudProviderUseCloud;
+
+  /// Toggle label that switches the active backend back to local
+  ///
+  /// In en, this message translates to:
+  /// **'Use on-device backend'**
+  String get cloudProviderUseLocal;
+
+  /// Title of the chat input model picker bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a model'**
+  String get modelPickerTitle;
+
+  /// Placeholder of the search field in the model picker
+  ///
+  /// In en, this message translates to:
+  /// **'Search models…'**
+  String get modelPickerSearchHint;
+
+  /// Section header in model picker for locally-downloaded models
+  ///
+  /// In en, this message translates to:
+  /// **'On-device'**
+  String get modelPickerLocalSection;
+
+  /// Section header in model picker for cloud OpenRouter models
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get modelPickerCloudSection;
+
+  /// Footer CTA in the model picker that opens the local model download page
+  ///
+  /// In en, this message translates to:
+  /// **'Manage on-device models'**
+  String get modelPickerManageLocalCta;
+
+  /// Footer CTA in the model picker shown when no API key is configured
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a cloud provider'**
+  String get modelPickerConnectCloudCta;
+
+  /// Empty state shown in the model picker
+  ///
+  /// In en, this message translates to:
+  /// **'No models available.'**
+  String get modelPickerNoModels;
+
+  /// Loading state shown while fetching the OpenRouter model list
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching cloud models…'**
+  String get modelPickerLoadingCloud;
+
+  /// Tooltip on the + icon in the chat input that opens the model picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick model'**
+  String get chatInputPickModelTooltip;
 }
 
 class _AppLocalizationsDelegate

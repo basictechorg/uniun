@@ -12,9 +12,9 @@ import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/repositories/graph_repository.dart';
 import 'package:uniun/domain/repositories/memory_repository.dart';
 import 'package:uniun/domain/repositories/pending_extraction_repository.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart';
-import 'package:uniun/features/shiv/services/ai_model_runner.dart';
 
 /// Extracts a knowledge graph + wiki-style memory entry for a single note by
 /// calling Gemma in one-shot mode. Fire-and-forget safe: silently no-ops when
@@ -26,7 +26,8 @@ import 'package:uniun/features/shiv/services/ai_model_runner.dart';
 @lazySingleton
 class ExtractKnowledgeUseCase
     extends UseCase<void, (String, String, List<double>)> {
-  final AIModelRunner _runner;
+  final HasActiveLlmModelUseCase _hasModel;
+  final GenerateOneShotUseCase _oneShot;
   final PromptBuilder _promptBuilder;
   final SearchVectorNotesUseCase _searchVector;
   final GraphRepository _graph;
@@ -34,7 +35,8 @@ class ExtractKnowledgeUseCase
   final PendingExtractionRepository _pending;
 
   ExtractKnowledgeUseCase(
-    this._runner,
+    this._hasModel,
+    this._oneShot,
     this._promptBuilder,
     this._searchVector,
     this._graph,
@@ -53,8 +55,8 @@ class ExtractKnowledgeUseCase
       debugPrint('⏭️ Extract: skip $shortId (empty content or vec)');
       return;
     }
-    if (!_runner.hasActiveModel) {
-      debugPrint('⏭️ Extract: skip $shortId (no active Gemma model)');
+    if (!await _hasModel.call()) {
+      debugPrint('⏭️ Extract: skip $shortId (no active LLM backend)');
       return;
     }
     debugPrint('🔎 Extract: start $shortId');
@@ -81,13 +83,16 @@ class ExtractKnowledgeUseCase
         noteContent: content,
         similarNotes: similar,
       );
-      debugPrint('🔎 Extract: calling Gemma one-shot…');
-      final raw = await _runner.generateOneShot(prompt, maxTokens: 2048);
+      debugPrint('🔎 Extract: calling LLM one-shot…');
+      final oneShotResult = await _oneShot.call(
+        GenerateOneShotInput(prompt: prompt, maxTokens: 2048),
+      );
+      final raw = oneShotResult.fold((_) => null, (r) => r);
       if (raw == null) {
-        debugPrint('⚠️ Extract: Gemma returned null (no active model?)');
+        debugPrint('⚠️ Extract: LLM returned null (no active model or cancelled)');
         return;
       }
-      debugPrint('🔎 Extract: Gemma replied (${raw.length} chars)');
+      debugPrint('🔎 Extract: LLM replied (${raw.length} chars)');
 
       final parsed = _parseExtractionJson(raw);
       if (parsed == null) {

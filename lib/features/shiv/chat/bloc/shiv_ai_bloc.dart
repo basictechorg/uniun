@@ -8,10 +8,9 @@ import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/shiv_usecases.dart';
 import 'package:uniun/features/shiv/rag/pipeline/rag_pipeline.dart';
-import 'package:uniun/features/shiv/services/ai_model_runner.dart';
-import 'package:uniun/features/shiv/services/model_task_queue.dart';
 import 'package:uuid/uuid.dart';
 
 part 'shiv_ai_event.dart';
@@ -28,9 +27,13 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final UpdateMessageContentUseCase _updateMessageContent;
   final UpdateConversationTitleUseCase _updateConversationTitle;
   final UpdateActiveLeafUseCase _updateActiveLeaf;
-  final AIModelRunner _runner;
+  final HasActiveLlmModelUseCase _hasModel;
+  final OpenLlmConversationUseCase _openConv;
+  final CloseLlmConversationUseCase _closeConv;
+  final SendChatStreamUseCase _sendChatStream;
+  final PreemptBackgroundWorkUseCase _preempt;
+  final ResumeBackgroundWorkUseCase _resume;
   final RagPipeline _rag;
-  final ModelTaskQueue _modelQueue;
   final DrainPendingExtractionsUseCase _drainPending;
 
   StreamSubscription<String>? _streamSub;
@@ -44,9 +47,13 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     this._updateMessageContent,
     this._updateConversationTitle,
     this._updateActiveLeaf,
-    this._runner,
+    this._hasModel,
+    this._openConv,
+    this._closeConv,
+    this._sendChatStream,
+    this._preempt,
+    this._resume,
     this._rag,
-    this._modelQueue,
     this._drainPending,
   ) : super(const ShivAIState()) {
     // Tab enter/leave hooks (pause/resume + preempt + drain) live on
@@ -90,7 +97,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   Future<void> _onCreateConversation(
       _CreateConversation event, Emitter<ShivAIState> emit) async {
     // Guard: no model loaded yet — ShivPage._checkModel() will redirect.
-    if (!_runner.hasActiveModel) return;
+    if (!await _hasModel.call()) return;
 
     final result = await _createConversation.call('New conversation');
     await result.fold(
@@ -113,7 +120,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   Future<void> _onOpenConversation(
       _OpenConversation event, Emitter<ShivAIState> emit) async {
     // Guard: no model loaded yet — ShivPage._checkModel() will redirect.
-    if (!_runner.hasActiveModel) return;
+    if (!await _hasModel.call()) return;
 
     final conv = state.conversations
         .where((c) => c.conversationId == event.conversationId)
@@ -141,7 +148,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   Future<void> _onCloseConversation(
       _CloseConversation event, Emitter<ShivAIState> emit) async {
     _streamSub?.cancel();
-    await _runner.close();
+    await _closeConv.call();
     emit(state.copyWith(
       status: ShivChatStatus.idle,
       activeConversation: null,
@@ -232,10 +239,14 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       maxPairs: 3,
     );
 
-    // 5 — Stream inference through the priority queue.
+    // 5 — Stream inference through the LlmRepository (priority-coordinated
+    //     locally; goes over HTTP for the cloud backend in Phase 3).
     _streamSub?.cancel();
-    _streamSub = _runner
-        .sendAndStream(ragMsg.userMessage, cleanHistory: cleanHistory)
+    _streamSub = _sendChatStream
+        .call(SendChatStreamInput(
+          message: ragMsg.userMessage,
+          cleanHistory: cleanHistory,
+        ))
         .listen(
       (token) => add(ShivAIEvent.tokenReceived(token)),
       onDone: () => add(const ShivAIEvent.streamDone()),
@@ -301,7 +312,11 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   }
 
   void _onTokenReceived(_TokenReceived event, Emitter<ShivAIState> emit) {
-    final accumulated = (state.streamingContent ?? '') + event.token;
+    final current = state.streamingContent ?? '';
+    // Strip whitespace-only prefix some chat templates emit as the first token.
+    final accumulated = current.isEmpty
+        ? (current + event.token).trimLeft()
+        : current + event.token;
     emit(state.copyWith(streamingContent: accumulated));
   }
 
@@ -413,16 +428,14 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   }
 
   /// Called by [ShivPage] when the user navigates onto the AI tab. Pauses
-  /// background extraction so the queue doesn't pick up new low-priority
-  /// work while the user is chatting. We deliberately do NOT call
-  /// `stopGeneration` on the in-flight extraction: flutter_gemma 0.13.x
-  /// shares a single native LiteRT-LM session across Dart [InferenceChat]
-  /// objects, so cancelling extraction's wrapper also cancels the chat
-  /// stream and leaves the session in a state that null-derefs on the
-  /// next `nativeSendMessageAsync`. Any in-flight extraction finishes on
-  /// its own.
+  /// the low-priority queue so no new background extraction starts while
+  /// the user might chat. Any in-flight extraction is allowed to finish on
+  /// its own — the actual "stop the running one" preemption is triggered
+  /// inside [LlmRepository.sendChat] the moment the user sends a turn,
+  /// which is safe on flutter_gemma 0.16 because [InferenceModel.openChat]
+  /// gives each Dart wrapper its own native session.
   void onEnterShivTab() {
-    _modelQueue.pauseLowPriority();
+    unawaited(_preempt.call());
   }
 
   /// Called by [ShivPage] when the user navigates away from the AI tab.
@@ -431,17 +444,17 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   /// notes gets built before the next visit. Fire-and-forget; the drainer
   /// uses the low-priority lane and is internally guarded against overlap.
   void onLeaveShivTab() {
-    _modelQueue.resumeLowPriority();
+    unawaited(_resume.call());
     unawaited(_drainPending.call());
   }
 
   @override
   Future<void> close() async {
     _streamSub?.cancel();
-    await _runner.close();
+    await _closeConv.call();
     // Safety net for logout / HomePage teardown — make sure the queue isn't
     // left paused and any pending extractions get a final chance to drain.
-    _modelQueue.resumeLowPriority();
+    await _resume.call();
     unawaited(_drainPending.call());
     return super.close();
   }
@@ -456,10 +469,10 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     final contextSummary = branchContext != null && branchContext.isNotEmpty
         ? _rag.buildBranchContextSummary(branchContext)
         : '';
-    await _runner.initChat(
+    await _openConv.call(OpenLlmConversationInput(
       systemInstruction: contextSummary.isEmpty
           ? systemInstruction
           : '$systemInstruction$contextSummary',
-    );
+    ));
   }
 }
