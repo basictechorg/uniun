@@ -89,7 +89,7 @@ class GatewayOrchestrator {
         Kind42Handler(),
         Kind1059DmHandler(),
         Kind9002Handler(),
-        Kind9021To9025Handler(),
+        Kind9021To9025Handler(activePubkey: _activePubkey),
       ],
     );
 
@@ -154,7 +154,6 @@ class GatewayOrchestrator {
   List<SubscriptionProvider> _subscriptionProviders() => [
         DmsSubscription(),
         ProfilesSubscription(),
-        FeedNotesSubscription(),
         FollowedNotesSubscription(),
         ChannelsSubscription(),
         PrivateChannelsSubscription(),

@@ -429,50 +429,110 @@ class MarmotTransportService {
       throw Exception('MLS group is not initialized for groupId: $groupId');
     }
 
-    final addResult = await _mlsService.addMembers(
-      groupId: channel.mlsGroupId,
-      keyPackagesB64: [userKeyPackageB64],
-      groupIdIsBase64: true,
-    );
+    // A member may tap "request to join" several times, producing multiple
+    // join-request rows that all share one persistent MLS signature key.
+    // Resolve the requester so every one of their pending rows is cleared on
+    // approval — otherwise a leftover row could be approved again and OpenMLS
+    // would reject the duplicate signature key.
+    final senderPubkey =
+        await _senderForKeyPackage(groupId, userKeyPackageB64);
 
-    final welcomeEvent = Event.from(
-      privkey: adminPrivkeyHex,
-      kind: 9024,
-      content: base64Encode(addResult.welcome),
-      tags: [
-        ['h', groupId]
-      ],
-      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    );
+    try {
+      final addResult = await _mlsService.addMembers(
+        groupId: channel.mlsGroupId,
+        keyPackagesB64: [userKeyPackageB64],
+        groupIdIsBase64: true,
+      );
 
-    final commitEvent = Event.from(
-      privkey: adminPrivkeyHex,
-      kind: 9025,
-      content: base64Encode(addResult.commit),
-      tags: [
-        ['h', groupId]
-      ],
-      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    );
+      final welcomeEvent = Event.from(
+        privkey: adminPrivkeyHex,
+        kind: 9024,
+        content: base64Encode(addResult.welcome),
+        tags: [
+          ['h', groupId]
+        ],
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      );
 
-    await _isar.writeTxn(() async {
-      await _isar.eventQueueModels.putAll([
-        _buildQueueEntry(welcomeEvent),
-        _buildQueueEntry(commitEvent),
-      ]);
+      final commitEvent = Event.from(
+        privkey: adminPrivkeyHex,
+        kind: 9025,
+        content: base64Encode(addResult.commit),
+        tags: [
+          ['h', groupId]
+        ],
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      );
 
-      final matchingRequests = await _isar.privateChannelJoinRequestModels
-          .where()
-          .groupIdEqualTo(groupId)
-          .findAll();
-
-      final approvedRequest = matchingRequests
-          .where((request) => request.keyPackageB64 == userKeyPackageB64)
-          .firstOrNull;
-
-      if (approvedRequest != null) {
-        await _isar.privateChannelJoinRequestModels.delete(approvedRequest.id);
+      await _isar.writeTxn(() async {
+        await _isar.eventQueueModels.putAll([
+          _buildQueueEntry(welcomeEvent),
+          _buildQueueEntry(commitEvent),
+        ]);
+        await _deletePendingRequestsInTxn(
+          groupId,
+          userKeyPackageB64,
+          senderPubkey,
+        );
+      });
+    } catch (e) {
+      // The member's signature key is already in the group — they were added by
+      // a previous commit. Treat as success and drop the stale request(s)
+      // instead of surfacing "Duplicate signature key" to the admin.
+      if (_isAlreadyMemberError(e)) {
+        await _isar.writeTxn(() async {
+          await _deletePendingRequestsInTxn(
+            groupId,
+            userKeyPackageB64,
+            senderPubkey,
+          );
+        });
+        return;
       }
-    });
+      rethrow;
+    }
+  }
+
+  /// The pubkey that submitted [keyPackageB64] for [groupId], if a pending
+  /// request row still exists for it.
+  Future<String?> _senderForKeyPackage(
+    String groupId,
+    String keyPackageB64,
+  ) async {
+    final requests = await _isar.privateChannelJoinRequestModels
+        .where()
+        .groupIdEqualTo(groupId)
+        .findAll();
+    return requests
+        .where((request) => request.keyPackageB64 == keyPackageB64)
+        .map((request) => request.senderPubkey)
+        .firstOrNull;
+  }
+
+  /// Deletes every pending join request for [groupId] that either matches the
+  /// approved [keyPackageB64] or was submitted by [senderPubkey] (a member may
+  /// have several outstanding requests sharing one signature key).
+  Future<void> _deletePendingRequestsInTxn(
+    String groupId,
+    String keyPackageB64,
+    String? senderPubkey,
+  ) async {
+    final requests = await _isar.privateChannelJoinRequestModels
+        .where()
+        .groupIdEqualTo(groupId)
+        .findAll();
+    final ids = requests
+        .where((request) =>
+            request.keyPackageB64 == keyPackageB64 ||
+            (senderPubkey != null && request.senderPubkey == senderPubkey))
+        .map((request) => request.id)
+        .toList();
+    if (ids.isNotEmpty) {
+      await _isar.privateChannelJoinRequestModels.deleteAll(ids);
+    }
+  }
+
+  bool _isAlreadyMemberError(Object error) {
+    return error.toString().toLowerCase().contains('duplicate signature key');
   }
 }

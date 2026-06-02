@@ -149,7 +149,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
       emit(state.copyWith(messages: event.messages, profiles: profiles));
     });
     on<_PrivateChannelJoinRequestsUpdated>((event, emit) {
-      emit(state.copyWith(joinRequests: event.joinRequests));
+      emit(state.copyWith(joinRequests: _dedupBySender(event.joinRequests)));
     });
 
     add(LoadPrivateChannelEvent(groupId));
@@ -251,6 +251,23 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to leave channel: $e'));
     }
+  }
+
+  /// Collapses multiple outstanding requests from the same member to their
+  /// latest one. A member may tap "request to join" more than once; each tap is
+  /// a distinct row sharing one MLS signature key, so showing (and approving)
+  /// more than one would trigger a duplicate-signature error.
+  List<PrivateChannelJoinRequestEntity> _dedupBySender(
+    List<PrivateChannelJoinRequestEntity> requests,
+  ) {
+    final bySender = <String, PrivateChannelJoinRequestEntity>{};
+    for (final request in requests) {
+      final existing = bySender[request.senderPubkey];
+      if (existing == null || request.timestamp.isAfter(existing.timestamp)) {
+        bySender[request.senderPubkey] = request;
+      }
+    }
+    return bySender.values.toList();
   }
 
   Future<Map<String, ProfileEntity>> _hydrateProfiles(
