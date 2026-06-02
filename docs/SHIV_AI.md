@@ -206,10 +206,15 @@ User taps send in ShivChatPage
    ▼
 ShivAIBloc._onSendMessage
    │  saves user msg + placeholder asst msg to Isar
-   │  calls RagPipeline.buildMessage(userQuestion)   ← embed query, vector + graph retrieve
    │
    ▼
-_sendChatStream.call(SendChatStreamInput(message, cleanHistory))
+RagPipeline.buildMessage(userQuestion)                  ← see "RAG per turn" below
+   │  • picks PromptBudget.forActiveModel(getActiveLlmModel)
+   │  • embed query → vector search → graph expand → memory lookup
+   │  • PromptBuilder.buildUserMessage(enriched, budget) → final prompt string
+   │
+   ▼  RagMessage { userMessage, contextCount }
+_sendChatStream.call(SendChatStreamInput(message: userMessage, cleanHistory))
    │
    ▼
 SendChatStreamUseCase  →  LlmRepository.sendChat
@@ -235,6 +240,57 @@ LlmRepositoryImpl._active  ← reads prefs.activeBackend
 ```
 
 The stream returns to `_onTokenReceived` (strips leading whitespace, appends to `streamingContent`). `_onStreamDone` persists the final asst message and strips any `<think>…</think>` blocks.
+
+### RAG per turn — what happens inside `RagPipeline.buildMessage`
+
+```
+userQuestion: "what did i write about the saga pattern?"
+       │
+       ▼
+[1] EmbeddingService.embed(query)
+       │  all-MiniLM-L6-v2 (tflite_flutter, on-device, ~80 MB)
+       ▼  List<double> queryVec (384 dims)
+       │
+[2] PromptBudget.forActiveModel(LlmModelInfo)
+       │  Qwen3 0.6B  → max=2048,  topK=3,  hops=1
+       │  Gemma 4 E4B → max=8192,  topK=10, hops=2
+       │  Cloud       → max=16384, topK=15, hops=2
+       ▼  PromptBudget { maxTokens, topK, maxHops, section caps }
+       │
+[3] VectorSearchService.search(queryVec, topK=budget.topK)
+       │  ToStore ANN cosine over saved-note embeddings
+       ▼  List<ScoredNote>  seedNotes
+       │
+[4] GetMemoriesByNoteIdsUseCase(seedNoteIds)
+       │  pulls MemoryNodeModel rows the extractor built earlier
+       ▼  seedMemories + concept keys
+       │
+[5] GetGraphNeighboursUseCase(conceptKeys, maxHops=budget.maxHops)
+       │  BFS over GraphEdgeModel from seed concepts
+       ▼  edges (each = source → relation → target)
+       │
+[6] GetGraphNodesByKeysUseCase(edge endpoints)
+       │  resolves keys to readable node names
+       ▼  graphNodes
+       │
+[7] GetMemoriesByNoteIdsUseCase(notes that asserted those edges)
+       │  expandedMemories from beyond the seeds
+       ▼  EnrichedContext { seedNotes, graphNodes, graphEdges, memories }
+       │
+[8] PromptBuilder.buildUserMessage(enriched, budget)
+       │  Priority order — drops lowest first if over budget:
+       │    query (10%)  →  top 1-2 seed notes (35%)
+       │                 →  graph relations (20%)
+       │                 →  remaining seed notes
+       │                 →  memory summaries (15%)
+       ▼  String userMessage
+       │
+   RagMessage { userMessage, contextCount = #notes + #edges + #memories }
+```
+
+The exact same `RagMessage` is sent to whichever LLM is active — local Gemma or cloud OpenRouter. RAG is backend-agnostic. The embedding always runs on-device, so even cloud chat doesn't leak the note bodies it didn't pull into context.
+
+Pipeline source: `lib/features/shiv/rag/pipeline/rag_pipeline.dart` — `buildMessage` (per turn) + `buildSystemInstruction` (once at conversation open).
 
 ### Knowledge extraction — background graph build
 
@@ -399,16 +455,24 @@ await openConv.call(OpenLlmConversationInput(systemInstruction: sys));
 ```
 
 **Phase 2 — each user turn:**
-```dart
-final ragMsg = await rag.buildMessage(userQuestion: text);
-// embed → ToStore vector search top-K → 1-hop graph expansion → memory lookup
-// PromptBuilder.buildUserMessage(enrichedContext, PromptBudget) → string
+See the [RAG per turn](#rag-per-turn--what-happens-inside-ragpipelinebuildmessage) flow above for the step-by-step inside `buildMessage`. Output is a single `RagMessage { userMessage, contextCount }` that gets passed verbatim to `SendChatStreamUseCase`.
 
-_sendChatStream.call(SendChatStreamInput(
-  message: ragMsg.userMessage,
-  cleanHistory: cleanHistoryAsPairs,
-)).listen(...);
-```
+### Per-model RAG scaling
+
+`PromptBudget.forActiveModel(LlmModelInfo)` resolves the budget each turn — RAG automatically grows or shrinks to match the active engine's context window. Caller does nothing special.
+
+| Active model | maxTokens | topK seed notes | graph hops |
+|---|---:|---:|---:|
+| Qwen3 0.6B (default small) | 2,048 | 3 | 1 |
+| DeepSeek R1 1.5B | 4,096 | 5 | 2 |
+| Gemma 4 E2B | 4,096 | 5 | 2 |
+| Gemma 4 E4B | 8,192 | 10 | 2 |
+| **Cloud (OpenRouter)** | **16,384** | **15** | **2** |
+| no active model | 2,048 | 3 | 1 |
+
+Cloud's 16k cap is intentional — most cloud models expose 32k–1M context but pulling too much makes answers noisier *and* costs more. `openrouter_api 1.0.2` doesn't expose `LlmModel.contextWindow` yet; when it does, `_cloud()` will read it and adapt per-model.
+
+Section split inside any budget: query 10%, top notes 35%, graph relations 20%, summaries 15%. Trimming order (drops lowest first): summaries → extra seed notes → graph relations.
 
 ### Embedding stays local even on cloud backend
 
