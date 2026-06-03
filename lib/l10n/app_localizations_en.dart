@@ -1302,4 +1302,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatInputPickModelTooltip => 'Pick model';
+
+  @override
+  String get followActionTitle => 'Follow or message?';
+
+  @override
+  String get followActionFollowCta => 'Follow';
+
+  @override
+  String get followActionDmCta => 'Send DM';
+
+  @override
+  String get followActionSuccess => 'Now following.';
+
+  @override
+  String get drawerFollowingSectionTitle => 'FOLLOWING';
+
+  @override
+  String get drawerFollowingEmpty => 'Not following anyone yet';
+
+  @override
+  String get vishnuFeedEmptyTitle => 'Your feed is quiet';
+
+  @override
+  String get vishnuFeedEmptySubtitle =>
+      'Scan someone\'s UNIUN QR to follow them and see their notes here.';
+
+  @override
+  String get vishnuFeedEmptyCta => 'Scan a QR';
+
+  @override
+  String get drawerPrivateChannels => 'PRIVATE CHANNELS';
+
+  @override
+  String get drawerNoPrivateChannels => 'No private channels joined';
+
+  @override
+  String get followActionInvalidKey => 'Invalid public key';
 }

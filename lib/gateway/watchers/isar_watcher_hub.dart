@@ -4,6 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
@@ -14,6 +15,7 @@ class WatcherHandlers {
   final Future<void> Function() onQueueChanged;
   final Future<void> Function() onRelayModelsChanged;
   final Future<void> Function() onFollowedNotesChanged;
+  final Future<void> Function() onFollowedUsersChanged;
   final Future<void> Function() onMissingProfilesChanged;
   final Future<void> Function() onChannelsChangedAdditive;
   final Future<void> Function() onPrivateChannelsChangedAdditive;
@@ -22,6 +24,7 @@ class WatcherHandlers {
     required this.onQueueChanged,
     required this.onRelayModelsChanged,
     required this.onFollowedNotesChanged,
+    required this.onFollowedUsersChanged,
     required this.onMissingProfilesChanged,
     required this.onChannelsChangedAdditive,
     required this.onPrivateChannelsChangedAdditive,
@@ -60,6 +63,10 @@ class IsarWatcherHub {
 
     _subs.add(_isar.followedNoteModels.watchLazy().listen((_) async {
       await _handlers.onFollowedNotesChanged();
+    }));
+
+    _subs.add(_isar.followedUserModels.watchLazy().listen((_) async {
+      await _handlers.onFollowedUsersChanged();
     }));
 
     _subs.add(_isar.missingProfilePubkeyModels.watchLazy().listen((_) async {

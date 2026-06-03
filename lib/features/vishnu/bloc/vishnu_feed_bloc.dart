@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/followed_user/followed_user_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/feed_usecases.dart';
+import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
@@ -28,8 +30,11 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final SaveNoteUseCase _saveNote;
   final UnsaveNoteUseCase _unsaveNote;
   final EmbedAndStoreNoteUseCase _embedAndStore;
+  final WatchFollowedUsersUseCase _watchFollowed;
 
   StreamSubscription<int>? _newCountSub;
+  StreamSubscription<List<FollowedUserEntity>>? _followedSub;
+  int? _lastKnownFollowedCount;
   final Set<String> _loadedIds = <String>{};
   final Set<String> _markedThisSession = <String>{};
 
@@ -45,6 +50,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     this._saveNote,
     this._unsaveNote,
     this._embedAndStore,
+    this._watchFollowed,
   ) : super(const VishnuFeedState()) {
     on<FeedOpenedEvent>(_onOpened, transformer: droppable());
     on<LoadMoreFeedEvent>(_onLoadMore, transformer: droppable());
@@ -54,11 +60,13 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     on<SaveFeedNoteEvent>(_onSave, transformer: sequential());
     on<UnsaveFeedNoteEvent>(_onUnsave, transformer: sequential());
     on<_NewBufferCountChangedEvent>(_onNewCountChanged);
+    on<_FollowedUsersChangedEvent>(_onFollowedUsersChanged, transformer: droppable());
   }
 
   @override
   Future<void> close() async {
     await _newCountSub?.cancel();
+    await _followedSub?.cancel();
     return super.close();
   }
 
@@ -74,7 +82,33 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     final loadedAt = loadedAtRes.fold((_) => DateTime.now(), (t) => t);
     emit(state.copyWith(loadedAt: loadedAt));
     _subscribeNewCount(loadedAt);
+    _subscribeFollowed();
     await _resetAndFetchFirstPage(emit, loadedAt);
+  }
+
+  Future<void> _onFollowedUsersChanged(
+    _FollowedUsersChangedEvent event,
+    Emitter<VishnuFeedState> emit,
+  ) async {
+    final loadedAt = state.loadedAt;
+    if (loadedAt == null) return;
+    await _resetAndFetchFirstPage(emit, loadedAt);
+  }
+
+  void _subscribeFollowed() {
+    _followedSub?.cancel();
+    _followedSub = _watchFollowed.call(null).listen((list) {
+      final count = list.length;
+      // Ignore the very first emission — that is the current state and would
+      // trigger a redundant refresh right after the initial load.
+      if (_lastKnownFollowedCount == null) {
+        _lastKnownFollowedCount = count;
+        return;
+      }
+      if (count == _lastKnownFollowedCount) return;
+      _lastKnownFollowedCount = count;
+      add(const _FollowedUsersChangedEvent());
+    });
   }
 
   Future<void> _onLoadNew(

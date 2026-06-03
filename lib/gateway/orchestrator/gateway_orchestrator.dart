@@ -6,6 +6,7 @@ import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/repositories/relay_repository_impl.dart';
 import 'package:uniun/gateway/inbound/handlers/kind0_profile_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind1059_dm_handler.dart';
+import 'package:uniun/gateway/inbound/handlers/kind3_contact_list_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind1_note_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind40_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind41_handler.dart';
@@ -84,6 +85,7 @@ class GatewayOrchestrator {
       handlers: [
         Kind1NoteHandler(),
         Kind0ProfileHandler(),
+        Kind3ContactListHandler(activePubkey: _activePubkey),
         Kind40Handler(),
         Kind41Handler(),
         Kind42Handler(),
@@ -130,6 +132,7 @@ class GatewayOrchestrator {
         onRelayModelsChanged: _syncRelayServices,
         onFollowedNotesChanged: () =>
             _registry.resubscribeAll('followed_note_refs'),
+        onFollowedUsersChanged: () => _registry.resubscribeAll('feed_notes'),
         onMissingProfilesChanged: () => _registry.resubscribeAll('profiles'),
         onChannelsChangedAdditive: () => _registry.resubscribeAll('channels'),
         onPrivateChannelsChangedAdditive: () =>
@@ -155,6 +158,7 @@ class GatewayOrchestrator {
         DmsSubscription(),
         ProfilesSubscription(),
         FollowedNotesSubscription(),
+        FeedNotesSubscription(),
         ChannelsSubscription(),
         PrivateChannelsSubscription(),
       ];

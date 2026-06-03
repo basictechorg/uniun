@@ -14,6 +14,9 @@ class NoteModel {
   late String eventId;
 
   late String sig;
+
+  /// Indexed for fast `authorPubkey in [followedList]` feed queries.
+  @Index()
   late String authorPubkey;
   late String content;
   String? subject;

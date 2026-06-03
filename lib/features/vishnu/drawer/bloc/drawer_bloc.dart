@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/data/models/followed_user_model.dart';
+import 'package:uniun/domain/entities/followed_user/followed_user_entity.dart';
+import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
@@ -21,9 +25,12 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetAllFollowedNotesUseCase _getAllFollowedNotes;
   final GetChannelsUseCase _getChannels;
   final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetFollowedUsersUseCase _getFollowedUsers;
+  final GetRelaysUseCase _getRelays;
   final Isar _isar;
   StreamSubscription<void>? _dmWatcher;
   StreamSubscription<void>? _privateChannelWatcher;
+  StreamSubscription<void>? _followedUsersWatcher;
 
   DrawerBloc(
     this._getActiveUser,
@@ -31,11 +38,16 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     this._getAllFollowedNotes,
     this._getChannels,
     this._getPrivateChannels,
+    this._getFollowedUsers,
+    this._getRelays,
     this._isar,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
-    
+
     _privateChannelWatcher = _getPrivateChannels.execute().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
+    _followedUsersWatcher = _isar.followedUserModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
   }
@@ -115,6 +127,31 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         name: c.name,
       )).toList();
 
+      final followedUsersResult = await _getFollowedUsers.call();
+      final List<FollowedUserEntity> followedUsersDomain =
+          followedUsersResult.fold((_) => const [], (l) => l);
+      final followedUsers = <DrawerFollowedUserItem>[];
+      for (final f in followedUsersDomain) {
+        final profile = await _isar.profileModels
+            .where()
+            .pubkeyEqualTo(f.pubkeyHex)
+            .findFirst();
+        final shortKey = f.pubkeyHex.length > 12
+            ? '${f.pubkeyHex.substring(0, 12)}…'
+            : f.pubkeyHex;
+        followedUsers.add(DrawerFollowedUserItem(
+          pubkey: f.pubkeyHex,
+          name: profile?.name ?? profile?.username ?? f.petname ?? shortKey,
+          avatarUrl: profile?.avatarUrl,
+        ));
+      }
+
+      final relaysResult = await _getRelays.call();
+      final myRelays = relaysResult.fold(
+        (_) => <String>[],
+        (list) => list.map((r) => r.url).toList(),
+      );
+
       emit(DrawerLoaded(
         userName: displayName,
         npub: npub,
@@ -124,6 +161,8 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         channels: channels,
         privateChannels: privateChannels,
         dms: dms,
+        followedUsers: followedUsers,
+        myRelays: myRelays,
       ));
     } catch (e) {
       emit(DrawerError(e.toString()));
@@ -133,6 +172,8 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   @override
   Future<void> close() {
     _dmWatcher?.cancel();
+    _privateChannelWatcher?.cancel();
+    _followedUsersWatcher?.cancel();
     return super.close();
   }
 }

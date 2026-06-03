@@ -19,6 +19,8 @@ final class DrawerLoaded extends DrawerState {
     required this.channels,
     required this.privateChannels,
     required this.dms,
+    required this.followedUsers,
+    required this.myRelays,
   });
 
   final String userName;
@@ -32,6 +34,20 @@ final class DrawerLoaded extends DrawerState {
   final List<DrawerChannelItem> channels;
   final List<DrawerPrivateChannelItem> privateChannels;
   final List<DrawerDmItem> dms;
+  final List<DrawerFollowedUserItem> followedUsers;
+  final List<String> myRelays;
+}
+
+class DrawerFollowedUserItem {
+  const DrawerFollowedUserItem({
+    required this.pubkey,
+    required this.name,
+    this.avatarUrl,
+  });
+
+  final String pubkey;
+  final String name;
+  final String? avatarUrl;
 }
 
 class DrawerPrivateChannelItem {

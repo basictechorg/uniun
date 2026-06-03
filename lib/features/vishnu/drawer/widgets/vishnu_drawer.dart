@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
+import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -43,6 +44,7 @@ class VishnuDrawer extends StatelessWidget {
                 npub: loaded?.npub ?? '',
                 pubkeyHex: loaded?.pubkeyHex ?? '',
                 avatarUrl: loaded?.avatarUrl,
+                myRelays: loaded?.myRelays ?? const [],
               ),
 
               Expanded(
@@ -88,6 +90,29 @@ class VishnuDrawer extends StatelessWidget {
                         if (context.mounted) {
                           context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
                         }
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ── Following Users (collapsible) ─────────────────────
+                    _CollapsibleFollowedUsersSection(
+                      items: loaded?.followedUsers ?? [],
+                      onAdd: () {
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.scanQr,
+                          arguments: UniunQrScanIntent.follow,
+                        );
+                      },
+                      onItemTap: (user) {
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.chatDm,
+                          arguments: user.pubkey,
+                        );
                       },
                     ),
 
@@ -180,6 +205,7 @@ class _DrawerHeader extends StatelessWidget {
     required this.name,
     required this.npub,
     required this.pubkeyHex,
+    required this.myRelays,
     this.avatarUrl,
   });
 
@@ -187,12 +213,14 @@ class _DrawerHeader extends StatelessWidget {
   final String npub;
   final String pubkeyHex;
   final String? avatarUrl;
+  final List<String> myRelays;
 
   void _showQr(BuildContext context) {
     if (npub.isEmpty) return;
     showDialog<void>(
       context: context,
-      builder: (_) => UniunQrCard.user(npub: npub, name: name),
+      builder: (_) =>
+          UniunQrCard.user(npub: npub, name: name, relays: myRelays),
     );
   }
 
@@ -482,6 +510,126 @@ class _CollapsibleFollowingSectionState
   }
 }
 
+// ── Collapsible followed users section ────────────────────────────────────────
+
+class _CollapsibleFollowedUsersSection extends StatefulWidget {
+  const _CollapsibleFollowedUsersSection({
+    required this.items,
+    required this.onAdd,
+    required this.onItemTap,
+  });
+
+  final List<app_drawer.DrawerFollowedUserItem> items;
+  final VoidCallback onAdd;
+  final void Function(app_drawer.DrawerFollowedUserItem) onItemTap;
+
+  @override
+  State<_CollapsibleFollowedUsersSection> createState() =>
+      _CollapsibleFollowedUsersSectionState();
+}
+
+class _CollapsibleFollowedUsersSectionState
+    extends State<_CollapsibleFollowedUsersSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.drawerFollowingSectionTitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: widget.onAdd,
+                  child: const Icon(Icons.add_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState:
+              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Column(
+            children: [
+              const SizedBox(height: 4),
+              if (widget.items.isEmpty)
+                _EmptyHint(l10n.drawerFollowingEmpty)
+              else
+                ...widget.items.map(
+                  (u) => _FollowedUserRow(
+                    user: u,
+                    onTap: () => widget.onItemTap(u),
+                  ),
+                ),
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+}
+
+class _FollowedUserRow extends StatelessWidget {
+  const _FollowedUserRow({required this.user, required this.onTap});
+  final app_drawer.DrawerFollowedUserItem user;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          children: [
+            UserAvatar(seed: user.pubkey, photoUrl: user.avatarUrl, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                user.name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Collapsible channel section ───────────────────────────────────────────────
 
 class _CollapsibleChannelSection extends StatefulWidget {
@@ -604,10 +752,10 @@ class _CollapsiblePrivateChannelSectionState
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    "PRIVATE CHANNELS",
-                    style: TextStyle(
+                    l10n.drawerPrivateChannels,
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
@@ -639,7 +787,7 @@ class _CollapsiblePrivateChannelSectionState
             children: [
               const SizedBox(height: 4),
               if (widget.items.isEmpty)
-                const _EmptyHint("No private channels joined")
+                _EmptyHint(l10n.drawerNoPrivateChannels)
               else
                 ...widget.items.map(
                   (ch) => _PrivateChannelRow(
