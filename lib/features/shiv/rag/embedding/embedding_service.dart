@@ -1,155 +1,104 @@
-import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 
-/// On-device text embedding using all-MiniLM-L6-v2 (TFLite).
+/// On-device text embedding using Gecko 110M (1024-dim), run through
+/// flutter_gemma's LiteRT embedder.
 ///
-/// ## Files needed (downloaded to documents directory)
-///   - all_minilm_l6_v2.tflite  (~80 MB) — TFLite export of sentence-transformers model
-///   - vocab.txt                 (~230 KB) — BERT uncased vocabulary
+/// ## Why flutter_gemma instead of tflite_flutter
+/// flutter_gemma (MediaPipe) statically embeds its own copy of TensorFlow Lite.
+/// `tflite_flutter` linked a *second* copy, so on the iOS arm64 device build
+/// both ended up in one binary → duplicate `TFLBufferConvert` Objective-C class
+/// → corrupted symbol table → `EXC_BAD_ACCESS` / Isar `isar_version` failures.
+/// Running embeddings through flutter_gemma's own LiteRT runtime keeps a single
+/// TensorFlow Lite in the binary and removes the conflict entirely.
 ///
-/// Downloaded automatically by [EmbeddingModelDownloader] when the user
-/// downloads their first LLM model via [SelectAIModelCubit].
-/// If files are not present, RAG silently degrades to no-context mode.
+/// ## Bundled, not downloaded
+/// The model + tokenizer ship as app assets (see [modelAsset]/[tokenizerAsset]),
+/// so RAG works offline on first launch with no network fetch. `installEmbedder`
+/// copies the asset into flutter_gemma's managed storage once (idempotent).
 ///
-/// Output: 384-dimensional L2-normalised float vector.
+/// Output: 1024-dimensional L2-normalised float vector.
 @lazySingleton
 class EmbeddingService {
-  static const int _maxSeqLen = 128;
-  static const int _embeddingDim = 384;
-  static const String _modelFilename = 'all_minilm_l6_v2.tflite';
-  static const String _vocabFilename = 'vocab.txt';
+  static const int embeddingDim = 1024;
 
-  static const int _clsToken = 101;
-  static const int _sepToken = 102;
-  static const int _unkToken = 100;
-  static const int _padToken = 0;
+  /// Bundled asset paths — also referenced by [EmbeddingModelDownloader] so the
+  /// install can be pre-warmed during the LLM download UX.
+  static const String modelAsset = 'assets/models/embedding/gecko_1024_quant.tflite';
+  static const String tokenizerAsset = 'assets/models/embedding/sentencepiece.model';
 
-  Interpreter? _interpreter;
-  Map<String, int>? _vocab;
+  EmbeddingModel? _model;
 
-  bool get isReady => _interpreter != null && _vocab != null;
+  bool get isReady => _model != null;
 
   // ── Init ───────────────────────────────────────────────────────────────────
 
-  /// Loads model from the documents directory (downloaded by [EmbeddingModelDownloader]).
-  /// Safe to call multiple times — no-op after a successful load.
-  /// If files are not present yet, does nothing — RAG degrades to no-context mode.
+  /// Installs the bundled embedder (idempotent) and opens it. Safe to call
+  /// multiple times — no-op after a successful load. Degrades to no-context
+  /// mode (returns no vectors) if the model fails to open.
   Future<void> init() async {
     if (isReady) return;
     try {
-      final dir = (await getApplicationDocumentsDirectory()).path;
-      final modelFile = File('$dir/$_modelFilename');
-      final vocabFile = File('$dir/$_vocabFilename');
-
-      if (!modelFile.existsSync() || !vocabFile.existsSync()) return;
-
-      _vocab = _parseVocab(await vocabFile.readAsString());
-      _interpreter = Interpreter.fromFile(modelFile);
-    } catch (_) {
-      _interpreter = null;
-      _vocab = null;
+      await ensureInstalled();
+      _model = await FlutterGemma.getActiveEmbedder();
+    } catch (e) {
+      debugPrint('🧠 Embedding: model load failed — $e');
+      _model = null;
     }
+  }
+
+  /// Registers the bundled Gecko model + tokenizer as flutter_gemma's active
+  /// embedder. Idempotent — returns fast once installed.
+  static Future<void> ensureInstalled() async {
+    if (FlutterGemma.hasActiveEmbedder()) return;
+    await FlutterGemma.installEmbedder()
+        .modelFromAsset(modelAsset)
+        .tokenizerFromAsset(tokenizerAsset)
+        .install();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /// Embed [text] → 384-dim L2-normalised vector.
-  /// Returns [] if model is not loaded (no crash, just no RAG context).
-  Future<List<double>> embed(String text) async {
+  /// Embed [text] → 1024-dim L2-normalised vector.
+  ///
+  /// [isDocument] selects the task prefix: documents being indexed (note
+  /// content) use the document prefix, search queries use the query prefix.
+  /// Getting this right is what makes asymmetric retrieval accurate.
+  ///
+  /// Returns [] if the model is not loaded (no crash, just no RAG context).
+  Future<List<double>> embed(String text, {bool isDocument = false}) async {
+    debugPrint('🧠 Embedding: stated— $e');
     if (!isReady) await init();
     if (!isReady) return [];
-
-    final tokenIds = _tokenize(text);
-    final attentionMask = tokenIds.map((t) => t != _padToken ? 1 : 0).toList();
-
-    final inputIds = [tokenIds];
-    final maskInput = [attentionMask];
-
-    // This quantized model has 2 inputs (input_ids, attention_mask) — no token_type_ids.
-    // Output 0: already-pooled sentence embedding [1, 384] — no mean pooling needed.
-    final output0 = [List.filled(_embeddingDim, 0.0)];
-
-    _interpreter!.runForMultipleInputs(
-      [inputIds, maskInput],
-      {0: output0},
-    );
-
-    return _l2Normalize(output0[0]);
-  }
-
-  void dispose() {
-    _interpreter?.close();
-    _interpreter = null;
-  }
-
-  // ── Tokeniser ──────────────────────────────────────────────────────────────
-
-  List<int> _tokenize(String text) {
-    final tokens = <int>[_clsToken];
-    final words = text
-        .toLowerCase()
-        .replaceAll(RegExp(r"[^a-z0-9\s']"), ' ')
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty);
-
-    for (final word in words) {
-      if (tokens.length >= _maxSeqLen - 1) break;
-      tokens.addAll(_wordPiece(word));
+    debugPrint('🧠 Embedding: stated— $e');
+    try {
+      final vec = await _model!.generateEmbedding(
+        text,
+        taskType:
+            isDocument ? TaskType.retrievalDocument : TaskType.retrievalQuery,
+      );
+      return _l2Normalize(vec);
+    } catch (e) {
+      debugPrint('🧠 Embedding: generate failed — $e');
+      return [];
     }
-
-    tokens.add(_sepToken);
-    while (tokens.length < _maxSeqLen) { tokens.add(_padToken); }
-    return tokens.take(_maxSeqLen).toList();
   }
 
-  List<int> _wordPiece(String word) {
-    final vocab = _vocab!;
-    if (vocab.containsKey(word)) return [vocab[word]!];
-
-    final subTokens = <int>[];
-    var start = 0;
-    while (start < word.length) {
-      var matched = false;
-      for (var end = word.length; end > start; end--) {
-        final sub = start == 0
-            ? word.substring(start, end)
-            : '##${word.substring(start, end)}';
-        if (vocab.containsKey(sub)) {
-          subTokens.add(vocab[sub]!);
-          start = end;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        subTokens.add(_unkToken);
-        start++;
-      }
-    }
-    return subTokens.isEmpty ? [_unkToken] : subTokens;
+  Future<void> dispose() async {
+    await _model?.close();
+    _model = null;
   }
 
   // ── L2 normalisation ──────────────────────────────────────────────────────
 
+  /// Gecko already returns unit-norm vectors; normalising again is a no-op
+  /// there but keeps cosine search correct regardless of the model.
   List<double> _l2Normalize(List<double> vec) {
     final norm = sqrt(vec.fold(0.0, (acc, v) => acc + v * v));
     if (norm == 0) return vec;
     return vec.map((v) => v / norm).toList();
-  }
-
-  // ── Vocab parsing ──────────────────────────────────────────────────────────
-
-  static Map<String, int> _parseVocab(String raw) {
-    final lines = raw.split('\n');
-    final vocab = <String, int>{};
-    for (var i = 0; i < lines.length; i++) {
-      final token = lines[i].trim();
-      if (token.isNotEmpty) vocab[token] = i;
-    }
-    return vocab;
   }
 }

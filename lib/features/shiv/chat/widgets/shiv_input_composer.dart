@@ -55,8 +55,11 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // When keyboard is open: pad by keyboard height + 10px gap so input sits above keyboard.
-    // When keyboard is closed: pad 104px to float above the floating nav.
-    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0;
+    // When keyboard is closed: clear the floating nav. The nav's height grows by
+    // the home-indicator safe area, so add that inset too — otherwise the input
+    // collides with the nav on devices with a home indicator.
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0 + safeBottom;
 
     return Container(
       color: AppColors.surfaceContainerLowest,
