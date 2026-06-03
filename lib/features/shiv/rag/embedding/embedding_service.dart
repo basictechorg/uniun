@@ -70,10 +70,8 @@ class EmbeddingService {
   ///
   /// Returns [] if the model is not loaded (no crash, just no RAG context).
   Future<List<double>> embed(String text, {bool isDocument = false}) async {
-    debugPrint('🧠 Embedding: stated— $e');
     if (!isReady) await init();
     if (!isReady) return [];
-    debugPrint('🧠 Embedding: stated— $e');
     try {
       final vec = await _model!.generateEmbedding(
         text,
