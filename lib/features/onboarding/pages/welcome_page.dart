@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
@@ -80,10 +81,9 @@ class WelcomePage extends StatelessWidget {
                     final keychain = Keychain.generate();
                     final npub = Nip19.encodePubkey(keychain.public);
                     final nsec = Nip19.encodePrivkey(keychain.private);
-                    Navigator.pushNamed(
-                      context,
+                    context.pushNamed(
                       AppRoutes.aboutYou,
-                      arguments: {
+                      extra: {
                         'npub': npub,
                         'nsec': nsec,
                         'pubkeyHex': keychain.public,
@@ -112,8 +112,8 @@ class WelcomePage extends StatelessWidget {
 
                 // ── Secondary — Import existing key ──────────────────────
                 _SecondaryButton(
-                  onPressed: () => Navigator.pushNamed(
-                      context, AppRoutes.importIdentity),
+                  onPressed: () =>
+                      context.pushNamed(AppRoutes.importIdentity),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

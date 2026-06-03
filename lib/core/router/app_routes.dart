@@ -1,27 +1,34 @@
+/// go_router route **names**. Used with `context.goNamed` / `context.pushNamed`.
+///
+/// The actual URL paths live in [appRouter] (`app_router.dart`). The three
+/// deep-linkable routes (channelDetail, privateChannelDetail, chatDm) map to
+/// clean path patterns that double as universal-link paths — see [DeepLink].
 abstract class AppRoutes {
-  static const welcome = '/welcome';
-  static const importIdentity = '/import-identity';
-  static const yourIdentityKeys = '/your-identity-keys';
-  static const aboutYou = '/about-you';
-  static const home = '/home';
-  static const settings = '/settings';
-  static const editProfile = '/edit-profile';
-  static const privacyPolicy = '/privacy-policy';
-  static const thread = '/thread';
-  static const aiModelSelection = '/ai-model-selection';
-  static const channelEntry = '/channel-entry';
-  static const createChannel = '/create-channel';
-  static const joinChannel = '/join-channel';
-  static const savedNotes = '/saved-notes';
-  static const channelDetail = '/channel-detail';
-  static const graph = '/graph';
-  static const createDm = '/create-dm';
-  static const chatDm = '/chat-dm';
-  static const brahmaCreate = '/brahma-create';
-  static const privateChannelEntry = '/private-channel-entry';
-  static const createPrivateChannel = '/create-private-channel';
-  static const joinPrivateChannel = '/join-private-channel';
-  static const privateChannelDetail = '/private-channel-detail';
-  static const scanQr = '/scan-qr';
-  static const userProfile = '/user-profile';
+  static const splash = 'splash';
+  static const welcome = 'welcome';
+  static const importIdentity = 'importIdentity';
+  static const yourIdentityKeys = 'yourIdentityKeys';
+  static const aboutYou = 'aboutYou';
+  static const home = 'home';
+  static const settings = 'settings';
+  static const editProfile = 'editProfile';
+  static const privacyPolicy = 'privacyPolicy';
+  static const followedNoteDetail = 'followedNoteDetail';
+  static const thread = 'thread';
+  static const aiModelSelection = 'aiModelSelection';
+  static const channelEntry = 'channelEntry';
+  static const createChannel = 'createChannel';
+  static const joinChannel = 'joinChannel';
+  static const savedNotes = 'savedNotes';
+  static const channelDetail = 'channelDetail';
+  static const graph = 'graph';
+  static const createDm = 'createDm';
+  static const chatDm = 'chatDm';
+  static const brahmaCreate = 'brahmaCreate';
+  static const privateChannelEntry = 'privateChannelEntry';
+  static const createPrivateChannel = 'createPrivateChannel';
+  static const joinPrivateChannel = 'joinPrivateChannel';
+  static const privateChannelDetail = 'privateChannelDetail';
+  static const scanQr = 'scanQr';
+  static const userProfile = 'userProfile';
 }

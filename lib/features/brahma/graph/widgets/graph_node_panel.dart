@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -111,10 +112,9 @@ class GraphNodePanel extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: NoteCard(
                     note: noteEntity,
-                    onTap: () => Navigator.pushNamed(
-                      context,
+                    onTap: () => context.pushNamed(
                       AppRoutes.thread,
-                      arguments: node.eventId,
+                      pathParameters: {'noteId': node.eventId},
                     ),
                   ),
                 ),

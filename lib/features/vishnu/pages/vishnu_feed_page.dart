@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -249,10 +250,9 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                                     onTap: () => openEventThread(
                                       context,
                                       note.id,
-                                      openAsNote: () => Navigator.pushNamed(
-                                        context,
+                                      openAsNote: () => context.pushNamed(
                                         AppRoutes.thread,
-                                        arguments: note.id,
+                                        pathParameters: {'noteId': note.id},
                                       ),
                                     ),
                                   ),
@@ -395,8 +395,7 @@ class _EmptyFeedView extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.scanQr),
+              onPressed: () => context.pushNamed(AppRoutes.scanQr),
               icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
               label: Text(l10n.vishnuFeedEmptyCta),
               style: ElevatedButton.styleFrom(

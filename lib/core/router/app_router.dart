@@ -1,0 +1,318 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
+import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/deep_link.dart';
+import 'package:uniun/core/utils/pubkey_normalizer.dart';
+import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart';
+import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/features/brahma/graph/pages/graph_compose_page.dart';
+import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
+import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
+import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
+import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
+import 'package:uniun/features/channels/join/pages/join_channel_page.dart';
+import 'package:uniun/features/dm/chat/pages/dm_chat_page.dart';
+import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
+import 'package:uniun/features/home/pages/home_page.dart';
+import 'package:uniun/features/onboarding/pages/about_you_page.dart';
+import 'package:uniun/features/onboarding/pages/import_identity_page.dart';
+import 'package:uniun/features/onboarding/pages/splash_page.dart';
+import 'package:uniun/features/onboarding/pages/welcome_page.dart';
+import 'package:uniun/features/onboarding/pages/your_identity_keys_page.dart';
+import 'package:uniun/features/private_channels/create/pages/create_private_channel_page.dart';
+import 'package:uniun/features/private_channels/detail/pages/private_channel_detail_page.dart';
+import 'package:uniun/features/private_channels/entry/pages/private_channel_entry_page.dart';
+import 'package:uniun/features/private_channels/join/pages/join_private_channel_page.dart';
+import 'package:uniun/features/profile/pages/user_profile_page.dart';
+import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
+import 'package:uniun/features/settings/pages/edit_profile_page.dart';
+import 'package:uniun/features/settings/pages/privacy_policy_page.dart';
+import 'package:uniun/features/settings/pages/settings_page.dart';
+import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
+import 'package:uniun/features/thread/pages/thread_page.dart';
+
+/// Root navigator key — lets non-widget code (deep-link redirects) reach the
+/// navigator if needed.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// App-wide router. go_router resolves inbound universal-link paths
+/// (`https://www.uniun.in/...`) against these same routes, so external
+/// links and in-app navigation share one table. Deep-linkable routes carry a
+/// `dl=1` flag (see [kDeepLinkFlag]); their redirects run auth/relay/membership
+/// work only when that flag is present, leaving in-app navigation untouched.
+final GoRouter appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      name: AppRoutes.splash,
+      path: '/',
+      builder: (_, __) => const SplashPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.welcome,
+      path: '/welcome',
+      builder: (_, __) => const WelcomePage(),
+    ),
+    GoRoute(
+      name: AppRoutes.importIdentity,
+      path: '/import-identity',
+      builder: (_, __) => const ImportIdentityPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.aboutYou,
+      path: '/about-you',
+      builder: (_, state) => AboutYouPage(args: _asMap(state.extra)),
+    ),
+    GoRoute(
+      name: AppRoutes.yourIdentityKeys,
+      path: '/your-identity-keys',
+      builder: (_, state) => YourIdentityKeysPage(args: _asMap(state.extra)),
+    ),
+    GoRoute(
+      name: AppRoutes.home,
+      path: '/home',
+      builder: (_, __) => const HomePage(),
+    ),
+    GoRoute(
+      name: AppRoutes.settings,
+      path: '/settings',
+      builder: (_, __) => const SettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.editProfile,
+      path: '/edit-profile',
+      builder: (_, __) => const EditProfilePage(),
+    ),
+    GoRoute(
+      name: AppRoutes.privacyPolicy,
+      path: '/privacy-policy',
+      builder: (_, __) => const PrivacyPolicyPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.thread,
+      path: '/thread/:noteId',
+      builder: (_, state) => ThreadPage(
+        noteId: state.pathParameters['noteId']!,
+        savedOnly: state.extra is bool ? state.extra as bool : false,
+      ),
+    ),
+    GoRoute(
+      name: AppRoutes.aiModelSelection,
+      path: '/ai-model-selection',
+      builder: (_, __) => const AIModelSelectionPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.channelEntry,
+      path: '/channel-entry',
+      builder: (_, __) => const ChannelEntryPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.createChannel,
+      path: '/create-channel',
+      builder: (_, __) => const CreateChannelPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.joinChannel,
+      path: '/join-channel',
+      builder: (_, state) =>
+          JoinChannelPage(payload: _channelPayloadFrom(state)),
+    ),
+    GoRoute(
+      name: AppRoutes.savedNotes,
+      path: '/saved-notes',
+      builder: (_, __) => const SavedNotesPage(),
+    ),
+    // ── Deep-linkable: public channel ──────────────────────────────────────
+    // https://<host>/channel/<channelId>?dl=1&relays=...&name=...
+    GoRoute(
+      name: AppRoutes.channelDetail,
+      path: '/$kChannelSegment/:channelId',
+      redirect: (_, state) async {
+        // In-app navigation (no dl flag) → build the page directly; the user is
+        // already a member, so skip the membership/relay/auth round-trips.
+        if (state.uri.queryParameters[kDeepLinkFlag] != '1') return null;
+        // External link: require an identity first, then sync relay hints.
+        final gate = await _deepLinkAuthGate();
+        if (gate != null) return gate;
+        final relays = state.uri.queryParametersAll['relays'] ?? const [];
+        await ensureRelays(relays);
+        final id = state.pathParameters['channelId']!;
+        final res = await getIt<GetChannelByIdUseCase>().call(id);
+        if (res.isRight()) return null; // joined → show detail
+        // Not joined → carry hints to the pre-filled join page.
+        final name = state.uri.queryParameters['name'];
+        return Uri(path: '/join-channel', queryParameters: {
+          'cid': id,
+          if (name != null) 'name': name,
+          if (relays.isNotEmpty) 'relays': relays,
+        }).toString();
+      },
+      builder: (_, state) =>
+          ChannelFeedPage(channelId: state.pathParameters['channelId']!),
+    ),
+    GoRoute(
+      name: AppRoutes.graph,
+      path: '/graph',
+      pageBuilder: (_, state) => const NoTransitionPage(child: GraphPage()),
+    ),
+    GoRoute(
+      name: AppRoutes.createDm,
+      path: '/create-dm',
+      builder: (_, state) {
+        final extra = state.extra;
+        return CreateDmPage(
+          initialPubkey: extra is String ? extra : null,
+          payload: extra is UniunQrPayload ? extra : null,
+        );
+      },
+    ),
+    // In-app only — opening a DM thread. DMs are not universal-linkable; a
+    // shared `/user/<npub>` link opens the person's profile (below) instead.
+    GoRoute(
+      name: AppRoutes.chatDm,
+      path: '/dm/:id',
+      builder: (_, state) =>
+          DmChatPage(otherPubkey: _normalizePubkey(state.pathParameters['id']!)),
+    ),
+    GoRoute(
+      name: AppRoutes.brahmaCreate,
+      path: '/brahma-create',
+      builder: (_, state) {
+        final args = _asMap(state.extra);
+        return GraphComposePage(
+          initialDraftId: args?['draftId'] as String?,
+          autoPublish: args?['autoPublish'] as bool? ?? false,
+        );
+      },
+    ),
+    GoRoute(
+      name: AppRoutes.privateChannelEntry,
+      path: '/private-channel-entry',
+      builder: (_, __) => const PrivateChannelEntryPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.createPrivateChannel,
+      path: '/create-private-channel',
+      builder: (_, __) => const CreatePrivateChannelPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.joinPrivateChannel,
+      path: '/join-private-channel',
+      builder: (_, state) =>
+          JoinPrivateChannelPage(payload: _privatePayloadFrom(state)),
+    ),
+    // ── Deep-linkable: private channel ─────────────────────────────────────
+    // https://<host>/private/<groupId>?dl=1&relays=...&name=...
+    GoRoute(
+      name: AppRoutes.privateChannelDetail,
+      path: '/$kPrivateSegment/:groupId',
+      redirect: (_, state) async {
+        if (state.uri.queryParameters[kDeepLinkFlag] != '1') return null;
+        final gate = await _deepLinkAuthGate();
+        if (gate != null) return gate;
+        final relays = state.uri.queryParametersAll['relays'] ?? const [];
+        await ensureRelays(relays);
+        final id = state.pathParameters['groupId']!;
+        final channel =
+            await getIt<GetPrivateChannelEntityUsecase>().execute(id);
+        if (channel != null) return null; // joined → show detail
+        final name = state.uri.queryParameters['name'];
+        return Uri(path: '/join-private-channel', queryParameters: {
+          'gid': id,
+          if (name != null) 'name': name,
+          if (relays.isNotEmpty) 'relays': relays,
+        }).toString();
+      },
+      builder: (_, state) =>
+          PrivateChannelDetailPage(groupId: state.pathParameters['groupId']!),
+    ),
+    GoRoute(
+      name: AppRoutes.scanQr,
+      path: '/scan-qr',
+      builder: (_, state) => UniunQrScannerPage(
+        intent: state.extra is UniunQrScanIntent
+            ? state.extra as UniunQrScanIntent
+            : UniunQrScanIntent.generic,
+      ),
+    ),
+    // In-app profile route (args passed via `extra`).
+    GoRoute(
+      name: AppRoutes.userProfile,
+      path: '/user-profile',
+      builder: (_, state) =>
+          UserProfilePage(args: state.extra is UserProfileArgs
+              ? state.extra as UserProfileArgs
+              : null),
+    ),
+    // ── Deep-linkable: user profile ────────────────────────────────────────
+    // https://<host>/user/<npub>?dl=1&relays=...  (path id may be npub or hex)
+    GoRoute(
+      path: '/$kUserSegment/:id',
+      redirect: (_, state) async {
+        if (state.uri.queryParameters[kDeepLinkFlag] != '1') return null;
+        final gate = await _deepLinkAuthGate();
+        if (gate != null) return gate;
+        await ensureRelays(state.uri.queryParametersAll['relays'] ?? const []);
+        return null;
+      },
+      builder: (_, state) => UserProfilePage(
+        args: UserProfileArgs(
+          pubkeyHex: _normalizePubkey(state.pathParameters['id']!),
+          hintName: state.uri.queryParameters['name'],
+        ),
+      ),
+    ),
+  ],
+);
+
+/// Guards the deep-linkable routes: a universal link tapped before the user has
+/// an identity is sent to onboarding (otherwise they'd land on a page that needs
+/// a signing key). Returns a redirect path, or null when an identity exists.
+Future<String?> _deepLinkAuthGate() async {
+  final active = await getIt<GetActiveUserUseCase>().call();
+  return active.isLeft() ? '/welcome' : null;
+}
+
+Map? _asMap(Object? extra) => extra is Map ? extra : null;
+
+String _normalizePubkey(String raw) {
+  try {
+    return normalizeNostrPubkey(raw);
+  } catch (_) {
+    return raw.toLowerCase();
+  }
+}
+
+/// Rebuilds a public-channel [UniunQrPayload] from either the QR scanner's
+/// `extra` or the not-joined redirect's query params.
+UniunQrPayload? _channelPayloadFrom(GoRouterState state) {
+  final extra = state.extra;
+  if (extra is UniunQrPayload) return extra;
+  final cid = state.uri.queryParameters['cid'];
+  if (cid == null || cid.isEmpty) return null;
+  return UniunQrPayload(
+    kind: UniunQrKind.publicChannel,
+    id: cid,
+    name: state.uri.queryParameters['name'],
+    relays: state.uri.queryParametersAll['relays'] ?? const [],
+  );
+}
+
+UniunQrPayload? _privatePayloadFrom(GoRouterState state) {
+  final extra = state.extra;
+  if (extra is UniunQrPayload) return extra;
+  final gid = state.uri.queryParameters['gid'];
+  if (gid == null || gid.isEmpty) return null;
+  return UniunQrPayload(
+    kind: UniunQrKind.privateChannel,
+    id: gid,
+    name: state.uri.queryParameters['name'],
+    relays: state.uri.queryParametersAll['relays'] ?? const [],
+  );
+}

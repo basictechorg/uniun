@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -161,7 +162,7 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           // Footer CTA
           _FooterCta(backend: _backend, l10n: l10n, onTapManageLocal: () {
             Navigator.of(context).pop();
-            Navigator.of(context).pushNamed(AppRoutes.aiModelSelection);
+            context.pushNamed(AppRoutes.aiModelSelection);
           }),
         ],
       ),

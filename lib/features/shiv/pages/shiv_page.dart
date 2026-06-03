@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -300,7 +301,7 @@ class _ShivLanding extends StatelessWidget {
                         await getIt<HasActiveLlmModelUseCase>().call();
                     if (!context.mounted) return;
                     if (!hasModel) {
-                      Navigator.of(context).pushNamed(AppRoutes.aiModelSelection);
+                      context.pushNamed(AppRoutes.aiModelSelection);
                     } else {
                       context.read<ShivAIBloc>().add(
                         const ShivAIEvent.createConversation(),

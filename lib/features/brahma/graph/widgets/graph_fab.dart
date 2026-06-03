@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -22,7 +23,7 @@ class GraphFab extends StatelessWidget {
 
   Future<void> _onTap(BuildContext context) async {
     final bloc = context.read<GraphBloc>();
-    await Navigator.pushNamed(context, AppRoutes.brahmaCreate);
+    await context.pushNamed(AppRoutes.brahmaCreate);
     bloc.add(const LoadGraphEvent());
   }
 }

@@ -1,8 +1,16 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// Shared QR display dialog used for all three sharing kinds. Render via
 /// `showDialog(builder: (_) => UniunQrCard.xxx(...))`. Always copies the FULL
@@ -154,6 +162,10 @@ class UniunQrCard extends StatefulWidget {
 class _UniunQrCardState extends State<UniunQrCard> {
   int _selected = 0;
 
+  /// Wraps the white QR box so it can be captured to a PNG for sharing. Only
+  /// the selected entry's QR is in the tree at a time, so one key suffices.
+  final GlobalKey _qrBoundaryKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entries[_selected];
@@ -211,29 +223,42 @@ class _UniunQrCardState extends State<UniunQrCard> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: QrImageView(
-                  data: entry.payload.encode(),
-                  version: QrVersions.auto,
-                  size: 220,
-                  backgroundColor: Colors.white,
-                  eyeStyle: const QrEyeStyle(
-                    eyeShape: QrEyeShape.square,
-                    color: AppColors.primary,
+              child: RepaintBoundary(
+                key: _qrBoundaryKey,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  dataModuleStyle: const QrDataModuleStyle(
-                    dataModuleShape: QrDataModuleShape.square,
-                    color: AppColors.primary,
+                  child: QrImageView(
+                    data: entry.payload.encode(),
+                    version: QrVersions.auto,
+                    size: 220,
+                    backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: AppColors.primary,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => _shareEntry(entry),
+              icon: const Icon(Icons.ios_share_rounded, size: 18),
+              label: Text(AppLocalizations.of(context)!.qrShareAction),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
             TextButton.icon(
               onPressed: () {
                 // Always copy the FULL id — never the truncated display.
@@ -261,6 +286,61 @@ class _UniunQrCardState extends State<UniunQrCard> {
       ),
     );
   }
+
+  /// Captures the on-screen QR box as a PNG and opens the native share sheet
+  /// with the image + the entity's deep link as text. Works for every card
+  /// kind (user / public / private channel) via [_deepLinkFor].
+  Future<void> _shareEntry(_QrEntry entry) async {
+    // Anchor the iPad share popover to this card — read before any await.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin =
+        box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    File? file;
+    try {
+      final boundary = _qrBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      // 2.0 keeps the QR crisp and scannable while rasterising ~4x fewer
+      // pixels than 3.0.
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final pngBytes = byteData.buffer.asUint8List();
+
+      final dir = await getTemporaryDirectory();
+      // Fixed filename — overwritten each share, so temp files never pile up.
+      file = await File('${dir.path}/uniun_qr_share.png').writeAsBytes(pngBytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: _deepLinkFor(entry.payload).toString(),
+        sharePositionOrigin: origin,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.qrShareFailed),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      // Best-effort cleanup once the share sheet has taken the bytes.
+      try {
+        if (file != null && await file.exists()) await file.delete();
+      } catch (_) {}
+    }
+  }
+
+  /// Maps a QR payload to its shareable `https://www.uniun.in/...` deep link.
+  Uri _deepLinkFor(UniunQrPayload p) => switch (p.kind) {
+        UniunQrKind.user =>
+          DeepLink.user(p.id, relays: p.relays),
+        UniunQrKind.publicChannel =>
+          DeepLink.channel(p.id, name: p.name, relays: p.relays),
+        UniunQrKind.privateChannel =>
+          DeepLink.privateChannel(p.id, name: p.name, relays: p.relays),
+      };
 
   String _truncateMiddle(String s, int side) {
     if (s.length <= side * 2 + 3) return s;

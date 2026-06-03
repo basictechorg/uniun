@@ -1351,4 +1351,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get userProfileNoNotes => 'No notes yet';
+
+  @override
+  String get qrShareAction => 'Share';
+
+  @override
+  String get qrShareFailed => 'Couldn\'t share QR code';
 }

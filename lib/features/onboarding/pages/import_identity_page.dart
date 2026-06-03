@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -46,6 +47,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
 
   Future<void> _onContinue() async {
     final l10n = AppLocalizations.of(context)!;
+    final router = GoRouter.of(context);
     final input = _controller.text.trim();
     if (input.isEmpty) {
       _showError(l10n.importPasteFirst);
@@ -70,11 +72,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
         (user) async {
           await _addImportedPubkeyToMissingList(user.pubkeyHex);
           if (!mounted) return;
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.home,
-            (route) => false,
-          );
+          router.goNamed(AppRoutes.home);
         },
       );
       return;

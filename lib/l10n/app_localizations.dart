@@ -2541,6 +2541,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No notes yet'**
   String get userProfileNoNotes;
+
+  /// Button in the QR card that opens the native share sheet with the QR image and deep link
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get qrShareAction;
+
+  /// Snackbar shown when sharing the QR image fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share QR code'**
+  String get qrShareFailed;
 }
 
 class _AppLocalizationsDelegate

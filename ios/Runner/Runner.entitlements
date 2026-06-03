@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Universal links. Requires
+	     https://www.uniun.in/.well-known/apple-app-site-association
+	     listing this app's <TeamID>.<bundleId> and the matched paths. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:www.uniun.in</string>
+	</array>
+</dict>
+</plist>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -39,9 +40,9 @@ class _HomePageState extends State<HomePage> {
   Future<void> _switchTab(int i) async {
     if (i == 1) {
       // Brahma is a pushed route, not a stack tab. Its FloatingNav can pop
-      // back with an explicit tab index; popUntil(home) on publish returns
-      // null → land on Vishnu so the user sees their new note.
-      final targetTab = await Navigator.pushNamed(context, AppRoutes.graph);
+      // back with an explicit tab index; pop on publish returns null → land
+      // on Vishnu so the user sees their new note.
+      final targetTab = await context.pushNamed<Object?>(AppRoutes.graph);
       _vishnuFeedBloc.add(const RefreshFeedEvent());
       final destination =
           targetTab is int && targetTab != 1 ? targetTab : 0;

@@ -1245,5 +1245,10 @@
   "@userProfileFollowing": { "description": "Toggle label on the user profile page when already following the user" },
 
   "userProfileNoNotes": "No notes yet",
-  "@userProfileNoNotes": { "description": "Empty state shown on the user profile page when the user has no notes locally" }
+  "@userProfileNoNotes": { "description": "Empty state shown on the user profile page when the user has no notes locally" },
+
+  "qrShareAction": "Share",
+  "@qrShareAction": { "description": "Button in the QR card that opens the native share sheet with the QR image and deep link" },
+  "qrShareFailed": "Couldn't share QR code",
+  "@qrShareFailed": { "description": "Snackbar shown when sharing the QR image fails" }
 }

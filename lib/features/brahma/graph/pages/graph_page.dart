@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
@@ -52,7 +53,10 @@ class _GraphViewState extends State<_GraphView> {
           listenWhen: (prev, curr) => prev.status != curr.status,
           listener: (context, state) {
             if (state.status == BrahmaCreateStatus.success) {
-              Navigator.popUntil(context, ModalRoute.withName(AppRoutes.home));
+              // Pop back to the existing Home (Vishnu) instead of goNamed,
+              // which would rebuild the whole shell and lose its state. Home
+              // is the bottom of this navigator's stack.
+              Navigator.of(context).popUntil((route) => route.isFirst);
             }
           },
         ),
@@ -213,10 +217,9 @@ class _NodePanelSlider extends StatelessWidget {
                     .add(const DeselectGraphNodeEvent()),
                 onEditTap: (draftId) async {
                   final bloc = context.read<GraphBloc>();
-                  await Navigator.pushNamed(
-                    context,
+                  await context.pushNamed(
                     AppRoutes.brahmaCreate,
-                    arguments: {'draftId': draftId, 'autoPublish': false},
+                    extra: {'draftId': draftId, 'autoPublish': false},
                   );
                   bloc.add(const LoadGraphEvent());
                   bloc.add(SelectGraphNodeEvent(draftId));

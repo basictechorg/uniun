@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -43,8 +44,7 @@ class _AICardContent extends StatelessWidget {
           child: // Model selector row
               GestureDetector(
                 onTap: () async {
-                  await Navigator.of(context)
-                      .pushNamed(AppRoutes.aiModelSelection);
+                  await context.pushNamed(AppRoutes.aiModelSelection);
                   // Refresh active model state + storage stats after returning.
                   if (context.mounted) {
                     context.read<SelectAIModelCubit>().refresh();

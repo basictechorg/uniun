@@ -28,9 +28,28 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Lets go_router resolve inbound universal-link paths. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Universal links: https://www.uniun.in/{channel|private|user}/...
+                 Scoped to the deep-linkable path prefixes so unrelated
+                 www.uniun.in URLs (marketing pages, etc.) open in the browser.
+                 Requires https://www.uniun.in/.well-known/assetlinks.json
+                 with this app's package name + release SHA-256 fingerprint. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                      android:host="www.uniun.in"
+                      android:pathPrefix="/channel"/>
+                <data android:pathPrefix="/private"/>
+                <data android:pathPrefix="/user"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

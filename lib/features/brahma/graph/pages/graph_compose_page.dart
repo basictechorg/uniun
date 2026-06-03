@@ -5,7 +5,6 @@ import 'package:uniun/features/brahma/graph/widgets/compose_header.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
-import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -167,7 +166,9 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
         }
 
         if (state.status == BrahmaCreateStatus.success) {
-          Navigator.popUntil(context, ModalRoute.withName(AppRoutes.home));
+          // Pop the compose + graph routes back to the existing Home (Vishnu)
+          // rather than goNamed, which rebuilds the shell and loses its state.
+          Navigator.of(context).popUntil((route) => route.isFirst);
         }
 
         if (state.status == BrahmaCreateStatus.error &&
