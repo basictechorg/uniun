@@ -161,8 +161,12 @@ class VishnuDrawer extends StatelessWidget {
                     _SectionHeader(
                       label: l10n.drawerDirectMessages,
                       onAdd: () {
-                         _close(context);
-                         Navigator.pushNamed(context, AppRoutes.createDm);
+                        _close(context);
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.scanQr,
+                          arguments: UniunQrScanIntent.dm,
+                        );
                       },
                     ),
                     const SizedBox(height: 4),

@@ -10,13 +10,15 @@ import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 import 'package:uniun/features/follow/action/pages/follow_or_dm_action_page.dart';
 
 /// Universal QR scanner. Decodes any [UniunQrPayload] and dispatches:
-///   - user           → FollowOrDmActionPage (choose Follow vs DM, or auto-follow when [intent] = follow)
+///   - user           → see [UniunQrScanIntent] (chooser / auto-follow / auto-dm)
 ///   - publicChannel  → JoinChannelPage (UniunQrPayload argument)
 ///   - privateChannel → JoinPrivateChannelPage (UniunQrPayload argument)
 ///
-/// Pass [UniunQrScanIntent.follow] as the route argument to skip the chooser
-/// for user QRs — used by the drawer's "+" in the Following section.
-enum UniunQrScanIntent { generic, follow }
+/// Intent is read from the route argument and only affects user QRs:
+///   - [generic]: show the Follow vs DM chooser.
+///   - [follow]:  skip the chooser, run Follow directly.
+///   - [dm]:      skip the chooser, open CreateDmPage prefilled.
+enum UniunQrScanIntent { generic, follow, dm }
 
 class UniunQrScannerPage extends StatefulWidget {
   const UniunQrScannerPage({super.key});
@@ -56,10 +58,20 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
     if (!mounted) return;
 
     final intent = ModalRoute.of(context)?.settings.arguments;
-    final isFollowIntent = intent == UniunQrScanIntent.follow;
+
+    if (payload.kind == UniunQrKind.user && intent == UniunQrScanIntent.dm) {
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.createDm,
+        arguments: payload,
+      );
+      return;
+    }
 
     final Object args = payload.kind == UniunQrKind.user
-        ? FollowOrDmActionArgs(payload: payload, autoFollow: isFollowIntent)
+        ? FollowOrDmActionArgs(
+            payload: payload,
+            autoFollow: intent == UniunQrScanIntent.follow,
+          )
         : payload;
 
     final route = switch (payload.kind) {
