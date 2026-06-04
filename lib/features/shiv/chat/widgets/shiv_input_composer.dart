@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/shiv/chat/widgets/shiv_model_picker_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Bottom input bar.
@@ -54,8 +55,11 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     // When keyboard is open: pad by keyboard height + 10px gap so input sits above keyboard.
-    // When keyboard is closed: pad 104px to float above the floating nav.
-    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0;
+    // When keyboard is closed: clear the floating nav. The nav's height grows by
+    // the home-indicator safe area, so add that inset too — otherwise the input
+    // collides with the nav on devices with a home indicator.
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0 + safeBottom;
 
     return Container(
       color: AppColors.surfaceContainerLowest,
@@ -74,7 +78,37 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // Text field — no attach button
+            // + icon → opens the model picker sheet. Disabled while
+            // streaming so the user can't swap the model mid-turn (would
+            // be ambiguous about which model owns the response).
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 6, 0, 6),
+              child: Tooltip(
+                message: l10n.chatInputPickModelTooltip,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: isStreaming
+                      ? null
+                      : () => showModelPickerSheet(context),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 22,
+                      color: isStreaming
+                          ? AppColors.outline
+                          : AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Text field
             Expanded(
               child: TextField(
                 controller: _controller,

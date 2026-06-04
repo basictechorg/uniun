@@ -51,7 +51,7 @@ class EmbedAndStoreNoteUseCase
     final shortId = eventId.length > 8 ? eventId.substring(0, 8) : eventId;
     debugPrint('🧠 EmbedAndStore: start note=$shortId chars=${content.length}');
     try {
-      final vec = await _embedding.embed(content);
+      final vec = await _embedding.embed(content, isDocument: true);
       if (vec.isEmpty) {
         debugPrint('⚠️ EmbedAndStore: embed returned empty vector for $shortId');
         return;

@@ -7,12 +7,12 @@ import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_history_drawer.dart';
 import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
-import 'package:uniun/features/shiv/services/ai_model_runner.dart';
 
 /// Shiv AI assistant tab root.
 ///
@@ -291,9 +291,14 @@ class _ShivLanding extends StatelessWidget {
               builder: (context, state) {
                 return _LandingBody(
                   conversationCount: state.conversations.length,
-                  onNewChat: () {
-                    // Check if model is active before creating conversation
-                    if (!getIt<AIModelRunner>().hasActiveModel) {
+                  onNewChat: () async {
+                    // Check if any LLM backend is active before creating
+                    // a conversation. Local backend → check installed
+                    // Gemma model. Cloud backend (Phase 3) → check API key.
+                    final hasModel =
+                        await getIt<HasActiveLlmModelUseCase>().call();
+                    if (!context.mounted) return;
+                    if (!hasModel) {
                       Navigator.of(context).pushNamed(AppRoutes.aiModelSelection);
                     } else {
                       context.read<ShivAIBloc>().add(

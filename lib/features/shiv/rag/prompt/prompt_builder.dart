@@ -323,13 +323,21 @@ class PromptBuilder {
         '- Replace EVERY angle-bracket placeholder with a real value drawn from NEW_NOTE. Never output the placeholder text itself.');
     buf.writeln('- Entity names lowercase (e.g. "sam", "raj", "mysql", "node_js", "pc", "uniun").');
     buf.writeln(
+        '- A relation reads as a sentence: "<source> <type> <target>". The SOURCE is the actor / subject, the TARGET is what is acted upon. Pick the direction so the sentence is true in NEW_NOTE.');
+    buf.writeln(
+        '    Worked example. NEW_NOTE says "rajendrasinh\'s son is samarth".');
+    buf.writeln('      RIGHT: {"source":"samarth","target":"rajendrasinh","type":"child_of"}   (samarth is the child of rajendrasinh)');
+    buf.writeln('      WRONG: {"source":"rajendrasinh","target":"samarth","type":"is_son_of"}  (would mean rajendrasinh is samarth\'s son)');
+    buf.writeln(
         '- Relation "type" is a short freeform verb or snake_case phrase that describes the ACTUAL relationship in NEW_NOTE. Pick whatever fits the text — do not default to "uses".');
     buf.writeln(
         '  Examples across domains: uses, runs_on, depends_on, part_of, stores, produces, improves, replaces, measured_by,');
     buf.writeln(
-        '  is_mother_of, is_father_of, friend_of, married_to, works_at, lives_in, located_in, born_in,');
+        '  child_of, parent_of, sibling_of, married_to, works_at, lives_in, located_in, born_in,');
     buf.writeln(
         '  happened_before, happened_after, caused_by, treated_with, symptom_of, similar_to, opposite_of.');
+    buf.writeln(
+        '  Prefer "child_of" / "parent_of" / "sibling_of" over "is_son_of" / "is_father_of" to avoid direction confusion.');
     buf.writeln(
         '  If none fit, invent a short snake_case verb that does.');
     buf.writeln(

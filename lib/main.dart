@@ -7,6 +7,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/home/pages/home_page.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/onboarding/pages/about_you_page.dart';
 import 'package:uniun/features/thread/pages/thread_page.dart';
 import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
@@ -14,7 +15,6 @@ import 'package:uniun/features/settings/pages/edit_profile_page.dart';
 import 'package:uniun/features/settings/pages/privacy_policy_page.dart';
 import 'package:uniun/features/settings/pages/settings_page.dart';
 import 'package:uniun/features/onboarding/pages/import_identity_page.dart';
-import 'package:uniun/features/onboarding/pages/splash_page.dart';
 import 'package:uniun/features/onboarding/pages/welcome_page.dart';
 import 'package:uniun/features/onboarding/pages/your_identity_keys_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
@@ -37,10 +37,9 @@ import 'package:uniun/gateway/gateway.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
-  await FlutterGemma.initialize();
-  // Preserve native splash only until Flutter renders its first frame
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
+  await FlutterGemma.initialize();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -52,15 +51,23 @@ Future<void> main() async {
   await configureDependencies();
   getIt<MarmotTransportService>().start();
 
-  // Remove native splash immediately → SplashPage takes over
+  // Auth check runs under the native splash — no Flutter-side splash needed.
+  final activeUser = await getIt<GetActiveUserUseCase>().call();
+  final initialRoute = activeUser.fold(
+    (_) => AppRoutes.welcome,
+    (_) => AppRoutes.home,
+  );
+
   FlutterNativeSplash.remove();
 
   GatewayBootstrap.start();
-  runApp(const UniunApp());
+  runApp(UniunApp(initialRoute: initialRoute));
 }
 
 class UniunApp extends StatelessWidget {
-  const UniunApp({super.key});
+  const UniunApp({super.key, required this.initialRoute});
+
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +82,8 @@ class UniunApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('en')],
       theme: AppTheme.light,
-      initialRoute: AppRoutes.splash,
+      initialRoute: initialRoute,
       routes: {
-        AppRoutes.splash: (_) => const SplashPage(),
         AppRoutes.welcome: (_) => const WelcomePage(),
         AppRoutes.importIdentity: (_) => const ImportIdentityPage(),
         AppRoutes.yourIdentityKeys: (_) => const YourIdentityKeysPage(),

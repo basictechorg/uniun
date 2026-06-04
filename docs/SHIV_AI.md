@@ -1,1306 +1,558 @@
-# Shiv AI — Complete System Design
+# Shiv AI — System Design
 
-Shiv is UNIUN's on-device AI assistant. It reasons over the user's saved notes using vector RAG, runs entirely offline using `flutter_gemma`, and supports a branching conversation tree that looks like a normal chat by default.
-resource : - https://pub.dev/packages/flutter_gemma , https://pub.dev/documentation/flutter_gemma/latest/ 
+Shiv is UNIUN's AI assistant. It reasons over the user's saved notes via vector + graph RAG, and runs against **two interchangeable backends** behind one repository:
+
+- **Local** — `flutter_gemma 0.16.3` on-device inference (default, fully offline).
+- **Cloud** — OpenRouter via `openrouter_api 1.0.2` (one key, every major frontier model).
+
+The user picks the backend in Settings. The chat code, RAG pipeline, knowledge extractor and BLoC have **no idea which backend is active** — they call the same `LlmRepository` interface.
+
+Resources: <https://pub.dev/packages/flutter_gemma> · <https://pub.dev/documentation/flutter_gemma/latest/> · <https://openrouter.ai/docs>
+
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [RAG Pipeline](#rag-pipeline) — including baseline personalization (profile + own notes, works without saved notes)
-3. [Model Selection & Download](#model-selection--download)
-4. [Branching Chat System](#branching-chat-system)
-5. [Data Models](#data-models)
-6. [BLoC Structure](#bloc-structure)
-7. [UI Flow](#ui-flow)
-8. [Build Sequence](#build-sequence)
+1. [Mental Model](#mental-model)
+2. [Clean Architecture Layers](#clean-architecture-layers)
+3. [File-by-File Map](#file-by-file-map)
+4. [Call Flows](#call-flows)
+5. [Backend Switching — Local ↔ Cloud](#backend-switching--local--cloud)
+6. [Branching Chat](#branching-chat)
+7. [RAG Pipeline](#rag-pipeline)
+8. [Data Models](#data-models)
+9. [Out of Scope](#out-of-scope)
 
 ---
 
-## Architecture Overview
+## Mental Model
 
 ```
-User question
-      ↓
-ShivAIBloc (SendMessageEvent)
-      ↓
-EmbeddingService → query vector (all-MiniLM-L6-v2, on-device)
-      ↓
-VectorSearchService → cosine sim over SavedNoteModel.embedding in Isar → top-K notes
-      ↓
-PromptBuilder → system prompt + saved note context + branch conversation history
-      ↓
-AIModelRunner (flutter_gemma 0.13.1) → streams tokens
-      ↓
-ShivAIBloc emits streaming state updates
-      ↓
-Chat UI renders tokens live
+ShivChatPage (or any caller — extraction, summarisation, …)
+        │
+        ▼
+ShivAIBloc / ExtractKnowledgeUseCase           ← Presentation / Domain
+        │  calls *.call(input) — never an engine directly
+        ▼
+llm_usecases.dart                              ← Domain use cases
+   SendChatStreamUseCase / GenerateOneShotUseCase / …
+        │
+        ▼
+LlmRepository  (interface)                     ← Domain contract
+        │
+        ▼
+LlmRepositoryImpl                              ← Data layer dispatcher
+        │  reads LlmPreferencesDataSource.activeBackend, picks one of:
+        ├──────────────────────────────────────────────┐
+        ▼                                              ▼
+LocalLlmDataSource                            RemoteLlmDataSource
+        │                                              │
+        ▼                                              ▼
+AIModelRunner ▶ openChat(modelType…)         OpenRouterInference
+        │  ModelTaskQueue (high / low lanes)           │  Dio + SSE stream
+        ▼                                              ▼
+flutter_gemma 0.16.3 (LiteRT-LM / MediaPipe)  openrouter.ai REST API
 ```
 
-**Two models required:**
+Two things to notice:
 
-| Model | Role | Size | Package |
-|-------|------|------|---------|
-| `all-MiniLM-L6-v2` | Text → vector embedding | ~80MB | bundled in assets |
-| User-selected LLM | Answer generation (streaming) | 586MB–4.3GB | downloaded on first use |
+1. **One contract, two paths.** `LocalLlmDataSource` and `RemoteLlmDataSource` both implement `LlmDataSource`. The repository picks based on `LlmPreferencesDataSource.activeBackend`.
+2. **The runner is internal.** `AIModelRunner` is no longer a service — it's an implementation detail of `LocalLlmDataSource`, sitting at `lib/data/datasources/llm/local_llm_runner.dart`. Phase 1 of the v2 refactor moved it out of `lib/features/shiv/services/` so the layer boundary is honest.
 
-The embedding model is always bundled. The LLM is downloaded once and stored on-device. No cloud calls ever.
+---
+
+## Clean Architecture Layers
+
+Strict downward calls. Presentation never imports `flutter_gemma`. Data never imports widgets.
+
+| Layer | Path | Contents |
+|---|---|---|
+| **Presentation** | `lib/features/shiv/` | `ShivAIBloc`, pages, widgets, model picker sheet |
+| **Presentation** | `lib/features/settings/widgets/` | `CloudProviderCard` (API key paste + backend toggle) |
+| **Domain — entities** | `lib/domain/entities/llm/` | `LlmBackendType`, `LlmModelInfo` |
+| **Domain — repositories** | `lib/domain/repositories/` | `LlmRepository`, `LlmCredentialsRepository` |
+| **Domain — use cases** | `lib/domain/usecases/llm_usecases.dart` | 14 use cases grouped per SRP — chat, one-shot, lifecycle, backend, credentials |
+| **Core primitives** | `lib/core/llm/` | `LlmCancellationToken` |
+| **Data — repositories** | `lib/data/repositories/` | `LlmRepositoryImpl`, `LlmCredentialsRepositoryImpl` |
+| **Data — data sources** | `lib/data/datasources/llm/` | Both backends + runner + queue + prefs + credentials store |
+
+---
+
+## File-by-File Map
+
+### Domain — entities
+
+```
+lib/domain/entities/llm/
+├── llm_backend_type.dart    enum { localGemma, openRouter }
+└── llm_model_info.dart      @freezed { id, displayName, backend, contextWindow, prices… }
+```
+
+### Domain — repositories (interfaces only)
+
+```
+lib/domain/repositories/
+├── llm_repository.dart              session lifecycle + sendChat + generateOneShot
+│                                    + preempt/resume + backend & model selection
+├── llm_credentials_repository.dart  save/clear/get OpenRouter key
+└── ai_model_repository.dart         (existing) local model catalog + download
+                                     ←— kept as-is; manages files on disk, not inference
+```
+
+### Domain — use cases (grouped — `llm_usecases.dart`)
+
+| Class | Wraps |
+|---|---|
+| `HasActiveLlmModelUseCase` | `LlmRepository.hasActiveModel()` |
+| `OpenLlmConversationUseCase` | `openConversation(systemInstruction)` |
+| `CloseLlmConversationUseCase` | `closeConversation()` |
+| `SendChatStreamUseCase` | `sendChat(message, cleanHistory)` → `Stream<String>` |
+| `GenerateOneShotUseCase` | `generateOneShot(prompt, maxTokens)` |
+| `PreemptBackgroundWorkUseCase` | pauses low-priority lane (chat is incoming) |
+| `ResumeBackgroundWorkUseCase` | resumes low-priority lane |
+| `GetActiveLlmBackendUseCase` / `SetActiveLlmBackendUseCase` | local ↔ cloud switch |
+| `ListAvailableLlmModelsUseCase` | local: downloaded models · cloud: OpenRouter catalogue |
+| `GetActiveLlmModelUseCase` / `SetActiveLlmModelUseCase` | which model is active on the active backend |
+| `SaveOpenRouterKeyUseCase` / `ClearOpenRouterKeyUseCase` / `HasOpenRouterKeyUseCase` | credential mgmt |
+
+### Core primitives
+
+```
+lib/core/llm/
+└── llm_cancellation_token.dart    Completer-backed cancel signal
+```
+
+### Data — repositories
+
+```
+lib/data/repositories/
+├── llm_repository_impl.dart            dispatches per active backend
+└── llm_credentials_repository_impl.dart  thin wrapper over secure storage
+```
+
+### Data — data sources (the heart of the engine routing)
+
+```
+lib/data/datasources/llm/
+├── llm_data_source.dart             abstract — one impl per backend
+│
+├── local_llm_data_source.dart       wraps AIModelRunner + ModelTaskQueue
+│                                    listAvailableModels → local catalog (downloaded only)
+│
+├── local_llm_runner.dart            opens InferenceChat via flutter_gemma 0.16
+│                                    passes modelType + isThinking per active model
+│                                    holds _activeExtraction → safe preemption
+│
+├── local_inference_queue.dart       high/low priority lanes
+│                                    pauses low while user is in Shiv tab
+│
+├── local_model_params.dart          AIModelId → (ModelType, isThinking) lookup
+│                                    keeps chat template aligned to the model file
+│
+├── remote_llm_data_source.dart      OpenRouterInference wrapper
+│                                    Stream<String> from streamCompletion()
+│                                    preempts active extraction sub on chat send
+│
+├── llm_credentials_data_source.dart flutter_secure_storage for the OpenRouter key
+│                                    (same Keystore/Keychain pattern as nsec)
+│
+└── llm_preferences_data_source.dart SharedPreferences: activeBackend + activeCloudModelId
+```
+
+### Presentation — Shiv feature
+
+```
+lib/features/shiv/
+├── pages/shiv_page.dart                       tab root: model check → landing / chat
+├── chat/
+│   ├── bloc/shiv_ai_bloc.dart                 events, state, streaming, branching
+│   ├── pages/shiv_chat_page.dart              message list + composer
+│   ├── widgets/
+│   │   ├── shiv_message_bubble.dart           user/assistant bubbles, <think> parsing
+│   │   ├── shiv_input_composer.dart           [+ model picker] + text field + send/stop
+│   │   ├── shiv_history_drawer.dart           conversation list side drawer
+│   │   ├── shiv_conversation_tile.dart        swipe-to-delete tile
+│   │   └── shiv_model_picker_sheet.dart       + button → bottom-sheet model picker
+│   └── tree/                                  branch graph view (long-press fork)
+├── model_select/                              SelectAIModelCubit + AIModelSelectionPage
+│                                              (local file catalog — Phase 1 unchanged)
+└── rag/
+    ├── embedding/embedding_service.dart       all-MiniLM-L6-v2 (tflite_flutter)
+    ├── retrieval/vector_search_service.dart   cosine sim over ToStore vectors
+    ├── prompt/prompt_builder.dart             system prompt + extraction prompt
+    ├── prompt/prompt_budget.dart              per-model token budgets
+    └── pipeline/rag_pipeline.dart             init + buildMessage (two-phase)
+```
+
+### Presentation — Settings
+
+```
+lib/features/settings/
+├── pages/settings_page.dart                Account · Identity · AI · Cloud AI · Storage · …
+└── widgets/
+    ├── ai_card.dart                        opens local model picker (AIModelSelectionPage)
+    └── cloud_provider_card.dart            paste OpenRouter key, switch backend, disconnect
+```
+
+---
+
+## Call Flows
+
+### Chat send — happy path
+
+```
+User taps send in ShivChatPage
+   │
+   ▼
+ShivAIBloc._onSendMessage
+   │  saves user msg + placeholder asst msg to Isar
+   │
+   ▼
+RagPipeline.buildMessage(userQuestion)                  ← see "RAG per turn" below
+   │  • picks PromptBudget.forActiveModel(getActiveLlmModel)
+   │  • embed query → vector search → graph expand → memory lookup
+   │  • PromptBuilder.buildUserMessage(enriched, budget) → final prompt string
+   │
+   ▼  RagMessage { userMessage, contextCount }
+_sendChatStream.call(SendChatStreamInput(message: userMessage, cleanHistory))
+   │
+   ▼
+SendChatStreamUseCase  →  LlmRepository.sendChat
+   │
+   ▼
+LlmRepositoryImpl._active  ← reads prefs.activeBackend
+   │
+   ├─ localGemma  ─►  LocalLlmDataSource.sendChat
+   │                     │
+   │                     ▼  AIModelRunner.sendAndStream
+   │                     │     • _activeExtraction?.stopGeneration()   safe per-session preempt
+   │                     │     • _queue.runHigh<void>(…)
+   │                     │     • model.openChat(modelType, isThinking) ← from LocalModelParams
+   │                     │     • chat.addQueryChunk(Message.text(prompt))
+   │                     │     • generateChatResponseAsync() → yields TextResponse tokens
+   │                     ▼  Stream<String>
+   │
+   └─ openRouter  ─►  RemoteLlmDataSource.sendChat
+                         │
+                         │  cancel any in-flight _extractionSub
+                         │  OpenRouterInference.streamCompletion(modelId, messages)
+                         ▼  map(r → r.choices.first.content) → Stream<String>
+```
+
+The stream returns to `_onTokenReceived` (strips leading whitespace, appends to `streamingContent`). `_onStreamDone` persists the final asst message and strips any `<think>…</think>` blocks.
+
+### RAG per turn — what happens inside `RagPipeline.buildMessage`
+
+```
+userQuestion: "what did i write about the saga pattern?"
+       │
+       ▼
+[1] EmbeddingService.embed(query)
+       │  all-MiniLM-L6-v2 (tflite_flutter, on-device, ~80 MB)
+       ▼  List<double> queryVec (384 dims)
+       │
+[2] PromptBudget.forActiveModel(LlmModelInfo)
+       │  Qwen3 0.6B  → max=2048,  topK=3,  hops=1
+       │  Gemma 4 E4B → max=8192,  topK=10, hops=2
+       │  Cloud       → max=16384, topK=15, hops=2
+       ▼  PromptBudget { maxTokens, topK, maxHops, section caps }
+       │
+[3] VectorSearchService.search(queryVec, topK=budget.topK)
+       │  ToStore ANN cosine over saved-note embeddings
+       ▼  List<ScoredNote>  seedNotes
+       │
+[4] GetMemoriesByNoteIdsUseCase(seedNoteIds)
+       │  pulls MemoryNodeModel rows the extractor built earlier
+       ▼  seedMemories + concept keys
+       │
+[5] GetGraphNeighboursUseCase(conceptKeys, maxHops=budget.maxHops)
+       │  BFS over GraphEdgeModel from seed concepts
+       ▼  edges (each = source → relation → target)
+       │
+[6] GetGraphNodesByKeysUseCase(edge endpoints)
+       │  resolves keys to readable node names
+       ▼  graphNodes
+       │
+[7] GetMemoriesByNoteIdsUseCase(notes that asserted those edges)
+       │  expandedMemories from beyond the seeds
+       ▼  EnrichedContext { seedNotes, graphNodes, graphEdges, memories }
+       │
+[8] PromptBuilder.buildUserMessage(enriched, budget)
+       │  Priority order — drops lowest first if over budget:
+       │    query (10%)  →  top 1-2 seed notes (35%)
+       │                 →  graph relations (20%)
+       │                 →  remaining seed notes
+       │                 →  memory summaries (15%)
+       ▼  String userMessage
+       │
+   RagMessage { userMessage, contextCount = #notes + #edges + #memories }
+```
+
+The exact same `RagMessage` is sent to whichever LLM is active — local Gemma or cloud OpenRouter. RAG is backend-agnostic. The embedding always runs on-device, so even cloud chat doesn't leak the note bodies it didn't pull into context.
+
+Pipeline source: `lib/features/shiv/rag/pipeline/rag_pipeline.dart` — `buildMessage` (per turn) + `buildSystemInstruction` (once at conversation open).
+
+### Knowledge extraction — background graph build
+
+```
+VishnuFeedBloc / ThreadConversationBody save action
+   │
+   ▼
+SaveNoteUseCase + (fire-and-forget) EmbedAndStoreNoteUseCase
+   │
+   ▼
+EmbedAndStoreNoteUseCase  ─►  ExtractKnowledgeUseCase
+   │
+   │  hasModel = await HasActiveLlmModelUseCase.call()
+   │  searchVectors → similar notes for context
+   │  builds extraction prompt (directional, JSON schema)
+   ▼
+GenerateOneShotUseCase  →  LlmRepository.generateOneShot
+   │
+   ├─ local  ─►  AIModelRunner.generateOneShot
+   │                _queue.runLow<>(…)         ← yields to chat
+   │                model.openChat(temp=0.2)
+   │                _activeExtraction = oneShot  ← held so chat can stopGeneration()
+   │                → buffer concatenated tokens → String?
+   │
+   └─ cloud  ─►  RemoteLlmDataSource.generateOneShot
+                    streamCompletion → buffer → String?
+                    _extractionSub held for preemption
+
+Parsed JSON → graph nodes + edges + memory upserted in Isar.
+```
+
+If chat preempts during local extraction: `stopGeneration()` cancels the extraction session (safe in 0.16 — `openChat` gives independent native sessions). Extraction returns `null`. The pending row in `PendingExtractionRepository` survives, and `DrainPendingExtractionsUseCase` retries it when the user leaves the Shiv tab.
+
+### Enter / leave Shiv tab
+
+```
+HomePage tab index → 2
+   ▼
+ShivAIBloc.onEnterShivTab()
+   ▼
+PreemptBackgroundWorkUseCase  →  LlmRepository.preemptBackgroundWork
+   │
+   ├─ local: ModelTaskQueue.pauseLowPriority()  (running extraction allowed to finish)
+   └─ cloud: cancels _extractionSub
+```
+
+Leaving the tab does the inverse plus `DrainPendingExtractionsUseCase.call()` to replay any preempted extractions.
+
+### Connect cloud provider
+
+```
+SettingsPage → CloudProviderCard → "Connect API key"
+   │  user pastes sk-or-…
+   ▼
+SaveOpenRouterKeyUseCase  →  LlmCredentialsRepositoryImpl
+   │  writes secure storage; invalidates cached OpenRouterInference
+   ▼
+ListAvailableLlmModelsUseCase  ←  validates the key by calling listModels()
+   │
+   ├─ ok   → card flips to Connected
+   └─ fail → ClearOpenRouterKeyUseCase + snackbar
+```
+
+### Switch backend
+
+```
+CloudProviderCard toggle (or model picker sheet — not yet wired there)
+   ▼
+SetActiveLlmBackendUseCase  →  LlmRepository.setActiveBackend(openRouter)
+   │  refuses if no API key configured → returns Failure
+   ▼
+LlmPreferencesDataSource.setActiveBackend
+   │  (next call to LlmRepositoryImpl._active resolves to RemoteLlmDataSource)
+```
+
+### Pick a model (chat input `+`)
+
+```
+ShivInputComposer + icon → ShivModelPickerSheet
+   ▼
+ListAvailableLlmModelsUseCase   (local: downloaded · cloud: OpenRouter catalogue)
+   │
+   ▼ user taps a row
+SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
+   │  local  → AppSettingsStore.setActiveModelId(AIModelId.values.byName(id))
+   └─ cloud → LlmPreferencesDataSource.setActiveCloudModelId(id)
+```
+
+---
+
+## Backend Switching — Local ↔ Cloud
+
+| Concern | Local Gemma | Cloud OpenRouter |
+|---|---|---|
+| Trigger | Default; user has a model downloaded | User pastes API key + flips toggle |
+| Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | OpenRouter REST `streamCompletion` (SSE) |
+| Session model | Per-turn `openChat` with `modelType` from `LocalModelParams` | Stateless — full prompt every call |
+| Cancellation | per-session `stopGeneration()` (safe since 0.16) | cancel the Dio `StreamSubscription` |
+| Concurrency | accelerator-mutexed → `ModelTaskQueue` high/low lanes | network-concurrent — no queue |
+| Preemption of extraction | `_activeExtraction.stopGeneration()` before chat enters high lane | cancel `_extractionSub` |
+| Models exposed | downloaded local files (via `AIModelRepository`) | live `OpenRouter.listModels()` |
+| Credentials | none | `flutter_secure_storage` (Android Keystore / iOS Keychain) |
+
+### Chat template safety (a v2 fix worth highlighting)
+
+`openChat()` defaults `modelType` to `gemmaIt`. If we don't override it, the SDK renders a Gemma 2/3 template even when the loaded file is Qwen3 or Gemma 4 → garbled prompts, leading `\n` tokens, hallucinations.
+
+`LocalModelParams.forId()` is the **single source of truth** for the runtime mapping:
+
+```
+qwen25_05b   →  ModelType.qwen3   isThinking=false   (we use Qwen3 0.6B today)
+deepseekR1   →  ModelType.deepSeek isThinking=true
+gemma4E2b    →  ModelType.gemma4   isThinking=false
+gemma4E4b    →  ModelType.gemma4   isThinking=false
+```
+
+The same mapping exists in `AIModelRepositoryImpl._gemmaParams` for the *install* path. Both must stay in sync — runtime template and install spec must agree.
+
+---
+
+## Branching Chat
+
+The chat looks linear by default. Long-press a message → "Continue from here" forks a branch. The branch tree is **derived at render time** from `ShivMessageModel.parentId` — no separate branch table.
+
+### Four fields that drive everything
+
+| Field | Where | Meaning |
+|---|---|---|
+| `conversationId` | `ShivConversationModel` + every msg | groups everything under one conversation |
+| `parentId` | `ShivMessageModel` | predecessor message — `null` for root |
+| `activeLeafMessageId` | `ShivConversationModel` | which path the user is currently viewing |
+| `messageId` | `ShivMessageModel` | unique per message |
+
+### Loading the active path
+
+Walk `parentId` backwards from `activeLeafMessageId` to root, reverse, render. The shared root messages naturally appear in every branch — no duplication on disk.
+
+```dart
+final byId = {for (final m in all) m.messageId: m};
+final path = <ShivMessageEntity>[];
+String? cur = activeLeafMessageId;
+while (cur != null) { path.insert(0, byId[cur]!); cur = byId[cur]!.parentId; }
+```
+
+### Branch view modes
+
+- **Vertical Tree Explorer** — `lib/features/shiv/chat/tree/pages/shiv_branch_tree_page.dart`
+- **Node action panel** — `lib/features/shiv/chat/tree/widgets/node_action_panel.dart` (Open / Continue From Here / New Branch)
+- **Branch graph** — `lib/features/shiv/chat/tree/widgets/branch_tree_graph.dart`
 
 ---
 
 ## RAG Pipeline
 
-### Save time — generate embedding
+Two-phase to match `InferenceChat`'s lifecycle:
 
-```
-User saves a note
-      ↓
-EmbeddingService.embed(note.content)
-      ↓
-[0.12, -0.45, 0.89, ...] (384 float32 values)
-      ↓
-SavedNoteModel.embedding = [...] stored in Isar
-```
-
-### Query time — retrieve context
-
-```
-User types: "what did I write about relays?"
-      ↓
-EmbeddingService.embed(query) → query vector
-      ↓
-VectorSearchService:
-  - load all SavedNoteModel.embedding from Isar into memory
-  - for each: cosine_similarity(query_vec, note_vec)
-  - sort descending, take top-K (default K=5)
-      ↓
-Top-K ScoredNote objects returned
-```
-
-Cosine similarity is computed in Dart. For <5,000 saved notes (typical personal user) this is fast enough without any native vector index. See `docs/rag.md` for full details.
-
-### Baseline personalization (runs even with zero saved notes)
-
-Before RAG context is injected, `PromptBuilder` enriches the system prompt with data already sitting in Isar — no extra network calls, no extra downloads.
-
-| Source | What it tells Shiv | Isar model |
-|--------|-------------------|------------|
-| `ProfileModel` (Kind 0) | User's name and bio | `ProfileModel.about` |
-| Own notes (`authorPubkey == myPubkey`) | What the user thinks and writes about | `NoteModel`, kept forever |
-| `tTags` from own notes | User's topic interests (top 10 by frequency) | derived from `NoteModel.tTags` |
-
-This means Shiv has a useful personality even on first use, before the user has saved a single note.
-
-### Prompt assembly
-
+**Phase 1 — session open (once per conversation):**
 ```dart
-final prompt = """
-You are Shiv, a personal AI assistant for ${profile.name} on the UNIUN network.
-${profile.about.isNotEmpty ? 'About them: ${profile.about}' : ''}
-${topTags.isNotEmpty ? 'Their main interests: ${topTags.join(', ')}' : ''}
-
-${relevantNotes.isNotEmpty ? '''
-Use the notes below to answer when relevant.
-
---- USER NOTES ---
-${relevantNotes.map((n) => '• ${n.content}').join('\n')}
---- END NOTES ---
-''' : 'Answer based on general knowledge if no notes are available.'}
-
-${conversationHistory}
-
-User: ${userQuery}
-Shiv:""";
+await rag.init();                                  // load embedding model
+final sysInstruction = await rag.buildSystemInstruction();   // persona + name + bio
+await openConv.call(OpenLlmConversationInput(systemInstruction: sys));
 ```
 
-`topTags` = top 10 `tTags` by frequency across all of the user's own `NoteModel` rows. Computed once per session by `PromptBuilder` and cached in memory.
+**Phase 2 — each user turn:**
+See the [RAG per turn](#rag-per-turn--what-happens-inside-ragpipelinebuildmessage) flow above for the step-by-step inside `buildMessage`. Output is a single `RagMessage { userMessage, contextCount }` that gets passed verbatim to `SendChatStreamUseCase`.
 
-### Answer streaming
+### Per-model RAG scaling
 
-`AIModelRunner` wraps `FlutterGemmaPlugin.instance.getResponseStream(prompt)` and emits tokens to `ShivAIBloc` which updates state on every token. The UI renders partial text live.
+`PromptBudget.forActiveModel(LlmModelInfo)` resolves the budget each turn — RAG automatically grows or shrinks to match the active engine's context window. Caller does nothing special.
 
----
+| Active model | maxTokens | topK seed notes | graph hops |
+|---|---:|---:|---:|
+| Qwen3 0.6B (default small) | 2,048 | 3 | 1 |
+| DeepSeek R1 1.5B | 4,096 | 5 | 2 |
+| Gemma 4 E2B | 4,096 | 5 | 2 |
+| Gemma 4 E4B | 8,192 | 10 | 2 |
+| **Cloud (OpenRouter)** | **16,384** | **15** | **2** |
+| no active model | 2,048 | 3 | 1 |
 
-## Model Selection & Download
+Cloud's 16k cap is intentional — most cloud models expose 32k–1M context but pulling too much makes answers noisier *and* costs more. `openrouter_api 1.0.2` doesn't expose `LlmModel.contextWindow` yet; when it does, `_cloud()` will read it and adapt per-model.
 
-### First launch flow
+Section split inside any budget: query 10%, top notes 35%, graph relations 20%, summaries 15%. Trimming order (drops lowest first): summaries → extra seed notes → graph relations.
 
-When a user opens Shiv for the first time (no model downloaded):
-1. `ShivPage` checks `AIModelRepository.getSelectedModel()` → null
-2. Navigate to `AIModelSelectionPage`
-3. User picks a model
-4. Tap "Use This Model" → triggers download
-5. Download progress shown with `LinearProgressIndicator`
-6. On completion → `FlutterGemma.installModel().fromNetwork(url).install()` stores model internally; Isar records which `AIModelId` is active
-7. `AIModelRepository` persists the selection in Isar
-8. Navigate to `ShivPage` — Shiv is ready
+### Embedding stays local even on cloud backend
 
-### Model re-selection
+`all-MiniLM-L6-v2` (~80 MB, bundled `.tflite`) runs in `EmbeddingService` regardless of which LLM is active. The embedding is independent of the answer generator — local notes, local vectors, then *either* on-device or cloud LLM consumes the assembled prompt. No private data ever leaves the device unless the user explicitly chose the cloud backend.
 
-Available from Settings → "AI Model" button (already exists in settings UI).
-Same `AIModelSelectionPage` is pushed. Switching model requires re-download.
-Chat history is preserved across model changes.
+### Extraction prompt (directional rule landed v2)
 
-### Supported models (mobile — Android & iOS)
-
-All models use `.task` (MediaPipe) or `.litertlm` (LiteRT-LM engine) format.
-No HuggingFace token required. All hosted on `litert-community` public repos.
-
-| AIModelId | Display Name | Size | Format | Thinking | Vision | Min RAM | HuggingFace Repo |
-|-----------|-------------|------|--------|----------|--------|---------|-----------------|
-| `qwen25_05b` | Qwen 2.5 0.5B | 0.5 GB | `.task` | ❌ | ❌ | 3 GB | `litert-community/Qwen2.5-0.5B-Instruct` |
-| `deepseekR1` ⭐ | DeepSeek R1 1.5B | 1.7 GB | `.task` | ✅ | ❌ | 4 GB | `litert-community/DeepSeek-R1-Distill-Qwen-1.5B` |
-| `gemma4E2b` | Gemma 4 E2B | 2.4 GB | `.litertlm` | ✅ | ✅ | 6 GB | `litert-community/gemma-4-E2B-it-litert-lm` |
-| `gemma4E4b` | Gemma 4 E4B | 4.3 GB | `.litertlm` | ✅ | ✅ | 8 GB | `litert-community/gemma-4-E4B-it-litert-lm` |
-
-**UI design reference:** `docs/ui-ux/ai_model_selection/`
-
-The selection page groups models into three visual tiers: Lite, Balanced (pre-selected/recommended), High Performance — matching the UI mockup.
-
-### Package
-
-```yaml
-flutter_gemma: ^0.13.1
-```
-
-Docs: https://pub.dev/documentation/flutter_gemma/latest/
-
----
-
-## Branching Chat System
-
-### What it looks like to the user
-
-The chat looks and feels like a normal linear conversation — one message after another, top to bottom. That is the default. Branching is invisible until the user deliberately triggers it.
-
-When the user wants to explore a different direction from an earlier point in the conversation, they long-press any previous message and choose **"Continue from here"**. From that point on, their new messages form a separate branch. The original conversation is preserved exactly as it was. The user can switch back to it at any time.
-
----
-
-### The mental model (how to think about it as a developer)
-
-Every message is a **node** in a tree. Each node knows its parent. Messages that share the same branch travel down the same path from that parent.
-
-```
-conversationId: "conv-abc"
-activeBranchId: "branch-main"   ← which path the user is currently viewing
-
-msg-1  parentId=null      branchId="branch-main"   role=user      "What is Nostr?"
-msg-2  parentId=msg-1     branchId="branch-main"   role=assistant "Nostr is a protocol..."
-msg-3  parentId=msg-2     branchId="branch-main"   role=user      "Tell me more about relays"
-msg-4  parentId=msg-3     branchId="branch-main"   role=assistant "Relays are servers that..."
-
-  ↑ user long-presses msg-2 → "Continue from here" → new branch created
-
-msg-5  parentId=msg-2     branchId="branch-B"      role=user      "How does key generation work?"
-msg-6  parentId=msg-5     branchId="branch-B"      role=assistant "Keys in Nostr are..."
-```
-
-In the normal chat view, the user only ever sees ONE straight path at a time. When viewing `branch-main`: msg-1 → msg-2 → msg-3 → msg-4. When viewing `branch-B`: msg-1 → msg-2 → msg-5 → msg-6. The shared messages (msg-1, msg-2) appear in both views — they are read from Isar each time.
-
----
-
-### The four key fields
-
-| Field | Where it lives | What it means |
-|-------|---------------|---------------|
-| `conversationId` | `ShivConversationModel` + every message | Groups all messages and branches under one conversation |
-| `parentId` | Every `ShivMessageModel` | Points to the message this one follows. `null` = first message in conversation |
-| `branchId` | Every `ShivMessageModel` | Groups messages that travel together on the same path. All messages in the same straight-line chain share a `branchId` |
-| `activeBranchId` | `ShivConversationModel` | The branch the user is currently viewing. Loading the active chat means: walk back from the latest message in this branch, through parentIds, to the root |
-
----
-
-### Data model
-
-```dart
-// ShivConversationModel (Isar)
-class ShivConversationModel {
-  Id id = Isar.autoIncrement;
-  late String conversationId;   // unique ID for this conversation
-  late String title;            // first user message, truncated to ~50 chars
-  late String activeBranchId;   // which branch the user is currently on
-  late DateTime createdAt;
-  late DateTime updatedAt;
-}
-
-// ShivMessageModel (Isar)
-class ShivMessageModel {
-  Id id = Isar.autoIncrement;
-  late String messageId;        // unique ID for this message
-  late String conversationId;   // which conversation this belongs to
-  String? parentId;             // previous message's messageId. null = first message
-  late String branchId;         // which branch this message belongs to
-  late MessageRole role;        // user | assistant
-  late String content;
-  late DateTime createdAt;
-}
-```
-
----
-
-### Step-by-step: what happens when the user branches
-
-**Step 1** — User long-presses msg-2 in the chat.
-
-**Step 2** — Action sheet appears: "Continue from here" / "Cancel".
-
-**Step 3** — User taps "Continue from here".
-
-**Step 4** — App creates a new `branchId` (e.g. `"branch-B"`).
-
-**Step 5** — `ShivConversationModel.activeBranchId` is updated to `"branch-B"`.
-
-**Step 6** — The next message the user sends is saved with `parentId = msg-2.messageId` and `branchId = "branch-B"`.
-
-**Step 7** — The chat view reloads using the active branch path (see Loading below). The user now sees: msg-1 → msg-2 → (their new message). The old path (msg-3, msg-4) is gone from view but still in Isar.
-
----
-
-### Saving a message
-
-Every new message goes into Isar as a `ShivMessageModel`. The fields to set:
-
-```dart
-final msg = ShivMessageModel()
-  ..messageId   = newId()
-  ..conversationId = currentConversationId
-  ..parentId    = lastMessageInActiveBranch?.messageId   // null if first message
-  ..branchId    = activeBranchId
-  ..role        = MessageRole.user
-  ..content     = userText
-  ..createdAt   = DateTime.now();
-```
-
-After saving, update the conversation's `updatedAt`. If this is the first user message, also set the conversation `title` to its content (truncated to 50 chars).
-
----
-
-### Loading messages for the active branch
-
-Do NOT query by `branchId` alone — that would miss the shared messages at the root that belong to earlier branches. Instead, walk the `parentId` chain backwards from the latest message in the active branch:
-
-```dart
-// 1. Find the latest message in the active branch
-final leaf = await isar.shivMessageModels
-    .filter()
-    .conversationIdEqualTo(convId)
-    .branchIdEqualTo(activeBranchId)
-    .sortByCreatedAtDesc()
-    .findFirst();
-
-// 2. Walk parentId chain back to root, collecting each message
-final path = <ShivMessageModel>[];
-var current = leaf;
-while (current != null) {
-  path.add(current);
-  current = current.parentId == null
-      ? null
-      : await isar.shivMessageModels
-          .filter()
-          .messageIdEqualTo(current.parentId!)
-          .findFirst();
-}
-
-// 3. Reverse to get chronological order (root → leaf)
-final messages = path.reversed.toList();
-```
-
-This correctly assembles msg-1 → msg-2 → msg-5 → msg-6 for `branch-B`, even though msg-1 and msg-2 belong to `branch-main`.
-
----
-
-### Branch switching — entry point and three views
-
-All branch management happens outside the chat screen. The top-right button in the chat (`docs/ui-ux/shiv_ai_assistant/screen.png`) is the single entry point. Tapping it opens the **Conversation Graph** — a visual graph/tree system where the user can see all branches, switch between them, and create new ones.
-
-Inside the graph system there are **two view modes** (toggled via the top-right icons in the graph screen) and **one action panel** that appears when a node is tapped. The chat itself always stays linear — branch work only happens in these views.
-
----
-
-#### Entry → Conversation Graph
-
-**Reference:** `docs/ui-ux/shiv_conversation_graph/screen.png`
-
-This is the default view when the top-right button is tapped from chat. It shows the conversation as an interactive node graph — each branch is a node, connected by lines to its parent. The user can pan and scroll.
-
-Top-right of this screen has **two icons**:
-- 🔍 Search — find a specific branch by keyword
-- 🌿 Toggle — switch between vertical tree view and full mind-map view
-
-**Tapping any node** slides up the action panel from the bottom:
-
-```
-┌──────────────────────────────────────────┐
-│  ACTIVE BRANCH  ·  Updated 2h ago  ·  12 msgs
-│                                          │
-│  Saga Pattern                            │  ← branch title (first user msg, truncated)
-│  Implementing data consistency in        │  ← last message preview
-│  distributed systems...                  │
-│                                          │
-│  [ Open Branch          ]                │  ← primary action
-│  [ ▶  Continue From Here ]               │
-│  [ +  New Branch         ]               │
-└──────────────────────────────────────────┘
-```
-
-| Button | What it does in code |
-|--------|----------------------|
-| **Open Branch** | `conversation.activeBranchId = tappedBranch.branchId` → save to Isar → pop graph → chat reloads active path |
-| **Continue From Here** | new `branchId` created → next message: `parentId = lastMessageInTappedBranch.messageId`, `branchId = newBranchId` → user picks up from the end of that branch |
-| **New Branch** | new `branchId` created → next message: `parentId = tappedNode.messageId` (the node itself, not its leaf) → user starts fresh from that exact point |
-
----
-
-#### View mode 1 — Vertical Tree Explorer
-
-**Reference:** `docs/ui-ux/shiv_conversation_tree_explorer/screen.png`
-
-Title: "AI Conversation Tree". A top-down scrollable tree. Each node is a rounded card. Curved lines connect parent to children. The active branch node is highlighted with the ★ indicator.
-
-```
-     ┌────────────────────────┐
-     │  ROOT CONCEPT          │
-     │  Architectural Planning│   ← root (first user message of the conversation)
-     └───────────┬────────────┘
-                 │
-     ┌───────────┴────────────┐
-     │  Microservices Strategy│   ← branch-main node (first unique msg)
-     └───────────┬────────────┘
-                 │
-   ┌─────────────┼──────────────────┐
-   ▼             ▼                  ▼
-┌────────┐  ┌───────────┐  ┌──────────────┐
-│ Saga ★ │  │  Event    │  │   Kub...     │
-│Pattern │  │  Sourcing │  │              │
-└────────┘  └───────────┘  └──────────────┘
-```
-
-- ★ = `activeBranchId` — the branch currently open in chat
-- Tapping a node → opens the action panel (same as Conversation Graph)
-- This is the go-to view for navigating deep, sequential conversation trees
-
----
-
-#### View mode 2 — Full Mind-Map
-
-**Reference:** `docs/ui-ux/shiv_full_conversation_tree_view/screen.png`
-
-Title: "Conversation Tree". The same tree rendered as a horizontal mind-map. Root at the top-centre, all branches spread left/right below. Zoomable and pannable. Best for seeing the full picture at a glance.
-
-```
-                ┌──────────────────────┐
-                │  ROOT CONCEPT        │
-                │  Architectural       │
-                │  Planning            │
-                └──────────┬───────────┘
-          ┌────────────────┼─────────────────┐
-          ▼                ▼                 ▼
-  ┌──────────────┐  ┌──────────┐  ┌──────────────┐
-  │ Microservices│  │Deployment│  │   Security   │
-  │  Strategy  ★ │  │ Options  │  │    Model     │
-  └──────┬───────┘  └──────────┘  └──────────────┘
-  ┌──────┼──────────────────────┐
-  ▼      ▼      ▼       ▼       ▼
- Saga  Killa  Events  Serverless  Zero-Trust
-```
-
-- Tapping a node → opens the same action panel
-- This view is toggled from the 🌿 icon in the Conversation Graph screen
-
----
-
-### BranchTreeView — how to build the tree in code
-
-The tree is not stored in Isar. It is **derived at render time** from the flat list of `ShivMessageModel` rows using the `parentId` → children map.
-
-**Example conversation — raw Isar data:**
-
-```
-messageId   parentId    branchId       role        content (truncated)
-─────────────────────────────────────────────────────────────────────
-msg-1       null        branch-main    user        "Architectural Planning"
-msg-2       msg-1       branch-main    assistant   "Here is the plan..."
-msg-3       msg-2       branch-main    user        "Tell me about microservices"
-msg-4       msg-3       branch-B       user        "Saga pattern"            ← branch from msg-3
-msg-5       msg-4       branch-B       assistant   "Implementing data cons..."
-msg-6       msg-3       branch-C       user        "Deployment options"      ← branch from msg-3
-msg-7       msg-6       branch-C       assistant   "Here are your options..."
-msg-8       msg-3       branch-D       user        "Security model"          ← branch from msg-3
-msg-9       msg-8       branch-D       assistant   "For security consider..."
-```
-
-**Build the tree:**
-
-```dart
-// 1. Load all messages
-final allMessages = await isar.shivMessageModels
-    .filter()
-    .conversationIdEqualTo(conversationId)
-    .sortByCreatedAt()
-    .findAll();
-
-// 2. Build parentId → children lookup
-final childrenOf = <String?, List<ShivMessageModel>>{};
-for (final msg in allMessages) {
-  childrenOf.putIfAbsent(msg.parentId, () => []).add(msg);
-}
-
-// childrenOf[null]    = [msg-1]           ← root
-// childrenOf['msg-1'] = [msg-2]
-// childrenOf['msg-2'] = [msg-3]
-// childrenOf['msg-3'] = [msg-4, msg-6, msg-8]  ← branch point: 3 children
-// childrenOf['msg-4'] = [msg-5]
-// etc.
-```
-
-A node where `childrenOf[msg.messageId].length > 1` is a **branch point** — render a fork in the tree UI at that node.
-
-**Build node labels (what appears on each card in the tree view):**
-
-```dart
-// The label for a branch node = the first user message in that branch
-// that is NOT a shared root message (i.e. the message that made the branch unique)
-String labelForBranch(String branchId, List<ShivMessageModel> all) {
-  return all
-      .where((m) => m.branchId == branchId && m.role == MessageRole.user)
-      .map((m) => m.content)
-      .firstOrNull
-      ?.substring(0, min(30, content.length)) ?? branchId;
-}
-```
-
-**Resulting tree for Screen 1 and Screen 2:**
-
-```
-ROOT CONCEPT: "Architectural Planning"   (msg-1, branch-main)
-│
-└── "Here is the plan..." (msg-2, shared root)
-    │
-    └── "Tell me about microservices" (msg-3, branch point — 3 children)
-        │
-        ├── branch-B ★  →  "Saga pattern"        (12 msgs)
-        ├── branch-C    →  "Deployment options"  (8 msgs)
-        └── branch-D    →  "Security model"      (6 msgs)
-```
-
----
-
-### UI rules (what the user sees)
-
-- **Normal chat view**: flat list, top to bottom. No tree, no branches visible.
-- **Branch indicator**: a small fork icon rendered on any message where `childrenOf[msg.messageId].length > 1`. Tapping it opens Screen 3 (graph panel) for that node.
-- **Top-right button**: opens Screen 1 (vertical tree explorer) from the root. Reference: `docs/ui-ux/shiv_ai_assistant/screen.png`.
-- **Switching branches**: instant — path walk is fast for any realistic conversation length.
-
----
-
-### UX principles
-
-- Default = looks like a normal chat. Zero branching complexity visible.
-- Branching = long-press only. Never accidentally triggered.
-- All branches share the same RAG context — saved notes don't change per branch.
-- A branch can itself be branched from — tree depth is unlimited.
+`prompt_builder.dart:buildExtractionPrompt` now enforces "<source> <type> <target>" reads as a sentence, with a worked example that prevents the inverted-edge bug ("rajendrasinh is_son_of samarth" wrong; "samarth child_of rajendrasinh" right).
 
 ---
 
 ## Data Models
 
-> The authoritative model definitions are in `lib/data/models/`. The snippets below show only the fields — see the Branching Chat System section for how they connect.
-
-### ShivConversationModel (Isar)
+> Authoritative definitions live in `lib/data/models/`. Below is the schema shape only.
 
 ```dart
-@Collection(ignore: {'copyWith'})
-@Name('ShivConversation')
+// lib/data/models/shiv_conversation_model.dart
 class ShivConversationModel {
   Id id = Isar.autoIncrement;
-  late String conversationId;   // unique ID
-  late String title;            // first user message, truncated to ~50 chars
-  late String activeBranchId;   // which branch path the user is currently viewing
+  late String conversationId;
+  late String title;                  // first user msg truncated to 40 chars
+  late String activeLeafMessageId;    // walks parentId chain to render branch
   late DateTime createdAt;
   late DateTime updatedAt;
 }
-```
 
-### ShivMessageModel (Isar)
-
-```dart
-@Collection(ignore: {'copyWith'})
-@Name('ShivMessage')
+// lib/data/models/shiv_message_model.dart
 class ShivMessageModel {
   Id id = Isar.autoIncrement;
-  late String messageId;        // unique ID for this message
+  late String messageId;
   late String conversationId;
-  String? parentId;             // previous message's messageId. null = first message in conversation
-  late String branchId;         // all messages on the same straight-line path share this
-  @Enumerated(EnumType.name)
-  late MessageRole role;        // user | assistant
+  String? parentId;                   // null = root
+  @Enumerated(EnumType.name) late MessageRole role;   // user | assistant
   late String content;
   late DateTime createdAt;
 }
-```
 
-### AIModelSelectionModel (Isar)
-
-```dart
-@Collection(ignore: {'copyWith'})
-@Name('AIModelSelection')
+// lib/data/models/ai_model_selection_model.dart
 class AIModelSelectionModel {
   Id id = Isar.autoIncrement;
-  @Enumerated(EnumType.name)
-  late AIModelId modelId;       // typed enum — qwen25_05b | deepseekR1 | gemma4E2b | gemma4E4b
+  @Enumerated(EnumType.name) late AIModelId modelId;
   late String modelName;
-  late String modelPath;        // modelId.name — flutter_gemma manages actual file storage
+  late String modelPath;              // modelId.name — flutter_gemma owns the file
   late DateTime downloadedAt;
-  late bool isActive;           // only one row can be true at a time
-}
-```
-
----
-
-## BLoC Structure
-
-### ShivAIBloc
-
-Handles conversation management, inference, and branch switching. One BLoC per Shiv tab session.
-
-**Events:**
-```dart
-LoadShivEvent                          // load all conversations on tab open
-CreateConversationEvent                // start a new empty conversation
-SelectConversationEvent(String conversationId)  // switch to an existing conversation
-SendMessageEvent(String text)          // user sends a message in the active conversation
-CreateBranchFromEvent(String messageId) // long-press → "Continue from here"
-SwitchBranchEvent(String branchId)    // user picks a branch in BranchTreeView
-DeleteConversationEvent(String conversationId)
-```
-
-**State (single class with copyWith — same pattern as ThreadState):**
-```dart
-ShivAIState {
-  status               ShivStatus   // initial | loading | ready | streaming | error
-  conversations        List<ShivConversationEntity>
-  activeConversationId String?
-  activeBranchId       String?
-  messages             List<ShivMessageEntity>  // active branch path only (parentId walk)
-  streamingText        String       // partial token text while status == streaming
-  errorMessage         String?
-}
-```
-
-**On SendMessageEvent:**
-1. Save user message to Isar (`parentId` = last message in active branch, `branchId` = `activeBranchId`)
-2. Add to `messages` in state (optimistic — UI shows immediately)
-3. Build prompt: system prompt + conversation history + new user message
-4. Call `AIModelRunner.generateResponse(prompt)` → stream tokens
-5. Each token: `emit(state.copyWith(streamingText: accumulated))`
-6. On stream complete: save assistant message to Isar, clear `streamingText`, add to `messages`
-
-**On CreateBranchFromEvent:**
-1. Generate new `branchId`
-2. Update `activeBranchId` on `ShivConversationModel` in Isar
-3. Reload active branch path from the tapped message onwards (empty — branch just started)
-4. User's next message will use the new `branchId` and `parentId = tappedMessage.messageId`
-
-### SelectAIModelCubit
-
-Handles model download + selection. Lives in `lib/shiv/model_select/cubit/`.
-
-**States:** `initial → downloading(progress: 0.0–1.0) → downloaded → active | error`
-
----
-
-## UI Flow
-
-### First open (no model)
-
-```
-ShivPage
-  └─ checks AIModelRepository.getSelectedModel() → null
-  └─ pushes AIModelSelectionPage
-       └─ user picks model
-       └─ download starts (progress bar)
-       └─ on complete → pops back to ShivPage (Shiv ready)
-```
-
-### Normal chat
-
-```
-ShivPage
-  ├─ ConversationListDrawer (swipe left or sidebar)
-  ├─ ChatMessageList (active branch, linear)
-  │   ├─ UserMessageBubble
-  │   └─ ShivMessageBubble (streaming-capable)
-  ├─ BranchIndicator (on messages that have branches)
-  ├─ ReplyComposer (bottom)
-  └─ BranchTreeButton (top-right icon)
-```
-
-### Branch tree
-
-```
-BranchTreeView (pushed as bottom sheet or full screen)
-  └─ TreeNode (Root)
-      ├─ TreeNode (Branch A)
-      │   └─ TreeNode (Branch A.1)
-      └─ TreeNode (Branch B)
-  └─ tap → SwitchBranchEvent → main chat updates
-```
-
----
-
-## Full Build Roadmap
-
-Build in this exact order — each step depends on the previous one being complete.
-
----
-
-### Phase 1 ✅ — Model Selection (nothing works until user has a model)
-
-**Step 1.1 — `AIModelSelectionModel` (Isar)**
-
-File: `lib/data/models/ai_model_selection_model.dart`
-
-What it stores: which model the user picked, where it lives on disk, when it was downloaded.
-
-```dart
-@Collection()
-class AIModelSelectionModel {
-  Id id = Isar.autoIncrement;
-  late String modelId;       // 'qwen3_0.6b' | 'deepseek_r1' | 'gemma4_e2b' | 'gemma4_e4b'
-  late String modelName;     // display name
-  late String modelPath;     // modelId.name — flutter_gemma manages actual file storage
-  late DateTime downloadedAt;
-  late bool isActive;        // only one can be true at a time
-}
-```
-
-Run `build_runner` after adding this.
-
----
-
-**Step 1.2 — `AIModelRepository` interface + implementation**
-
-Files:
-- `lib/domain/repositories/ai_model_repository.dart` — interface
-- `lib/data/repositories/ai_model_repository_impl.dart` — reads/writes `AIModelSelectionModel` in Isar
-
-Key methods:
-```dart
-Future<Either<Failure, AIModelEntity?>> getActiveModel();
-Future<Either<Failure, Unit>> saveModelSelection(AIModelEntity model);
-Future<Either<Failure, Unit>> clearModelSelection();
-```
-
----
-
-**Step 1.3 — `SelectAIModelUseCase` + `GetSelectedModelUseCase`**
-
-File: `lib/domain/usecases/ai_model_usecases.dart`
-
-Simple wrappers — call repository, return Either.
-
----
-
-**Step 1.4 — `SelectAIModelCubit`**
-
-File: `lib/shiv/cubit/select_ai_model_cubit.dart`
-
-Handles the download flow:
-```
-initial → downloading(progress: 0.0..1.0) → downloaded → active
-                                           → error
-```
-
-Uses `flutter_gemma`'s model download API. On progress update, emits `downloading(progress)` state. UI shows a progress bar.
-
----
-
-**Step 1.5 — `AIModelSelectionPage`**
-
-File: `lib/shiv/pages/ai_model_selection_page.dart`
-
-UI reference: `docs/ui-ux/ai_model_selection/`
-
-Shows 4 model cards (Qwen 2.5 0.5B / DeepSeek R1 / Gemma 4 E2B / Gemma 4 E4B). Recommended badge on DeepSeek R1. "Use This Model" button starts download via `FlutterGemma.installModel()`. Progress bar while downloading.
-
-This page is shown:
-1. First time user opens Shiv (no model downloaded yet)
-2. When user taps "AI Model" in Settings
-
----
-
-### Phase 2 ✅ — Embedding + Vector Search + Prompt Builder (RAG complete)
-
-**Step 2.1 — Add `embedding` field to `SavedNoteModel`**
-
-File: `lib/data/models/saved_note_model.dart`
-
-Add:
-```dart
-List<double>? embedding;   // 384 floats from all-MiniLM-L6-v2, null until generated
-```
-
-Run `build_runner` after this change.
-
----
-
-**Step 2.2 — `EmbeddingService`**
-
-File: `lib/shiv/services/embedding_service.dart`
-
-Wraps the `all-MiniLM-L6-v2` model (bundled in app assets as a `.tflite` file).
-
-```dart
-class EmbeddingService {
-  Future<void> loadModel();
-  Future<List<double>> embed(String text);   // returns 384 floats
-  bool get isReady;
-}
-```
-
-Runs in a Dart `Isolate` — embedding is CPU-heavy and would freeze the UI if run on the main thread.
-
-Called in two places:
-- When user saves a note → `embed(note.content)` → store in `SavedNoteModel.embedding`
-- When user asks Shiv a question → `embed(query)` → use for vector search
-
----
-
-**Step 2.3 — `GenerateEmbeddingUseCase`**
-
-File: `lib/domain/usecases/embedding_usecases.dart`
-
-Called by `SaveNoteUseCase` after a note is saved. Generates the embedding and updates the `SavedNoteModel` record in Isar.
-
----
-
-**Step 2.4 — Wire into `SaveNoteUseCase`**
-
-After saving a note to Isar, call `GenerateEmbeddingUseCase` in the background (fire and forget — the user should not wait for embedding to complete before the save is confirmed).
-
----
-
-### Phase 3 ✅ — Vector Search (the retrieval part of RAG)
-
-**Step 3.1 — `VectorSearchService`**
-
-File: `lib/shiv/services/vector_search_service.dart`
-
-```dart
-class VectorSearchService {
-  // Load all embeddings from Isar into memory, compute cosine similarity, return top-K
-  Future<List<ScoredNote>> search({
-    required List<double> queryVector,
-    required int topK,              // default 5
-    double minScore = 0.3,          // ignore notes below this similarity threshold
-  });
 }
 
-class ScoredNote {
-  final String noteId;
-  final double score;     // 0.0 (unrelated) to 1.0 (identical meaning)
-  final SavedNoteEntity note;
-}
+// lib/data/models/memory_node_model.dart    (GraphRAG wiki summary per note)
+// lib/data/models/graph_node_model.dart     (extracted concept)
+// lib/data/models/graph_edge_model.dart     (extracted relation, subject → verb → object)
 ```
 
-For <5,000 saved notes this is fast enough in Dart without a native vector index.
+The active backend (`localGemma` / `openRouter`) and the active cloud model id live in `SharedPreferences` (via `LlmPreferencesDataSource`), not in Isar.
+
+API keys live **only** in `flutter_secure_storage` (via `LlmCredentialsDataSource`), never in Isar or SharedPreferences.
+
+### Local model catalog
+
+All four files come from the `litert-community` org on HuggingFace — the same source flutter_gemma's own README recommends. No HuggingFace token required.
+
+| AIModelId | Display | Size | Format | ModelType | isThinking |
+|---|---|---|---|---|---|
+| `qwen25_05b` | Qwen3 0.6B | 586 MB | `.litertlm` | `qwen3` | false |
+| `deepseekR1` | DeepSeek R1 1.5B ⭐ | 1.7 GB | `.task` | `deepSeek` | true |
+| `gemma4E2b` | Gemma 4 E2B | 2.4 GB | `.litertlm` | `gemma4` | false |
+| `gemma4E4b` | Gemma 4 E4B | 4.3 GB | `.litertlm` | `gemma4` | false |
+
+> The `AIModelId` enum value `qwen25_05b` is legacy — kept to avoid an enum-rename migration in users' SharedPreferences. The actual file and label are Qwen3 0.6B.
 
 ---
 
-**Step 3.2 — `SearchSavedNotesUseCase`**
-
-File: `lib/domain/usecases/search_saved_notes_usecase.dart`
-
-Input: user's query string.
-Internally: embed query → vector search → return top-K notes.
-
----
-
-### Phase 4 ✅ — Conversation Data (needed before building the chat UI)
-
-**Step 4.1 — `ShivConversationModel` + `ShivMessageModel` (Isar)**
-
-Files:
-- `lib/data/models/shiv_conversation_model.dart`
-- `lib/data/models/shiv_message_model.dart`
-
-(Schemas shown in the Data Models section above.)
-
-Run `build_runner` after adding these.
-
----
-
-**Step 4.2 — Domain entities**
-
-Files:
-- `lib/domain/entities/shiv/shiv_conversation_entity.dart` (freezed)
-- `lib/domain/entities/shiv/shiv_message_entity.dart` (freezed)
-
----
-
-**Step 4.3 — Repositories**
-
-Files:
-- `lib/domain/repositories/shiv_conversation_repository.dart` — interface
-- `lib/data/repositories/shiv_conversation_repository_impl.dart` — Isar impl
-- `lib/domain/repositories/shiv_message_repository.dart` — interface
-- `lib/data/repositories/shiv_message_repository_impl.dart` — Isar impl
-
----
-
-**Step 4.4 — Use cases for conversations**
-
-File: `lib/domain/usecases/shiv_conversation_usecases.dart`
-
-```dart
-CreateConversationUseCase   → creates new ShivConversationModel in Isar
-LoadConversationUseCase     → loads messages for a conversation (active branch path)
-SaveMessageUseCase          → saves a user or assistant message
-SwitchBranchUseCase         → updates activeBranchId on the conversation
-CreateBranchUseCase         → creates a new branch from a given parentId message
-```
-
----
-
-### Phase 5 ✅ — Prompt Builder
-
-**Step 5.1 — `PromptBuilder`**
-
-File: `lib/shiv/services/prompt_builder.dart`
-
-Takes: top-K relevant notes + branch conversation history + current user question.
-Returns: assembled prompt string ready to send to the LLM.
-
-```dart
-String build({
-  required List<ScoredNote> relevantNotes,
-  required List<ShivMessageEntity> history,
-  required String userQuestion,
-  int maxTokens = 2048,       // leave room for LLM response
-});
-```
-
-Truncates notes if the total prompt would exceed `maxTokens`. Most important notes go in first.
-
----
-
-### Phase 6 — AI Model Runner
-
-**Step 6.1 — `AIModelRunner`**
-
-File: `lib/shiv/services/ai_model_runner.dart`
-
-Wraps `flutter_gemma`:
-
-```dart
-class AIModelRunner {
-  Future<void> loadModel(String modelPath);
-  Stream<String> run(String prompt);    // streams tokens
-  Future<void> unloadModel();
-  bool get isReady;
-}
-```
-
-Internally: `FlutterGemmaPlugin.instance.getResponseStream(prompt)`.
-
----
-
-### Phase 7 — ShivAIBloc
-
-**Step 7.1 — `ShivAIBloc`**
-
-File: `lib/shiv/bloc/shiv_ai_bloc.dart`
-
-This is the main wiring piece. On `SendMessageEvent`:
-1. Save user message to Isar (`SaveMessageUseCase`)
-2. Embed user question (`EmbeddingService`)
-3. Find relevant notes (`VectorSearchService`)
-4. Build prompt (`PromptBuilder`)
-5. Stream tokens from LLM (`AIModelRunner`)
-6. On each token: emit `ShivAIState` with updated `streamingText`
-7. On stream complete: save assistant message to Isar (`SaveMessageUseCase`)
-
-Events, state, and BLoC structure defined in the BLoC Structure section above.
-
----
-
-### Phase 8 — Chat UI
-
-**Step 8.1 — `ShivPage`**
-
-File: `lib/shiv/pages/shiv_page.dart`
-
-On build:
-- Check `AIModelRepository.getActiveModel()` → if null, push `AIModelSelectionPage`
-- Otherwise show chat UI
-
-**Step 8.2 — Chat widgets**
-
-Files in `lib/shiv/widgets/`:
-- `shiv_message_bubble.dart` — user vs assistant bubble, streaming-aware (shows partial text while `status == streaming`)
-- `shiv_reply_composer.dart` — text input + send button at bottom
-- `branch_indicator.dart` — small icon on messages that have been branched from
-- `branch_tree_view.dart` — tree visualization for switching branches (bottom sheet)
-- `conversation_list_drawer.dart` — sidebar listing all past conversations
-
-**Step 8.3 — Settings wire-up**
-
-Settings already has an "AI Model" button. Wire it to push `AIModelSelectionPage`.
-
-File to update: `lib/settings/pages/settings_page.dart`
-
----
-
-### Build Order Summary (updated)
-
-```
-Phase 1 ✅  Model Selection
-            AIModelSelectionModel → AIModelRepository → SelectAIModelCubit → AIModelSelectionPage
-            AppSettingsModel singleton stores active model choice.
-            ShivPage redirects to selection screen if no model is active.
-
-Phase 2 ✅  Chat UI + Inference
-            ShivConversationModel + ShivMessageModel (parentId linked-list for future branching)
-            → ShivConversationEntity + ShivMessageEntity
-            → ShivRepository interface + ShivRepositoryImpl
-            → shiv_usecases.dart (GetConversations, CreateConversation, DeleteConversation,
-              GetMessages, SaveMessage, UpdateMessageContent, UpdateConversationTitle,
-              UpdateActiveLeaf)
-            → AIModelRunner (InferenceChat wrapper — flutter_gemma 0.13.x)
-            → ShivAIBloc (LoadConversations, CreateConversation, OpenConversation,
-              SendMessage, TokenReceived, StreamDone, StreamError, DeleteConversation)
-            → ShivChatPage + ShivMessageBubble + ShivInputComposer
-            → ShivHistoryDrawer (Scaffold side drawer) + ShivConversationTile
-            → ShivPage landing + model check
-            Auto-title: first 40 chars of first user message → UpdateConversationTitleUseCase
-
-Phase 3 ✅  RAG — Embedding + Vector Search + Prompt Builder
-            NoteModel.embedding field (List<double>?, stored in Isar)
-            → EmbeddingService (all-MiniLM-L6-v2 via tflite_flutter, ~80MB TFLite model)
-            → VectorSearchService (cosine similarity, brute-force top-K over saved notes)
-            → PromptBuilder (buildSystemInstruction: persona + user name/bio/interests;
-              buildUserMessage: RAG context + question)
-            → RagPipeline orchestrator (two-phase: init() once per session,
-              buildMessage() per turn)
-            System instruction prepended to first user turn (Qwen templates ignore
-            createChat(systemInstruction:) — confirmed by flutter_gemma logs).
-
-Phase 4 🔲  Branching Graph View  
-            BranchTreeView (AI Conversation Tree — vertical explorer)
-            → Full Mind-Map view (zoomable)
-            → Conversation Graph node-tap panel (Open Branch / Continue From Here / New Branch)
-            → CreateBranchFromEvent in ShivAIBloc
-            → SwitchBranchEvent in ShivAIBloc
-            parentId chain in ShivMessageModel already supports this — no schema change needed.
-```
-
-Each phase depends on the previous being complete.
-
----
-
-## What Is NOT in v1
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| GraphRAG (graph traversal via `eTagRefs`) | Deferred | Designed — see `docs/graphrag.md`. Adds multi-hop context. Post-MVP. |
-| Image/audio understanding | Deferred | Gemma 4 E2B/E4B supports it, RAG pipeline is text-only for now |
-| Cloud/API model option | Never | Everything is on-device. No API keys ever. |
-| Conversation export | Future | Nice to have |
-| Semantic search in feed | Future | Currently only saved notes are embedded |
-
-
----
-
-# ✅ What you ALREADY have (good foundation)
-
-From your system: 
-
-* ✔ Embedding (MiniLM)
-* ✔ Storage (Isar)
-* ✔ Retrieval (cosine similarity, brute force)
-* ✔ Prompt building
-* ✔ LLM response (Gemma)
-
-👉 This is called **Basic RAG (Naive RAG)**
-
----
-
-# 🚨 What will break as data grows (VERY IMPORTANT)
-
-When notes → **100 → 1K → 10K → 100K**
-
-### Problems you’ll hit:
-
-1. 🐢 **Search becomes slow**
-
-   * You loop through ALL notes (O(N))
-2. 🎯 **Relevance drops**
-
-   * Top-5 may miss important context
-3. 🧠 **Context overload**
-
-   * Too many notes → LLM gets confused
-4. 🔗 **No relationships**
-
-   * Notes are isolated (no connections)
-5. 📄 **Large notes problem**
-
-   * One note = too big → embedding loses detail
-
----
-
-# 🚀 What ADVANCED RAG systems add (future roadmap)
-
-This is what you can implement step by step 👇
-
----
-
-## 1. ⚡ ANN (Fast Vector Search) — MUST HAVE
-
-👉 Replace brute-force search
-
-### Your current:
-
-```text
-for each note → compute similarity ❌ slow
-```
-
-### Upgrade:
-
-* FAISS / HNSW / tostore
-
-👉 Complexity:
-
-```text
-O(N) → O(log N)
-```
-
-✔ Handles 100K+ notes easily
-✔ Already mentioned in your doc as future step
-
----
-
-## 2. ✂️ Chunking (VERY IMPORTANT)
-
-Right now:
-
-```text
-1 note = 1 embedding ❌
-```
-
-Problem:
-
-* Large note → loses meaning
-
-### Fix:
-
-```text
-1 note → split into chunks
-```
-
-Example:
-
-```text
-Note:
-"Flutter performance tips..."
-
-→ Chunk 1
-→ Chunk 2
-→ Chunk 3
-```
-
-✔ Better retrieval accuracy
-✔ Standard in all RAG systems
-
----
-
-## 3. 🧠 Hybrid Search (Keyword + Vector)
-
-Right now:
-
-```text
-only semantic search
-```
-
-Problem:
-
-* Misses exact keywords
-
-### Upgrade:
-
-```text
-Vector search + keyword search (BM25)
-```
-
-✔ Best of both:
-
-* meaning + exact match
-
----
-
-## 4. 🔗 GraphRAG (YOU ALREADY PLANNED THIS 🔥)
-
-You already mentioned:
-
-```text
-BFS on eTagRefs + tTags
-```
-
-👉 This is NEXT LEVEL
-
-### Why important:
-
-Instead of:
-
-```text
-find similar notes
-```
-
-You do:
-
-```text
-find related notes → expand graph
-```
-
-✔ Multi-hop reasoning
-✔ Better context
-
----
-
-## 5. 🎯 Re-ranking (VERY powerful)
-
-Right now:
-
-```text
-topK by cosine similarity
-```
-
-Problem:
-
-* similarity ≠ best answer always
-
-### Upgrade:
-
-```text
-Top 20 → re-rank using LLM / cross-encoder → pick best 5
-```
-
-✔ Much better accuracy
-
----
-
-## 6. 🧩 Context Optimization
-
-Right now:
-
-```text
-just dump top-5 notes into prompt
-```
-
-Problem:
-
-* noisy context
-* token waste
-
-### Upgrade:
-
-* summarize notes
-* remove duplicates
-* compress context
-
----
-
-## 7. 🔄 Query Transformation
-
-Before search:
-
-```text
-user: "fix bug"
-```
-
-Upgrade:
-
-```text
-→ rewrite query: "how to debug flutter apps"
-```
-
-✔ Better retrieval
-
----
-
-## 8. 🧠 Caching (performance boost)
-
-* cache embeddings
-* cache search results
-
-✔ avoids recomputation
-
----
-
-## 9. 📊 Metadata Filtering
-
-Use:
-
-* tags
-* timestamps
-* categories
-
-```text
-search only in "flutter" notes
-```
-
-✔ faster + more relevant
-
----
-
-## 10. 🧪 Evaluation system (advanced)
-
-Measure:
-
-* retrieval accuracy
-* answer quality
-
-✔ needed for scaling
-
----
-
-# 🧱 Final Architecture (Future)
-
-```text
-User Query
-   ↓
-Query Rewrite
-   ↓
-Embedding
-   ↓
-ANN Search (fast)
-   ↓
-Graph Expansion (GraphRAG)
-   ↓
-Re-ranking
-   ↓
-Context Compression
-   ↓
-Prompt Builder
-   ↓
-LLM
-```
-
-
-
-# 🔥 Final simple understanding
-
-👉 Your current system = **basic brain (good memory)**
-👉 Advanced RAG = **brain + indexing + relationships + filtering**
-
----
-
-# 💡 One-line takeaway
-
-👉 You are DONE with **basic RAG**,
-next level is about **scaling + improving retrieval quality**, not just embedding.
-
----
-
+## Out of Scope
+
+| Feature | Status | Why |
+|---|---|---|
+| Direct provider keys (Anthropic, OpenAI native) | Future | OpenRouter covers them all with one key; we'd add `llm_dart` as a second remote data source if/when requested. |
+| Image / vision input on cloud | Future | OpenRouter supports it; UI not wired. |
+| Function calling / tool use | Future | Gemma 4 + Qwen3 + most OpenRouter models support it. |
+| Cost / usage display in chat | Future | OpenRouter returns usage per response. |
+| Persistent on-device chat sessions | Future | Today we open a fresh `openChat` per turn for clean history. Long-lived sessions would save the per-turn prefill cost (84s on slow devices) but complicate branch switching. Phase 2 of v2 enabled it structurally; not yet enabled in code. |
+| Hybrid keyword + vector search (BM25) | Future | Vector only today via ToStore. |
+| Re-ranking with cross-encoder | Future | Top-K cosine only today. |
+| Chunking of large notes | Future | One note = one embedding today. |
+| NIP-09 deletion of conversations | Never | Same Feed-Freedom principle as notes. |

@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
 import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
-import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
-import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
@@ -55,7 +55,7 @@ class RagPipeline {
   final GetMemoriesByNoteIdsUseCase _getMemories;
   final GetGraphNeighboursUseCase _getNeighbours;
   final GetGraphNodesByKeysUseCase _getNodesByKeys;
-  final GetActiveAIModelUseCase _getActiveModel;
+  final GetActiveLlmModelUseCase _getActiveModel;
 
   PersonalizationContext? _personalization;
 
@@ -93,7 +93,10 @@ class RagPipeline {
   /// budget-aware assembly. Do NOT pass conversation history —
   /// [InferenceChat] manages it internally.
   Future<RagMessage> buildMessage({required String userQuestion}) async {
-    final budget = PromptBudget.forModel(await _activeModelId());
+    // Budget scales with the active backend: small local models get a tight
+    // 2k window with topK=3; bigger local models get 4-8k with topK=5-10;
+    // cloud models get 16k with topK=15 + 2-hop graph expansion.
+    final budget = PromptBudget.forActiveModel(await _activeModel());
     final context = await _retrieveContext(userQuestion, topK: budget.topK, maxHops: budget.maxHops);
     final userMessage = _promptBuilder.buildUserMessage(
       userQuestion: userQuestion,
@@ -168,9 +171,9 @@ class RagPipeline {
     }
   }
 
-  Future<AIModelId?> _activeModelId() async {
+  Future<LlmModelInfo?> _activeModel() async {
     final result = await _getActiveModel.call();
-    return result.fold((_) => null, (m) => m?.modelId);
+    return result.fold((_) => null, (m) => m);
   }
 
   Future<PersonalizationContext> _loadPersonalization() async {

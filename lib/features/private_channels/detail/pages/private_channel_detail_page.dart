@@ -106,17 +106,31 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
           backgroundColor: AppColors.surface,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
-            elevation: 1,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            titleSpacing: 0,
             title: Row(
               children: [
-                const Icon(Icons.lock_rounded, size: 18, color: AppColors.outline),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
+                const Icon(Icons.lock_rounded, size: 16, color: AppColors.outline),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

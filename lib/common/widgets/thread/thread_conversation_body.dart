@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/large_note_card.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
 import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
 
@@ -105,6 +108,19 @@ class ThreadConversationBody extends StatelessWidget {
                     profile: profiles[reply.authorPubkey],
                     replyCount: reply.cachedReplyCount,
                     onTap: () => onOpenThread(reply.id),
+                    // Mirrors VishnuFeedBloc._onSave — save then embed so
+                    // RAG/graph picks the note up.
+                    onSaveTap: () async {
+                      final result =
+                          await getIt<SaveNoteUseCase>().call(reply);
+                      result.fold(
+                        (_) {},
+                        (saved) {
+                          getIt<EmbedAndStoreNoteUseCase>()
+                              .call((saved.id, saved.content));
+                        },
+                      );
+                    },
                   );
                 },
                 childCount: replies.length,

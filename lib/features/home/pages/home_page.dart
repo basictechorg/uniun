@@ -42,14 +42,14 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _switchTab(int i) async {
     if (i == 1) {
-      // Brahma tab → push graph as a full-screen route.
-      // Result is the tab index the user tapped from within the graph.
+      // Brahma is a pushed route, not a stack tab. Its FloatingNav can pop
+      // back with an explicit tab index; popUntil(home) on publish returns
+      // null → land on Vishnu so the user sees their new note.
       final targetTab = await Navigator.pushNamed(context, AppRoutes.graph);
       _vishnuFeedBloc.add(const RefreshFeedEvent());
-      // If the user tapped a different tab from inside the graph, switch to it.
-      if (targetTab is int && targetTab != 1) {
-        setState(() => _currentIndex = targetTab);
-      }
+      final destination =
+          targetTab is int && targetTab != 1 ? targetTab : 0;
+      if (mounted) setState(() => _currentIndex = destination);
       return;
     }
     if (i == 0 && _currentIndex != 0) {

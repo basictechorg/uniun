@@ -1,69 +1,37 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
 
-/// Downloads the all-MiniLM-L6-v2 TFLite model and BERT vocab to the
-/// application documents directory so [EmbeddingService] can load them.
+/// Installs the bundled Gecko embedding model into flutter_gemma's managed
+/// storage so [EmbeddingService] can open it.
 ///
-/// Called automatically by [SelectAIModelCubit] when the user downloads
-/// their first LLM model — no separate user action required.
+/// The model ships as an app asset (no network download), so this just copies
+/// it into place once. Called by [SelectAIModelCubit] when the user downloads
+/// their first LLM model, so the one-time asset copy happens behind the model
+/// download progress UI rather than on the first Shiv message.
 ///
-/// ## Hosted files
-/// Replace these URLs with your own CDN / storage bucket before shipping.
-/// The vocab.txt is the standard BERT uncased vocabulary (publicly available).
+/// Name/method kept ("download") for call-site compatibility — it no longer
+/// hits the network.
 @lazySingleton
 class EmbeddingModelDownloader {
-  // all-MiniLM-L6-v2 quantized TFLite — 384-dim, ~6MB, fast on low-end devices.
-  // Fallback: swap to MediaPipe BERT embedder if this repo becomes unavailable.
-  static const String _modelUrl =
-      'https://huggingface.co/Nihal2000/all-MiniLM-L6-v2-quant.tflite/resolve/main/all-MiniLM-L6-v2-quant.tflite';
-  static const String _vocabUrl =
-      'https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt';
+  /// True once the bundled embedder is installed and active.
+  Future<bool> isDownloaded() async => FlutterGemma.hasActiveEmbedder();
 
-  static const String _modelFilename = 'all_minilm_l6_v2.tflite';
-  static const String _vocabFilename = 'vocab.txt';
-
-  /// Returns true if both files already exist (no re-download needed).
-  Future<bool> isDownloaded() async {
-    final dir = (await getApplicationDocumentsDirectory()).path;
-    return File('$dir/$_modelFilename').existsSync() &&
-        File('$dir/$_vocabFilename').existsSync();
-  }
-
-  /// Download model + vocab if not already present.
+  /// Install the bundled embedder if not already active.
   /// Fire-and-forget safe — errors are logged but not rethrown.
   Future<void> downloadIfNeeded() async {
     if (await isDownloaded()) {
-      debugPrint('📦 Embedding: already downloaded, skipping.');
+      debugPrint('📦 Embedding: already installed, skipping.');
       return;
     }
-    debugPrint('📦 Embedding: starting download…');
+    debugPrint('📦 Embedding: installing bundled model…');
     try {
-      final dir = (await getApplicationDocumentsDirectory()).path;
-      await Future.wait([
-        _downloadFile(_modelUrl, '$dir/$_modelFilename', 'model'),
-        _downloadFile(_vocabUrl, '$dir/$_vocabFilename', 'vocab'),
-      ]);
-      debugPrint('📦 Embedding: download complete ✅');
+      await EmbeddingService.ensureInstalled();
+      debugPrint('📦 Embedding: install complete ✅');
     } catch (e) {
-      debugPrint('📦 Embedding: download failed ❌ $e');
-      // Non-fatal — EmbeddingService degrades gracefully when files are missing.
-    }
-  }
-
-  static Future<void> _downloadFile(
-      String url, String savePath, String label) async {
-    debugPrint('📦 Embedding: downloading $label from $url');
-    final response = await http.get(Uri.parse(url));
-    debugPrint('📦 Embedding: $label HTTP ${response.statusCode}');
-    if (response.statusCode == 200) {
-      await File(savePath).writeAsBytes(response.bodyBytes);
-      debugPrint('📦 Embedding: $label saved (${response.bodyBytes.length} bytes)');
-    } else {
-      debugPrint('📦 Embedding: $label failed — HTTP ${response.statusCode}');
+      debugPrint('📦 Embedding: install failed ❌ $e');
+      // Non-fatal — EmbeddingService degrades gracefully if the model is absent.
     }
   }
 }

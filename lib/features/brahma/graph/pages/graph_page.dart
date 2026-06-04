@@ -174,9 +174,12 @@ class _GraphBody extends StatelessWidget {
             ),
 
             if (state.selectedNode == null)
-              const Positioned(
-                right: 20, bottom: 96,
-                child: GraphFab(),
+              Positioned(
+                // Clear the floating nav, whose height grows by the
+                // home-indicator safe area — add that inset so the FAB
+                // doesn't touch the nav on devices with a home indicator.
+                right: 20, bottom: 96 + MediaQuery.of(context).padding.bottom,
+                child: const GraphFab(),
               ),
           ],
         );

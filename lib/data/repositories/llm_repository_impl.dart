@@ -1,0 +1,155 @@
+import 'package:dartz/dartz.dart';
+import 'package:injectable/injectable.dart';
+import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/data/datasources/llm/llm_data_source.dart';
+import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
+import 'package:uniun/data/datasources/llm/local_llm_data_source.dart';
+import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/repositories/ai_model_repository.dart';
+import 'package:uniun/domain/repositories/llm_repository.dart';
+
+/// Dispatches calls to the data source matching the user's active backend.
+///
+/// Phase 1: only [LocalLlmDataSource] is functional; switching to
+/// [LlmBackendType.openRouter] is rejected until Phase 3 ships the cloud
+/// data source.
+@Injectable(as: LlmRepository)
+class LlmRepositoryImpl implements LlmRepository {
+  final LocalLlmDataSource _local;
+  final RemoteLlmDataSource _remote;
+  final LlmPreferencesDataSource _prefs;
+  final LlmCredentialsDataSource _credentials;
+  final AppSettingsStore _localSettings;
+  final AIModelRepository _localCatalog;
+
+  LlmRepositoryImpl(
+    this._local,
+    this._remote,
+    this._prefs,
+    this._credentials,
+    this._localSettings,
+    this._localCatalog,
+  );
+
+  LlmDataSource get _active {
+    switch (_prefs.activeBackend) {
+      case LlmBackendType.localGemma:
+        return _local;
+      case LlmBackendType.openRouter:
+        return _remote;
+    }
+  }
+
+  @override
+  Future<bool> hasActiveModel() => _active.hasActiveModel();
+
+  @override
+  Future<Either<Failure, Unit>> openConversation({String? systemInstruction}) =>
+      _active.openConversation(systemInstruction: systemInstruction);
+
+  @override
+  Future<Either<Failure, Unit>> closeConversation() =>
+      _active.closeConversation();
+
+  @override
+  Stream<String> sendChat({
+    required String message,
+    List<(String, String)> cleanHistory = const [],
+  }) =>
+      _active.sendChat(message: message, cleanHistory: cleanHistory);
+
+  @override
+  Future<Either<Failure, String?>> generateOneShot({
+    required String prompt,
+    int maxTokens = 1024,
+  }) =>
+      _active.generateOneShot(prompt: prompt, maxTokens: maxTokens);
+
+  @override
+  Future<Either<Failure, Unit>> preemptBackgroundWork() =>
+      _active.preemptBackgroundWork();
+
+  @override
+  Future<Either<Failure, Unit>> resumeBackgroundWork() =>
+      _active.resumeBackgroundWork();
+
+  @override
+  Future<Either<Failure, LlmBackendType>> getActiveBackend() async =>
+      Right(_prefs.activeBackend);
+
+  @override
+  Future<Either<Failure, Unit>> setActiveBackend(LlmBackendType backend) async {
+    if (backend == LlmBackendType.openRouter) {
+      if (!await _credentials.hasOpenRouterKey()) {
+        return const Left(Failure.errorFailure(
+          'No OpenRouter API key configured. Connect a key in Settings first.',
+        ));
+      }
+    }
+    await _prefs.setActiveBackend(backend);
+    return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() =>
+      _active.listAvailableModels();
+
+  @override
+  Future<Either<Failure, Unit>> setActiveModel(String modelId) async {
+    try {
+      switch (_prefs.activeBackend) {
+        case LlmBackendType.localGemma:
+          // Map the string id back to AIModelId. If unknown, surface a clear
+          // error rather than silently writing junk.
+          final id = AIModelId.values
+              .where((v) => v.name == modelId)
+              .firstOrNull;
+          if (id == null) {
+            return Left(Failure.errorFailure('Unknown local model: $modelId'));
+          }
+          await _localSettings.setActiveModelId(id);
+          return const Right(unit);
+        case LlmBackendType.openRouter:
+          await _prefs.setActiveCloudModelId(modelId);
+          return const Right(unit);
+      }
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, LlmModelInfo?>> getActiveModel() async {
+    try {
+      switch (_prefs.activeBackend) {
+        case LlmBackendType.localGemma:
+          final result = await _localCatalog.getActiveModel();
+          return result.fold(Left.new, (entity) {
+            if (entity == null) return const Right(null);
+            return Right(LlmModelInfo(
+              id: entity.modelId.name,
+              displayName: entity.modelId.name,
+              backend: LlmBackendType.localGemma,
+            ));
+          });
+        case LlmBackendType.openRouter:
+          final id = _prefs.activeCloudModelId;
+          if (id == null) return const Right(null);
+          // We don't have a cached catalog entry; surface a minimal info
+          // (id == displayName). UI calls listAvailableModels for full info.
+          return Right(LlmModelInfo(
+            id: id,
+            displayName: id,
+            backend: LlmBackendType.openRouter,
+          ));
+      }
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+}

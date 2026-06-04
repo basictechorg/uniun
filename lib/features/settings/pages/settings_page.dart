@@ -7,6 +7,7 @@ import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 import 'package:uniun/features/settings/widgets/ai_card.dart';
 import 'package:uniun/features/settings/widgets/alerts_card.dart';
+import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
@@ -77,6 +78,16 @@ class _SettingsContent extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const AICard(),
+
+              const SizedBox(height: 16),
+
+              // ── Cloud AI ──────────────────────────────────────────────────
+              SettingsSectionLabel(
+                l10n.settingsCloudProvider,
+                icon: Icons.cloud_outlined,
+              ),
+              const SizedBox(height: 12),
+              const CloudProviderCard(),
 
               const SizedBox(height: 16),
 

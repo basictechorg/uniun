@@ -3,30 +3,56 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/features/shiv/services/model_task_queue.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/local_inference_queue.dart';
+import 'package:uniun/data/datasources/llm/local_model_params.dart';
 
-/// Wraps flutter_gemma 0.13.x for token-streaming inference.
+/// Wraps flutter_gemma 0.16.x for token-streaming inference.
 ///
-/// Each user turn opens a fresh [InferenceChat] session built from:
-///   - the persona/personalization system instruction (constant per session)
-///   - last N clean (Q, A) pairs from the bloc's saved messages
-///   - the per-turn RAG-enriched message
+/// ## Why 0.16 matters
 ///
-/// The native chat is closed at end of every turn. flutter_gemma's
-/// `InferenceChat` accumulates the full RAG-enriched prompt in its internal
-/// history; keeping it alive across turns bloats context with stale RAG dumps
-/// from earlier turns. Re-opening each turn is the cost of clean history.
+/// 0.13.x had a single shared LiteRT-LM native session under every Dart
+/// [InferenceChat] wrapper. `stopGeneration()` on the extraction wrapper
+/// cancelled whatever chat was streaming and the next `nativeSendMessageAsync`
+/// dereferenced a freed pointer → SIGSEGV. So we couldn't preempt extraction
+/// when the user opened the Shiv tab.
 ///
-/// All model access flows through [ModelTaskQueue]:
-///   - [sendAndStream] uses the high-priority lane.
-///   - [generateOneShot] uses the low-priority lane (extraction).
+/// 0.16's [InferenceModel.openChat] gives each Dart wrapper its **own**
+/// independent native session, so `stopGeneration()` is per-session. We can
+/// now safely cancel extraction the moment chat is requested, without
+/// touching chat's session state.
+///
+/// ## Strategy
+///
+/// - **Chat** opens a throwaway [InferenceChat] per turn via [openChat]. RAG
+///   context can change every turn so we don't want stale RAG dumps living in
+///   a long-lived chat's history. Re-opening per turn is cheap on 0.16 because
+///   each openChat just spawns a fresh session against the loaded weights.
+/// - **Extraction** also uses [openChat], but we cache the in-flight reference
+///   in [_activeExtraction] so that [sendAndStream] can call
+///   `stopGeneration()` on it before the chat turn starts. Extraction's future
+///   exits cleanly with a `null` result; the caller treats null as
+///   "cancelled, retry later" (already handled by ExtractKnowledgeUseCase).
+/// - [ModelTaskQueue] still serialises because the **native accelerator**
+///   itself runs one inference at a time. The new contract is: preempt first
+///   (cancel extraction), then chat enters the high-priority lane and waits
+///   only for the very brief window the cancelled extraction takes to
+///   actually stop.
 @lazySingleton
 class AIModelRunner {
   final ModelTaskQueue _queue;
+  final AppSettingsStore _settings;
 
   String? _systemInstruction;
 
-  AIModelRunner(this._queue);
+  /// In-flight extraction chat, if any. Held so [sendAndStream] can call
+  /// [InferenceChat.stopGeneration] on it. Cleared in extraction's finally.
+  InferenceChat? _activeExtraction;
+
+  AIModelRunner(this._queue, this._settings);
+
+  LocalModelParams? get _activeParams =>
+      LocalModelParams.forId(_settings.activeModelId);
 
   bool get hasActiveModel => FlutterGemma.hasActiveModel();
   bool get hasChatSession => _systemInstruction != null;
@@ -55,24 +81,30 @@ class AIModelRunner {
       throw StateError('Call initChat() before sending messages.');
     }
 
-    // We do NOT preempt the in-flight extraction here. flutter_gemma 0.13.x
-    // routes both Dart [InferenceChat] wrappers through one shared native
-    // LiteRT-LM session; calling `stopGeneration` on the extraction wrapper
-    // cancels whatever chat is currently streaming and leaves the next
-    // `nativeSendMessageAsync` dereferencing a freed session pointer.
-    // The queue serialises so chat runs immediately once extraction ends.
+    // Preempt any in-flight extraction. Safe in 0.16 because openChat sessions
+    // are independent — stopping extraction does not touch chat's session.
+    final extraction = _activeExtraction;
+    if (extraction != null) {
+      debugPrint('🚫 Preempting in-flight extraction for chat turn');
+      try {
+        await extraction.stopGeneration();
+      } catch (e) {
+        debugPrint('⚠️ stopGeneration on extraction threw: $e');
+      }
+    }
 
     final tokens = StreamController<String>();
-    // Run the inference inside the high-priority lane; tokens flow out via
-    // the controller while the lane future completes when generation ends.
     final running = _queue.runHigh<void>(() async {
       InferenceChat? chat;
       try {
+        final params = _activeParams;
         final model = await FlutterGemma.getActiveModel(maxTokens: 4096);
-        chat = await model.createChat(
+        chat = await model.openChat(
           temperature: 0.8,
           topK: 40,
           tokenBuffer: 512,
+          modelType: params?.modelType,
+          isThinking: params?.isThinking ?? false,
         );
 
         final prompt = _composePrompt(
@@ -81,7 +113,7 @@ class AIModelRunner {
           currentMessage: message,
         );
 
-        await chat.addQuery(Message.text(text: prompt));
+        await chat.addQueryChunk(Message.text(text: prompt));
         await for (final response in chat.generateChatResponseAsync()) {
           if (response is TextResponse && response.token.isNotEmpty) {
             tokens.add(response.token);
@@ -95,8 +127,6 @@ class AIModelRunner {
       }
     }, label: 'chat');
 
-    // Unawaited; consumer reads tokens.stream until done. The future is
-    // only used to propagate the queue's lifecycle.
     unawaited(running);
     yield* tokens.stream;
   }
@@ -107,7 +137,8 @@ class AIModelRunner {
   }
 
   /// Stateless one-shot completion. Goes through the low-priority lane so
-  /// chat turns always cut in front.
+  /// chat turns always cut in front. May return null if preempted by chat
+  /// or if no model is active — callers must tolerate null.
   Future<String?> generateOneShot(String prompt, {int maxTokens = 1024}) {
     if (!FlutterGemma.hasActiveModel()) {
       debugPrint('⏭️ generateOneShot: no active model');
@@ -123,13 +154,18 @@ class AIModelRunner {
     InferenceChat? oneShot;
     try {
       debugPrint('🧪 generateOneShot: opening throwaway chat…');
+      final params = _activeParams;
       final model = await FlutterGemma.getActiveModel(maxTokens: maxTokens);
-      oneShot = await model.createChat(
+      oneShot = await model.openChat(
         temperature: 0.2,
         topK: 20,
         tokenBuffer: 256,
+        modelType: params?.modelType,
+        isThinking: params?.isThinking ?? false,
       );
-      await oneShot.addQuery(Message.text(text: prompt));
+      _activeExtraction = oneShot;
+
+      await oneShot.addQueryChunk(Message.text(text: prompt));
       final buffer = StringBuffer();
       await for (final response in oneShot.generateChatResponseAsync()) {
         if (response is TextResponse) buffer.write(response.token);
@@ -140,6 +176,9 @@ class AIModelRunner {
       debugPrint('⏭️ generateOneShot terminated: $e\n$st');
       return null;
     } finally {
+      if (identical(_activeExtraction, oneShot)) {
+        _activeExtraction = null;
+      }
       try {
         await oneShot?.close();
       } catch (_) {

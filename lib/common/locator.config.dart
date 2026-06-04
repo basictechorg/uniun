@@ -16,6 +16,15 @@ import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:tostore/tostore.dart' as _i789;
 import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
+import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart'
+    as _i981;
+import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart'
+    as _i634;
+import 'package:uniun/data/datasources/llm/local_inference_queue.dart' as _i393;
+import 'package:uniun/data/datasources/llm/local_llm_data_source.dart' as _i937;
+import 'package:uniun/data/datasources/llm/local_llm_runner.dart' as _i937;
+import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart'
+    as _i141;
 import 'package:uniun/data/datasources/tostore_module.dart' as _i740;
 import 'package:uniun/data/repositories/ai_model_repository_impl.dart' as _i72;
 import 'package:uniun/data/repositories/channel_message_repository_impl.dart'
@@ -34,6 +43,9 @@ import 'package:uniun/data/repositories/feed_repository_impl.dart' as _i689;
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
     as _i107;
 import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
+import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
+    as _i147;
+import 'package:uniun/data/repositories/llm_repository_impl.dart' as _i19;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart'
     as _i126;
@@ -68,6 +80,9 @@ import 'package:uniun/domain/repositories/feed_repository.dart' as _i250;
 import 'package:uniun/domain/repositories/followed_note_repository.dart'
     as _i836;
 import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
+import 'package:uniun/domain/repositories/llm_credentials_repository.dart'
+    as _i819;
+import 'package:uniun/domain/repositories/llm_repository.dart' as _i205;
 import 'package:uniun/domain/repositories/memory_repository.dart' as _i331;
 import 'package:uniun/domain/repositories/note_relation_repository.dart'
     as _i1017;
@@ -102,6 +117,7 @@ import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart'
 import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
+import 'package:uniun/domain/usecases/llm_usecases.dart' as _i918;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
 import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
@@ -144,8 +160,6 @@ import 'package:uniun/features/shiv/rag/pipeline/rag_pipeline.dart' as _i681;
 import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart' as _i207;
 import 'package:uniun/features/shiv/rag/retrieval/vector_search_service.dart'
     as _i961;
-import 'package:uniun/features/shiv/services/ai_model_runner.dart' as _i847;
-import 'package:uniun/features/shiv/services/model_task_queue.dart' as _i973;
 import 'package:uniun/features/thread/bloc/thread_bloc.dart' as _i807;
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart' as _i1039;
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as _i666;
@@ -168,25 +182,25 @@ extension GetItInjectableX on _i174.GetIt {
       () => isarModule.createIsar(),
       preResolve: true,
     );
+    gh.singleton<_i981.LlmCredentialsDataSource>(
+      () => _i981.LlmCredentialsDataSource(),
+    );
     await gh.singletonAsync<_i789.ToStore>(
       () => tostoreModule.createTostore(),
       preResolve: true,
     );
+    gh.lazySingleton<_i393.ModelTaskQueue>(() => _i393.ModelTaskQueue());
     gh.lazySingleton<_i168.MarmotMlsService>(() => _i168.MarmotMlsService());
     gh.lazySingleton<_i850.EmbeddingModelDownloader>(
       () => _i850.EmbeddingModelDownloader(),
     );
     gh.lazySingleton<_i587.EmbeddingService>(() => _i587.EmbeddingService());
     gh.lazySingleton<_i207.PromptBuilder>(() => const _i207.PromptBuilder());
-    gh.lazySingleton<_i973.ModelTaskQueue>(() => _i973.ModelTaskQueue());
     gh.lazySingleton<_i739.VectorRepository>(
       () => _i831.TostoreVectorRepositoryImpl(
         gh<_i789.ToStore>(),
         gh<_i214.Isar>(),
       ),
-    );
-    gh.lazySingleton<_i847.AIModelRunner>(
-      () => _i847.AIModelRunner(gh<_i973.ModelTaskQueue>()),
     );
     gh.factory<_i266.ShivRepository>(
       () => _i412.ShivRepositoryImpl(gh<_i214.Isar>()),
@@ -217,6 +231,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i107.UserKeyStore>(
       () => _i107.UserKeyStore(gh<_i460.SharedPreferences>()),
+    );
+    gh.singleton<_i634.LlmPreferencesDataSource>(
+      () => _i634.LlmPreferencesDataSource(gh<_i460.SharedPreferences>()),
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -266,6 +283,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i537.DeleteDraftUseCase>(
       () => _i537.DeleteDraftUseCase(gh<_i170.DraftRepository>()),
+    );
+    gh.lazySingleton<_i937.AIModelRunner>(
+      () => _i937.AIModelRunner(
+        gh<_i393.ModelTaskQueue>(),
+        gh<_i107.AppSettingsStore>(),
+      ),
     );
     gh.factory<_i127.ChannelRepository>(
       () => _i1009.ChannelRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -574,6 +597,19 @@ extension GetItInjectableX on _i174.GetIt {
         groupId,
       ),
     );
+    gh.lazySingleton<_i141.RemoteLlmDataSource>(
+      () => _i141.RemoteLlmDataSource(
+        gh<_i981.LlmCredentialsDataSource>(),
+        gh<_i634.LlmPreferencesDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i937.LocalLlmDataSource>(
+      () => _i937.LocalLlmDataSource(
+        gh<_i937.AIModelRunner>(),
+        gh<_i393.ModelTaskQueue>(),
+        gh<_i646.AIModelRepository>(),
+      ),
+    );
     gh.lazySingleton<_i1033.CreateChannelUseCase>(
       () => _i1033.CreateChannelUseCase(
         gh<_i127.ChannelRepository>(),
@@ -597,16 +633,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i837.MarkFeedItemSeenUseCase>(
       () => _i837.MarkFeedItemSeenUseCase(gh<_i250.FeedRepository>()),
-    );
-    gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
-      () => _i179.ExtractKnowledgeUseCase(
-        gh<_i847.AIModelRunner>(),
-        gh<_i207.PromptBuilder>(),
-        gh<_i756.SearchVectorNotesUseCase>(),
-        gh<_i649.GraphRepository>(),
-        gh<_i331.MemoryRepository>(),
-        gh<_i1000.PendingExtractionRepository>(),
-      ),
     );
     gh.factory<_i331.SettingsCubit>(
       () => _i331.SettingsCubit(
@@ -634,6 +660,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i189.DmConversationRepository>(),
+      ),
+    );
+    gh.factory<_i205.LlmRepository>(
+      () => _i19.LlmRepositoryImpl(
+        gh<_i937.LocalLlmDataSource>(),
+        gh<_i141.RemoteLlmDataSource>(),
+        gh<_i634.LlmPreferencesDataSource>(),
+        gh<_i981.LlmCredentialsDataSource>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i646.AIModelRepository>(),
       ),
     );
     gh.lazySingleton<_i179.GetMemoriesByNoteIdsUseCase>(
@@ -704,12 +740,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
-    gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
-      () => _i179.DrainPendingExtractionsUseCase(
-        gh<_i1000.PendingExtractionRepository>(),
-        gh<_i179.ExtractKnowledgeUseCase>(),
-      ),
-    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -717,6 +747,48 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.SaveProfileUseCase>(),
         gh<_i391.PublishProfileMetadataUseCase>(),
       ),
+    );
+    gh.factory<_i819.LlmCredentialsRepository>(
+      () => _i147.LlmCredentialsRepositoryImpl(
+        gh<_i981.LlmCredentialsDataSource>(),
+        gh<_i141.RemoteLlmDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i918.HasActiveLlmModelUseCase>(
+      () => _i918.HasActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.OpenLlmConversationUseCase>(
+      () => _i918.OpenLlmConversationUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.CloseLlmConversationUseCase>(
+      () => _i918.CloseLlmConversationUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.SendChatStreamUseCase>(
+      () => _i918.SendChatStreamUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.GenerateOneShotUseCase>(
+      () => _i918.GenerateOneShotUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.PreemptBackgroundWorkUseCase>(
+      () => _i918.PreemptBackgroundWorkUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.ResumeBackgroundWorkUseCase>(
+      () => _i918.ResumeBackgroundWorkUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.GetActiveLlmBackendUseCase>(
+      () => _i918.GetActiveLlmBackendUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.SetActiveLlmBackendUseCase>(
+      () => _i918.SetActiveLlmBackendUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.ListAvailableLlmModelsUseCase>(
+      () => _i918.ListAvailableLlmModelsUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.SetActiveLlmModelUseCase>(
+      () => _i918.SetActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
+    );
+    gh.lazySingleton<_i918.GetActiveLlmModelUseCase>(
+      () => _i918.GetActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
     );
     gh.factory<_i60.DmChatBloc>(
       () => _i60.DmChatBloc(
@@ -728,6 +800,19 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
+    gh.lazySingleton<_i681.RagPipeline>(
+      () => _i681.RagPipeline(
+        gh<_i587.EmbeddingService>(),
+        gh<_i961.VectorSearchService>(),
+        gh<_i207.PromptBuilder>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i179.GetMemoriesByNoteIdsUseCase>(),
+        gh<_i179.GetGraphNeighboursUseCase>(),
+        gh<_i179.GetGraphNodesByKeysUseCase>(),
+        gh<_i918.GetActiveLlmModelUseCase>(),
+      ),
+    );
     gh.factory<_i687.SelectAIModelCubit>(
       () => _i687.SelectAIModelCubit(
         gh<_i894.GetAvailableAIModelsUseCase>(),
@@ -736,6 +821,28 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i894.DownloadAndActivateAIModelUseCase>(),
         gh<_i894.DeleteAIModelUseCase>(),
         gh<_i850.EmbeddingModelDownloader>(),
+      ),
+    );
+    gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
+      () =>
+          _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.lazySingleton<_i918.ClearOpenRouterKeyUseCase>(
+      () =>
+          _i918.ClearOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.lazySingleton<_i918.HasOpenRouterKeyUseCase>(
+      () => _i918.HasOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
+      () => _i179.ExtractKnowledgeUseCase(
+        gh<_i918.HasActiveLlmModelUseCase>(),
+        gh<_i918.GenerateOneShotUseCase>(),
+        gh<_i207.PromptBuilder>(),
+        gh<_i756.SearchVectorNotesUseCase>(),
+        gh<_i649.GraphRepository>(),
+        gh<_i331.MemoryRepository>(),
+        gh<_i1000.PendingExtractionRepository>(),
       ),
     );
     gh.lazySingleton<_i756.EmbedAndStoreNoteUseCase>(
@@ -757,17 +864,10 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetNoteByIdUseCase>(),
       ),
     );
-    gh.lazySingleton<_i681.RagPipeline>(
-      () => _i681.RagPipeline(
-        gh<_i587.EmbeddingService>(),
-        gh<_i961.VectorSearchService>(),
-        gh<_i207.PromptBuilder>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i391.GetOwnProfileUseCase>(),
-        gh<_i179.GetMemoriesByNoteIdsUseCase>(),
-        gh<_i179.GetGraphNeighboursUseCase>(),
-        gh<_i179.GetGraphNodesByKeysUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
+    gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
+      () => _i179.DrainPendingExtractionsUseCase(
+        gh<_i1000.PendingExtractionRepository>(),
+        gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(
@@ -778,22 +878,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1023.SendDmUseCase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
-      ),
-    );
-    gh.factory<_i190.ShivAIBloc>(
-      () => _i190.ShivAIBloc(
-        gh<_i604.GetConversationsUseCase>(),
-        gh<_i604.CreateConversationUseCase>(),
-        gh<_i604.DeleteConversationUseCase>(),
-        gh<_i604.GetMessagesUseCase>(),
-        gh<_i604.SaveMessageUseCase>(),
-        gh<_i604.UpdateMessageContentUseCase>(),
-        gh<_i604.UpdateConversationTitleUseCase>(),
-        gh<_i604.UpdateActiveLeafUseCase>(),
-        gh<_i847.AIModelRunner>(),
-        gh<_i681.RagPipeline>(),
-        gh<_i973.ModelTaskQueue>(),
-        gh<_i179.DrainPendingExtractionsUseCase>(),
       ),
     );
     gh.factory<_i1039.VishnuFeedBloc>(
@@ -819,6 +903,26 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.GetAllSavedNotesUseCase>(),
         gh<_i858.GetSavedRepliesUseCase>(),
         gh<_i858.GetSavedReferencesUseCase>(),
+      ),
+    );
+    gh.factory<_i190.ShivAIBloc>(
+      () => _i190.ShivAIBloc(
+        gh<_i604.GetConversationsUseCase>(),
+        gh<_i604.CreateConversationUseCase>(),
+        gh<_i604.DeleteConversationUseCase>(),
+        gh<_i604.GetMessagesUseCase>(),
+        gh<_i604.SaveMessageUseCase>(),
+        gh<_i604.UpdateMessageContentUseCase>(),
+        gh<_i604.UpdateConversationTitleUseCase>(),
+        gh<_i604.UpdateActiveLeafUseCase>(),
+        gh<_i918.HasActiveLlmModelUseCase>(),
+        gh<_i918.OpenLlmConversationUseCase>(),
+        gh<_i918.CloseLlmConversationUseCase>(),
+        gh<_i918.SendChatStreamUseCase>(),
+        gh<_i918.PreemptBackgroundWorkUseCase>(),
+        gh<_i918.ResumeBackgroundWorkUseCase>(),
+        gh<_i681.RagPipeline>(),
+        gh<_i179.DrainPendingExtractionsUseCase>(),
       ),
     );
     return this;

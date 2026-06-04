@@ -1,0 +1,2 @@
+assets/models/embedding/*.tflite filter=lfs diff=lfs merge=lfs -text
+assets/models/embedding/*.model filter=lfs diff=lfs merge=lfs -text

@@ -8,6 +8,7 @@ import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
 import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
+import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
@@ -126,30 +127,47 @@ class _DmChatViewState extends State<_DmChatView> {
           for (final m in state.messages) m.id: m,
         };
 
+        final otherPubkey = state.otherPubkey;
+        final otherProfile = otherPubkey == null
+            ? null
+            : state.profiles[otherPubkey];
+        final displayName = otherProfile?.name?.trim().isNotEmpty == true
+            ? otherProfile!.name!.trim()
+            : shortKey;
+
         return Scaffold(
           backgroundColor: AppColors.surface,
           appBar: AppBar(
             backgroundColor: AppColors.surface,
-            elevation: 1,
-            shadowColor: Colors.black.withOpacity(0.1),
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            titleSpacing: 0,
             title: Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.primaryContainer,
-                  radius: 16,
-                  child: const Icon(
-                    Icons.person,
-                    size: 18,
-                    color: AppColors.onPrimaryContainer,
-                  ),
+                UserAvatar(
+                  seed: otherPubkey ?? 'dm',
+                  photoUrl: otherProfile?.avatarUrl,
+                  size: 32,
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  shortKey,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.onSurface,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    displayName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
