@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/repositories/profile_repository.dart';
@@ -63,6 +64,41 @@ class ProfileRepositoryImpl extends ProfileRepository {
           .pubkeyEqualTo(pubkeyHex)
           .findFirst();
       return Right(profile?.toDomain());
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Stream<ProfileEntity?> watchProfile(String pubkeyHex) {
+    return isar.profileModels
+        .where()
+        .pubkeyEqualTo(pubkeyHex)
+        .watch(fireImmediately: true)
+        .map((rows) => rows.isEmpty ? null : rows.first.toDomain());
+  }
+
+  @override
+  Future<Either<Failure, Unit>> requestProfileFetch(String pubkeyHex) async {
+    try {
+      final existingProfile = await isar.profileModels
+          .where()
+          .pubkeyEqualTo(pubkeyHex)
+          .findFirst();
+      if (existingProfile != null) return const Right(unit);
+
+      await isar.writeTxn(() async {
+        final existingMissing = await isar.missingProfilePubkeyModels
+            .where()
+            .pubkeyEqualTo(pubkeyHex)
+            .findFirst();
+        if (existingMissing != null) return;
+        final row = MissingProfilePubkeyModel()
+          ..pubkey = pubkeyHex
+          ..firstSeenAt = DateTime.now();
+        await isar.missingProfilePubkeyModels.put(row);
+      });
+      return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

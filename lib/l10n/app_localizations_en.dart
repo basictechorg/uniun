@@ -1304,15 +1304,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatInputPickModelTooltip => 'Pick model';
 
   @override
-  String get followActionTitle => 'Follow or message?';
-
-  @override
-  String get followActionFollowCta => 'Follow';
-
-  @override
-  String get followActionDmCta => 'Send DM';
-
-  @override
   String get followActionSuccess => 'Now following.';
 
   @override
@@ -1339,4 +1330,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get followActionInvalidKey => 'Invalid public key';
+
+  @override
+  String get userProfileFollow => 'Follow';
+
+  @override
+  String get userProfileFollowing => 'Following';
+
+  @override
+  String get userProfileNoNotes => 'No notes yet';
 }

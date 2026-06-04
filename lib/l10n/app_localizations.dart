@@ -2446,24 +2446,6 @@ abstract class AppLocalizations {
   /// **'Pick model'**
   String get chatInputPickModelTooltip;
 
-  /// App bar title on the page shown after scanning a user QR
-  ///
-  /// In en, this message translates to:
-  /// **'Follow or message?'**
-  String get followActionTitle;
-
-  /// Primary CTA on the follow-or-DM action page (adds the user to the Kind 3 contact list)
-  ///
-  /// In en, this message translates to:
-  /// **'Follow'**
-  String get followActionFollowCta;
-
-  /// Secondary CTA on the follow-or-DM action page (opens the existing NIP-17 DM compose flow)
-  ///
-  /// In en, this message translates to:
-  /// **'Send DM'**
-  String get followActionDmCta;
-
   /// Snackbar shown after a successful follow
   ///
   /// In en, this message translates to:
@@ -2517,6 +2499,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid public key'**
   String get followActionInvalidKey;
+
+  /// Follow button on the user profile page
+  ///
+  /// In en, this message translates to:
+  /// **'Follow'**
+  String get userProfileFollow;
+
+  /// Toggle label on the user profile page when already following the user
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get userProfileFollowing;
+
+  /// Empty state shown on the user profile page when the user has no notes locally
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get userProfileNoNotes;
 }
 
 class _AppLocalizationsDelegate
