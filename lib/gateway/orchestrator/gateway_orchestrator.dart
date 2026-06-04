@@ -216,6 +216,8 @@ class GatewayOrchestrator {
     await _isar.writeTxn(() async {
       await _isar.eventQueueModels
           .filter()
+          .sentCountGreaterThan(0)
+          .and()
           .enqueuedAtLessThan(threshold)
           .deleteAll();
     });
