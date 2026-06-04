@@ -2445,6 +2445,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick model'**
   String get chatInputPickModelTooltip;
+
+  /// App bar title on the page shown after scanning a user QR
+  ///
+  /// In en, this message translates to:
+  /// **'Follow or message?'**
+  String get followActionTitle;
+
+  /// Primary CTA on the follow-or-DM action page (adds the user to the Kind 3 contact list)
+  ///
+  /// In en, this message translates to:
+  /// **'Follow'**
+  String get followActionFollowCta;
+
+  /// Secondary CTA on the follow-or-DM action page (opens the existing NIP-17 DM compose flow)
+  ///
+  /// In en, this message translates to:
+  /// **'Send DM'**
+  String get followActionDmCta;
+
+  /// Snackbar shown after a successful follow
+  ///
+  /// In en, this message translates to:
+  /// **'Now following.'**
+  String get followActionSuccess;
+
+  /// Drawer section header listing users the active identity follows
+  ///
+  /// In en, this message translates to:
+  /// **'FOLLOWING'**
+  String get drawerFollowingSectionTitle;
+
+  /// Empty hint shown in the drawer when the follow list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Not following anyone yet'**
+  String get drawerFollowingEmpty;
+
+  /// Vishnu feed empty-state title shown when the user follows nobody and has no own notes
+  ///
+  /// In en, this message translates to:
+  /// **'Your feed is quiet'**
+  String get vishnuFeedEmptyTitle;
+
+  /// Vishnu feed empty-state subtitle below the title
+  ///
+  /// In en, this message translates to:
+  /// **'Scan someone\'s UNIUN QR to follow them and see their notes here.'**
+  String get vishnuFeedEmptySubtitle;
+
+  /// Vishnu feed empty-state CTA opening the QR scanner
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR'**
+  String get vishnuFeedEmptyCta;
+
+  /// Drawer section header for private channels (uppercase)
+  ///
+  /// In en, this message translates to:
+  /// **'PRIVATE CHANNELS'**
+  String get drawerPrivateChannels;
+
+  /// Empty hint shown in the drawer when no private channels are joined
+  ///
+  /// In en, this message translates to:
+  /// **'No private channels joined'**
+  String get drawerNoPrivateChannels;
+
+  /// Error snackbar when the scanned user QR has an unparseable public key
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid public key'**
+  String get followActionInvalidKey;
 }
 
 class _AppLocalizationsDelegate

@@ -28,6 +28,7 @@ import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
 import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
 import 'package:uniun/features/dm/chat/pages/dm_chat_page.dart';
+import 'package:uniun/features/follow/action/pages/follow_or_dm_action_page.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
@@ -116,6 +117,7 @@ class UniunApp extends StatelessWidget {
         AppRoutes.createDm: (_) => const CreateDmPage(),
         AppRoutes.chatDm: (_) => const DmChatPage(),
         AppRoutes.scanQr: (_) => const UniunQrScannerPage(),
+        AppRoutes.followOrDmAction: (_) => const FollowOrDmActionPage(),
         AppRoutes.brahmaCreate: (ctx) {
           final args = ModalRoute.of(ctx)!.settings.arguments as Map?;
           return GraphComposePage(

@@ -1197,5 +1197,41 @@
   "@modelPickerLoadingCloud": { "description": "Loading state shown while fetching the OpenRouter model list" },
 
   "chatInputPickModelTooltip": "Pick model",
-  "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" }
+  "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" },
+
+  "followActionTitle": "Follow or message?",
+  "@followActionTitle": { "description": "App bar title on the page shown after scanning a user QR" },
+
+  "followActionFollowCta": "Follow",
+  "@followActionFollowCta": { "description": "Primary CTA on the follow-or-DM action page (adds the user to the Kind 3 contact list)" },
+
+  "followActionDmCta": "Send DM",
+  "@followActionDmCta": { "description": "Secondary CTA on the follow-or-DM action page (opens the existing NIP-17 DM compose flow)" },
+
+  "followActionSuccess": "Now following.",
+  "@followActionSuccess": { "description": "Snackbar shown after a successful follow" },
+
+  "drawerFollowingSectionTitle": "FOLLOWING",
+  "@drawerFollowingSectionTitle": { "description": "Drawer section header listing users the active identity follows" },
+
+  "drawerFollowingEmpty": "Not following anyone yet",
+  "@drawerFollowingEmpty": { "description": "Empty hint shown in the drawer when the follow list is empty" },
+
+  "vishnuFeedEmptyTitle": "Your feed is quiet",
+  "@vishnuFeedEmptyTitle": { "description": "Vishnu feed empty-state title shown when the user follows nobody and has no own notes" },
+
+  "vishnuFeedEmptySubtitle": "Scan someone's UNIUN QR to follow them and see their notes here.",
+  "@vishnuFeedEmptySubtitle": { "description": "Vishnu feed empty-state subtitle below the title" },
+
+  "vishnuFeedEmptyCta": "Scan a QR",
+  "@vishnuFeedEmptyCta": { "description": "Vishnu feed empty-state CTA opening the QR scanner" },
+
+  "drawerPrivateChannels": "PRIVATE CHANNELS",
+  "@drawerPrivateChannels": { "description": "Drawer section header for private channels (uppercase)" },
+
+  "drawerNoPrivateChannels": "No private channels joined",
+  "@drawerNoPrivateChannels": { "description": "Empty hint shown in the drawer when no private channels are joined" },
+
+  "followActionInvalidKey": "Invalid public key",
+  "@followActionInvalidKey": { "description": "Error snackbar when the scanned user QR has an unparseable public key" }
 }

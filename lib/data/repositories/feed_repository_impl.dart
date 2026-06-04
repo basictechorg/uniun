@@ -12,21 +12,41 @@ import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/feed_repository.dart';
+import 'package:uniun/domain/repositories/followed_user_repository.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/source_label_repository.dart';
+import 'package:uniun/domain/repositories/user_repository.dart';
 
 @Injectable(as: FeedRepository)
 class FeedRepositoryImpl extends FeedRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
   final SourceLabelRepository _sourceLabels;
+  final FollowedUserRepository _follows;
+  final UserRepository _users;
 
   FeedRepositoryImpl({
     required this.isar,
     required NoteRelationRepository relations,
     required SourceLabelRepository sourceLabels,
+    required FollowedUserRepository follows,
+    required UserRepository users,
   })  : _relations = relations,
-        _sourceLabels = sourceLabels;
+        _sourceLabels = sourceLabels,
+        _follows = follows,
+        _users = users;
+
+  /// Author allow-list for Kind 1 feed notes: own pubkey + everyone followed.
+  /// Empty result = effectively-impossible filter (no notes shown) — but in
+  /// practice we always have at least the own pubkey here once a user is
+  /// signed in, so the empty-state UI handles the no-content case upstream.
+  Future<List<String>> _allowedAuthors() async {
+    final user = await _users.getActiveUser();
+    final own = user.fold((_) => null, (u) => u.pubkeyHex);
+    final followed = await _follows.getAllPubkeys();
+    final list = followed.fold((_) => const <String>[], (l) => l);
+    return [if (own != null) own, ...list];
+  }
 
   // ── Anchor (feedLoadedAt) ──────────────────────────────────────────────────
 
@@ -70,7 +90,8 @@ class FeedRepositoryImpl extends FeedRepository {
     DateTime? before,
   }) async {
     try {
-      final notes = await _queryUnseenNotes(loadedAt, limit, before);
+      final authors = await _allowedAuthors();
+      final notes = await _queryUnseenNotes(loadedAt, limit, before, authors);
       final channelMsgs = await _queryUnseenChannelMessages(loadedAt, limit, before);
       final privateMsgs = await _queryUnseenPrivateMessages(loadedAt, limit, before);
       final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
@@ -86,7 +107,8 @@ class FeedRepositoryImpl extends FeedRepository {
     DateTime? before,
   }) async {
     try {
-      final notes = await _querySeenNotes(limit, before);
+      final authors = await _allowedAuthors();
+      final notes = await _querySeenNotes(limit, before, authors);
       final channelMsgs = await _querySeenChannelMessages(limit, before);
       final privateMsgs = await _querySeenPrivateMessages(limit, before);
       final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
@@ -100,10 +122,15 @@ class FeedRepositoryImpl extends FeedRepository {
     DateTime loadedAt,
     int limit,
     DateTime? before,
+    List<String> authors,
   ) async {
+    if (authors.isEmpty) return const [];
     final q = isar.noteModels
         .filter()
+        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
+        .and()
         .isSeenEqualTo(false)
+        .and()
         .createdLessThan(loadedAt, include: true);
     if (before != null) {
       return q
@@ -116,8 +143,17 @@ class FeedRepositoryImpl extends FeedRepository {
     return q.sortByCreatedDesc().limit(limit).findAll();
   }
 
-  Future<List<NoteModel>> _querySeenNotes(int limit, DateTime? before) async {
-    final q = isar.noteModels.filter().isSeenEqualTo(true);
+  Future<List<NoteModel>> _querySeenNotes(
+    int limit,
+    DateTime? before,
+    List<String> authors,
+  ) async {
+    if (authors.isEmpty) return const [];
+    final q = isar.noteModels
+        .filter()
+        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
+        .and()
+        .isSeenEqualTo(true);
     if (before != null) {
       return q
           .and()
@@ -291,12 +327,17 @@ class FeedRepositoryImpl extends FeedRepository {
 
     Future<void> push() async {
       try {
-        final n = await isar.noteModels
-            .filter()
-            .isSeenEqualTo(false)
-            .and()
-            .createdGreaterThan(loadedAt)
-            .count();
+        final authors = await _allowedAuthors();
+        final n = authors.isEmpty
+            ? 0
+            : await isar.noteModels
+                .filter()
+                .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
+                .and()
+                .isSeenEqualTo(false)
+                .and()
+                .createdGreaterThan(loadedAt)
+                .count();
         final m = await isar.channelMessageModels
             .filter()
             .isSeenEqualTo(false)

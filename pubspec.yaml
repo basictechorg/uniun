@@ -79,7 +79,7 @@ flutter_native_splash:
   image: assets/images/uniun-logo.png
 
   android_12:
-    image: assets/images/uniun-logo.png
+    image: assets/images/uniun-logo-android12.png
     color: "#ffffff"
 
   ios: true

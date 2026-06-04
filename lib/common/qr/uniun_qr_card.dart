@@ -23,6 +23,7 @@ class UniunQrCard extends StatefulWidget {
   factory UniunQrCard.user({
     required String npub,
     String? name,
+    List<String> relays = const [],
   }) {
     return UniunQrCard._(
       titleLeading: null,
@@ -35,6 +36,7 @@ class UniunQrCard extends StatefulWidget {
             kind: UniunQrKind.user,
             id: npub,
             name: name,
+            relays: relays,
           ),
           copyLabel: 'Copy npub',
         ),

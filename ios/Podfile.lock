@@ -4,7 +4,7 @@ PODS:
   - disk_space_plus (0.0.1):
     - Flutter
   - Flutter (1.0.0)
-  - flutter_gemma (0.16.3):
+  - flutter_gemma (0.16.4):
     - Flutter
     - MediaPipeTasksGenAI (= 0.10.33)
     - MediaPipeTasksGenAIC (= 0.10.33)
@@ -91,7 +91,7 @@ SPEC CHECKSUMS:
   background_downloader: 50e91d979067b82081aba359d7d916b3ba5fadad
   disk_space_plus: a36391fb5f732dbdd29628b0bac5a1acbd43aaef
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_gemma: 8dbb756344929dc69809b1ebb5a66a481d01be75
+  flutter_gemma: 08f68b25d109fdfaef4e59108047b41ebc2941f4
   flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
   flutter_secure_storage_darwin: acdb3f316ed05a3e68f856e0353b133eec373a23

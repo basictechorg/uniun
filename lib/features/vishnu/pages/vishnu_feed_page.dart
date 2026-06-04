@@ -398,33 +398,53 @@ class _EmptyFeedView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.sticky_note_2_outlined,
-            size: 52,
-            color: AppColors.outlineVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.vishnuNoNotes,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.group_add_outlined,
+              size: 52,
+              color: AppColors.outlineVariant,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.vishnuCreateFirst,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.onSurfaceVariant,
+            const SizedBox(height: 16),
+            Text(
+              l10n.vishnuFeedEmptyTitle,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              l10n.vishnuFeedEmptySubtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.scanQr),
+              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+              label: Text(l10n.vishnuFeedEmptyCta),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

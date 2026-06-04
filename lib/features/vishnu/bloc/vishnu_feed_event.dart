@@ -45,3 +45,9 @@ final class _NewBufferCountChangedEvent extends VishnuFeedEvent {
   const _NewBufferCountChangedEvent(this.count);
   final int count;
 }
+
+/// Internal — emitted when the user's follow set changes so the feed reloads
+/// from the top with the new author allow-list.
+final class _FollowedUsersChangedEvent extends VishnuFeedEvent {
+  const _FollowedUsersChangedEvent();
+}

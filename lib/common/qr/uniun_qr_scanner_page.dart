@@ -7,11 +7,19 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_relay_usecase.dart';
+import 'package:uniun/features/follow/action/pages/follow_or_dm_action_page.dart';
 
 /// Universal QR scanner. Decodes any [UniunQrPayload] and dispatches:
-///   - user           → CreateDmPage (npub prefilled as a String argument)
+///   - user           → see [UniunQrScanIntent] (chooser / auto-follow / auto-dm)
 ///   - publicChannel  → JoinChannelPage (UniunQrPayload argument)
 ///   - privateChannel → JoinPrivateChannelPage (UniunQrPayload argument)
+///
+/// Intent is read from the route argument and only affects user QRs:
+///   - [generic]: show the Follow vs DM chooser.
+///   - [follow]:  skip the chooser, run Follow directly.
+///   - [dm]:      skip the chooser, open CreateDmPage prefilled.
+enum UniunQrScanIntent { generic, follow, dm }
+
 class UniunQrScannerPage extends StatefulWidget {
   const UniunQrScannerPage({super.key});
 
@@ -49,12 +57,29 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
     await _ensureRelaysPresent(payload.relays);
     if (!mounted) return;
 
+    final intent = ModalRoute.of(context)?.settings.arguments;
+
+    if (payload.kind == UniunQrKind.user && intent == UniunQrScanIntent.dm) {
+      Navigator.of(context).pushReplacementNamed(
+        AppRoutes.createDm,
+        arguments: payload,
+      );
+      return;
+    }
+
+    final Object args = payload.kind == UniunQrKind.user
+        ? FollowOrDmActionArgs(
+            payload: payload,
+            autoFollow: intent == UniunQrScanIntent.follow,
+          )
+        : payload;
+
     final route = switch (payload.kind) {
-      UniunQrKind.user => AppRoutes.createDm,
+      UniunQrKind.user => AppRoutes.followOrDmAction,
       UniunQrKind.publicChannel => AppRoutes.joinChannel,
       UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
     };
-    Navigator.of(context).pushReplacementNamed(route, arguments: payload);
+    Navigator.of(context).pushReplacementNamed(route, arguments: args);
   }
 
   /// Add any scanned relay we don't already have to the local relay list, so

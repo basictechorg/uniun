@@ -1,25 +1,31 @@
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 
-/// Subscribes to every Kind 1 (short text note) event on the relay so other
-/// users' posts land in the local Isar and feed the Vishnu unified feed.
+/// Subscribes to Kind 1 notes scoped to the active user + everyone they follow.
 ///
-/// Without this, the relay would receive your published notes but never
-/// deliver anyone else's back. The previous codebase only had
-/// [FollowedNotesSubscription] which filters by `#e` for explicitly-followed
-/// roots — not a general feed.
+/// The follow set comes from [FollowedUserModel] (kept in sync with the user's
+/// Nostr Kind 3 event). When the follow set changes the orchestrator
+/// resubscribes this provider via [IsarWatcherHub].
 ///
-/// NIP-77 negentropy reconciliation is supported so we don't re-pull the
-/// notes we already have on app open.
+/// Empty follow list → filter narrows to just the active user's own notes, so
+/// the relay stops streaming the public firehose at us.
 class FeedNotesSubscription extends SubscriptionProvider {
   @override
   String get subId => 'feed_notes';
 
   @override
   Future<Map<String, dynamic>?> buildFilter(SubscriptionContext ctx) async {
+    if (ctx.activePubkey == null) return null;
+
+    final followed =
+        await ctx.isar.followedUserModels.where().pubkeyHexProperty().findAll();
+    final authors = <String>{ctx.activePubkey!, ...followed}.toList();
+
     return {
       'kinds': [1],
+      'authors': authors,
     };
   }
 

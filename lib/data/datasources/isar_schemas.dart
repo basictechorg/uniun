@@ -3,6 +3,7 @@
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/dm_message_model.dart';
@@ -32,6 +33,7 @@ final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
   ProfileModelSchema,
   FollowedNoteModelSchema,
+  FollowedUserModelSchema,
   EventQueueModelSchema,
   DmConversationModelSchema,
   DmMessageModelSchema,

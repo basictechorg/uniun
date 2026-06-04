@@ -80,6 +80,19 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
+    r'authorPubkey': IndexSchema(
+      id: -3090179999305958066,
+      name: r'authorPubkey',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'authorPubkey',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
     r'rootEventId': IndexSchema(
       id: 4630125266856525042,
       name: r'rootEventId',
@@ -512,6 +525,63 @@ extension NoteModelQueryWhere
                 indexName: r'eventId',
                 lower: [],
                 upper: [eventId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> authorPubkeyEqualTo(
+    String authorPubkey,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'authorPubkey',
+          value: [authorPubkey],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> authorPubkeyNotEqualTo(
+    String authorPubkey,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'authorPubkey',
+                lower: [],
+                upper: [authorPubkey],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'authorPubkey',
+                lower: [authorPubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'authorPubkey',
+                lower: [authorPubkey],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'authorPubkey',
+                lower: [],
+                upper: [authorPubkey],
                 includeUpper: false,
               ),
             );
