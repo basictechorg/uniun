@@ -67,8 +67,11 @@ class GatewayOrchestrator {
       relays = await _isar.relayModels.where().findAll();
     }
 
-    final allQueue = await _isar.eventQueueModels.where().anyId().findAll();
-    _lastHandledQueueId = allQueue.isEmpty ? 0 : allQueue.last.id;
+    // Start the routing cursor at 0 (not the queue tail) so events already
+    // enqueued before this launch — e.g. messages that couldn't be sent while
+    // offline — are re-inspected and retried. The backlog is drained explicitly
+    // by the _onQueueChanged() call at the end of start().
+    _lastHandledQueueId = 0;
 
     _router = EventRouter(
       isar: _isar,
@@ -110,7 +113,10 @@ class GatewayOrchestrator {
         if (_registry.get(url) != null) return;
         unawaited(_registry.openEphemeral(
           url,
-          startFromQueueId: _lastHandledQueueId,
+          // Always drain from the start of the queue so backlog events routed
+          // to this relay are sent, not just events enqueued after it opened.
+          // (The relay de-duplicates by event id, so replays are harmless.)
+          startFromQueueId: 0,
         ));
       },
       closeNow: (url) => unawaited(_registry.close(url)),
@@ -145,6 +151,13 @@ class GatewayOrchestrator {
       const Duration(minutes: 5),
       (_) => unawaited(_runDequeuePass()),
     );
+
+    // Drain events already queued before this launch (offline backlog). The
+    // queue watcher only fires on new writes, so existing rows need an explicit
+    // pass: this opens ephemeral sessions for backlog events routed to
+    // non-persistent relays and wakes every pump to send. Persistent pumps also
+    // replay from cursor 0 when they connect.
+    await _onQueueChanged();
   }
 
   Future<void> stop() async {
