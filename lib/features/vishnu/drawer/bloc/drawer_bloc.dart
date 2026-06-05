@@ -12,6 +12,7 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'dart:async';
 
@@ -31,6 +32,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   StreamSubscription<void>? _dmWatcher;
   StreamSubscription<void>? _privateChannelWatcher;
   StreamSubscription<void>? _followedUsersWatcher;
+  StreamSubscription<void>? _followedNotesWatcher;
 
   DrawerBloc(
     this._getActiveUser,
@@ -48,6 +50,11 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       if (!isClosed) add(DrawerLoadEvent());
     });
     _followedUsersWatcher = _isar.followedUserModels.watchLazy().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
+    // Reactive "Following" section: follow/unfollow from a NoteCard writes to
+    // followedNoteModels, and the gateway bumps newReferenceCount here.
+    _followedNotesWatcher = _isar.followedNoteModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
   }
@@ -174,6 +181,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     _dmWatcher?.cancel();
     _privateChannelWatcher?.cancel();
     _followedUsersWatcher?.cancel();
+    _followedNotesWatcher?.cancel();
     return super.close();
   }
 }

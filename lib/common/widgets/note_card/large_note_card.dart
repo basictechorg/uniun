@@ -1,63 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/entities/profile/profile_entity.dart';
-import 'package:uniun/domain/usecases/saved_note_usecases.dart';
-import 'package:uniun/domain/usecases/vector_usecases.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 
 /// Larger, container-styled variant of [NoteCard] — used as the focused/root
-/// note in a thread. Wires save + follow state internally via the cubit and
-/// use cases so callers only need to pass the note + profile + reply count.
-class LargeNoteCard extends StatefulWidget {
+/// note in a thread. Self-contained: owns profile, saved, and follow via an
+/// internal [NoteCardCubit] (follow state is watched reactively from Isar).
+/// Callers only pass the note (and optionally an explicit reply count).
+class LargeNoteCard extends StatelessWidget {
   const LargeNoteCard({
     super.key,
     required this.note,
-    this.profile,
     this.replyCount,
   });
 
   final NoteEntity note;
-  final ProfileEntity? profile;
+
+  /// Optional override — the thread root shows the actual loaded reply count
+  /// rather than the entity's cached edge-table count.
   final int? replyCount;
 
   @override
-  State<LargeNoteCard> createState() => _LargeNoteCardState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<NoteCardCubit>(param1: note),
+      child: _LargeNoteCardView(note: note, replyCount: replyCount),
+    );
+  }
 }
 
-class _LargeNoteCardState extends State<LargeNoteCard> {
-  bool _isSaved = false;
+class _LargeNoteCardView extends StatelessWidget {
+  const _LargeNoteCardView({required this.note, this.replyCount});
 
-  @override
-  void initState() {
-    super.initState();
-    getIt<IsSavedNoteUseCase>()
-        .call(widget.note.id)
-        .then((r) => r.fold((_) {}, (v) {
-              if (mounted) setState(() => _isSaved = v);
-            }));
-  }
+  final NoteEntity note;
+  final int? replyCount;
 
   @override
   Widget build(BuildContext context) {
-    final followedState = context.watch<FollowedNotesCubit>().state;
-    final isFollowed =
-        followedState.notes.any((n) => n.eventId == widget.note.id);
+    final cubit = context.watch<NoteCardCubit>();
+    final cardState = cubit.state;
+    final profile = cardState.profile;
 
-    final profile = widget.profile;
+    final isFollowed = cardState.isFollowed;
+
     final displayName = profile?.name ??
         profile?.username ??
-        formatShortPubkey(widget.note.authorPubkey);
+        formatShortPubkey(note.authorPubkey);
     final handle = profile?.username != null
         ? '@${profile!.username}'
-        : '@${formatShortPubkey(widget.note.authorPubkey)}';
-
-    // Outgoing reference count comes from the edge table via the entity.
-    final refCount = widget.note.referenceCount;
+        : '@${formatShortPubkey(note.authorPubkey)}';
 
     return Container(
       decoration: BoxDecoration(
@@ -78,7 +73,7 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
           Row(
             children: [
               UserAvatar(
-                seed: widget.note.authorPubkey,
+                seed: note.authorPubkey,
                 photoUrl: profile?.avatarUrl,
                 size: 48,
                 borderRadius: 24,
@@ -100,7 +95,7 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
                           ),
                         ),
                         Text(
-                          formatTimeAgo(widget.note.created),
+                          formatTimeAgo(note.created),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -123,7 +118,7 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
           ),
           const SizedBox(height: 16),
           Text(
-            widget.note.content,
+            note.content,
             style: const TextStyle(
               fontSize: 17,
               color: AppColors.onSurface,
@@ -131,12 +126,12 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
               fontWeight: FontWeight.w400,
             ),
           ),
-          if (widget.note.tTags.isNotEmpty) ...[
+          if (note.tTags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: widget.note.tTags
+              children: note.tTags
                   .take(5)
                   .map((t) => Text(
                         '#$t',
@@ -163,49 +158,24 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
               children: [
                 _LargeActionChip(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: '${widget.replyCount ?? 0}',
+                  label: '${replyCount ?? note.cachedReplyCount}',
                   color: AppColors.onSurfaceVariant,
                   onTap: () {},
                 ),
                 _LargeActionChip(
                   icon: Icons.link_rounded,
-                  label: '$refCount',
+                  label: '${note.referenceCount}',
                   color: AppColors.onSurfaceVariant,
                   onTap: () {},
                 ),
                 _LargeActionChip(
-                  icon: _isSaved
+                  icon: cardState.isSaved
                       ? Icons.bookmark_rounded
                       : Icons.bookmark_border_rounded,
-                  color: _isSaved
+                  color: cardState.isSaved
                       ? AppColors.primary
                       : AppColors.onSurfaceVariant,
-                  onTap: () async {
-                    final nowSaved = !_isSaved;
-                    setState(() => _isSaved = nowSaved);
-                    if (nowSaved) {
-                      final result =
-                          await getIt<SaveNoteUseCase>().call(widget.note);
-                      result.fold(
-                        (_) {
-                          if (mounted) setState(() => _isSaved = false);
-                        },
-                        (saved) {
-                          getIt<EmbedAndStoreNoteUseCase>()
-                              .call((saved.eventId, saved.content));
-                        },
-                      );
-                    } else {
-                      final result = await getIt<UnsaveNoteUseCase>()
-                          .call(widget.note.id);
-                      result.fold(
-                        (_) {
-                          if (mounted) setState(() => _isSaved = true);
-                        },
-                        (_) {},
-                      );
-                    }
-                  },
+                  onTap: () => cubit.toggleSave(),
                 ),
                 _LargeActionChip(
                   icon: isFollowed
@@ -214,17 +184,7 @@ class _LargeNoteCardState extends State<LargeNoteCard> {
                   color: isFollowed
                       ? AppColors.primary
                       : AppColors.onSurfaceVariant,
-                  onTap: () {
-                    final cubit = context.read<FollowedNotesCubit>();
-                    if (isFollowed) {
-                      cubit.unfollowNote(widget.note.id);
-                    } else {
-                      cubit.followNote(
-                        widget.note.id,
-                        formatContentPreview(widget.note.content),
-                      );
-                    }
-                  },
+                  onTap: () => cubit.toggleFollow(),
                 ),
                 _LargeActionChip(
                   icon: Icons.share_outlined,

@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
 import 'package:uniun/features/shiv/pages/shiv_page.dart';
@@ -21,7 +20,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final VishnuFeedBloc _vishnuFeedBloc;
-  late final FollowedNotesCubit _followedNotesCubit;
 
   // 0 = Vishnu, 2 = Shiv — index 1 navigates away so it never lives in the stack.
   int _currentIndex = 0;
@@ -30,13 +28,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
-    _followedNotesCubit = getIt<FollowedNotesCubit>()..load();
   }
 
   @override
   void dispose() {
     _vishnuFeedBloc.close();
-    _followedNotesCubit.close();
     super.dispose();
   }
 
@@ -63,7 +59,6 @@ class _HomePageState extends State<HomePage> {
     return MultiBlocProvider(
       providers: [
         BlocProvider<VishnuFeedBloc>.value(value: _vishnuFeedBloc),
-        BlocProvider<FollowedNotesCubit>.value(value: _followedNotesCubit),
       ],
       child: Scaffold(
         backgroundColor: AppColors.surfaceContainerLowest,

@@ -5,11 +5,9 @@ import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
-import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 
@@ -25,7 +23,6 @@ class ChannelFeedPage extends StatelessWidget {
           create: (_) =>
               ChannelFeedBloc()..add(LoadChannelFeedEvent(channelId)),
         ),
-        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
       ],
       child: _ChannelFeedView(channelId: channelId),
     );
@@ -57,20 +54,6 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
-    }
-  }
-
-  Future<void> _toggleFollow(
-    BuildContext ctx,
-    String noteId,
-    String contentPreview,
-    bool isCurrentlyFollowed,
-  ) async {
-    final cubit = ctx.read<FollowedNotesCubit>();
-    if (isCurrentlyFollowed) {
-      await cubit.unfollowNote(noteId);
-    } else {
-      await cubit.followNote(noteId, contentPreview);
     }
   }
 
@@ -172,8 +155,6 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
               ComposerHost(
                 hintText: l10n.channelMessageHint,
                 isSending: state.isSending,
-                referenceCandidates:
-                    state.messages.toList(),
                 onSend: (text, refs) =>
                     context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
                           channelId: widget.channelId,
@@ -217,11 +198,8 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
       );
     }
 
-    return BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
-      builder: (ctx, followedState) {
-        final followedIds = followedState.notes.map((n) => n.eventId).toSet();
-        final bloc = ctx.read<ChannelFeedBloc>();
-
+    return Builder(
+      builder: (ctx) {
         return ListView.builder(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
@@ -231,31 +209,11 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           itemCount: state.messages.length,
           itemBuilder: (context, i) {
             final msg = state.messages[i];
-            final isSaved = state.savedIds.contains(msg.id);
-            final isFollowed = followedIds.contains(msg.id);
 
             return NoteCard(
+              key: ValueKey(msg.id),
               note: msg,
-              profile: state.profiles[msg.authorPubkey],
-              replyCount: msg.cachedReplyCount,
-              isSaved: isSaved,
-              isFollowed: isFollowed,
               onTap: () => _openThread(ctx, msg, channelName),
-              onSaveTap: () {
-                if (isSaved) {
-                  bloc.add(UnsaveChannelFeedMessageEvent(msg.id));
-                } else {
-                  bloc.add(SaveChannelFeedMessageEvent(msg));
-                }
-              },
-              onFollowTap: () => _toggleFollow(
-                ctx,
-                msg.id,
-                msg.content.length > 80
-                    ? msg.content.substring(0, 80)
-                    : msg.content,
-                isFollowed,
-              ),
             );
           },
         );

@@ -215,6 +215,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get composerReferenceSelected => 'Added';
 
   @override
+  String get composerReferenceTabAll => 'All';
+
+  @override
+  String get composerReferenceTabSaved => 'Saved';
+
+  @override
+  String get threadReferencesLabel => 'REFERENCES';
+
+  @override
+  String get threadReplyingToLabel => 'REPLYING TO';
+
+  @override
   String get brahmaCreateNote => 'Create Note';
 
   @override

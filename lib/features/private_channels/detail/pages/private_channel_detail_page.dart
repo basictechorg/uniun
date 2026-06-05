@@ -6,10 +6,8 @@ import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
-import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -21,8 +19,12 @@ class PrivateChannelDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<PrivateChannelDetailBloc>(param1: groupId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<PrivateChannelDetailBloc>(param1: groupId),
+        ),
+      ],
       child: const _PrivateChannelDetailView(),
     );
   }
@@ -98,9 +100,6 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
       builder: (context, state) {
         final title = state.channel?.name ?? "Private Channel";
         final requestsCount = state.joinRequests.length;
-        final messagesById = <String, NoteEntity>{
-          for (final m in state.messages) m.id: m,
-        };
 
         return Scaffold(
           backgroundColor: AppColors.surface,
@@ -210,39 +209,17 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                               itemCount: state.messages.length,
                               itemBuilder: (context, index) {
                                 final msg = state.messages[index];
-                                final refIds = msg.eTagRefs
-                                    .where((id) => id != msg.replyToEventId)
-                                    .toList();
-                                final card = NoteCard(
+                                // NoteCard self-loads its author profile.
+                                return NoteCard(
                                   key: ValueKey(msg.id),
                                   note: msg,
-                                  profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
-                                );
-                                if (refIds.isEmpty) return card;
-                                return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    ReferencedMessages(
-                                      refs: refIds
-                                          .map((id) => messagesById[id])
-                                          .toList(),
-                                      unavailableLabel: AppLocalizations.of(
-                                              context)!
-                                          .vishnuReferenceUnavailable,
-                                      onTapRef: (note) => _openThread(
-                                          context, note.id),
-                                    ),
-                                    card,
-                                  ],
                                 );
                               },
                             ),
                     ),
                     ComposerHost(
                       hintText: AppLocalizations.of(context)!.chatMessageHint,
-                      referenceCandidates: state.messages.cast<NoteEntity>(),
                       onSend: (text, refs) =>
                           context.read<PrivateChannelDetailBloc>().add(
                                 SendPrivateChannelMessageEvent(text,

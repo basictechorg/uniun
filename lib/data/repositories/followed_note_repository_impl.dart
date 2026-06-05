@@ -95,4 +95,13 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Stream<bool> watchIsFollowed(String eventId) {
+    return isar.followedNoteModels
+        .where()
+        .eventIdEqualTo(eventId)
+        .watch(fireImmediately: true)
+        .map((rows) => rows.isNotEmpty);
+  }
 }

@@ -209,6 +209,18 @@
   "composerReferenceSelected": "Added",
   "@composerReferenceSelected": { "description": "Badge on an already-selected reference in the picker" },
 
+  "composerReferenceTabAll": "All",
+  "@composerReferenceTabAll": { "description": "Reference picker tab showing all candidate notes" },
+
+  "composerReferenceTabSaved": "Saved",
+  "@composerReferenceTabSaved": { "description": "Reference picker tab showing only saved notes" },
+
+  "threadReferencesLabel": "REFERENCES",
+  "@threadReferencesLabel": { "description": "Header above the notes a thread note references (mentions)" },
+
+  "threadReplyingToLabel": "REPLYING TO",
+  "@threadReplyingToLabel": { "description": "Header above the parent note a thread note is replying to" },
+
   "brahmaCreateNote": "Create Note",
   "@brahmaCreateNote": { "description": "Submit button in the compose card" },
 

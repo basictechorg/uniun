@@ -14,6 +14,10 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:tostore/tostore.dart' as _i789;
+import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart'
+    as _i734;
+import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart'
+    as _i226;
 import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart'
@@ -67,6 +71,7 @@ import 'package:uniun/data/repositories/storage_repository_impl.dart' as _i209;
 import 'package:uniun/data/repositories/tostore_vector_repository_impl.dart'
     as _i831;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
+import 'package:uniun/domain/entities/note/note_entity.dart' as _i697;
 import 'package:uniun/domain/repositories/ai_model_repository.dart' as _i646;
 import 'package:uniun/domain/repositories/channel_message_repository.dart'
     as _i964;
@@ -143,8 +148,6 @@ import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart'
     as _i750;
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart' as _i60;
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart' as _i399;
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart'
-    as _i58;
 import 'package:uniun/features/private_channels/create/bloc/create_private_channel_bloc.dart'
     as _i636;
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart'
@@ -340,6 +343,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i561.UnfollowNoteUseCase>(
       () => _i561.UnfollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
+    );
+    gh.lazySingleton<_i561.WatchIsFollowedUseCase>(
+      () => _i561.WatchIsFollowedUseCase(gh<_i836.FollowedNoteRepository>()),
     );
     gh.lazySingleton<_i561.ClearNewReferencesUseCase>(
       () => _i561.ClearNewReferencesUseCase(gh<_i836.FollowedNoteRepository>()),
@@ -575,14 +581,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i475.SearchNotesUseCase>(
       () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.factory<_i58.FollowedNotesCubit>(
-      () => _i58.FollowedNotesCubit(
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i561.FollowNoteUseCase>(),
-        gh<_i561.UnfollowNoteUseCase>(),
-        gh<_i561.ClearNewReferencesUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
     );
@@ -749,6 +747,13 @@ extension GetItInjectableX on _i174.GetIt {
         sourceLabels: gh<_i633.SourceLabelRepository>(),
         follows: gh<_i849.FollowedUserRepository>(),
         users: gh<_i103.UserRepository>(),
+      ),
+    );
+    gh.factory<_i734.ReferencePickerCubit>(
+      () => _i734.ReferencePickerCubit(
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
     gh.factory<_i959.UserProfileBloc>(
@@ -935,6 +940,20 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i179.DrainPendingExtractionsUseCase(
         gh<_i1000.PendingExtractionRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.factoryParam<_i226.NoteCardCubit, _i697.NoteEntity, dynamic>(
+      (note, _) => _i226.NoteCardCubit(
+        gh<_i391.WatchProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+        gh<_i858.IsSavedNoteUseCase>(),
+        gh<_i858.SaveNoteUseCase>(),
+        gh<_i858.UnsaveNoteUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i561.WatchIsFollowedUseCase>(),
+        gh<_i561.FollowNoteUseCase>(),
+        gh<_i561.UnfollowNoteUseCase>(),
+        note,
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(

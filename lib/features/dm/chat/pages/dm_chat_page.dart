@@ -7,13 +7,11 @@ import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
-import 'package:uniun/common/widgets/note_card/referenced_messages.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -24,9 +22,13 @@ class DmChatPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final otherPubkey = ModalRoute.of(context)!.settings.arguments as String;
 
-    return BlocProvider(
-      create: (_) =>
-          getIt<DmChatBloc>()..add(DmChatLoadEvent(otherPubkey: otherPubkey)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<DmChatBloc>()
+            ..add(DmChatLoadEvent(otherPubkey: otherPubkey)),
+        ),
+      ],
       child: const _DmChatView(),
     );
   }
@@ -123,9 +125,6 @@ class _DmChatViewState extends State<_DmChatView> {
             : state.otherPubkey ?? 'Chat';
 
         final l10n = AppLocalizations.of(context)!;
-        final messagesById = <String, NoteEntity>{
-          for (final m in state.messages) m.id: m,
-        };
 
         final otherPubkey = state.otherPubkey;
         final otherProfile = otherPubkey == null
@@ -206,45 +205,24 @@ class _DmChatViewState extends State<_DmChatView> {
                           final msg = state.messages[index];
                           final isMe = _myPubkeyHex != null &&
                               msg.authorPubkey == _myPubkeyHex;
-                          final refIds = msg.eTagRefs
-                              .where((id) => id != msg.replyToEventId)
-                              .toList();
-                          final card = isMe
+                          // The DM cards self-load their profile via NoteCardCubit.
+                          return isMe
                               ? DmOwnNoteCard(
                                   key: ValueKey(msg.id),
                                   note: msg,
-                                  profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 )
                               : DmNoteCard(
                                   key: ValueKey(msg.id),
                                   note: msg,
-                                  profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 );
-                          if (refIds.isEmpty) return card;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ReferencedMessages(
-                                refs: refIds
-                                    .map((id) => messagesById[id])
-                                    .toList(),
-                                unavailableLabel:
-                                    l10n.vishnuReferenceUnavailable,
-                                onTapRef: (note) =>
-                                    _openThread(context, note.id),
-                              ),
-                              card,
-                            ],
-                          );
                         },
                       ),
               ),
               ComposerHost(
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
-                referenceCandidates: state.messages,
                 onSend: (text, refs) => context.read<DmChatBloc>().add(
                       DmChatSendEvent(content: text, mentionRefs: refs),
                     ),

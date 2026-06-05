@@ -1,65 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/entities/profile/profile_entity.dart';
 
-class NoteCard extends StatefulWidget {
+/// Self-contained note card. Owns its author profile, saved flag, and follow
+/// flag via an internal [NoteCardCubit] (follow state is watched reactively
+/// from Isar). Callers only pass the note and a tap handler.
+class NoteCard extends StatelessWidget {
   const NoteCard({
     super.key,
     required this.note,
     required this.onTap,
-    this.profile,
-    this.replyCount = 0,
-    this.isFollowed = false,
-    this.isSaved = false,
-    this.onFollowTap,
-    this.onSaveTap,
   });
 
   final NoteEntity note;
   final VoidCallback onTap;
-  final ProfileEntity? profile;
-  final int replyCount;
-  final bool isFollowed;
-  final bool isSaved;
-  final VoidCallback? onFollowTap;
-  final VoidCallback? onSaveTap;
-
-  @override
-  State<NoteCard> createState() => _NoteCardState();
-}
-
-class _NoteCardState extends State<NoteCard> {
-  late bool _isSaved;
-
-  @override
-  void initState() {
-    super.initState();
-    _isSaved = widget.isSaved;
-  }
-
-  @override
-  void didUpdateWidget(NoteCard old) {
-    super.didUpdateWidget(old);
-    if (old.isSaved != widget.isSaved) _isSaved = widget.isSaved;
-  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final profile = widget.profile;
+    return BlocProvider(
+      create: (_) => getIt<NoteCardCubit>(param1: note),
+      child: _NoteCardView(note: note, onTap: onTap),
+    );
+  }
+}
+
+class _NoteCardView extends StatelessWidget {
+  const _NoteCardView({
+    required this.note,
+    required this.onTap,
+  });
+
+  final NoteEntity note;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.watch<NoteCardCubit>();
+    final cardState = cubit.state;
+    final profile = cardState.profile;
+
+    final isFollowed = cardState.isFollowed;
+
     final displayName = profile?.name ??
         profile?.username ??
-        _shortName(widget.note.authorPubkey);
-
-    // Outgoing reference count comes from the edge table via the entity.
-    final refCount = widget.note.referenceCount;
+        _shortName(note.authorPubkey);
 
     return InkWell(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: const BoxDecoration(
@@ -73,7 +65,7 @@ class _NoteCardState extends State<NoteCard> {
           children: [
             // ── Avatar ──────────────────────────────────────────────────
             UserAvatar(
-              seed: widget.note.authorPubkey,
+              seed: note.authorPubkey,
               photoUrl: profile?.avatarUrl,
               size: 40,
               borderRadius: 20,
@@ -101,17 +93,17 @@ class _NoteCardState extends State<NoteCard> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              formatTimeAgo(widget.note.created),
+                              formatTimeAgo(note.created),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.outline,
                               ),
                             ),
-                            if (widget.note.sourceLabel != null) ...[
+                            if (note.sourceLabel != null) ...[
                               const SizedBox(width: 6),
                               Icon(
-                                widget.note.sourcePrivateGroupId != null
+                                note.sourcePrivateGroupId != null
                                     ? Icons.lock_outline
                                     : Icons.tag_rounded,
                                 size: 13,
@@ -120,7 +112,7 @@ class _NoteCardState extends State<NoteCard> {
                               const SizedBox(width: 2),
                               Flexible(
                                 child: Text(
-                                  widget.note.sourceLabel!,
+                                  note.sourceLabel!,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12,
@@ -139,7 +131,7 @@ class _NoteCardState extends State<NoteCard> {
 
                   // Note content
                   Text(
-                    widget.note.content,
+                    note.content,
                     style: const TextStyle(
                       fontSize: 15,
                       color: Color(0xFF1E293B),
@@ -148,12 +140,12 @@ class _NoteCardState extends State<NoteCard> {
                   ),
 
                   // Hashtag chips
-                  if (widget.note.tTags.isNotEmpty) ...[
+                  if (note.tTags.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
-                      children: widget.note.tTags
+                      children: note.tTags
                           .take(3)
                           .map(
                             (t) => Text(
@@ -175,56 +167,52 @@ class _NoteCardState extends State<NoteCard> {
                   Padding(
                     padding: const EdgeInsets.only(right: 32),
                     child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Reply count
+                        _ActionChip(
+                          icon: Icons.chat_bubble_outline_rounded,
+                          label: '${note.cachedReplyCount}',
+                          color: AppColors.onSurfaceVariant,
+                          onTap: onTap,
+                        ),
 
-                      // Reply count
-                      _ActionChip(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        label: '${widget.replyCount}',
-                        color: AppColors.onSurfaceVariant,
-                        onTap: widget.onTap,
-                      ),
+                        // Reference count — outgoing refs from the edge table
+                        _ActionChip(
+                          icon: Icons.link_rounded,
+                          label: '${note.referenceCount}',
+                          color: AppColors.onSurfaceVariant,
+                          onTap: onTap,
+                        ),
 
-                      // Reference count — shown when the note references others
-                      _ActionChip(
-                        icon: Icons.link_rounded,
-                        label: '$refCount',
-                        color: AppColors.onSurfaceVariant,
-                        onTap: widget.onTap,
-                      ),
+                        // Save toggle — owned by the cubit
+                        _ActionChip(
+                          icon: cardState.isSaved
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          color: cardState.isSaved
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                          onTap: () => cubit.toggleSave(),
+                        ),
 
-                      // Save toggle — optimistic UI, parent persists
-                      _ActionChip(
-                        icon: _isSaved
-                            ? Icons.bookmark_rounded
-                            : Icons.bookmark_border_rounded,
-                        color: _isSaved
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
-                        onTap: () {
-                          setState(() => _isSaved = !_isSaved);
-                          widget.onSaveTap?.call();
-                        },
-                      ),
-                      // Follow / Following
-                      _ActionChip(
-                        icon: widget.isFollowed
-                            ? Icons.notifications
-                            : Icons.notifications_none,
-                        color: widget.isFollowed
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
-                        onTap: widget.onFollowTap ?? () {},
-                      ),
-                      _ActionChip(
-                        icon: Icons.share_outlined,
-                        color: AppColors.onSurfaceVariant,
-                        onTap: () {}, // TODO: implement share sheet
-                      )
-
-                    ],
-                  ),
+                        // Follow / Following — owned by the cubit
+                        _ActionChip(
+                          icon: isFollowed
+                              ? Icons.notifications
+                              : Icons.notifications_none,
+                          color: isFollowed
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                          onTap: () => cubit.toggleFollow(),
+                        ),
+                        _ActionChip(
+                          icon: Icons.share_outlined,
+                          color: AppColors.onSurfaceVariant,
+                          onTap: () {}, // TODO: implement share sheet
+                        )
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -277,5 +265,3 @@ class _ActionChip extends StatelessWidget {
     );
   }
 }
-
-

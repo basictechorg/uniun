@@ -7,7 +7,6 @@ import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -103,16 +102,6 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
           emptyLabel: l10n.brahmaMentionEmpty,
           selectedLabel: l10n.composerReferenceSelected,
           initialSelected: selected,
-          onSearch: (q) async {
-            if (q.trim().isEmpty) return const [];
-            final notes = await getIt<SearchNotesUseCase>().call(q.trim());
-            return notes.fold(
-              (_) => const <ComposerReference>[],
-              (list) => list
-                  .map((n) => ComposerReference(id: n.id, label: n.content))
-                  .toList(),
-            );
-          },
         ),
       ),
     );

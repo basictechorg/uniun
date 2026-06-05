@@ -9,7 +9,6 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/widgets/new_notes_banner.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
@@ -157,24 +156,6 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
     }
   }
 
-  Future<void> _toggleFollow(
-    BuildContext ctx,
-    String noteId,
-    String contentPreview,
-    bool isCurrentlyFollowed,
-  ) async {
-    final cubit = ctx.read<FollowedNotesCubit>();
-    if (isCurrentlyFollowed) {
-      await cubit.unfollowNote(noteId);
-    } else {
-      await cubit.followNote(noteId, contentPreview);
-    }
-    // Refresh drawer so the following section updates
-    if (ctx.mounted) {
-      ctx.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -214,13 +195,9 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                   return const _EmptyFeedView();
                 }
 
-                // Feed list
-                return BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
-                  builder: (context, followedState) {
-                    final followedIds = followedState.notes
-                        .map((n) => n.eventId)
-                        .toSet();
-
+                // Feed list. NoteCard self-manages profile/saved/followed.
+                return Builder(
+                  builder: (context) {
                     return RefreshIndicator(
                       color: AppColors.primary,
                       onRefresh: _onRefresh,
@@ -252,21 +229,14 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                                 }
 
                                 final note = feedState.items[i];
-                                final profile =
-                                    feedState.profiles[note.authorPubkey];
-                                final isFollowed = followedIds.contains(note.id);
 
                                 return VisibilityDetector(
                                   key: ValueKey('feed-${note.id}'),
                                   onVisibilityChanged: (info) =>
                                       _onNoteVisibility(note.id, info),
                                   child: NoteCard(
+                                    key: ValueKey(note.id),
                                     note: note,
-                                    profile: profile,
-                                    replyCount: note.cachedReplyCount,
-                                    isFollowed: isFollowed,
-                                    isSaved:
-                                        feedState.savedIds.contains(note.id),
                                     onTap: () => openEventThread(
                                       context,
                                       note.id,
@@ -276,25 +246,6 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                                         arguments: note.id,
                                       ),
                                     ),
-                                    onFollowTap: () => _toggleFollow(
-                                      context,
-                                      note.id,
-                                      note.content.length > 80
-                                          ? '${note.content.substring(0, 80)}…'
-                                          : note.content,
-                                      isFollowed,
-                                    ),
-                                    onSaveTap: () {
-                                      final bloc =
-                                          context.read<VishnuFeedBloc>();
-                                      final saved = feedState.savedIds
-                                          .contains(note.id);
-                                      if (saved) {
-                                        bloc.add(UnsaveFeedNoteEvent(note.id));
-                                      } else {
-                                        bloc.add(SaveFeedNoteEvent(note));
-                                      }
-                                    },
                                   ),
                                 );
                               },

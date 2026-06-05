@@ -112,8 +112,6 @@ class GraphNodePanel extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: NoteCard(
                     note: noteEntity,
-                    profile: profile,
-                    isSaved: node.type == GraphNodeType.saved,
                     onTap: () => Navigator.pushNamed(
                       context,
                       AppRoutes.thread,

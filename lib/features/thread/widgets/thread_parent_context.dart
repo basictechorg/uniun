@@ -3,6 +3,7 @@ import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// Renders the ancestor chain ABOVE the focused note (X/Twitter style).
 /// Oldest ancestor is first; the last item connects via thread line to the
@@ -38,6 +39,7 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final notes = widget.notes;
     if (notes.isEmpty) return const SizedBox.shrink();
 
@@ -52,28 +54,31 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.isSiblingGroup)
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 8),
-            child: Row(
-              children: [
-                Icon(Icons.link_rounded,
-                    size: 12,
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.75)),
-                const SizedBox(width: 4),
-                Text(
-                  'REFERENCES',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                    color:
-                        AppColors.onSurfaceVariant.withValues(alpha: 0.75),
-                  ),
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 8),
+          child: Row(
+            children: [
+              Icon(
+                  widget.isSiblingGroup
+                      ? Icons.link_rounded
+                      : Icons.reply_rounded,
+                  size: 12,
+                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.75)),
+              const SizedBox(width: 4),
+              Text(
+                widget.isSiblingGroup
+                    ? l10n.threadReferencesLabel
+                    : l10n.threadReplyingToLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.0,
+                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
         ...List.generate(visible.length, (i) {
           final isLast = i == visible.length - 1;
           // Sibling mode: only the last VISIBLE row connects down to root

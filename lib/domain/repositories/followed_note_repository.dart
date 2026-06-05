@@ -8,4 +8,5 @@ abstract class FollowedNoteRepository {
   Future<Either<Failure, Unit>> unfollowNote(String eventId);
   Future<Either<Failure, Unit>> clearNewReferences(String eventId);
   Future<Either<Failure, bool>> isFollowed(String eventId);
+  Stream<bool> watchIsFollowed(String eventId);
 }
