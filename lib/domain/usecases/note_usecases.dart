@@ -73,19 +73,6 @@ class SaveNoteUseCase extends UseCase<Either<Failure, NoteEntity>, NoteEntity> {
   }
 }
 
-// ── MarkSeenUseCase ───────────────────────────────────────────────────────────
-
-@lazySingleton
-class MarkSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
-  final NoteRepository repository;
-  const MarkSeenUseCase(this.repository);
-
-  @override
-  Future<Either<Failure, Unit>> call(String eventId, {bool cached = false}) {
-    return repository.markAsSeen(eventId);
-  }
-}
-
 // ── GetThreadUseCase ──────────────────────────────────────────────────────────
 
 /// Returns the full thread for a given root note event ID.

@@ -15,3 +15,12 @@ final class DmChatSendEvent extends DmChatEvent {
 }
 
 final class DmChatRefreshEvent extends DmChatEvent {}
+
+/// A message scrolled past the viewport — delete its unread row.
+final class DmChatMarkSeenEvent extends DmChatEvent {
+  final String eventId;
+  DmChatMarkSeenEvent(this.eventId);
+}
+
+/// The user reached the newest message — mark the whole conversation read.
+final class DmChatMarkAllSeenEvent extends DmChatEvent {}

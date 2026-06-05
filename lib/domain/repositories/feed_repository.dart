@@ -6,11 +6,12 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 ///
 /// Merges two collections — Kind 1 notes and Kind 42 public channel messages
 /// from joined channels — under one read model. Three derived buckets keyed
-/// off the persisted [feedLoadedAt] anchor + per-row `isSeen`:
+/// off the persisted [feedLoadedAt] anchor + the presence of an `UnreadNote`
+/// row (a note is "unread" iff a row exists for its eventId):
 ///
-///   - **New buffer**: `!isSeen && created >  feedLoadedAt` — banner only.
-///   - **Queue**:      `!isSeen && created <= feedLoadedAt` — top of feed.
-///   - **Seen**:       `isSeen`                             — after queue.
+///   - **New buffer**: `unread && created >  feedLoadedAt` — banner only.
+///   - **Queue**:      `unread && created <= feedLoadedAt` — top of feed.
+///   - **Seen**:       no unread row                       — after queue.
 abstract class FeedRepository {
   /// Reads the persisted anchor (creates it as `now` on first call).
   Future<Either<Failure, DateTime>> getOrInitFeedLoadedAt();
@@ -39,7 +40,7 @@ abstract class FeedRepository {
   /// whenever the underlying collections change.
   Stream<int> watchNewBufferCount(DateTime loadedAt);
 
-  /// Flip `isSeen = true` for a note or channel message. The repo figures out
-  /// which collection the id lives in. No-op if already seen or unknown.
+  /// Mark a note or channel message seen by deleting its unread row.
+  /// No-op if already seen or unknown.
   Future<Either<Failure, Unit>> markSeen(String eventId);
 }

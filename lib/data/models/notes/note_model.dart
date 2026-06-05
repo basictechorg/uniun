@@ -67,11 +67,6 @@ class NoteModel {
   @Index()
   late DateTime created;
 
-  /// Composite index: (isSeen, created) — feed buckets are an indexed scan
-  /// over `isSeen == false` then `isSeen == true`, each sorted by `created`.
-  @Index(composite: [CompositeIndex('created')])
-  late bool isSeen;
-
   NoteModel({
     required this.eventId,
     required this.sig,
@@ -89,7 +84,6 @@ class NoteModel {
     required this.pTagRefs,
     required this.tTags,
     required this.created,
-    required this.isSeen,
   });
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
@@ -155,7 +149,6 @@ class NoteModel {
       pTagRefs: pTagRefs,
       tTags: tTags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
-      isSeen: false,
     );
   }
 }
@@ -175,7 +168,6 @@ extension NoteModelExtension on NoteModel {
         pTagRefs: pTagRefs,
         tTags: tTags,
         created: created,
-        isSeen: isSeen,
         conversationId: conversationId,
         sourceChannelId: channelId,
         sourcePrivateGroupId: groupId,

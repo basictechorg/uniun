@@ -45,7 +45,6 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
         replyToEventId: message.replyToEventId,
         tTags: const [],
         created: message.created,
-        isSeen: false,
       );
 
       final parents = replyEdgeParentIds(

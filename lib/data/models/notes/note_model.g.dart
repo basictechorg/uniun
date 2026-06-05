@@ -45,28 +45,27 @@ const NoteModelSchema = CollectionSchema(
     ),
     r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
     r'groupId': PropertySchema(id: 7, name: r'groupId', type: IsarType.string),
-    r'isSeen': PropertySchema(id: 8, name: r'isSeen', type: IsarType.bool),
-    r'kind': PropertySchema(id: 9, name: r'kind', type: IsarType.long),
+    r'kind': PropertySchema(id: 8, name: r'kind', type: IsarType.long),
     r'pTagRefs': PropertySchema(
-      id: 10,
+      id: 9,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 11,
+      id: 10,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 12,
+      id: 11,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 13, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 14, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 15, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 12, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 13, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 14, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 16,
+      id: 15,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -196,24 +195,6 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
-    r'isSeen_created': IndexSchema(
-      id: -4335404229533762258,
-      name: r'isSeen_created',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'isSeen',
-          type: IndexType.value,
-          caseSensitive: false,
-        ),
-        IndexPropertySchema(
-          name: r'created',
-          type: IndexType.value,
-          caseSensitive: false,
-        ),
-      ],
-    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -303,15 +284,14 @@ void _noteModelSerialize(
   writer.writeStringList(offsets[5], object.eTagRefs);
   writer.writeString(offsets[6], object.eventId);
   writer.writeString(offsets[7], object.groupId);
-  writer.writeBool(offsets[8], object.isSeen);
-  writer.writeLong(offsets[9], object.kind);
-  writer.writeStringList(offsets[10], object.pTagRefs);
-  writer.writeString(offsets[11], object.replyToEventId);
-  writer.writeString(offsets[12], object.rootEventId);
-  writer.writeString(offsets[13], object.sig);
-  writer.writeString(offsets[14], object.subject);
-  writer.writeStringList(offsets[15], object.tTags);
-  writer.writeString(offsets[16], object.type.name);
+  writer.writeLong(offsets[8], object.kind);
+  writer.writeStringList(offsets[9], object.pTagRefs);
+  writer.writeString(offsets[10], object.replyToEventId);
+  writer.writeString(offsets[11], object.rootEventId);
+  writer.writeString(offsets[12], object.sig);
+  writer.writeString(offsets[13], object.subject);
+  writer.writeStringList(offsets[14], object.tTags);
+  writer.writeString(offsets[15], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -329,16 +309,15 @@ NoteModel _noteModelDeserialize(
     eTagRefs: reader.readStringList(offsets[5]) ?? [],
     eventId: reader.readString(offsets[6]),
     groupId: reader.readStringOrNull(offsets[7]),
-    isSeen: reader.readBool(offsets[8]),
-    kind: reader.readLongOrNull(offsets[9]) ?? kNoteKind,
-    pTagRefs: reader.readStringList(offsets[10]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[11]),
-    rootEventId: reader.readStringOrNull(offsets[12]),
-    sig: reader.readString(offsets[13]),
-    subject: reader.readStringOrNull(offsets[14]),
-    tTags: reader.readStringList(offsets[15]) ?? [],
+    kind: reader.readLongOrNull(offsets[8]) ?? kNoteKind,
+    pTagRefs: reader.readStringList(offsets[9]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[10]),
+    rootEventId: reader.readStringOrNull(offsets[11]),
+    sig: reader.readString(offsets[12]),
+    subject: reader.readStringOrNull(offsets[13]),
+    tTags: reader.readStringList(offsets[14]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[16])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[15])] ??
         NoteType.text,
   );
   object.id = id;
@@ -369,22 +348,20 @@ P _noteModelDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readBool(offset)) as P;
-    case 9:
       return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
-    case 10:
+    case 9:
       return (reader.readStringList(offset) ?? []) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
       return (reader.readString(offset)) as P;
-    case 14:
+    case 13:
       return (reader.readStringOrNull(offset)) as P;
-    case 15:
+    case 14:
       return (reader.readStringList(offset) ?? []) as P;
-    case 16:
+    case 15:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -503,14 +480,6 @@ extension NoteModelQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'created'),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyIsSeenCreated() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'isSeen_created'),
       );
     });
   }
@@ -1332,173 +1301,6 @@ extension NoteModelQueryWhere
           lower: [lowerCreated],
           includeLower: includeLower,
           upper: [upperCreated],
-          includeUpper: includeUpper,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenEqualToAnyCreated(
-    bool isSeen,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'isSeen_created', value: [isSeen]),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenNotEqualToAnyCreated(bool isSeen) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [],
-                upper: [isSeen],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                includeLower: false,
-                upper: [],
-              ),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [],
-                upper: [isSeen],
-                includeUpper: false,
-              ),
-            );
-      }
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenCreatedEqualTo(
-    bool isSeen,
-    DateTime created,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(
-          indexName: r'isSeen_created',
-          value: [isSeen, created],
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedNotEqualTo(bool isSeen, DateTime created) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                upper: [isSeen, created],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen, created],
-                includeLower: false,
-                upper: [isSeen],
-              ),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen, created],
-                includeLower: false,
-                upper: [isSeen],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                upper: [isSeen, created],
-                includeUpper: false,
-              ),
-            );
-      }
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedGreaterThan(
-    bool isSeen,
-    DateTime created, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen, created],
-          includeLower: include,
-          upper: [isSeen],
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedLessThan(
-    bool isSeen,
-    DateTime created, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen],
-          upper: [isSeen, created],
-          includeUpper: include,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedBetween(
-    bool isSeen,
-    DateTime lowerCreated,
-    DateTime upperCreated, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen, lowerCreated],
-          includeLower: includeLower,
-          upper: [isSeen, upperCreated],
           includeUpper: includeUpper,
         ),
       );
@@ -2654,16 +2456,6 @@ extension NoteModelQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> isSeenEqualTo(
-    bool value,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isSeen', value: value),
       );
     });
   }
@@ -3988,18 +3780,6 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByIsSeen() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByIsSeenDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.desc);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.asc);
@@ -4171,18 +3951,6 @@ extension NoteModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByIsSeen() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.asc);
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByIsSeenDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.desc);
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.asc);
@@ -4316,12 +4084,6 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByIsSeen() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isSeen');
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'kind');
@@ -4437,12 +4199,6 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupId');
-    });
-  }
-
-  QueryBuilder<NoteModel, bool, QQueryOperations> isSeenProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isSeen');
     });
   }
 

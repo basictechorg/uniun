@@ -43,7 +43,6 @@ class GraphNodePanel extends StatelessWidget {
             pTagRefs: node.pTagRefs,
             tTags: node.tTags,
             created: node.created!,
-            isSeen: true,
           )
         : null;
 

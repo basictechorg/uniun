@@ -24,7 +24,6 @@ abstract class NoteEntity with _$NoteEntity {
     required List<String> pTagRefs,
     required List<String> tTags,
     required DateTime created,
-    required bool isSeen,
 
     /// DM conversation id — non-null only when [kind] is 14/15. Used to route
     /// replies back to the correct DM conversation.

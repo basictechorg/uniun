@@ -76,7 +76,6 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         created: created,
-        isSeen: true,
       );
 
       final saveResult = await _channelMessageRepository.saveMessage(message);

@@ -7,16 +7,36 @@ import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart';
 import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
+import 'package:uniun/domain/usecases/unread_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'channel_feed_event.dart';
 import 'channel_feed_state.dart';
 
 class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
+  final Set<String> _markedThisSession = <String>{};
+
   ChannelFeedBloc() : super(const ChannelFeedState()) {
     on<LoadChannelFeedEvent>(_onLoad);
     on<SendChannelMessageEvent>(_onSend);
     on<SaveChannelFeedMessageEvent>(_onSave);
     on<UnsaveChannelFeedMessageEvent>(_onUnsave);
+    on<MarkChannelMessageSeenEvent>(_onMarkSeen);
+    on<MarkAllChannelSeenEvent>(_onMarkAllSeen);
+  }
+
+  Future<void> _onMarkSeen(
+    MarkChannelMessageSeenEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    if (!_markedThisSession.add(event.eventId)) return;
+    await getIt<MarkUnreadSeenUseCase>().call(event.eventId);
+  }
+
+  Future<void> _onMarkAllSeen(
+    MarkAllChannelSeenEvent event,
+    Emitter<ChannelFeedState> emit,
+  ) async {
+    await getIt<MarkChannelSeenUseCase>().call(event.channelId);
   }
 
   Future<void> _onLoad(

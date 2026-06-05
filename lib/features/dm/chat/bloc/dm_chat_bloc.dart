@@ -7,8 +7,10 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/unread_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'dm_chat_event.dart';
@@ -21,8 +23,11 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
   final GetDmUseCase _getDmUseCase;
   final GetProfileUseCase _getProfileUseCase;
   final GetActiveUserProfileUseCase _getActiveUserProfileUseCase;
+  final MarkUnreadSeenUseCase _markUnreadSeenUseCase;
+  final MarkConversationSeenUseCase _markConversationSeenUseCase;
   final Isar _isar;
   StreamSubscription<void>? _messageWatcher;
+  final Set<String> _markedThisSession = <String>{};
 
   DmChatBloc(
     this._fetchDmUseCase,
@@ -30,11 +35,38 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
     this._getDmUseCase,
     this._getProfileUseCase,
     this._getActiveUserProfileUseCase,
+    this._markUnreadSeenUseCase,
+    this._markConversationSeenUseCase,
     this._isar,
   ) : super(const DmChatState()) {
     on<DmChatLoadEvent>(_onLoad);
     on<DmChatSendEvent>(_onSend);
     on<DmChatRefreshEvent>(_onRefresh);
+    on<DmChatMarkSeenEvent>(_onMarkSeen);
+    on<DmChatMarkAllSeenEvent>(_onMarkAllSeen);
+  }
+
+  Future<void> _onMarkSeen(
+    DmChatMarkSeenEvent event,
+    Emitter<DmChatState> emit,
+  ) async {
+    if (!_markedThisSession.add(event.eventId)) return;
+    await _markUnreadSeenUseCase.call(event.eventId);
+  }
+
+  Future<void> _onMarkAllSeen(
+    DmChatMarkAllSeenEvent event,
+    Emitter<DmChatState> emit,
+  ) async {
+    final otherPubkey = state.otherPubkey;
+    if (otherPubkey == null) return;
+    final conv = await _isar.dmConversationModels
+        .where()
+        .otherPubkeyEqualTo(otherPubkey)
+        .findFirst();
+    if (conv != null) {
+      await _markConversationSeenUseCase.call(conv.id);
+    }
   }
 
   Future<void> _onLoad(DmChatLoadEvent event, Emitter<DmChatState> emit) async {

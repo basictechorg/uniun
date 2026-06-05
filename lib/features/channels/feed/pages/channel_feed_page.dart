@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
@@ -40,11 +41,39 @@ class _ChannelFeedView extends StatefulWidget {
 class _ChannelFeedViewState extends State<_ChannelFeedView> {
   final _scrollController = ScrollController();
   bool _didScrollToBottom = false;
+  final Set<String> _everVisible = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Reaching the bottom of the list marks every message in the channel read.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 8) {
+      context
+          .read<ChannelFeedBloc>()
+          .add(MarkAllChannelSeenEvent(widget.channelId));
+    }
+  }
+
+  /// Marks a message seen once it has been majority-visible then leaves view.
+  void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    if (info.visibleFraction >= 0.5) {
+      _everVisible.add(eventId);
+    } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      context.read<ChannelFeedBloc>().add(MarkChannelMessageSeenEvent(eventId));
+    }
   }
 
   void _scrollToBottom() {
@@ -210,10 +239,14 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           itemBuilder: (context, i) {
             final msg = state.messages[i];
 
-            return NoteCard(
-              key: ValueKey(msg.id),
-              note: msg,
-              onTap: () => _openThread(ctx, msg, channelName),
+            return VisibilityDetector(
+              key: ValueKey('chan-${msg.id}'),
+              onVisibilityChanged: (info) => _onMessageVisibility(msg.id, info),
+              child: NoteCard(
+                key: ValueKey(msg.id),
+                note: msg,
+                onTap: () => _openThread(ctx, msg, channelName),
+              ),
             );
           },
         );

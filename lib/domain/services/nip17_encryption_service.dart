@@ -10,6 +10,7 @@ import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 // user_key_model not needed — privkey is injected via constructor
@@ -161,10 +162,15 @@ class Nip17EncryptionService {
             created: DateTime.fromMillisecondsSinceEpoch(
               (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
             ),
-            isSeen: false,
           );
 
           await _isar.noteModels.put(dmModel);
+          // Unread row for DMs from the other party (own copies are pre-seen).
+          final pk = _privkeyHex;
+          final ownPubkey = pk != null ? Keychain(pk).public : null;
+          if (dmModel.authorPubkey != ownPubkey) {
+            await putUnreadRowInTxn(_isar, dmModel);
+          }
           // Record reference edges via the shared repo. The unique
           // (parentId, childId) index keeps re-delivery idempotent.
           final parents = replyEdgeParentIds(

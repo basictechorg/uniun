@@ -152,7 +152,6 @@ class PostReplyUseCase {
       pTagRefs: const [],
       tTags: const [],
       created: DateTime.fromMillisecondsSinceEpoch(signed.createdAt * 1000),
-      isSeen: true,
       rootEventId: threadRoot,
       replyToEventId: replyToId,
     );

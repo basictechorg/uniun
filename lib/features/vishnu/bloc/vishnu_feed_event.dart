@@ -24,7 +24,7 @@ final class RefreshFeedEvent extends VishnuFeedEvent {
   const RefreshFeedEvent();
 }
 
-/// A note scrolled past the viewport — flip `isSeen = true` in DB.
+/// A note scrolled past the viewport — delete its unread row in DB.
 final class MarkFeedItemSeenEvent extends VishnuFeedEvent {
   const MarkFeedItemSeenEvent(this.eventId);
   final String eventId;

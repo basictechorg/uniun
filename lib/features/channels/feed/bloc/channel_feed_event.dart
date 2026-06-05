@@ -34,3 +34,16 @@ class UnsaveChannelFeedMessageEvent extends ChannelFeedEvent {
   const UnsaveChannelFeedMessageEvent(this.messageId);
   final String messageId;
 }
+
+/// A message scrolled past the viewport — delete its unread row.
+class MarkChannelMessageSeenEvent extends ChannelFeedEvent {
+  const MarkChannelMessageSeenEvent(this.eventId);
+  final String eventId;
+}
+
+/// The user reached the end of the list — mark every message in the channel
+/// read.
+class MarkAllChannelSeenEvent extends ChannelFeedEvent {
+  const MarkAllChannelSeenEvent(this.channelId);
+  final String channelId;
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
@@ -39,11 +40,40 @@ class _PrivateChannelDetailView extends StatefulWidget {
 
 class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   final _scrollController = ScrollController();
+  final Set<String> _everVisible = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Reaching the bottom (newest message) marks the whole channel read.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 8) {
+      context
+          .read<PrivateChannelDetailBloc>()
+          .add(MarkAllPrivateChannelSeenEvent());
+    }
+  }
+
+  void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    if (info.visibleFraction >= 0.5) {
+      _everVisible.add(eventId);
+    } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      context
+          .read<PrivateChannelDetailBloc>()
+          .add(MarkPrivateChannelMessageSeenEvent(eventId));
+    }
   }
 
   void _openThread(BuildContext context, String messageId) {
@@ -210,10 +240,15 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                               itemBuilder: (context, index) {
                                 final msg = state.messages[index];
                                 // NoteCard self-loads its author profile.
-                                return NoteCard(
-                                  key: ValueKey(msg.id),
-                                  note: msg,
-                                  onTap: () => _openThread(context, msg.id),
+                                return VisibilityDetector(
+                                  key: ValueKey('pc-${msg.id}'),
+                                  onVisibilityChanged: (info) =>
+                                      _onMessageVisibility(msg.id, info),
+                                  child: NoteCard(
+                                    key: ValueKey(msg.id),
+                                    note: msg,
+                                    onTap: () => _openThread(context, msg.id),
+                                  ),
                                 );
                               },
                             ),

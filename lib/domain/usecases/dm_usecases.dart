@@ -155,7 +155,6 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
             type: params.type,
             tTags: const [],
             created: DateTime.now(),
-            isSeen: true,
             rootEventId: params.rootEventId,
             replyToEventId: params.replyToEventId,
             eTagRefs: [

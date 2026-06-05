@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
@@ -49,10 +50,31 @@ class _DmChatViewState extends State<_DmChatView> {
   String? _myNpub;
   List<String> _conversationRelays = const [];
 
+  final Set<String> _everVisible = <String>{};
+
   @override
   void initState() {
     super.initState();
     _resolveActiveUser();
+    _scrollController.addListener(_onScroll);
+  }
+
+  /// On a reversed list the newest message sits at the minimum scroll offset, so
+  /// reaching it (the default position on open) marks the conversation read.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels <= pos.minScrollExtent + 8) {
+      context.read<DmChatBloc>().add(DmChatMarkAllSeenEvent());
+    }
+  }
+
+  void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    if (info.visibleFraction >= 0.5) {
+      _everVisible.add(eventId);
+    } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      context.read<DmChatBloc>().add(DmChatMarkSeenEvent(eventId));
+    }
   }
 
   Future<void> _resolveActiveUser() async {
@@ -91,6 +113,7 @@ class _DmChatViewState extends State<_DmChatView> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -206,7 +229,7 @@ class _DmChatViewState extends State<_DmChatView> {
                           final isMe = _myPubkeyHex != null &&
                               msg.authorPubkey == _myPubkeyHex;
                           // The DM cards self-load their profile via NoteCardCubit.
-                          return isMe
+                          final card = isMe
                               ? DmOwnNoteCard(
                                   key: ValueKey(msg.id),
                                   note: msg,
@@ -217,6 +240,12 @@ class _DmChatViewState extends State<_DmChatView> {
                                   note: msg,
                                   onTap: () => _openThread(context, msg.id),
                                 );
+                          return VisibilityDetector(
+                            key: ValueKey('dm-${msg.id}'),
+                            onVisibilityChanged: (info) =>
+                                _onMessageVisibility(msg.id, info),
+                            child: card,
+                          );
                         },
                       ),
               ),

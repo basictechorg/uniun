@@ -8,6 +8,7 @@ import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
@@ -113,11 +114,19 @@ class MarmotTransportService {
           pTagRefs: const [],
           tTags: const [],
           created: encrypted.timestamp,
-          isSeen: false,
         );
 
         await _isar.writeTxn(() async {
+          // Own messages are already in the DB from the local send, so a missing
+          // row means a genuinely new inbound message → mark it unread.
+          final existing = await _isar.noteModels
+              .where()
+              .eventIdEqualTo(decryptedMsg.eventId)
+              .findFirst();
           await _isar.noteModels.put(decryptedMsg);
+          if (existing == null) {
+            await putUnreadRowInTxn(_isar, decryptedMsg);
+          }
           // Reference edges via the shared repo. eTagRefs are currently empty
           // on decrypted MLS payloads, so this is a no-op today, but routes
           // any future NIP-10-style refs through the single edge table.
@@ -411,7 +420,6 @@ class MarmotTransportService {
       pTagRefs: const [],
       tTags: const [],
       created: now,
-      isSeen: false,
     );
 
     await _isar.writeTxn(() async {

@@ -13,6 +13,7 @@ import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'dart:async';
 
@@ -33,6 +34,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   StreamSubscription<void>? _privateChannelWatcher;
   StreamSubscription<void>? _followedUsersWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
+  StreamSubscription<void>? _unreadWatcher;
 
   DrawerBloc(
     this._getActiveUser,
@@ -57,6 +59,10 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     _followedNotesWatcher = _isar.followedNoteModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
+    // Unread badges: gateway inserts/marks delete unread rows.
+    _unreadWatcher = _isar.unreadNoteModels.watchLazy().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
   }
 
   Future<void> _onLoad(
@@ -72,6 +78,23 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     emit(DrawerLoading());
 
     try {
+      // Per-container unread counts from the UnreadNote collection (one batched
+      // read; grouped in memory). Exactly one container field is set per row.
+      final unreadRows = await _isar.unreadNoteModels.where().findAll();
+      final channelUnread = <String, int>{};
+      final groupUnread = <String, int>{};
+      final conversationUnread = <int, int>{};
+      for (final r in unreadRows) {
+        if (r.channelId != null) {
+          channelUnread.update(r.channelId!, (v) => v + 1, ifAbsent: () => 1);
+        } else if (r.groupId != null) {
+          groupUnread.update(r.groupId!, (v) => v + 1, ifAbsent: () => 1);
+        } else if (r.conversationId != null) {
+          conversationUnread.update(r.conversationId!, (v) => v + 1,
+              ifAbsent: () => 1);
+        }
+      }
+
       final userResult = await _getActiveUser.call();
       final user = userResult.fold((_) => null, (u) => u);
 
@@ -101,7 +124,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
             .map((c) => DrawerChannelItem(
                   id: c.channelId,
                   name: c.name,
-                  hasUnread: false, // Wait for DM / Channel message read tracking
+                  hasUnread: (channelUnread[c.channelId] ?? 0) > 0,
                 ))
             .toList(),
       );
@@ -113,6 +136,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
           pubkey: conv.otherPubkey,
           name: profile?.name ?? profile?.username ?? conv.otherPubkey,
           avatarUrl: profile?.avatarUrl,
+          unreadCount: conversationUnread[conv.id] ?? 0,
         ));
       }
 
@@ -132,6 +156,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       final privateChannels = privateChannelResult.map((c) => DrawerPrivateChannelItem(
         id: c.groupId,
         name: c.name,
+        hasUnread: (groupUnread[c.groupId] ?? 0) > 0,
       )).toList();
 
       final followedUsersResult = await _getFollowedUsers.call();
@@ -182,6 +207,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     _privateChannelWatcher?.cancel();
     _followedUsersWatcher?.cancel();
     _followedNotesWatcher?.cancel();
+    _unreadWatcher?.cancel();
     return super.close();
   }
 }
