@@ -12,4 +12,11 @@ abstract class ProfileRepository {
   /// Get the logged-in user's own profile by their npub. Null if not yet fetched from relay.
   /// Get the logged-in user's own profile by their hex pubkey.
   Future<Either<Failure, ProfileEntity?>> getOwnProfile(String pubkeyHex);
+
+  /// Reactively emits the locally-stored profile (or null) whenever it changes.
+  Stream<ProfileEntity?> watchProfile(String pubkeyHex);
+
+  /// Mark this pubkey as one we need a Kind 0 for. The gateway's
+  /// [ProfilesSubscription] picks the row up and opens a REQ on connected relays.
+  Future<Either<Failure, Unit>> requestProfileFetch(String pubkeyHex);
 }

@@ -5,19 +5,22 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/utils/pubkey_normalizer.dart';
+import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_relay_usecase.dart';
-import 'package:uniun/features/follow/action/pages/follow_or_dm_action_page.dart';
+import 'package:uniun/features/profile/pages/user_profile_page.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// Universal QR scanner. Decodes any [UniunQrPayload] and dispatches:
-///   - user           → see [UniunQrScanIntent] (chooser / auto-follow / auto-dm)
+///   - user           → see [UniunQrScanIntent] (profile / auto-follow / auto-dm)
 ///   - publicChannel  → JoinChannelPage (UniunQrPayload argument)
 ///   - privateChannel → JoinPrivateChannelPage (UniunQrPayload argument)
 ///
 /// Intent is read from the route argument and only affects user QRs:
-///   - [generic]: show the Follow vs DM chooser.
-///   - [follow]:  skip the chooser, run Follow directly.
-///   - [dm]:      skip the chooser, open CreateDmPage prefilled.
+///   - [generic]: open the user's profile page.
+///   - [follow]:  run Follow directly, snackbar + pop.
+///   - [dm]:      open CreateDmPage prefilled.
 enum UniunQrScanIntent { generic, follow, dm }
 
 class UniunQrScannerPage extends StatefulWidget {
@@ -59,7 +62,21 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
 
     final intent = ModalRoute.of(context)?.settings.arguments;
 
-    if (payload.kind == UniunQrKind.user && intent == UniunQrScanIntent.dm) {
+    if (payload.kind == UniunQrKind.user) {
+      await _dispatchUser(payload, intent);
+      return;
+    }
+
+    final route = switch (payload.kind) {
+      UniunQrKind.user => AppRoutes.userProfile, // unreachable, handled above
+      UniunQrKind.publicChannel => AppRoutes.joinChannel,
+      UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
+    };
+    Navigator.of(context).pushReplacementNamed(route, arguments: payload);
+  }
+
+  Future<void> _dispatchUser(UniunQrPayload payload, Object? intent) async {
+    if (intent == UniunQrScanIntent.dm) {
       Navigator.of(context).pushReplacementNamed(
         AppRoutes.createDm,
         arguments: payload,
@@ -67,19 +84,38 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
       return;
     }
 
-    final Object args = payload.kind == UniunQrKind.user
-        ? FollowOrDmActionArgs(
-            payload: payload,
-            autoFollow: intent == UniunQrScanIntent.follow,
-          )
-        : payload;
+    final String hex;
+    try {
+      hex = normalizeNostrPubkey(payload.id);
+    } on FormatException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.followActionInvalidKey)),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
 
-    final route = switch (payload.kind) {
-      UniunQrKind.user => AppRoutes.followOrDmAction,
-      UniunQrKind.publicChannel => AppRoutes.joinChannel,
-      UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
-    };
-    Navigator.of(context).pushReplacementNamed(route, arguments: args);
+    if (intent == UniunQrScanIntent.follow) {
+      final result = await getIt<FollowUserUseCase>().call(
+        FollowUserInput(pubkeyHex: hex, petname: payload.name),
+      );
+      if (!mounted) return;
+      result.fold(
+        (f) => ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(f.toString())),
+        ),
+        (_) => ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.followActionSuccess)),
+        ),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+
+    Navigator.of(context).pushReplacementNamed(
+      AppRoutes.userProfile,
+      arguments: UserProfileArgs(pubkeyHex: hex, hintName: payload.name),
+    );
   }
 
   /// Add any scanned relay we don't already have to the local relay list, so

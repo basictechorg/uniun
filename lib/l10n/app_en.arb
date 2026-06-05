@@ -1199,15 +1199,6 @@
   "chatInputPickModelTooltip": "Pick model",
   "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" },
 
-  "followActionTitle": "Follow or message?",
-  "@followActionTitle": { "description": "App bar title on the page shown after scanning a user QR" },
-
-  "followActionFollowCta": "Follow",
-  "@followActionFollowCta": { "description": "Primary CTA on the follow-or-DM action page (adds the user to the Kind 3 contact list)" },
-
-  "followActionDmCta": "Send DM",
-  "@followActionDmCta": { "description": "Secondary CTA on the follow-or-DM action page (opens the existing NIP-17 DM compose flow)" },
-
   "followActionSuccess": "Now following.",
   "@followActionSuccess": { "description": "Snackbar shown after a successful follow" },
 
@@ -1233,5 +1224,14 @@
   "@drawerNoPrivateChannels": { "description": "Empty hint shown in the drawer when no private channels are joined" },
 
   "followActionInvalidKey": "Invalid public key",
-  "@followActionInvalidKey": { "description": "Error snackbar when the scanned user QR has an unparseable public key" }
+  "@followActionInvalidKey": { "description": "Error snackbar when the scanned user QR has an unparseable public key" },
+
+  "userProfileFollow": "Follow",
+  "@userProfileFollow": { "description": "Follow button on the user profile page" },
+
+  "userProfileFollowing": "Following",
+  "@userProfileFollowing": { "description": "Toggle label on the user profile page when already following the user" },
+
+  "userProfileNoNotes": "No notes yet",
+  "@userProfileNoNotes": { "description": "Empty state shown on the user profile page when the user has no notes locally" }
 }

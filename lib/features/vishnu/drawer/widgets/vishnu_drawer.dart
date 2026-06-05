@@ -110,7 +110,7 @@ class VishnuDrawer extends StatelessWidget {
                         _close(context);
                         Navigator.pushNamed(
                           context,
-                          AppRoutes.chatDm,
+                          AppRoutes.userProfile,
                           arguments: user.pubkey,
                         );
                       },

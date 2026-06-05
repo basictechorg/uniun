@@ -143,8 +143,6 @@ import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart'
     as _i750;
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart' as _i60;
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart' as _i399;
-import 'package:uniun/features/follow/action/bloc/follow_action_bloc.dart'
-    as _i1049;
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart'
     as _i58;
 import 'package:uniun/features/private_channels/create/bloc/create_private_channel_bloc.dart'
@@ -153,6 +151,7 @@ import 'package:uniun/features/private_channels/detail/bloc/private_channel_deta
     as _i10;
 import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart'
     as _i926;
+import 'package:uniun/features/profile/bloc/user_profile_bloc.dart' as _i959;
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart' as _i859;
 import 'package:uniun/features/settings/cubit/settings_cubit.dart' as _i331;
 import 'package:uniun/features/settings/cubit/storage_cubit.dart' as _i13;
@@ -380,6 +379,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i391.SaveProfileUseCase>(
       () => _i391.SaveProfileUseCase(gh<_i967.ProfileRepository>()),
+    );
+    gh.lazySingleton<_i391.WatchProfileUseCase>(
+      () => _i391.WatchProfileUseCase(gh<_i967.ProfileRepository>()),
+    );
+    gh.lazySingleton<_i391.RequestProfileFetchUseCase>(
+      () => _i391.RequestProfileFetchUseCase(gh<_i967.ProfileRepository>()),
     );
     gh.lazySingleton<_i858.SaveNoteUseCase>(
       () => _i858.SaveNoteUseCase(gh<_i43.SavedNoteRepository>()),
@@ -746,6 +751,16 @@ extension GetItInjectableX on _i174.GetIt {
         users: gh<_i103.UserRepository>(),
       ),
     );
+    gh.factory<_i959.UserProfileBloc>(
+      () => _i959.UserProfileBloc(
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i63.IsFollowingUseCase>(),
+        gh<_i63.FollowUserUseCase>(),
+        gh<_i63.UnfollowUserUseCase>(),
+        gh<_i391.WatchProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+      ),
+    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -829,12 +844,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.GetGraphNeighboursUseCase>(),
         gh<_i179.GetGraphNodesByKeysUseCase>(),
         gh<_i918.GetActiveLlmModelUseCase>(),
-      ),
-    );
-    gh.factory<_i1049.FollowActionBloc>(
-      () => _i1049.FollowActionBloc(
-        gh<_i63.FollowUserUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
       ),
     );
     gh.factory<_i687.SelectAIModelCubit>(

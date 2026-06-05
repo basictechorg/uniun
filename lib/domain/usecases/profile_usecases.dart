@@ -61,6 +61,34 @@ class SaveProfileUseCase
   }
 }
 
+// ── WatchProfileUseCase ───────────────────────────────────────────────────────
+
+@lazySingleton
+class WatchProfileUseCase {
+  final ProfileRepository _repository;
+  const WatchProfileUseCase(this._repository);
+
+  Stream<ProfileEntity?> call(String pubkeyHex) =>
+      _repository.watchProfile(pubkeyHex);
+}
+
+// ── RequestProfileFetchUseCase ────────────────────────────────────────────────
+
+@lazySingleton
+class RequestProfileFetchUseCase
+    extends UseCase<Either<Failure, Unit>, String> {
+  final ProfileRepository _repository;
+  const RequestProfileFetchUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(
+    String pubkeyHex, {
+    bool cached = false,
+  }) {
+    return _repository.requestProfileFetch(pubkeyHex);
+  }
+}
+
 @lazySingleton
 class PublishProfileMetadataUseCase
     extends UseCase<Either<Failure, Unit>, ProfileEntity> {

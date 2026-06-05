@@ -7,7 +7,6 @@ abstract class AppRoutes {
   static const settings = '/settings';
   static const editProfile = '/edit-profile';
   static const privacyPolicy = '/privacy-policy';
-  static const followedNoteDetail = '/followed-note-detail';
   static const thread = '/thread';
   static const aiModelSelection = '/ai-model-selection';
   static const channelEntry = '/channel-entry';
@@ -24,5 +23,5 @@ abstract class AppRoutes {
   static const joinPrivateChannel = '/join-private-channel';
   static const privateChannelDetail = '/private-channel-detail';
   static const scanQr = '/scan-qr';
-  static const followOrDmAction = '/follow-or-dm-action';
+  static const userProfile = '/user-profile';
 }
