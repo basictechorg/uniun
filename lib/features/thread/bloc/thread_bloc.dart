@@ -52,7 +52,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     // ── Root note ──────────────────────────────────────────────────────────
     // In saved mode the note may live only in savedNoteModels (a saved public
     // channel message is never in noteModels), so resolve it from there.
-    final ResolvedNote? root;
+    final NoteEntity? root;
     if (event.savedOnly) {
       SavedNoteEntity? rootSaved;
       for (final s in allSaved) {
@@ -69,9 +69,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
         ));
         return;
       }
-      final rootNote =
-          rootSaved.toNoteEntity(savedEventIds: savedOnlyIds);
-      root = ResolvedNote(note: rootNote, source: NoteSource.feed);
+      root = rootSaved.toNoteEntity(savedEventIds: savedOnlyIds);
     } else {
       final rootResult = await _resolver.resolveById(event.noteId);
       if (rootResult.isLeft()) {
@@ -83,7 +81,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       }
       root = rootResult.getOrElse(() => throw StateError('unreachable'));
     }
-    final rootNote = root.note;
+    final rootNote = root;
 
     // ── Parent chain (NIP-10 reply marker) ─────────────────────────────────
     final parentNotes = <NoteEntity>[];
@@ -165,6 +163,9 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       root: root,
       content: event.content.trim(),
       mentionRefs: event.mentionRefs,
+      // Saved-only threads always reply as feed notes (parity with prior
+      // behavior — the saved root may be from a channel/group the user can't post to).
+      sourceOverride: state.savedOnly ? NoteSource.feed : null,
     ));
 
     await result.fold(
@@ -174,7 +175,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       )),
       (_) async {
         // Reload so the new reply appears under the root.
-        add(LoadThreadEvent(root.note.id, savedOnly: state.savedOnly));
+        add(LoadThreadEvent(root.id, savedOnly: state.savedOnly));
       },
     );
   }

@@ -1,7 +1,9 @@
 import 'package:isar_community/isar.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
-import 'package:uniun/data/models/channel_message_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
@@ -55,26 +57,31 @@ class Kind42Handler implements KindHandler {
     }
     if (channelId == null) return;
 
-    final model = ChannelMessageModel()
-      ..eventId = eventId
-      ..channelId = channelId
-      ..sig = sig
-      ..authorPubkey = pubkey
-      ..content = content
-      ..eTagRefs = eTagRefs
-      ..pTagRefs = []
-      ..rootEventId = channelId
-      ..replyToEventId = replyEventId
-      ..created = EventParser.dateTimeFromSec(createdAtSec);
+    final model = NoteModel(
+      eventId: eventId,
+      sig: sig,
+      authorPubkey: pubkey,
+      content: content,
+      kind: kChannelMessageKind,
+      channelId: channelId,
+      type: NoteType.text,
+      eTagRefs: eTagRefs,
+      rootEventId: channelId,
+      replyToEventId: replyEventId,
+      pTagRefs: const [],
+      tTags: const [],
+      created: EventParser.dateTimeFromSec(createdAtSec),
+      isSeen: false,
+    );
 
     try {
       await isar.writeTxn(() async {
-        final existing = await isar.channelMessageModels
+        final existing = await isar.noteModels
             .where()
             .eventIdEqualTo(eventId)
             .findFirst();
         if (existing != null) return;
-        await isar.channelMessageModels.put(model);
+        await isar.noteModels.put(model);
 
         // Reference edges: reply target + mentions, minus the channel root.
         // Unique (parentId, childId) index keeps re-delivery idempotent.

@@ -211,13 +211,13 @@ class _DmChatViewState extends State<_DmChatView> {
                               .toList();
                           final card = isMe
                               ? DmOwnNoteCard(
-                                  key: ValueKey(msg.eventId),
+                                  key: ValueKey(msg.id),
                                   note: msg,
                                   profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 )
                               : DmNoteCard(
-                                  key: ValueKey(msg.eventId),
+                                  key: ValueKey(msg.id),
                                   note: msg,
                                   profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
@@ -244,7 +244,7 @@ class _DmChatViewState extends State<_DmChatView> {
               ComposerHost(
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
-                referenceCandidates: state.messages.cast<NoteEntity>(),
+                referenceCandidates: state.messages,
                 onSend: (text, refs) => context.read<DmChatBloc>().add(
                       DmChatSendEvent(content: text, mentionRefs: refs),
                     ),

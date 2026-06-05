@@ -214,9 +214,9 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                                     .where((id) => id != msg.replyToEventId)
                                     .toList();
                                 final card = NoteCard(
-                                  key: ValueKey(msg.eventId),
+                                  key: ValueKey(msg.id),
                                   note: msg,
-                                  profile: state.profiles[msg.senderPubkey],
+                                  profile: state.profiles[msg.authorPubkey],
                                   onTap: () => _openThread(context, msg.id),
                                 );
                                 if (refIds.isEmpty) return card;

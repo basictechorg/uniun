@@ -1,7 +1,7 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
-import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 
@@ -42,8 +42,9 @@ class PrivateChannelsSubscription extends SubscriptionProvider {
     for (final id in encIds) {
       out[id] = 0;
     }
-    final decIds = await ctx.isar.privateChannelMessageModels
-        .where()
+    final decIds = await ctx.isar.noteModels
+        .filter()
+        .groupIdIsNotNull()
         .eventIdProperty()
         .findAll();
     for (final id in decIds) {

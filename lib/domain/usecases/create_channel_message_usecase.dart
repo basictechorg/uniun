@@ -1,9 +1,11 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr/nostr.dart';
+import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/usecases/usecase.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
 
@@ -24,14 +26,14 @@ class CreateChannelMessageInput {
 }
 
 @lazySingleton
-class CreateChannelMessageUseCase extends UseCase<Either<Failure, ChannelMessageEntity>, CreateChannelMessageInput> {
+class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, CreateChannelMessageInput> {
   final ChannelMessageRepository _channelMessageRepository;
   final EventQueueRepository _eventQueueRepository;
 
   const CreateChannelMessageUseCase(this._channelMessageRepository, this._eventQueueRepository);
 
   @override
-  Future<Either<Failure, ChannelMessageEntity>> call(CreateChannelMessageInput input, {bool cached = false}) async {
+  Future<Either<Failure, NoteEntity>> call(CreateChannelMessageInput input, {bool cached = false}) async {
     try {
       final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final tags = <List<String>>[
@@ -60,17 +62,21 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, ChannelMessage
 
       final created = DateTime.fromMillisecondsSinceEpoch(kind42.createdAt * 1000);
 
-      final message = ChannelMessageEntity(
+      final message = NoteEntity(
         id: kind42.id,
-        channelId: input.channelId,
         sig: kind42.sig,
         authorPubkey: kind42.pubkey,
         content: kind42.content,
+        kind: kChannelMessageKind,
+        sourceChannelId: input.channelId,
+        type: NoteType.text,
         eTagRefs: eTagRefs,
         pTagRefs: const [],
+        tTags: const [],
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         created: created,
+        isSeen: true,
       );
 
       final saveResult = await _channelMessageRepository.saveMessage(message);

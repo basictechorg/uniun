@@ -1,5 +1,5 @@
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 
 enum ChannelFeedStatus { initial, loading, loaded, error }
@@ -20,7 +20,7 @@ class ChannelFeedState {
   final ChannelEntity? channel;
 
   /// Messages in oldest→newest order (ready for chat-style display).
-  final List<ChannelMessageEntity> messages;
+  final List<NoteEntity> messages;
 
   /// pubkeyHex → ProfileEntity (for author display names / avatars).
   final Map<String, ProfileEntity> profiles;
@@ -35,7 +35,7 @@ class ChannelFeedState {
   ChannelFeedState copyWith({
     ChannelFeedStatus? status,
     ChannelEntity? channel,
-    List<ChannelMessageEntity>? messages,
+    List<NoteEntity>? messages,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
     bool? isLoading,

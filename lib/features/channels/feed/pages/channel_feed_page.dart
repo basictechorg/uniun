@@ -8,7 +8,7 @@ import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
@@ -74,7 +74,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     }
   }
 
-  void _openThread(BuildContext ctx, ChannelMessageEntity msg, String channelName) {
+  void _openThread(BuildContext ctx, NoteEntity msg, String channelName) {
     final bloc = ctx.read<ChannelFeedBloc>();
     Navigator.pushNamed(ctx, AppRoutes.thread, arguments: msg.id).then((_) {
       // Silent refresh — no loading spinner, scroll position preserved.
@@ -173,7 +173,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
                 hintText: l10n.channelMessageHint,
                 isSending: state.isSending,
                 referenceCandidates:
-                    state.messages.map((m) => m.toNoteEntity()).toList(),
+                    state.messages.toList(),
                 onSend: (text, refs) =>
                     context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
                           channelId: widget.channelId,
@@ -235,7 +235,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
             final isFollowed = followedIds.contains(msg.id);
 
             return NoteCard(
-              note: msg.toNoteEntity(),
+              note: msg,
               profile: state.profiles[msg.authorPubkey],
               replyCount: msg.cachedReplyCount,
               isSaved: isSaved,

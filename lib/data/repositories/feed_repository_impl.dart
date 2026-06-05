@@ -3,13 +3,10 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/channel_message_model.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/feed_read_state_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
-import 'package:uniun/data/models/private_channel_message_model.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/feed_repository.dart';
 import 'package:uniun/domain/repositories/followed_user_repository.dart';
@@ -37,8 +34,8 @@ class FeedRepositoryImpl extends FeedRepository {
         _users = users;
 
   /// Author allow-list for Kind 1 feed notes: own pubkey + everyone followed.
-  /// Empty result = effectively-impossible filter (no notes shown) — but in
-  /// practice we always have at least the own pubkey here once a user is
+  /// Empty result = effectively-impossible filter (no Kind 1 notes shown) — but
+  /// in practice we always have at least the own pubkey here once a user is
   /// signed in, so the empty-state UI handles the no-content case upstream.
   Future<List<String>> _allowedAuthors() async {
     final user = await _users.getActiveUser();
@@ -91,11 +88,14 @@ class FeedRepositoryImpl extends FeedRepository {
   }) async {
     try {
       final authors = await _allowedAuthors();
-      final notes = await _queryUnseenNotes(loadedAt, limit, before, authors);
-      final channelMsgs = await _queryUnseenChannelMessages(loadedAt, limit, before);
-      final privateMsgs = await _queryUnseenPrivateMessages(loadedAt, limit, before);
-      final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
-      return Right(merged);
+      final rows = await _queryFeed(
+        seen: false,
+        loadedAt: loadedAt,
+        limit: limit,
+        before: before,
+        authors: authors,
+      );
+      return Right(await _toEntities(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -108,215 +108,68 @@ class FeedRepositoryImpl extends FeedRepository {
   }) async {
     try {
       final authors = await _allowedAuthors();
-      final notes = await _querySeenNotes(limit, before, authors);
-      final channelMsgs = await _querySeenChannelMessages(limit, before);
-      final privateMsgs = await _querySeenPrivateMessages(limit, before);
-      final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
-      return Right(merged);
+      final rows = await _queryFeed(
+        seen: true,
+        loadedAt: null,
+        limit: limit,
+        before: before,
+        authors: authors,
+      );
+      return Right(await _toEntities(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
-  Future<List<NoteModel>> _queryUnseenNotes(
-    DateTime loadedAt,
-    int limit,
+  /// Single-collection feed query. Feed-eligible kinds only: Kind 1 (gated to
+  /// [authors]), Kind 42 public channel, Kind 9023 private channel. DMs
+  /// (Kind 14/15) are excluded — they never appear in the Vishnu feed.
+  Future<List<NoteModel>> _queryFeed({
+    required bool seen,
+    DateTime? loadedAt,
+    required int limit,
     DateTime? before,
-    List<String> authors,
-  ) async {
-    if (authors.isEmpty) return const [];
-    final q = isar.noteModels
+    required List<String> authors,
+  }) {
+    var q = isar.noteModels
         .filter()
-        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
+        .isSeenEqualTo(seen)
         .and()
-        .isSeenEqualTo(false)
-        .and()
-        .createdLessThan(loadedAt, include: true);
+        .group((g) => g
+            .group((k1) => k1
+                .kindEqualTo(kNoteKind)
+                .and()
+                .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+            .or()
+            .kindEqualTo(kChannelMessageKind)
+            .or()
+            .kindEqualTo(kPrivateChannelKind));
+    if (loadedAt != null) {
+      q = q.and().createdLessThan(loadedAt, include: true);
+    }
     if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
+      q = q.and().createdLessThan(before, include: true);
     }
     return q.sortByCreatedDesc().limit(limit).findAll();
   }
 
-  Future<List<NoteModel>> _querySeenNotes(
-    int limit,
-    DateTime? before,
-    List<String> authors,
-  ) async {
-    if (authors.isEmpty) return const [];
-    final q = isar.noteModels
-        .filter()
-        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
-        .and()
-        .isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<ChannelMessageModel>> _queryUnseenChannelMessages(
-    DateTime loadedAt,
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.channelMessageModels
-        .filter()
-        .isSeenEqualTo(false)
-        .and()
-        .createdLessThan(loadedAt, include: true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<ChannelMessageModel>> _querySeenChannelMessages(
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.channelMessageModels.filter().isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<PrivateChannelMessageModel>> _queryUnseenPrivateMessages(
-    DateTime loadedAt,
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.privateChannelMessageModels
-        .filter()
-        .isSeenEqualTo(false)
-        .and()
-        .timestampLessThan(loadedAt, include: true);
-    if (before != null) {
-      return q
-          .and()
-          .timestampLessThan(before, include: true)
-          .sortByTimestampDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByTimestampDesc().limit(limit).findAll();
-  }
-
-  Future<List<PrivateChannelMessageModel>> _querySeenPrivateMessages(
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.privateChannelMessageModels.filter().isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .timestampLessThan(before, include: true)
-          .sortByTimestampDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByTimestampDesc().limit(limit).findAll();
-  }
-
-  /// Three-way merge by `created` desc → truncate → enrich.
-  Future<List<NoteEntity>> _merge(
-    List<NoteModel> notes,
-    List<ChannelMessageModel> msgs,
-    List<PrivateChannelMessageModel> privateMsgs,
-    int limit,
-  ) async {
-    final items = <_FeedItem>[
-      for (final n in notes) _FeedItem(n.created, _NoteSrc(n)),
-      for (final m in msgs) _FeedItem(m.created, _PublicMsgSrc(m)),
-      for (final p in privateMsgs) _FeedItem(p.timestamp, _PrivateMsgSrc(p)),
-    ]..sort((a, b) => b.created.compareTo(a.created));
-
-    final truncated = items.length > limit ? items.sublist(0, limit) : items;
-    if (truncated.isEmpty) return const [];
-
-    // Batch-resolve labels via the shared repo (same code path as the
-    // saved-notes cubit uses) so labels look identical everywhere.
+  /// Map rows → NoteEntity, attaching live reply/reference counts (edge table)
+  /// and channel/group source labels (shared [SourceLabelRepository]).
+  Future<List<NoteEntity>> _toEntities(List<NoteModel> rows) async {
+    if (rows.isEmpty) return const [];
     final labels = await _sourceLabels.resolveMany([
-      for (final i in truncated)
-        if (i.source is _PublicMsgSrc)
-          (
-            eventId: (i.source as _PublicMsgSrc).model.eventId,
-            channelId: (i.source as _PublicMsgSrc).model.channelId,
-            groupId: null,
-          )
-        else if (i.source is _PrivateMsgSrc)
-          (
-            eventId: (i.source as _PrivateMsgSrc).model.eventId,
-            channelId: null,
-            groupId: (i.source as _PrivateMsgSrc).model.groupId,
-          ),
+      for (final m in rows)
+        if (m.channelId != null || m.groupId != null)
+          (eventId: m.eventId, channelId: m.channelId, groupId: m.groupId),
     ]);
-
     return [
-      for (final item in truncated)
-        await _toEntityWithCounts(item.source, labels),
+      for (final m in rows)
+        m.toDomain().copyWith(
+              cachedReplyCount: await _relations.replyCount(m.eventId),
+              referenceCount: await _relations.referenceCount(m.eventId),
+              sourceLabel: labels[m.eventId],
+            ),
     ];
-  }
-
-  Future<NoteEntity> _toEntityWithCounts(
-    _Source src,
-    Map<String, String> labels,
-  ) async {
-    switch (src) {
-      case _NoteSrc(:final model):
-        return model.toDomain().copyWith(
-              cachedReplyCount: await _relations.replyCount(model.eventId),
-              referenceCount: await _relations.referenceCount(model.eventId),
-            );
-      case _PublicMsgSrc(:final model):
-        final base = model.toDomain().copyWith(
-              cachedReplyCount: await _relations.replyCount(model.eventId),
-              referenceCount: await _relations.referenceCount(model.eventId),
-            );
-        return base.toNoteEntity().copyWith(
-              sourceLabel: labels[model.eventId],
-            );
-      case _PrivateMsgSrc(:final model):
-        return NoteEntity(
-          id: model.eventId,
-          sig: '',
-          authorPubkey: model.senderPubkey,
-          content: model.decryptedContent,
-          type: NoteType.text,
-          eTagRefs: model.eTagRefs,
-          pTagRefs: model.pTagRefs,
-          tTags: const [],
-          created: model.timestamp,
-          isSeen: model.isSeen,
-          rootEventId: model.rootEventId,
-          replyToEventId: model.replyToEventId,
-          cachedReplyCount: await _relations.replyCount(model.eventId),
-          referenceCount: await _relations.referenceCount(model.eventId),
-          sourcePrivateGroupId: model.groupId,
-          sourceLabel: labels[model.eventId],
-        );
-    }
   }
 
   // ── Banner: live count of new arrivals ─────────────────────────────────────
@@ -328,44 +181,33 @@ class FeedRepositoryImpl extends FeedRepository {
     Future<void> push() async {
       try {
         final authors = await _allowedAuthors();
-        final n = authors.isEmpty
-            ? 0
-            : await isar.noteModels
-                .filter()
-                .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
-                .and()
-                .isSeenEqualTo(false)
-                .and()
-                .createdGreaterThan(loadedAt)
-                .count();
-        final m = await isar.channelMessageModels
+        final n = await isar.noteModels
             .filter()
             .isSeenEqualTo(false)
+            .and()
+            .group((g) => g
+                .group((k1) => k1
+                    .kindEqualTo(kNoteKind)
+                    .and()
+                    .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+                .or()
+                .kindEqualTo(kChannelMessageKind)
+                .or()
+                .kindEqualTo(kPrivateChannelKind))
             .and()
             .createdGreaterThan(loadedAt)
             .count();
-        final p = await isar.privateChannelMessageModels
-            .filter()
-            .isSeenEqualTo(false)
-            .and()
-            .timestampGreaterThan(loadedAt)
-            .count();
-        if (!controller.isClosed) controller.add(n + m + p);
+        if (!controller.isClosed) controller.add(n);
       } catch (_) {
         if (!controller.isClosed) controller.add(0);
       }
     }
 
     final notesSub = isar.noteModels.watchLazy().listen((_) => push());
-    final msgsSub = isar.channelMessageModels.watchLazy().listen((_) => push());
-    final privSub =
-        isar.privateChannelMessageModels.watchLazy().listen((_) => push());
     push();
 
     controller.onCancel = () async {
       await notesSub.cancel();
-      await msgsSub.cancel();
-      await privSub.cancel();
     };
 
     return controller.stream;
@@ -384,24 +226,6 @@ class FeedRepositoryImpl extends FeedRepository {
         if (note != null && !note.isSeen) {
           note.isSeen = true;
           await isar.noteModels.put(note);
-          return;
-        }
-        final msg = await isar.channelMessageModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (msg != null && !msg.isSeen) {
-          msg.isSeen = true;
-          await isar.channelMessageModels.put(msg);
-          return;
-        }
-        final priv = await isar.privateChannelMessageModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (priv != null && !priv.isSeen) {
-          priv.isSeen = true;
-          await isar.privateChannelMessageModels.put(priv);
         }
       });
       return const Right(unit);
@@ -409,31 +233,4 @@ class FeedRepositoryImpl extends FeedRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
-}
-
-// ── Internal tagged union for merge sort ─────────────────────────────────────
-
-sealed class _Source {
-  const _Source();
-}
-
-class _NoteSrc extends _Source {
-  final NoteModel model;
-  const _NoteSrc(this.model);
-}
-
-class _PublicMsgSrc extends _Source {
-  final ChannelMessageModel model;
-  const _PublicMsgSrc(this.model);
-}
-
-class _PrivateMsgSrc extends _Source {
-  final PrivateChannelMessageModel model;
-  const _PrivateMsgSrc(this.model);
-}
-
-class _FeedItem {
-  final DateTime created;
-  final _Source source;
-  const _FeedItem(this.created, this.source);
 }

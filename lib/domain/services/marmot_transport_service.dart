@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
-import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
@@ -97,19 +99,25 @@ class MarmotTransportService {
 
         final envelope = _decodeMessageEnvelope(utf8.decode(decryptedBytes));
 
-        final decryptedMsg = PrivateChannelMessageModel()
-          ..eventId = encrypted.eventId
-          ..groupId = encrypted.groupId
-          ..senderPubkey = encrypted.senderPubkey
-          ..decryptedContent = envelope.content
-          ..eTagRefs = envelope.eTagRefs
-          ..rootEventId = envelope.rootEventId
-          ..replyToEventId = envelope.replyToEventId
-          ..pTagRefs = []
-          ..timestamp = encrypted.timestamp;
+        final decryptedMsg = NoteModel(
+          eventId: encrypted.eventId,
+          sig: '',
+          authorPubkey: encrypted.senderPubkey,
+          content: envelope.content,
+          kind: kPrivateChannelKind,
+          groupId: encrypted.groupId,
+          type: NoteType.text,
+          eTagRefs: envelope.eTagRefs,
+          rootEventId: envelope.rootEventId,
+          replyToEventId: envelope.replyToEventId,
+          pTagRefs: const [],
+          tTags: const [],
+          created: encrypted.timestamp,
+          isSeen: false,
+        );
 
         await _isar.writeTxn(() async {
-          await _isar.privateChannelMessageModels.put(decryptedMsg);
+          await _isar.noteModels.put(decryptedMsg);
           // Reference edges via the shared repo. eTagRefs are currently empty
           // on decrypted MLS payloads, so this is a no-op today, but routes
           // any future NIP-10-style refs through the single edge table.
@@ -128,7 +136,7 @@ class MarmotTransportService {
         // Profiles subscription will pick this up and fill the username so the
         // NoteCard stops showing the raw pubkey.
         await MissingProfileTracker(_isar)
-            .trackPubkey(decryptedMsg.senderPubkey);
+            .trackPubkey(decryptedMsg.authorPubkey);
       } catch (e) {
         // Leave in queue if epoch mismatch or other retryable error.
       }
@@ -389,19 +397,25 @@ class MarmotTransportService {
       createdAt: now.millisecondsSinceEpoch ~/ 1000,
     );
 
-    final localMessage = PrivateChannelMessageModel()
-      ..eventId = event.id
-      ..groupId = groupId
-      ..senderPubkey = authorPubkey
-      ..decryptedContent = content
-      ..eTagRefs = mentionRefs
-      ..rootEventId = rootEventId
-      ..replyToEventId = replyToEventId
-      ..pTagRefs = []
-      ..timestamp = now;
+    final localMessage = NoteModel(
+      eventId: event.id,
+      sig: '',
+      authorPubkey: authorPubkey,
+      content: content,
+      kind: kPrivateChannelKind,
+      groupId: groupId,
+      type: NoteType.text,
+      eTagRefs: mentionRefs,
+      rootEventId: rootEventId,
+      replyToEventId: replyToEventId,
+      pTagRefs: const [],
+      tTags: const [],
+      created: now,
+      isSeen: false,
+    );
 
     await _isar.writeTxn(() async {
-      await _isar.privateChannelMessageModels.put(localMessage);
+      await _isar.noteModels.put(localMessage);
       final parents = replyEdgeParentIds(
         replyToEventId: null,
         rootEventId: null,

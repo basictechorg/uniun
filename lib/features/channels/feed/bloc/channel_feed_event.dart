@@ -1,4 +1,4 @@
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 
 abstract class ChannelFeedEvent {
   const ChannelFeedEvent();
@@ -27,7 +27,7 @@ class SendChannelMessageEvent extends ChannelFeedEvent {
 
 class SaveChannelFeedMessageEvent extends ChannelFeedEvent {
   const SaveChannelFeedMessageEvent(this.message);
-  final ChannelMessageEntity message;
+  final NoteEntity message;
 }
 
 class UnsaveChannelFeedMessageEvent extends ChannelFeedEvent {

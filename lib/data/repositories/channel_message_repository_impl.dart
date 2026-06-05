@@ -1,10 +1,12 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
-import 'package:uniun/data/models/channel_message_model.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 
@@ -19,29 +21,32 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
   }) : _relations = relations;
 
   @override
-  Future<Either<Failure, ChannelMessageEntity>> saveMessage(
-    ChannelMessageEntity message,
-  ) async {
+  Future<Either<Failure, NoteEntity>> saveMessage(NoteEntity message) async {
     try {
-      final existing = await isar.channelMessageModels
+      final existing = await isar.noteModels
           .where()
           .eventIdEqualTo(message.id)
           .findFirst();
       if (existing != null) {
-        return Right(existing.toDomain());
+        return Right(_toChannelDomain(existing));
       }
 
-      final model = ChannelMessageModel()
-        ..eventId = message.id
-        ..channelId = message.channelId
-        ..sig = message.sig
-        ..authorPubkey = message.authorPubkey
-        ..content = message.content
-        ..eTagRefs = List<String>.from(message.eTagRefs)
-        ..pTagRefs = List<String>.from(message.pTagRefs)
-        ..rootEventId = message.rootEventId
-        ..replyToEventId = message.replyToEventId
-        ..created = message.created;
+      final model = NoteModel(
+        eventId: message.id,
+        sig: message.sig,
+        authorPubkey: message.authorPubkey,
+        content: message.content,
+        kind: kChannelMessageKind,
+        channelId: message.sourceChannelId,
+        type: NoteType.text,
+        eTagRefs: List<String>.from(message.eTagRefs),
+        pTagRefs: List<String>.from(message.pTagRefs),
+        rootEventId: message.rootEventId,
+        replyToEventId: message.replyToEventId,
+        tTags: const [],
+        created: message.created,
+        isSeen: false,
+      );
 
       final parents = replyEdgeParentIds(
         replyToEventId: message.replyToEventId,
@@ -49,26 +54,26 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
         eTagRefs: message.eTagRefs,
       );
       await isar.writeTxn(() async {
-        await isar.channelMessageModels.put(model);
+        await isar.noteModels.put(model);
         await _relations.addEdgesInTxn(parents: parents, childId: message.id);
       });
 
-      return Right(model.toDomain());
+      return Right(_toChannelDomain(model));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, List<ChannelMessageEntity>>> getMessagesForChannel({
+  Future<Either<Failure, List<NoteEntity>>> getMessagesForChannel({
     required String channelId,
     int limit = 50,
     DateTime? before,
   }) async {
     try {
-      final List<ChannelMessageModel> rows;
+      final List<NoteModel> rows;
       if (before != null) {
-        rows = await isar.channelMessageModels
+        rows = await isar.noteModels
             .filter()
             .channelIdEqualTo(channelId)
             .createdLessThan(before)
@@ -76,7 +81,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
             .limit(limit)
             .findAll();
       } else {
-        rows = await isar.channelMessageModels
+        rows = await isar.noteModels
             .filter()
             .channelIdEqualTo(channelId)
             .sortByCreatedDesc()
@@ -90,12 +95,22 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
     }
   }
 
+  /// A channel message stores the channel root and its direct reply parent
+  /// inside [NoteModel.eTagRefs]. Strip those here so the resulting entity's
+  /// `eTagRefs` carries only genuine mention references.
+  NoteEntity _toChannelDomain(NoteModel m) {
+    final e = m.toDomain();
+    return e.copyWith(
+      eTagRefs: e.eTagRefs
+          .where((id) => id != m.channelId && id != m.replyToEventId)
+          .toList(),
+    );
+  }
+
   /// Stitches the live reply + reference counts onto each entity from the
   /// edge table (reply = edges pointing to it; reference = edges from it).
-  Future<List<ChannelMessageEntity>> _withReplyCounts(
-    List<ChannelMessageModel> models,
-  ) async {
-    final entities = models.map((m) => m.toDomain()).toList();
+  Future<List<NoteEntity>> _withReplyCounts(List<NoteModel> models) async {
+    final entities = models.map(_toChannelDomain).toList();
     return [
       for (final e in entities)
         e.copyWith(
@@ -106,29 +121,31 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
   }
 
   @override
-  Future<Either<Failure, ChannelMessageEntity?>> getMessageByEventId(
+  Future<Either<Failure, NoteEntity?>> getMessageByEventId(
     String eventId,
   ) async {
     try {
-      final row = await isar.channelMessageModels
+      final row = await isar.noteModels
           .where()
           .eventIdEqualTo(eventId)
           .findFirst();
-      return Right(row?.toDomain());
+      return Right(row == null ? null : _toChannelDomain(row));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, List<ChannelMessageEntity>>> getChannelMessageReplies(
+  Future<Either<Failure, List<NoteEntity>>> getChannelMessageReplies(
     String messageId,
   ) async {
     try {
       // Query by eTagRefs containing messageId — matches both direct replies
       // (replyToEventId) and mention references, mirroring Vishnu note behaviour.
-      final rows = await isar.channelMessageModels
+      final rows = await isar.noteModels
           .filter()
+          .channelIdIsNotNull()
+          .and()
           .eTagRefsElementEqualTo(messageId)
           .sortByCreated()
           .findAll();

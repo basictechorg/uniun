@@ -2,8 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/dm/dm_message_model.dart';
-import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
 
 @Injectable(as: DmMessageRepository)
@@ -12,35 +12,36 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
   DmMessageRepositoryImpl({required this.isar});
 
   @override
-  Future<Either<Failure, DmMessageEntity>> saveMessage(
-    DmMessageEntity entity,
-  ) async {
+  Future<Either<Failure, NoteEntity>> saveMessage(NoteEntity entity) async {
     try {
-      final existing = await isar.dmMessageModels
+      final existing = await isar.noteModels
           .where()
-          .eventIdEqualTo(entity.eventId)
+          .eventIdEqualTo(entity.id)
           .findFirst();
       if (existing != null) {
         return Right(existing.toDomain());
       }
 
-      final model = DmMessageModel(
-        eventId: entity.eventId,
+      final model = NoteModel(
+        eventId: entity.id,
         sig: entity.sig,
         authorPubkey: entity.authorPubkey,
         conversationId: entity.conversationId,
-        pTagRefs: [entity.receiverPubkey],
+        pTagRefs: List<String>.from(entity.pTagRefs),
+        eTagRefs: List<String>.from(entity.eTagRefs),
         content: entity.content,
         subject: entity.subject,
         replyToEventId: entity.replyToEventId,
+        rootEventId: entity.rootEventId,
         kind: entity.kind,
         type: entity.type,
+        tTags: const [],
         created: entity.created,
         isSeen: entity.isSeen,
       );
 
       await isar.writeTxn(() async {
-        await isar.dmMessageModels.put(model);
+        await isar.noteModels.put(model);
       });
 
       return Right(model.toDomain());
@@ -50,14 +51,14 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
   }
 
   @override
-  Future<Either<Failure, List<DmMessageEntity>>> getMessages(
+  Future<Either<Failure, List<NoteEntity>>> getMessages(
     int conversationId, {
     DateTime? before,
     int limit = 30,
   }) async {
     try {
-      final rows = await isar.dmMessageModels
-          .where()
+      final rows = await isar.noteModels
+          .filter()
           .conversationIdEqualTo(conversationId)
           .findAll();
 
@@ -73,11 +74,9 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
   }
 
   @override
-  Future<Either<Failure, DmMessageEntity>> getMessageById(
-    String eventId,
-  ) async {
+  Future<Either<Failure, NoteEntity>> getMessageById(String eventId) async {
     try {
-      final row = await isar.dmMessageModels
+      final row = await isar.noteModels
           .where()
           .eventIdEqualTo(eventId)
           .findFirst();

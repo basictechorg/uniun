@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
@@ -36,7 +36,7 @@ class _PrivateChannelUpdated extends PrivateChannelDetailEvent {
 }
 
 class _PrivateChannelMessagesUpdated extends PrivateChannelDetailEvent {
-  final List<PrivateChannelMessageEntity> messages;
+  final List<NoteEntity> messages;
   _PrivateChannelMessagesUpdated(this.messages);
 }
 
@@ -51,7 +51,7 @@ class PrivateChannelDetailState {
   final String? errorMessage;
   final String groupId;
   final PrivateChannelEntity? channel;
-  final List<PrivateChannelMessageEntity> messages;
+  final List<NoteEntity> messages;
   final List<PrivateChannelJoinRequestEntity> joinRequests;
   final Map<String, ProfileEntity> profiles;
   final bool isAdmin;
@@ -84,7 +84,7 @@ class PrivateChannelDetailState {
     bool? isApproving,
     String? errorMessage,
     PrivateChannelEntity? channel,
-    List<PrivateChannelMessageEntity>? messages,
+    List<NoteEntity>? messages,
     List<PrivateChannelJoinRequestEntity>? joinRequests,
     Map<String, ProfileEntity>? profiles,
     bool? isAdmin,
@@ -117,7 +117,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final GetProfileUseCase _getProfile;
   StreamSubscription<PrivateChannelEntity?>? _channelSubscription;
-  StreamSubscription<List<PrivateChannelMessageEntity>>? _messagesSubscription;
+  StreamSubscription<List<NoteEntity>>? _messagesSubscription;
   StreamSubscription<List<PrivateChannelJoinRequestEntity>>? _joinRequestsSubscription;
   String? _activeUserPubkey;
 
@@ -271,11 +271,11 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   }
 
   Future<Map<String, ProfileEntity>> _hydrateProfiles(
-    List<PrivateChannelMessageEntity> messages,
+    List<NoteEntity> messages,
   ) async {
     final profiles = Map<String, ProfileEntity>.from(state.profiles);
     final missing = messages
-        .map((m) => m.senderPubkey)
+        .map((m) => m.authorPubkey)
         .toSet()
         .where((k) => !profiles.containsKey(k));
     for (final pubkey in missing) {

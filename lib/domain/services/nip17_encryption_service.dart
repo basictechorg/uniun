@@ -4,11 +4,12 @@ import 'package:crypto/crypto.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nip44/nip44.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
-import 'package:uniun/data/models/dm/dm_message_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 // user_key_model not needed — privkey is injected via constructor
@@ -129,11 +130,11 @@ class Nip17EncryptionService {
           final parsedEventId = chatEvent['id'] as String? ?? '';
 
           // Duplicate collision defense
-          final existingMsg = await _isar.dmMessageModels
+          final existingMsg = await _isar.noteModels
               .where()
               .eventIdEqualTo(parsedEventId)
               .findFirst();
-              
+
           if (existingMsg != null) {
               // Message exists, just discard the inbound encrypted envelope
               await _isar.encryptedDmModels.delete(dm.id);
@@ -143,7 +144,7 @@ class Nip17EncryptionService {
           final contentVal = chatEvent['content'] as String? ?? '';
           final type = _inferTypeFromUrl(contentVal); // simple fallback
 
-          final dmModel = DmMessageModel(
+          final dmModel = NoteModel(
             eventId: parsedEventId,
             sig: '', // Has no valid NIP-01 sig because it's deniable.
             authorPubkey: chatEvent['pubkey'] as String? ?? '',
@@ -154,15 +155,16 @@ class Nip17EncryptionService {
             eTagRefs: eTagRefs,
             content: contentVal,
             subject: subject,
-            kind: chatEvent['kind'] as int? ?? 14,
+            kind: chatEvent['kind'] as int? ?? kDmTextKind,
             type: chatKind == 15 ? type : NoteType.text,
+            tTags: const [],
             created: DateTime.fromMillisecondsSinceEpoch(
               (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
             ),
             isSeen: false,
           );
 
-          await _isar.dmMessageModels.put(dmModel);
+          await _isar.noteModels.put(dmModel);
           // Record reference edges via the shared repo. The unique
           // (parentId, childId) index keeps re-delivery idempotent.
           final parents = replyEdgeParentIds(
@@ -190,7 +192,7 @@ class Nip17EncryptionService {
   }
 
   /// Sends a direct message to a receiver, wrapping it according to NIP-17.
-  Future<void> sendDm(DmMessageModel unsignedModel, {required String receiverPubkey}) async {
+  Future<void> sendDm(NoteModel unsignedModel, {required String receiverPubkey}) async {
     final myPrivkey = _privkeyHex;
     if (myPrivkey == null) throw Exception('No private key available.');
     
@@ -202,7 +204,7 @@ class Nip17EncryptionService {
 
       // 1. Immediately store unencrypted Dm in local DB + reference edges.
       await _isar.writeTxn(() async {
-        await _isar.dmMessageModels.put(unsignedModel);
+        await _isar.noteModels.put(unsignedModel);
         final parents = replyEdgeParentIds(
           replyToEventId: unsignedModel.replyToEventId,
           rootEventId: null,

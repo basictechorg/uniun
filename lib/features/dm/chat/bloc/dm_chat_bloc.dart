@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/dm/dm_message_model.dart';
-import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
@@ -41,7 +41,7 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
     emit(state.copyWith(isLoading: true, otherPubkey: event.otherPubkey));
 
     // Watch for new messages matching this pubkey
-    _messageWatcher ??= _isar.dmMessageModels.watchLazy().listen((_) {
+    _messageWatcher ??= _isar.noteModels.watchLazy().listen((_) {
        if (!isClosed) {
          add(DmChatLoadEvent(otherPubkey: event.otherPubkey));
        }

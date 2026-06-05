@@ -1,10 +1,18 @@
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'note_model.g.dart';
 
+/// Unified note collection. Every user-visible message lives here, discriminated
+/// by Nostr [kind] plus nullable container fields:
+///   - [kind] == 1     → feed note (no container)
+///   - [kind] == 42    → public channel message ([channelId] set)
+///   - [kind] == 14/15 → direct message ([conversationId] set)
+///   - [kind] == 9023  → private channel message ([groupId] set)
+/// See [note_kinds.dart] for the kind constants.
 @Collection(ignore: {'copyWith'})
 @Name('Note')
 class NoteModel {
@@ -20,6 +28,23 @@ class NoteModel {
   late String authorPubkey;
   late String content;
   String? subject;
+
+  /// Nostr event kind — the discriminator for the unified collection.
+  /// 1 = feed note, 42 = channel message, 14/15 = DM, 9023 = private channel.
+  @Index()
+  late int kind;
+
+  /// NIP-28 channel root (kind 40 event id). Non-null only for [kind] == 42.
+  @Index()
+  String? channelId;
+
+  /// NIP-29 group id (`<host>'<group-id>`). Non-null only for [kind] == 9023.
+  @Index()
+  String? groupId;
+
+  /// DM conversation FK (DmConversationModel.id). Non-null only for DMs.
+  @Index()
+  int? conversationId;
 
   @Enumerated(EnumType.name)
   late NoteType type;
@@ -53,6 +78,10 @@ class NoteModel {
     required this.authorPubkey,
     required this.content,
     this.subject,
+    this.kind = kNoteKind,
+    this.channelId,
+    this.groupId,
+    this.conversationId,
     required this.type,
     required this.eTagRefs,
     this.rootEventId,
@@ -118,6 +147,7 @@ class NoteModel {
       authorPubkey: event.pubkey,
       content: event.content,
       subject: subject,
+      kind: event.kind,
       type: type,
       eTagRefs: eTagRefs,
       rootEventId: rootEventId,
@@ -137,6 +167,7 @@ extension NoteModelExtension on NoteModel {
         authorPubkey: authorPubkey,
         content: content,
         subject: subject,
+        kind: kind,
         type: type,
         eTagRefs: eTagRefs,
         rootEventId: rootEventId,
@@ -145,5 +176,8 @@ extension NoteModelExtension on NoteModel {
         tTags: tTags,
         created: created,
         isSeen: isSeen,
+        conversationId: conversationId,
+        sourceChannelId: channelId,
+        sourcePrivateGroupId: groupId,
       );
 }
