@@ -74,11 +74,11 @@ This file is the single source of truth for any AI assistant working on this cod
 
 ## What Is UNIUN?
 
-UNIUN is a **decentralized, offline-first social and knowledge network** built entirely on the Nostr protocol, implemented as a Flutter mobile application. Users create, share, and connect **Notes** — Nostr Kind 1 events — that form both a social feed and a personal knowledge graph. Data is stored locally in an Isar database on the device and synced to the Nostr relay via WebSocket, managed by the EmbeddedServer (a separately maintained sync engine).
+UNIUN is a **decentralized, offline-first social and knowledge network** built entirely on the Nostr protocol, implemented as a Flutter mobile application. Users create, share, and connect **Notes** — Nostr Kind 1 events — that form both a social feed and a personal knowledge graph. Data is stored locally in an Isar database on the device and synced to the Nostr relay via WebSocket, managed by the Gateway sync isolate (lib/gateway/).
 
 The app combines four systems into one: a social feed (Vishnu), a note creation workspace (Brahma), an AI assistant that reasons over the user's saved notes using on-device LLM inference (Shiv), and a public/private messaging layer (Channels + DMs). On-device AI runs via `flutter_gemma ^0.13.1` (user-selected model: Qwen3 0.6B / DeepSeek R1 / Gemma 4 E2B / Gemma 4 E4B) with no cloud API calls. The knowledge graph is not a separate construction — it emerges naturally from the Nostr event graph: every `e` tag is a graph edge, every `t` tag is a topic node, every reply thread is a directed conversation subgraph.
 
-**The relay (`uniun-backend/`)** is a Go service built on Khatru (github.com/fiatjaf/khatru). It stores events in BadgerDB (primary) with optional MySQL mirror. Media blobs (Blossom protocol) are stored on Azure Blob Storage. The Flutter app's EmbeddedServer connects to this relay via WebSocket.
+**The relay (`uniun-backend/`)** is a Go service built on Khatru (github.com/fiatjaf/khatru). It stores events in BadgerDB (primary) with optional MySQL mirror. Media blobs (Blossom protocol) are stored on Azure Blob Storage. The Flutter app's Gateway sync isolate connects to this relay via WebSocket.
 
 ---
 
@@ -86,7 +86,7 @@ The app combines four systems into one: a social feed (Vishnu), a note creation 
 
 - **Feed Freedom**: Notes are permanent. There is NO delete, NO soft-delete, NO NIP-09 implementation, NO `deleted` field, NO `isDeleted` field anywhere in any model, entity, or repository. Once published to Nostr, a note exists. The app does not pretend otherwise. This is an intentional design decision, not an oversight.
 
-- **Offline-First**: The app works fully without internet. Isar is the source of truth. The UI reads only from Isar, never directly from a relay. EmbeddedServer syncs with relays when connectivity is available and writes results back to Isar.
+- **Offline-First**: The app works fully without internet. Isar is the source of truth. The UI reads only from Isar, never directly from a relay. The Gateway syncs with relays when connectivity is available and writes results back to Isar.
 
 - **No Backend**: Zero custom servers. No REST API. No GraphQL. No Firebase. Only Nostr relays (WebSocket protocol, NIP-01) and Blossom media servers (content-addressed HTTP blob store for images).
 
@@ -103,7 +103,7 @@ Domain Layer (entities, repository interfaces, use cases)
     ↓ implemented by
 Data Layer (Isar models, repository implementations)
     ↑ written to by
-EmbeddedServer (Dart Isolate — RelayConnector + SyncEngine + EventQueue + CleanupManager)
+Gateway sync isolate (lib/gateway/ — RelayConnector + inbound handlers + EventQueue + CleanupManager)
     ↔ WebSocket
 Nostr Relay Network
 ```
@@ -111,7 +111,7 @@ Nostr Relay Network
 **Key components:**
 - **Flutter + BLoC**: State management via `flutter_bloc`. Events flow into BLoC, new States flow out to UI via `BlocBuilder`/`BlocListener`.
 - **Clean Architecture**: Three strict layers — Data, Domain, Presentation — with unidirectional dependency flow (Presentation → Domain ← Data).
-- **EmbeddedServer**: Built and maintained by a separate team. Runs in a Dart isolate. Manages relay WebSocket connections, incoming event processing, outgoing event queue, and retention cleanup. Do not modify EmbeddedServer internals.
+- **Gateway / sync isolate** (`lib/gateway/`): Owned by this codebase and editable. Runs in a Dart isolate. Manages relay WebSocket connections, incoming event processing (inbound handlers persist events to Isar), the outgoing event queue, and retention cleanup.
 - **Isar**: On-device NoSQL database. Object-based (no SQL). Used exclusively in the Data layer.
 - **flutter_gemma**: On-device LLM runner for Shiv (AI assistant). Uses Google Gemma 2B or 7B via MediaPipe LLM Inference API. GPU-accelerated on Android (GPU delegate) and iOS (Metal).
 
@@ -242,17 +242,34 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 
 ## Data Layer
 
+### Unified `Note` collection (everything is a note)
+
+There is exactly **one** Isar collection for user-visible messages: `NoteModel` (`@Name('Note')`, accessor `isar.noteModels`). Feed notes, public-channel messages, DMs, and private-channel messages all live in it, discriminated by the Nostr **`kind`** field plus nullable container fields:
+
+| `kind` | Surface | Container field set | Constant |
+|--------|---------|---------------------|----------|
+| 1      | Vishnu feed note          | (none)           | `kNoteKind` |
+| 42     | Public channel (NIP-28)   | `channelId`      | `kChannelMessageKind` |
+| 14 / 15| Direct message (NIP-17)   | `conversationId` | `kDmTextKind` / `kDmFileKind` |
+| 9023   | Private channel (NIP-29)  | `groupId`        | `kPrivateChannelKind` |
+
+Constants live in `lib/core/notes/note_kinds.dart`. `kind` IS stored; note **roles** (reply/root/reference) are still *derived* from `rootEventId`/`replyToEventId`, never stored. `NoteEntity` is the single domain entity for every surface — there are NO `DmMessageEntity`, `ChannelMessageEntity`, or `PrivateChannelMessageEntity` types. `NoteModel.toDomain()` maps `channelId → sourceChannelId`, `groupId → sourcePrivateGroupId`, and carries `kind`/`conversationId`.
+
+Because every message is in one collection keyed by a globally-unique `eventId`, cross-surface references resolve in a single indexed lookup: `NoteResolverRepository.resolveById` is one query (it derives the reply transport `NoteSource` from `kind`/container fields), and `FeedRepository` is one `(isSeen, created)`-indexed query (feed-eligible kinds 1/42/9023 only — DMs are excluded). `FollowedNoteModel` and `SavedNoteModel` remain **separate** tables (a follow-pointer and a forever-retained bookmark copy — metadata about notes, not note content). The `NoteRelationModel` edge table is kind-agnostic and unchanged.
+
 Key files — read these directly rather than relying on this doc:
-- `lib/data/models/note_model.dart` — `NoteModel` Isar collection
-- `lib/domain/entities/note/note_entity.dart` — `NoteEntity` freezed
-- `lib/domain/repositories/note_repository.dart` — repository interface
+- `lib/data/models/notes/note_model.dart` — unified `NoteModel` Isar collection + `toDomain()`
+- `lib/core/notes/note_kinds.dart` — `kind` discriminator constants
+- `lib/domain/entities/note/note_entity.dart` — `NoteEntity` freezed (the only message entity)
+- `lib/data/repositories/note_resolver_repository_impl.dart` — single-collection resolver
+- `lib/data/repositories/feed_repository_impl.dart` — single-collection feed
 - `lib/core/error/failures.dart` — `Failure` freezed union
 - `lib/core/usecases/usecase.dart` — `UseCase<T,P>` and `NoParamsUseCase<T>` base classes
 
 **Critical field notes (NoteModel):**
+- `kind` is the unified discriminator; `channelId`/`groupId`/`conversationId` are non-null only for their respective kinds (all indexed).
 - `rootEventId` and `replyToEventId` are NIP-10 threading fields. Both null = top-level feed note.
-- `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately.
-- `cachedReactionCount` is denormalized; updated by SyncEngine when Kind 7 reactions arrive.
+- `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately. For `kind == 42`, `toDomain()` strips `channelId`/`replyToEventId` from `eTagRefs` so NoteCard counts only genuine mentions.
 - `NoteType` enum (`text|image|link|reference`) stored as `EnumType.name` in Isar.
 
 **Generated files — never edit manually.** Regenerate with:
@@ -311,7 +328,7 @@ Note composition and publishing.
 - Image upload via Blossom protocol (Kind 24242 auth token, PUT to user's Blossom server, `imeta` tag in event).
 - Reference picker allows selecting existing notes to create graph edges (`e` tags with `mention` marker).
 - Graph preview shown before publishing (using `BuildNoteGraphUseCase`).
-- Signs note with user's private key. Broadcasts via EmbeddedServer's EventQueue.
+- Signs note with user's private key. Broadcasts via the Gateway's EventQueue.
 - Draft support via `DraftNoteRepository` (local only, not published to relay).
 
 **BLoC**: `BrahmaCreateBloc`
@@ -435,7 +452,7 @@ Phase 2 — each user message:
 Subscribing to a note's reference graph — distinct from saved notes (which are for Shiv AI).
 
 - `FollowedNoteModel` stores `eventId`, `contentPreview`, `followedAt`, `newReferenceCount`.
-- EmbeddedServer opens `{"kinds":[1],"#e":["followedNoteId"]}` per followed note.
+- The Gateway opens `{"kinds":[1],"#e":["followedNoteId"]}` per followed note.
 - `newReferenceCount` incremented by SyncEngine on each new match.
 - **Cubit**: `FollowedNotesCubit` — `load()`, `followNote()`, `unfollowNote()`, `clearNewReferences()`
 - **UX**: The drawer contains a collapsible "Followed Notes" section listing all followed notes with unread badges. Tapping a followed note directly opens `FollowedNoteDetailPage` (no separate list page). There is NO standalone `FollowedNotesPage` or `FollowedNoteFeedPage`.
@@ -485,18 +502,19 @@ lib/gateway/
 {"kinds": [1059], "#p": ["myPubkey"]}
 ```
 
-**Do not modify Gateway internals** — this code is owned by Parjaniya. The Flutter UI only reads/writes Isar.
+**The Gateway (`lib/gateway/`) is owned by this codebase and is editable.** The Flutter UI still only reads/writes Isar; the Gateway is the only component that talks to relays. Inbound handlers write into the unified `Note` collection (see below).
 
-**Isar retention policy (enforced by CleanupManager):**
+**Isar retention policy (enforced by CleanupManager):** retention is now applied per-`kind` to rows **within the single `Note` collection**, not per-collection.
 
-| Note type                          | Retention              |
+| Note kind (in `Note` collection)   | Retention              |
 |------------------------------------|------------------------|
 | Kind 1 (regular, not saved)        | 7 days (configurable)  |
-| Kind 1 (saved = true)              | Forever                |
+| Kind 1 (saved — separate SavedNote table) | Forever         |
 | Kind 1 (own note, own pubkey)      | Forever                |
 | Kind 42 (channel message)          | 3 days (configurable)  |
-| Kind 14 (DM content)               | Forever                |
-| Kind 0 (profiles)                  | 30 days, refresh on view|
+| Kind 14/15 (DM content)            | Forever                |
+| Kind 9023 (private channel message)| Forever                |
+| Kind 0 (profiles — own table)      | 30 days, refresh on view|
 | AI conversations/messages          | Forever                |
 
 On-demand fetch: if a note is referenced but not in Isar, `SyncEngine.fetchById(eventId)` queries the relay with `{"ids": [eventId]}`.
@@ -576,7 +594,7 @@ Flutter App (this repo)
     ↓ reads/writes
 Isar DB (local, offline-first source of truth)
     ↑ written by
-EmbeddedServer (Dart isolate — separate team)
+Gateway sync isolate (lib/gateway/ — owned by this repo)
     ↕ WebSocket (NIP-01)
 uniun-backend/  ← Go relay (Khatru + BadgerDB + Blossom)
     ↕ optional mirror
@@ -589,10 +607,10 @@ uniun-backend Blossom handler
 ```
 
 - **Flutter App (this repo)**: Create/sign notes, render UI from Isar, all user interactions
-- **EmbeddedServer (Dart isolate — separate team)**: Saves relay events to Isar, manages WebSocket connections, EventQueue for offline sync. Do not modify.
+- **Gateway sync isolate (`lib/gateway/` — owned by this repo)**: Saves relay events to Isar (inbound handlers write the unified `Note` collection), manages WebSocket connections, EventQueue for offline sync.
 - **uniun-backend/ (Go relay — this repo, `uniun-backend/` folder)**: Khatru-based Nostr relay. Accepts/stores events (BadgerDB primary, MySQL optional mirror). Handles Blossom media uploads via Azure Blob Storage. See `otodo.md` for build roadmap.
 
-**Rule:** Never add direct HTTP calls from Flutter to the relay. Flutter only talks to Isar. The EmbeddedServer handles all relay communication.
+**Rule:** Never add direct HTTP calls from Flutter to the relay. Flutter only talks to Isar. The Gateway handles all relay communication.
 
 The Flutter app **never talks to the relay directly**. It only reads/writes Isar. The Gateway handles all network sync.
 
@@ -661,7 +679,7 @@ UNIUN does **not** implement a people-following / social graph in v1. There is n
 "Following a note" means subscribing to its **reference graph**: any new Kind 1 note that contains `["e", followedNoteId]` is captured and surfaced. This is implemented by:
 - `FollowedNoteModel` (Isar) — stores `eventId`, `contentPreview`, `followedAt`, `newReferenceCount`
 - `FollowedNoteRepository` — `followNote()`, `unfollowNote()`, `clearNewReferences()`, `isFollowed()`
-- EmbeddedServer opens: `{"kinds":[1],"#e":["followedNoteId"]}` per followed note
+- The Gateway opens: `{"kinds":[1],"#e":["followedNoteId"]}` per followed note
 - `newReferenceCount` is incremented by SyncEngine on each new match; cleared when user opens the feed
 
 ---
@@ -757,7 +775,6 @@ Text(l10n.actionSave)
 - Use Freezed 2.x `class` pattern — use Freezed 3.x `abstract class` pattern.
 - Access Isar directly from BLoC or use cases — go through the repository interface.
 - Hardcode Nostr event IDs or relay URLs.
-- Touch EmbeddedServer internals — that is a separate team's concern.
 - Push ranking/algorithm logic into the feed in v1 — chronological only.
 - Add any form of cloud AI call — Shiv is entirely on-device.
 
@@ -934,17 +951,14 @@ lib/
 │   │   ├── isar_schemas.dart      # Schema list extracted for clarity
 │   │   └── tostore_module.dart    # ToStore vector DB module
 │   ├── models/                    # Isar @Collection models (mutable, no @freezed)
-│   │   ├── notes/note_model.dart
+│   │   ├── notes/note_model.dart       # Unified Note collection (all kinds: 1/42/14/15/9023)
 │   │   ├── profile_model.dart
 │   │   ├── user_key_model.dart
-│   │   ├── channel_model.dart
-│   │   ├── channel_message_model.dart
-│   │   ├── private_channel_model.dart
-│   │   ├── private_channel_message_model.dart
+│   │   ├── channel_model.dart          # Channel metadata only (kind 40/41)
+│   │   ├── private_channel_model.dart  # Private channel metadata only
 │   │   ├── private_channel_join_request_model.dart
 │   │   ├── dm/dm_conversation_model.dart
-│   │   ├── dm/dm_message_model.dart
-│   │   ├── dm/encrypted_dm_model.dart
+│   │   ├── dm/encrypted_dm_model.dart  # Inbound gift-wrap queue (decrypts into Note)
 │   │   ├── shiv_conversation_model.dart
 │   │   ├── shiv_message_model.dart
 │   │   ├── memory_node_model.dart     # Wiki summaries for GraphRAG
@@ -973,7 +987,7 @@ lib/
 │
 ├── l10n/                          # Auto-generated localization
 │
-├── gateway/                       # Relay sync isolate (do not modify — Parjaniya's code)
+├── gateway/                       # Relay sync isolate (owned by this repo, editable)
 │   ├── gateway.dart
 │   ├── gateway_init_message.dart
 │   ├── central_relay_manager.dart

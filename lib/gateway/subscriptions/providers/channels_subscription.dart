@@ -1,6 +1,7 @@
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_message_model.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 
 /// NIP-28 channel metadata + messages for every locally joined channel.
@@ -32,8 +33,11 @@ class ChannelsSubscription extends SubscriptionProvider {
     for (final ch in channels) {
       if (ch.lastMetaEvent != null) out[ch.lastMetaEvent!] = 0;
     }
-    final ids =
-        await ctx.isar.channelMessageModels.where().eventIdProperty().findAll();
+    final ids = await ctx.isar.noteModels
+        .filter()
+        .kindEqualTo(kChannelMessageKind)
+        .eventIdProperty()
+        .findAll();
     for (final id in ids) {
       out[id] = 0;
     }

@@ -34,9 +34,13 @@ class UserProfilePage extends StatelessWidget {
       });
       return const Scaffold();
     }
-    return BlocProvider(
-      create: (_) => getIt<UserProfileBloc>()
-        ..add(LoadUserProfileEvent(hex, hintName: hintName)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<UserProfileBloc>()
+            ..add(LoadUserProfileEvent(hex, hintName: hintName)),
+        ),
+      ],
       child: const _UserProfileView(),
     );
   }
@@ -83,9 +87,8 @@ class _UserProfileView extends StatelessWidget {
                       (context, i) {
                         final note = state.notes[i];
                         return NoteCard(
+                          key: ValueKey(note.id),
                           note: note,
-                          profile: state.profile,
-                          replyCount: note.cachedReplyCount,
                           onTap: () => Navigator.pushNamed(
                             context,
                             AppRoutes.thread,

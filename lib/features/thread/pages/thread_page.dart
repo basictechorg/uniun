@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/features/thread/bloc/thread_bloc.dart';
 import 'package:uniun/features/thread/widgets/thread_app_bar.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
@@ -31,9 +30,6 @@ class ThreadPage extends StatelessWidget {
         BlocProvider(
           create: (_) => getIt<ThreadBloc>()
             ..add(LoadThreadEvent(noteId, savedOnly: savedOnly)),
-        ),
-        BlocProvider(
-          create: (_) => getIt<FollowedNotesCubit>()..load(),
         ),
       ],
       child: _ThreadView(noteId: noteId),
@@ -126,14 +122,6 @@ class _ThreadViewState extends State<_ThreadView> {
         }
 
         final bloc = context.read<ThreadBloc>();
-        // Notes available to reference from the composer — everything visible in
-        // this thread, de-duplicated (the root itself is already the reply target).
-        final seen = <String>{state.rootNote!.id};
-        final referenceCandidates = [
-          ...state.parentNotes,
-          ...state.mentionedNotes,
-          ...state.replies,
-        ].where((n) => seen.add(n.id)).toList();
 
         return MessageThreadPage(
           appBar: const ThreadAppBar(),
@@ -144,7 +132,6 @@ class _ThreadViewState extends State<_ThreadView> {
           replies: state.replies,
           replyCount: state.replies.length,
           isSending: state.postStatus == ThreadPostStatus.posting,
-          referenceCandidates: referenceCandidates,
           onSendReply: (text, refs) =>
               bloc.add(PostReplyEvent(text, mentionRefs: refs)),
           onOpenThread: (id) => _openThread(context, id),

@@ -50,7 +50,6 @@ extension SavedNoteToNote on SavedNoteEntity {
         pTagRefs: pTagRefs,
         tTags: tTags,
         created: created,
-        isSeen: true,
         cachedReplyCount: cachedReplyCount,
         referenceCount: referenceCount,
         sourceChannelId: sourceChannelId,

@@ -5,7 +5,7 @@ class DmChatState {
   final bool isLoading;
   final bool isSending;
   final String? otherPubkey;
-  final List<DmMessageEntity> messages;
+  final List<NoteEntity> messages;
 
   /// pubkeyHex → ProfileEntity (for author display names / avatars).
   final Map<String, ProfileEntity> profiles;
@@ -24,7 +24,7 @@ class DmChatState {
     bool? isLoading,
     bool? isSending,
     String? otherPubkey,
-    List<DmMessageEntity>? messages,
+    List<NoteEntity>? messages,
     Map<String, ProfileEntity>? profiles,
     String? errorMessage,
   }) {

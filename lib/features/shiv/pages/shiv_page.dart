@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -239,7 +240,7 @@ class _ShivLanding extends StatelessWidget {
                 ),
                 // Tree (disabled on landing — no active conversation)
                 _HeaderIcon(
-                  icon: Icons.account_tree_outlined,
+                  assetPath: 'assets/images/network_node.svg',
                   tooltip: l10n.shivBranchTreeTooltip,
                   isActive: false,
                   onTap: () {},
@@ -355,8 +356,7 @@ class _LandingBody extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.smart_toy_outlined,
+                child: const DropIcon(
                   size: 36,
                   color: AppColors.primary,
                 ),
@@ -450,19 +450,22 @@ class _LandingBody extends StatelessWidget {
 
 class _HeaderIcon extends StatelessWidget {
   const _HeaderIcon({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.onTap,
     required this.tooltip,
     this.isActive = false,
-  });
+  }) : assert(icon != null || assetPath != null);
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final VoidCallback onTap;
   final String tooltip;
   final bool isActive;
 
   @override
   Widget build(BuildContext context) {
+    final color = isActive ? AppColors.primary : AppColors.onSurfaceVariant;
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -470,11 +473,14 @@ class _HeaderIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Icon(
-            icon,
-            size: 22,
-            color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
-          ),
+          child: assetPath != null
+              ? SvgPicture.asset(
+                  assetPath!,
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                )
+              : Icon(icon, size: 22, color: color),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
+import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 
@@ -184,11 +185,20 @@ class _TreeNode extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isUser ? Icons.person_rounded : Icons.smart_toy_outlined,
-            size: 14,
-            color: isOnActivePath ? AppColors.primary : AppColors.onSurfaceVariant,
-          ),
+          isUser
+              ? Icon(
+                  Icons.person_rounded,
+                  size: 14,
+                  color: isOnActivePath
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
+                )
+              : DropIcon(
+                  size: 14,
+                  color: isOnActivePath
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
+                ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(

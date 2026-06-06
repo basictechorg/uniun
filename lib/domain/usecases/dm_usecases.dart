@@ -5,11 +5,12 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/usecases/usecase.dart';
-import 'package:uniun/data/models/dm/dm_message_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
-import 'package:uniun/domain/entities/dm/dm_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
 import 'package:uniun/domain/services/nip17_encryption_service.dart';
@@ -143,17 +144,17 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
             privkeyHex: privkeyHex,
           );
 
-          final dm = DmMessageModel(
+          final dm = NoteModel(
             eventId: localId,
             sig: '',
             authorPubkey: keys.pubkeyHex,
             conversationId: conv.id,
             pTagRefs: [resolvedOtherPubkey],
             content: params.content,
-            kind: params.type == NoteType.image ? 15 : 14,
+            kind: params.type == NoteType.image ? kDmFileKind : kDmTextKind,
             type: params.type,
+            tTags: const [],
             created: DateTime.now(),
-            isSeen: true,
             rootEventId: params.rootEventId,
             replyToEventId: params.replyToEventId,
             eTagRefs: [
@@ -202,14 +203,14 @@ class GetDmUseCase extends NoParamsUseCase<Either<Failure, Unit>> {
 
 @lazySingleton
 class FetchDmUseCase
-    extends UseCase<Either<Failure, List<DmMessageEntity>>, String> {
+    extends UseCase<Either<Failure, List<NoteEntity>>, String> {
   final DmConversationRepository _convRepo;
   final DmMessageRepository _msgRepo;
 
   FetchDmUseCase(this._convRepo, this._msgRepo);
 
   @override
-  Future<Either<Failure, List<DmMessageEntity>>> call(
+  Future<Either<Failure, List<NoteEntity>>> call(
     String otherPubkey, {
     bool cached = false,
   }) async {
@@ -225,7 +226,7 @@ class FetchDmUseCase
           final messagesResult = await _msgRepo.getMessages(conv.id, limit: 100);
           return messagesResult.fold((f) => Left(f), (msgs) {
             // Re-sort latest first intentionally in dart layer if repo isn't explicitly sorting
-            final mutable = List<DmMessageEntity>.from(msgs);
+            final mutable = List<NoteEntity>.from(msgs);
             mutable.sort((a, b) => b.created.compareTo(a.created));
             return Right(mutable);
           });

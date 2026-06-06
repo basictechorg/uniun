@@ -490,6 +490,30 @@ abstract class AppLocalizations {
   /// **'Added'**
   String get composerReferenceSelected;
 
+  /// Reference picker tab showing all candidate notes
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get composerReferenceTabAll;
+
+  /// Reference picker tab showing only saved notes
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get composerReferenceTabSaved;
+
+  /// Header above the notes a thread note references (mentions)
+  ///
+  /// In en, this message translates to:
+  /// **'REFERENCES'**
+  String get threadReferencesLabel;
+
+  /// Header above the parent note a thread note is replying to
+  ///
+  /// In en, this message translates to:
+  /// **'REPLYING TO'**
+  String get threadReplyingToLabel;
+
   /// Submit button in the compose card
   ///
   /// In en, this message translates to:

@@ -2,31 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Stateful owner for [UniunComposer]: holds the text controller, focus node,
 /// the "has text" flag, the selected references + the reference-picker flow, and
 /// loads the active user's avatar. Every surface (thread, channel feed, DM,
-/// private channel) plugs in just two things — [onSend] and the optional
-/// [referenceCandidates] — instead of re-implementing this boilerplate.
+/// private channel) plugs in just one thing — [onSend]. The reference picker is
+/// self-contained ([ReferencePickerPage] queries notes itself).
 class ComposerHost extends StatefulWidget {
   const ComposerHost({
     super.key,
     required this.hintText,
     required this.onSend,
     this.isSending = false,
-    this.referenceCandidates,
     this.applyBottomInset = true,
   });
 
   final String hintText;
   final bool isSending;
-
-  /// Notes the user can reference. When null/empty, the add-reference button is
-  /// hidden.
-  final List<NoteEntity>? referenceCandidates;
 
   /// The only per-surface action: post [content] with the picked [mentionRefs].
   final void Function(String content, List<String> mentionRefs) onSend;
@@ -82,7 +76,7 @@ class _ComposerHostState extends State<ComposerHost> {
     setState(() => _mentionRefs.clear());
   }
 
-  Future<void> _openReferencePicker(List<NoteEntity> candidates) async {
+  Future<void> _openReferencePicker() async {
     final l10n = AppLocalizations.of(context)!;
     final result = await Navigator.push<List<ComposerReference>>(
       context,
@@ -93,17 +87,6 @@ class _ComposerHostState extends State<ComposerHost> {
           emptyLabel: l10n.composerReferenceEmpty,
           selectedLabel: l10n.composerReferenceSelected,
           initialSelected: List.of(_mentionRefs),
-          onSearch: (q) async {
-            final filtered = q.isEmpty
-                ? candidates
-                : candidates
-                    .where((m) =>
-                        m.content.toLowerCase().contains(q.toLowerCase()))
-                    .toList();
-            return filtered
-                .map((m) => ComposerReference(id: m.id, label: m.content))
-                .toList();
-          },
         ),
       ),
     );
@@ -118,7 +101,6 @@ class _ComposerHostState extends State<ComposerHost> {
 
   @override
   Widget build(BuildContext context) {
-    final candidates = widget.referenceCandidates;
     return UniunComposer(
       controller: _controller,
       focusNode: _focusNode,
@@ -131,9 +113,7 @@ class _ComposerHostState extends State<ComposerHost> {
       applyBottomInset: widget.applyBottomInset,
       onRemoveReference: (id) =>
           setState(() => _mentionRefs.removeWhere((r) => r.id == id)),
-      onAddReference: candidates != null && candidates.isNotEmpty
-          ? () => _openReferencePicker(candidates)
-          : null,
+      onAddReference: _openReferencePicker,
       onSend: _send,
     );
   }

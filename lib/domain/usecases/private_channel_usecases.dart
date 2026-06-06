@@ -1,6 +1,6 @@
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
@@ -68,7 +68,7 @@ class GetPrivateChannelMessagesUsecase {
   final E2EEGroupRepository repository;
   GetPrivateChannelMessagesUsecase(this.repository);
 
-  Stream<List<PrivateChannelMessageEntity>> execute(String groupId) {
+  Stream<List<NoteEntity>> execute(String groupId) {
     return repository.watchMessages(groupId);
   }
 }

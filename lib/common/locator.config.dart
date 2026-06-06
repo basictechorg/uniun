@@ -14,7 +14,12 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 import 'package:tostore/tostore.dart' as _i789;
+import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart'
+    as _i734;
+import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart'
+    as _i226;
 import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
+import 'package:uniun/data/datasources/feed_read_state_store.dart' as _i752;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart'
     as _i981;
@@ -66,7 +71,9 @@ import 'package:uniun/data/repositories/source_label_repository_impl.dart'
 import 'package:uniun/data/repositories/storage_repository_impl.dart' as _i209;
 import 'package:uniun/data/repositories/tostore_vector_repository_impl.dart'
     as _i831;
+import 'package:uniun/data/repositories/unread_repository_impl.dart' as _i1024;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
+import 'package:uniun/domain/entities/note/note_entity.dart' as _i697;
 import 'package:uniun/domain/repositories/ai_model_repository.dart' as _i646;
 import 'package:uniun/domain/repositories/channel_message_repository.dart'
     as _i964;
@@ -102,6 +109,7 @@ import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
 import 'package:uniun/domain/repositories/source_label_repository.dart'
     as _i633;
 import 'package:uniun/domain/repositories/storage_repository.dart' as _i240;
+import 'package:uniun/domain/repositories/unread_repository.dart' as _i497;
 import 'package:uniun/domain/repositories/user_repository.dart' as _i103;
 import 'package:uniun/domain/repositories/vector_repository.dart' as _i739;
 import 'package:uniun/domain/services/marmot_mls_service.dart' as _i168;
@@ -133,6 +141,7 @@ import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
 import 'package:uniun/domain/usecases/shiv_usecases.dart' as _i604;
 import 'package:uniun/domain/usecases/source_label_usecases.dart' as _i978;
 import 'package:uniun/domain/usecases/storage_usecases.dart' as _i58;
+import 'package:uniun/domain/usecases/unread_usecases.dart' as _i719;
 import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart' as _i886;
@@ -143,8 +152,6 @@ import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart'
     as _i750;
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart' as _i60;
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart' as _i399;
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart'
-    as _i58;
 import 'package:uniun/features/private_channels/create/bloc/create_private_channel_bloc.dart'
     as _i636;
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart'
@@ -237,6 +244,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.singleton<_i107.UserKeyStore>(
       () => _i107.UserKeyStore(gh<_i460.SharedPreferences>()),
+    );
+    gh.singleton<_i752.FeedReadStateStore>(
+      () => _i752.FeedReadStateStore(gh<_i460.SharedPreferences>()),
     );
     gh.singleton<_i634.LlmPreferencesDataSource>(
       () => _i634.LlmPreferencesDataSource(gh<_i460.SharedPreferences>()),
@@ -341,11 +351,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i561.UnfollowNoteUseCase>(
       () => _i561.UnfollowNoteUseCase(gh<_i836.FollowedNoteRepository>()),
     );
+    gh.lazySingleton<_i561.WatchIsFollowedUseCase>(
+      () => _i561.WatchIsFollowedUseCase(gh<_i836.FollowedNoteRepository>()),
+    );
     gh.lazySingleton<_i561.ClearNewReferencesUseCase>(
       () => _i561.ClearNewReferencesUseCase(gh<_i836.FollowedNoteRepository>()),
     );
     gh.factory<_i331.MemoryRepository>(
       () => _i849.MemoryRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i497.UnreadRepository>(
+      () => _i1024.UnreadRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.lazySingleton<_i604.GetConversationsUseCase>(
       () => _i604.GetConversationsUseCase(gh<_i266.ShivRepository>()),
@@ -444,9 +460,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i475.SaveNoteUseCase>(
       () => _i475.SaveNoteUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.MarkSeenUseCase>(
-      () => _i475.MarkSeenUseCase(gh<_i47.NoteRepository>()),
     );
     gh.lazySingleton<_i475.GetThreadUseCase>(
       () => _i475.GetThreadUseCase(gh<_i47.NoteRepository>()),
@@ -575,14 +588,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i475.SearchNotesUseCase>(
       () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
     );
-    gh.factory<_i58.FollowedNotesCubit>(
-      () => _i58.FollowedNotesCubit(
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i561.FollowNoteUseCase>(),
-        gh<_i561.UnfollowNoteUseCase>(),
-        gh<_i561.ClearNewReferencesUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
     );
@@ -595,19 +600,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i433.SaveRelayUseCase>(
       () => _i433.SaveRelayUseCase(gh<_i993.RelayRepository>()),
     );
-    gh.factoryParam<_i10.PrivateChannelDetailBloc, String, dynamic>(
-      (groupId, _) => _i10.PrivateChannelDetailBloc(
-        gh<_i78.GetPrivateChannelEntityUsecase>(),
-        gh<_i78.GetPrivateChannelMessagesUsecase>(),
-        gh<_i78.GetPrivateChannelJoinRequestsUsecase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i78.ApprovePrivateChannelJoinUsecase>(),
-        gh<_i78.LeavePrivateChannelUsecase>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        groupId,
-      ),
+    gh.lazySingleton<_i719.MarkUnreadSeenUseCase>(
+      () => _i719.MarkUnreadSeenUseCase(gh<_i497.UnreadRepository>()),
+    );
+    gh.lazySingleton<_i719.MarkChannelSeenUseCase>(
+      () => _i719.MarkChannelSeenUseCase(gh<_i497.UnreadRepository>()),
+    );
+    gh.lazySingleton<_i719.MarkPrivateChannelSeenUseCase>(
+      () => _i719.MarkPrivateChannelSeenUseCase(gh<_i497.UnreadRepository>()),
+    );
+    gh.lazySingleton<_i719.MarkConversationSeenUseCase>(
+      () => _i719.MarkConversationSeenUseCase(gh<_i497.UnreadRepository>()),
     );
     gh.lazySingleton<_i141.RemoteLlmDataSource>(
       () => _i141.RemoteLlmDataSource(
@@ -620,6 +623,22 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i937.AIModelRunner>(),
         gh<_i393.ModelTaskQueue>(),
         gh<_i646.AIModelRepository>(),
+      ),
+    );
+    gh.factoryParam<_i10.PrivateChannelDetailBloc, String, dynamic>(
+      (groupId, _) => _i10.PrivateChannelDetailBloc(
+        gh<_i78.GetPrivateChannelEntityUsecase>(),
+        gh<_i78.GetPrivateChannelMessagesUsecase>(),
+        gh<_i78.GetPrivateChannelJoinRequestsUsecase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i78.ApprovePrivateChannelJoinUsecase>(),
+        gh<_i78.LeavePrivateChannelUsecase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i719.MarkUnreadSeenUseCase>(),
+        gh<_i719.MarkPrivateChannelSeenUseCase>(),
+        groupId,
       ),
     );
     gh.lazySingleton<_i1033.CreateChannelUseCase>(
@@ -697,6 +716,28 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetProfileUseCase>(),
       ),
     );
+    gh.factory<_i250.FeedRepository>(
+      () => _i689.FeedRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        sourceLabels: gh<_i633.SourceLabelRepository>(),
+        follows: gh<_i849.FollowedUserRepository>(),
+        users: gh<_i103.UserRepository>(),
+        feedReadState: gh<_i752.FeedReadStateStore>(),
+      ),
+    );
+    gh.factory<_i60.DmChatBloc>(
+      () => _i60.DmChatBloc(
+        gh<_i1023.FetchDmUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1023.GetDmUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i719.MarkUnreadSeenUseCase>(),
+        gh<_i719.MarkConversationSeenUseCase>(),
+        gh<_i214.Isar>(),
+      ),
+    );
     gh.lazySingleton<_i63.FollowUserUseCase>(
       () => _i63.FollowUserUseCase(gh<_i849.FollowedUserRepository>()),
     );
@@ -742,13 +783,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
-    gh.factory<_i250.FeedRepository>(
-      () => _i689.FeedRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-        sourceLabels: gh<_i633.SourceLabelRepository>(),
-        follows: gh<_i849.FollowedUserRepository>(),
-        users: gh<_i103.UserRepository>(),
+    gh.factory<_i734.ReferencePickerCubit>(
+      () => _i734.ReferencePickerCubit(
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
     gh.factory<_i959.UserProfileBloc>(
@@ -822,16 +861,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.GetActiveLlmModelUseCase>(
       () => _i918.GetActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
-    );
-    gh.factory<_i60.DmChatBloc>(
-      () => _i60.DmChatBloc(
-        gh<_i1023.FetchDmUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i1023.GetDmUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i214.Isar>(),
-      ),
     );
     gh.lazySingleton<_i681.RagPipeline>(
       () => _i681.RagPipeline(
@@ -935,6 +964,20 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i179.DrainPendingExtractionsUseCase(
         gh<_i1000.PendingExtractionRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.factoryParam<_i226.NoteCardCubit, _i697.NoteEntity, dynamic>(
+      (note, _) => _i226.NoteCardCubit(
+        gh<_i391.WatchProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+        gh<_i858.IsSavedNoteUseCase>(),
+        gh<_i858.SaveNoteUseCase>(),
+        gh<_i858.UnsaveNoteUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i561.WatchIsFollowedUseCase>(),
+        gh<_i561.FollowNoteUseCase>(),
+        gh<_i561.UnfollowNoteUseCase>(),
+        note,
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(

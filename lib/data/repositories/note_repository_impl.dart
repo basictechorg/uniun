@@ -170,7 +170,6 @@ class NoteRepositoryImpl extends NoteRepository {
         pTagRefs: note.pTagRefs,
         tTags: note.tTags,
         created: note.created,
-        isSeen: note.isSeen,
       );
 
       final parents = replyEdgeParentIds(
@@ -209,25 +208,6 @@ class NoteRepositoryImpl extends NoteRepository {
           .rootEventIdEqualTo(rootEventId)
           .count();
       return Right(count);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Unit>> markAsSeen(String eventId) async {
-    try {
-      await isar.writeTxn(() async {
-        final note = await isar.noteModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (note != null) {
-          note.isSeen = true;
-          await isar.noteModels.put(note);
-        }
-      });
-      return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

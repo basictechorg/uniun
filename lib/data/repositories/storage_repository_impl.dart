@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/data/models/shiv_conversation_model.dart';
 import 'package:uniun/data/models/shiv_message_model.dart';
@@ -122,18 +123,24 @@ class StorageRepositoryImpl implements StorageRepository {
           .then((list) => {for (final n in list) n.eventId});
       final topLevelNotes =
           await isar.noteModels.filter().rootEventIdIsNull().findAll();
-      final toDelete = topLevelNotes
+      final deletable = topLevelNotes
           .where((n) =>
               n.authorPubkey != ownPubkey &&
               !savedIds.contains(n.eventId) &&
               !followedIds.contains(n.eventId))
-          .map((n) => n.id)
           .toList();
+      final toDelete = deletable.map((n) => n.id).toList();
+      final toDeleteEventIds = deletable.map((n) => n.eventId).toList();
 
       if (toDelete.isEmpty) return const Right(0);
 
       await isar.writeTxn(() async {
         await isar.noteModels.deleteAll(toDelete);
+        // Drop any unread rows for the purged notes so no orphans remain.
+        await isar.unreadNoteModels
+            .filter()
+            .anyOf(toDeleteEventIds, (q, e) => q.eventIdEqualTo(e))
+            .deleteAll();
       });
 
       return Right(toDelete.length);

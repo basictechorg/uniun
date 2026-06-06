@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 
 part 'note_entity.freezed.dart';
 part 'note_entity.g.dart';
@@ -12,12 +13,21 @@ abstract class NoteEntity with _$NoteEntity {
     required String authorPubkey,
     required String content,
     String? subject,
+
+    /// Nostr event kind: 1 feed note, 42 channel message, 14/15 DM,
+    /// 9023 private channel message. Stored discriminator of the unified Note
+    /// collection. Note *roles* (reply/root/reference) are still derived from
+    /// rootEventId/replyToEventId, not from kind.
+    @Default(1) int kind,
     required NoteType type,
     required List<String> eTagRefs,
     required List<String> pTagRefs,
     required List<String> tTags,
     required DateTime created,
-    required bool isSeen,
+
+    /// DM conversation id — non-null only when [kind] is 14/15. Used to route
+    /// replies back to the correct DM conversation.
+    int? conversationId,
 
     /// NIP-10 "root" marker — null means this IS a top-level note.
     String? rootEventId,
@@ -45,4 +55,28 @@ abstract class NoteEntity with _$NoteEntity {
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>
       _$NoteEntityFromJson(json);
+}
+
+/// The transport a reply to a note must be posted through. Derived from the
+/// note itself ([NoteReplyRouting.replyTransport]) — the read side is uniform
+/// `NoteEntity`; only the encrypted write transport differs per surface.
+enum NoteSource { feed, channel, privateChannel, dm }
+
+extension NoteReplyRouting on NoteEntity {
+  /// Which transport a reply must use, derived from [kind] + container fields.
+  NoteSource get replyTransport {
+    if (kind == kChannelMessageKind || sourceChannelId != null) {
+      return NoteSource.channel;
+    }
+    if (kind == kPrivateChannelKind || sourcePrivateGroupId != null) {
+      return NoteSource.privateChannel;
+    }
+    if (conversationId != null || kind == kDmTextKind || kind == kDmFileKind) {
+      return NoteSource.dm;
+    }
+    return NoteSource.feed;
+  }
+
+  /// DM counterparty pubkey (`pTagRefs.first`); null for non-DM notes.
+  String? get dmReceiverPubkey => pTagRefs.isNotEmpty ? pTagRefs.first : null;
 }

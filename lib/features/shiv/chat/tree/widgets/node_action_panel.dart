@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
@@ -129,13 +130,16 @@ class NodeActionPanel extends StatelessWidget {
                       : AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  isUser ? Icons.person_rounded : Icons.smart_toy_outlined,
-                  size: 18,
-                  color: isUser
-                      ? AppColors.onSurfaceVariant
-                      : AppColors.primary,
-                ),
+                child: isUser
+                    ? const Icon(
+                        Icons.person_rounded,
+                        size: 18,
+                        color: AppColors.onSurfaceVariant,
+                      )
+                    : const DropIcon(
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(

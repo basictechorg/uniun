@@ -20,8 +20,9 @@ class ThreadState {
 
   final ThreadStatus status;
 
-  /// The resolved root, carrying its source + routing info for reply posting.
-  final ResolvedNote? root;
+  /// The resolved root note. Reply routing is derived from it on post
+  /// (`NoteReplyRouting.replyTransport`).
+  final NoteEntity? root;
   final List<NoteEntity> parentNotes;
   final List<NoteEntity> mentionedNotes;
   final List<NoteEntity> replies;
@@ -33,11 +34,11 @@ class ThreadState {
   /// universe in savedOnly mode, and the bookmark-marking set in normal mode.
   final Set<String> savedOnlyIds;
 
-  NoteEntity? get rootNote => root?.note;
+  NoteEntity? get rootNote => root;
 
   ThreadState copyWith({
     ThreadStatus? status,
-    ResolvedNote? root,
+    NoteEntity? root,
     List<NoteEntity>? parentNotes,
     List<NoteEntity>? mentionedNotes,
     List<NoteEntity>? replies,

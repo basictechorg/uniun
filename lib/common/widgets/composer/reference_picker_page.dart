@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// Full-screen picker for attaching note/message references to a composer.
 ///
-/// Fully presentational: the caller supplies a [onSearch] callback that maps a
-/// query to candidate [ComposerReference]s (in-memory filter, relay search,
-/// whatever the source needs). The page maintains the working selection and
-/// returns the final `List<ComposerReference>` via `Navigator.pop`.
-class ReferencePickerPage extends StatefulWidget {
+/// Self-contained: queries the unified `Note` collection via
+/// [ReferencePickerCubit] (recent + search) and the saved-note table, with an
+/// All / Saved tab filter. The page maintains the working selection and returns
+/// the final `List<ComposerReference>` via `Navigator.pop`.
+class ReferencePickerPage extends StatelessWidget {
   const ReferencePickerPage({
     super.key,
     required this.title,
     required this.searchHint,
     required this.emptyLabel,
     required this.selectedLabel,
-    required this.onSearch,
     this.initialSelected = const [],
   });
 
@@ -23,44 +26,51 @@ class ReferencePickerPage extends StatefulWidget {
   final String searchHint;
   final String emptyLabel;
   final String selectedLabel;
-  final Future<List<ComposerReference>> Function(String query) onSearch;
   final List<ComposerReference> initialSelected;
 
   @override
-  State<ReferencePickerPage> createState() => _ReferencePickerPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => getIt<ReferencePickerCubit>(),
+      child: _ReferencePickerView(
+        title: title,
+        searchHint: searchHint,
+        emptyLabel: emptyLabel,
+        selectedLabel: selectedLabel,
+        initialSelected: initialSelected,
+      ),
+    );
+  }
 }
 
-class _ReferencePickerPageState extends State<ReferencePickerPage> {
+class _ReferencePickerView extends StatefulWidget {
+  const _ReferencePickerView({
+    required this.title,
+    required this.searchHint,
+    required this.emptyLabel,
+    required this.selectedLabel,
+    required this.initialSelected,
+  });
+
+  final String title;
+  final String searchHint;
+  final String emptyLabel;
+  final String selectedLabel;
+  final List<ComposerReference> initialSelected;
+
+  @override
+  State<_ReferencePickerView> createState() => _ReferencePickerViewState();
+}
+
+class _ReferencePickerViewState extends State<_ReferencePickerView> {
   final _searchController = TextEditingController();
   late final List<ComposerReference> _selected =
       List.of(widget.initialSelected);
-  List<ComposerReference> _results = const [];
-  bool _loading = false;
-  String _query = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _runSearch('');
-  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _runSearch(String query) async {
-    setState(() {
-      _query = query;
-      _loading = true;
-    });
-    final results = await widget.onSearch(query);
-    if (!mounted) return;
-    setState(() {
-      _results = results;
-      _loading = false;
-    });
   }
 
   void _toggle(ComposerReference ref) {
@@ -74,12 +84,20 @@ class _ReferencePickerPageState extends State<ReferencePickerPage> {
     });
   }
 
+  void _onTabChanged(ReferenceTab tab) {
+    _searchController.clear();
+    context.read<ReferencePickerCubit>().setTab(tab);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final pickerState = context.watch<ReferencePickerCubit>().state;
+
     // Selected first, then results not already selected.
     final rows = <ComposerReference>[
       ..._selected,
-      ..._results.where((r) => !_selected.any((s) => s.id == r.id)),
+      ...pickerState.results.where((r) => !_selected.any((s) => s.id == r.id)),
     ];
 
     return PopScope(
@@ -115,11 +133,29 @@ class _ReferencePickerPageState extends State<ReferencePickerPage> {
         body: Column(
           children: [
             Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: SegmentedButton<ReferenceTab>(
+                segments: [
+                  ButtonSegment(
+                    value: ReferenceTab.all,
+                    label: Text(l10n.composerReferenceTabAll),
+                  ),
+                  ButtonSegment(
+                    value: ReferenceTab.saved,
+                    label: Text(l10n.composerReferenceTabSaved),
+                  ),
+                ],
+                selected: {pickerState.tab},
+                showSelectedIcon: false,
+                onSelectionChanged: (s) => _onTabChanged(s.first),
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: TextField(
                 controller: _searchController,
                 autofocus: true,
-                onChanged: _runSearch,
+                onChanged: (q) => context.read<ReferencePickerCubit>().search(q),
                 style:
                     const TextStyle(fontSize: 14, color: AppColors.onSurface),
                 decoration: InputDecoration(
@@ -142,11 +178,11 @@ class _ReferencePickerPageState extends State<ReferencePickerPage> {
             Expanded(
               child: rows.isEmpty
                   ? Center(
-                      child: _loading
+                      child: pickerState.loading
                           ? const CircularProgressIndicator(
                               color: AppColors.primary, strokeWidth: 2)
                           : Text(
-                              _query.trim().isEmpty ? widget.searchHint : widget.emptyLabel,
+                              widget.emptyLabel,
                               style: const TextStyle(
                                   color: AppColors.onSurfaceVariant,
                                   fontSize: 14),

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
-import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 
@@ -25,7 +24,6 @@ class ChannelFeedPage extends StatelessWidget {
           create: (_) =>
               ChannelFeedBloc()..add(LoadChannelFeedEvent(channelId)),
         ),
-        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
       ],
       child: _ChannelFeedView(channelId: channelId),
     );
@@ -43,11 +41,39 @@ class _ChannelFeedView extends StatefulWidget {
 class _ChannelFeedViewState extends State<_ChannelFeedView> {
   final _scrollController = ScrollController();
   bool _didScrollToBottom = false;
+  final Set<String> _everVisible = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Reaching the bottom of the list marks every message in the channel read.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 8) {
+      context
+          .read<ChannelFeedBloc>()
+          .add(MarkAllChannelSeenEvent(widget.channelId));
+    }
+  }
+
+  /// Marks a message seen once it has been majority-visible then leaves view.
+  void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    if (info.visibleFraction >= 0.5) {
+      _everVisible.add(eventId);
+    } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      context.read<ChannelFeedBloc>().add(MarkChannelMessageSeenEvent(eventId));
+    }
   }
 
   void _scrollToBottom() {
@@ -60,21 +86,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     }
   }
 
-  Future<void> _toggleFollow(
-    BuildContext ctx,
-    String noteId,
-    String contentPreview,
-    bool isCurrentlyFollowed,
-  ) async {
-    final cubit = ctx.read<FollowedNotesCubit>();
-    if (isCurrentlyFollowed) {
-      await cubit.unfollowNote(noteId);
-    } else {
-      await cubit.followNote(noteId, contentPreview);
-    }
-  }
-
-  void _openThread(BuildContext ctx, ChannelMessageEntity msg, String channelName) {
+  void _openThread(BuildContext ctx, NoteEntity msg, String channelName) {
     final bloc = ctx.read<ChannelFeedBloc>();
     Navigator.pushNamed(ctx, AppRoutes.thread, arguments: msg.id).then((_) {
       // Silent refresh — no loading spinner, scroll position preserved.
@@ -172,8 +184,6 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
               ComposerHost(
                 hintText: l10n.channelMessageHint,
                 isSending: state.isSending,
-                referenceCandidates:
-                    state.messages.map((m) => m.toNoteEntity()).toList(),
                 onSend: (text, refs) =>
                     context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
                           channelId: widget.channelId,
@@ -217,11 +227,8 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
       );
     }
 
-    return BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
-      builder: (ctx, followedState) {
-        final followedIds = followedState.notes.map((n) => n.eventId).toSet();
-        final bloc = ctx.read<ChannelFeedBloc>();
-
+    return Builder(
+      builder: (ctx) {
         return ListView.builder(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
@@ -231,30 +238,14 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           itemCount: state.messages.length,
           itemBuilder: (context, i) {
             final msg = state.messages[i];
-            final isSaved = state.savedIds.contains(msg.id);
-            final isFollowed = followedIds.contains(msg.id);
 
-            return NoteCard(
-              note: msg.toNoteEntity(),
-              profile: state.profiles[msg.authorPubkey],
-              replyCount: msg.cachedReplyCount,
-              isSaved: isSaved,
-              isFollowed: isFollowed,
-              onTap: () => _openThread(ctx, msg, channelName),
-              onSaveTap: () {
-                if (isSaved) {
-                  bloc.add(UnsaveChannelFeedMessageEvent(msg.id));
-                } else {
-                  bloc.add(SaveChannelFeedMessageEvent(msg));
-                }
-              },
-              onFollowTap: () => _toggleFollow(
-                ctx,
-                msg.id,
-                msg.content.length > 80
-                    ? msg.content.substring(0, 80)
-                    : msg.content,
-                isFollowed,
+            return VisibilityDetector(
+              key: ValueKey('chan-${msg.id}'),
+              onVisibilityChanged: (info) => _onMessageVisibility(msg.id, info),
+              child: NoteCard(
+                key: ValueKey(msg.id),
+                note: msg,
+                onTap: () => _openThread(ctx, msg, channelName),
               ),
             );
           },

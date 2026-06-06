@@ -3,14 +3,24 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/unread_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 abstract class PrivateChannelDetailEvent {}
+
+/// A message scrolled past the viewport — delete its unread row.
+class MarkPrivateChannelMessageSeenEvent extends PrivateChannelDetailEvent {
+  final String eventId;
+  MarkPrivateChannelMessageSeenEvent(this.eventId);
+}
+
+/// The user reached the end of the list — mark the whole channel read.
+class MarkAllPrivateChannelSeenEvent extends PrivateChannelDetailEvent {}
 
 class LoadPrivateChannelEvent extends PrivateChannelDetailEvent {
   final String groupId;
@@ -36,7 +46,7 @@ class _PrivateChannelUpdated extends PrivateChannelDetailEvent {
 }
 
 class _PrivateChannelMessagesUpdated extends PrivateChannelDetailEvent {
-  final List<PrivateChannelMessageEntity> messages;
+  final List<NoteEntity> messages;
   _PrivateChannelMessagesUpdated(this.messages);
 }
 
@@ -51,7 +61,7 @@ class PrivateChannelDetailState {
   final String? errorMessage;
   final String groupId;
   final PrivateChannelEntity? channel;
-  final List<PrivateChannelMessageEntity> messages;
+  final List<NoteEntity> messages;
   final List<PrivateChannelJoinRequestEntity> joinRequests;
   final Map<String, ProfileEntity> profiles;
   final bool isAdmin;
@@ -84,7 +94,7 @@ class PrivateChannelDetailState {
     bool? isApproving,
     String? errorMessage,
     PrivateChannelEntity? channel,
-    List<PrivateChannelMessageEntity>? messages,
+    List<NoteEntity>? messages,
     List<PrivateChannelJoinRequestEntity>? joinRequests,
     Map<String, ProfileEntity>? profiles,
     bool? isAdmin,
@@ -116,8 +126,11 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   final GetActiveUserUseCase _getActiveUser;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final GetProfileUseCase _getProfile;
+  final MarkUnreadSeenUseCase _markUnreadSeen;
+  final MarkPrivateChannelSeenUseCase _markPrivateChannelSeen;
+  final Set<String> _markedThisSession = <String>{};
   StreamSubscription<PrivateChannelEntity?>? _channelSubscription;
-  StreamSubscription<List<PrivateChannelMessageEntity>>? _messagesSubscription;
+  StreamSubscription<List<NoteEntity>>? _messagesSubscription;
   StreamSubscription<List<PrivateChannelJoinRequestEntity>>? _joinRequestsSubscription;
   String? _activeUserPubkey;
 
@@ -131,12 +144,16 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     this._getActiveUser,
     this._getActiveUserKeys,
     this._getProfile,
+    this._markUnreadSeen,
+    this._markPrivateChannelSeen,
     @factoryParam String groupId,
   ) : super(PrivateChannelDetailState(groupId: groupId)) {
     on<LoadPrivateChannelEvent>(_onLoad);
     on<SendPrivateChannelMessageEvent>(_onSend);
     on<ApproveJoinRequestEvent>(_onApprove);
     on<LeavePrivateChannelEvent>(_onLeave);
+    on<MarkPrivateChannelMessageSeenEvent>(_onMarkSeen);
+    on<MarkAllPrivateChannelSeenEvent>(_onMarkAllSeen);
     on<_PrivateChannelUpdated>((event, emit) {
       final channel = event.channel;
       if (channel == null) return; // leave/delete is handled via isLeft.
@@ -153,6 +170,21 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
     });
 
     add(LoadPrivateChannelEvent(groupId));
+  }
+
+  Future<void> _onMarkSeen(
+    MarkPrivateChannelMessageSeenEvent event,
+    Emitter<PrivateChannelDetailState> emit,
+  ) async {
+    if (!_markedThisSession.add(event.eventId)) return;
+    await _markUnreadSeen.call(event.eventId);
+  }
+
+  Future<void> _onMarkAllSeen(
+    MarkAllPrivateChannelSeenEvent event,
+    Emitter<PrivateChannelDetailState> emit,
+  ) async {
+    await _markPrivateChannelSeen.call(state.groupId);
   }
 
   Future<void> _onLoad(LoadPrivateChannelEvent event, Emitter<PrivateChannelDetailState> emit) async {
@@ -271,11 +303,11 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
   }
 
   Future<Map<String, ProfileEntity>> _hydrateProfiles(
-    List<PrivateChannelMessageEntity> messages,
+    List<NoteEntity> messages,
   ) async {
     final profiles = Map<String, ProfileEntity>.from(state.profiles);
     final missing = messages
-        .map((m) => m.senderPubkey)
+        .map((m) => m.authorPubkey)
         .toSet()
         .where((k) => !profiles.containsKey(k));
     for (final pubkey in missing) {

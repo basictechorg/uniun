@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
-import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
-import 'package:uniun/features/followed_notes/cubit/followed_notes_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/saved_notes/cubit/saved_notes_cubit.dart';
 import 'package:uniun/features/saved_notes/cubit/saved_notes_state.dart';
@@ -20,7 +18,6 @@ class SavedNotesPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => SavedNotesCubit()..load()),
-        BlocProvider(create: (_) => getIt<FollowedNotesCubit>()..load()),
       ],
       child: const _SavedNotesView(),
     );
@@ -161,11 +158,8 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                             ),
                           ],
                         )
-                      : BlocBuilder<FollowedNotesCubit, FollowedNotesState>(
-                          builder: (ctx, followedState) {
-                            final followedIds = followedState.notes
-                                .map((n) => n.eventId)
-                                .toSet();
+                      : Builder(
+                          builder: (ctx) {
                             return ListView.separated(
                               padding: const EdgeInsets.only(bottom: 24),
                               itemCount: filtered.length,
@@ -177,31 +171,12 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                                 final savedEventIds = state.notes
                                     .map((n) => n.eventId)
                                     .toSet();
-                                final isFollowed =
-                                    followedIds.contains(note.eventId);
                                 return NoteCard(
+                                  key: ValueKey(note.eventId),
                                   note: note.toNoteEntity(
                                     savedEventIds: savedEventIds,
                                     sourceLabel: state.sourceLabels[note.eventId],
                                   ),
-                                  profile: state.profiles[note.authorPubkey],
-                                  replyCount: note.cachedReplyCount,
-                                  isSaved: true,
-                                  isFollowed: isFollowed,
-                                  onFollowTap: () {
-                                    final followCubit =
-                                        ctx.read<FollowedNotesCubit>();
-                                    if (isFollowed) {
-                                      followCubit.unfollowNote(note.eventId);
-                                    } else {
-                                      followCubit.followNote(
-                                        note.eventId,
-                                        note.content.length > 80
-                                            ? note.content.substring(0, 80)
-                                            : note.content,
-                                      );
-                                    }
-                                  },
                                   onTap: () async {
                                     await openEventThread(
                                       ctx,

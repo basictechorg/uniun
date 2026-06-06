@@ -12,8 +12,6 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// Data-source agnostic: callers pass the already-resolved
 /// [root]/[parentNotes]/[mentionedNotes]/[replies] plus the two actions that
 /// differ per surface — [onSendReply] and [onOpenThread].
-///
-/// Requires a `FollowedNotesCubit` in the widget tree (used by the root card).
 class MessageThreadPage extends StatelessWidget {
   const MessageThreadPage({
     super.key,
@@ -28,7 +26,6 @@ class MessageThreadPage extends StatelessWidget {
     this.isSending = false,
     this.appBar,
     this.title,
-    this.referenceCandidates,
   });
 
   final NoteEntity root;
@@ -42,9 +39,6 @@ class MessageThreadPage extends StatelessWidget {
   /// Custom app bar. When null, a default back + [title] bar is shown.
   final PreferredSizeWidget? appBar;
   final String? title;
-
-  /// Notes the composer can reference. When null/empty, the button is hidden.
-  final List<NoteEntity>? referenceCandidates;
 
   /// Posts a reply with the user-picked [mentionRefs]. The caller links it back
   /// to [root] (NIP-10 marker or reference, per surface).
@@ -70,7 +64,6 @@ class MessageThreadPage extends StatelessWidget {
       bottomNavigationBar: ComposerHost(
         hintText: AppLocalizations.of(context)!.threadReplyToThis,
         isSending: isSending,
-        referenceCandidates: referenceCandidates,
         onSend: onSendReply,
       ),
     );

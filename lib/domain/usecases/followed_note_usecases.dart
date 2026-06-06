@@ -60,6 +60,16 @@ class UnfollowNoteUseCase extends UseCase<Either<Failure, Unit>, String> {
   }
 }
 
+// ── WatchIsFollowedUseCase ────────────────────────────────────────────────────
+
+@lazySingleton
+class WatchIsFollowedUseCase {
+  final FollowedNoteRepository _repository;
+  const WatchIsFollowedUseCase(this._repository);
+
+  Stream<bool> call(String eventId) => _repository.watchIsFollowed(eventId);
+}
+
 // ── ClearNewReferencesUseCase ─────────────────────────────────────────────────
 
 @lazySingleton

@@ -1,10 +1,10 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
-import 'package:uniun/data/models/private_channel_message_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_message_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
 import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 
@@ -28,24 +28,24 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   }
 
   @override
-  Future<List<PrivateChannelMessageEntity>> getMessages(String groupId) async {
-    final models = await isar.privateChannelMessageModels
-        .where()
+  Future<List<NoteEntity>> getMessages(String groupId) async {
+    final models = await isar.noteModels
+        .filter()
         .groupIdEqualTo(groupId)
-        .sortByTimestamp()
+        .sortByCreated()
         .findAll();
-    return models.map(_mapMessage).toList();
+    return models.map((m) => m.toDomain()).toList();
   }
 
   @override
-  Stream<List<PrivateChannelMessageEntity>> watchMessages(String groupId) {
-    return isar.privateChannelMessageModels
-        .where()
+  Stream<List<NoteEntity>> watchMessages(String groupId) {
+    return isar.noteModels
+        .filter()
         .groupIdEqualTo(groupId)
-        .sortByTimestamp()
+        .sortByCreated()
         .watch(fireImmediately: true)
         .map((models) {
-      return models.map(_mapMessage).toList();
+      return models.map((m) => m.toDomain()).toList();
     });
   }
 
@@ -103,19 +103,6 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
       name: model.name,
       description: model.description,
       adminPubkey: model.adminPubkey,
-    );
-  }
-
-  PrivateChannelMessageEntity _mapMessage(PrivateChannelMessageModel model) {
-    return PrivateChannelMessageEntity(
-      eventId: model.eventId,
-      groupId: model.groupId,
-      senderPubkey: model.senderPubkey,
-      decryptedContent: model.decryptedContent,
-      timestamp: model.timestamp,
-      eTagRefs: model.eTagRefs,
-      rootEventId: model.rootEventId,
-      replyToEventId: model.replyToEventId,
     );
   }
 

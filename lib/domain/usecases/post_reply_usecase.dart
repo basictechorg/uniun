@@ -6,7 +6,6 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
@@ -19,11 +18,16 @@ class PostReplyParams {
     required this.root,
     required this.content,
     this.mentionRefs = const [],
+    this.sourceOverride,
   });
 
-  final ResolvedNote root;
+  final NoteEntity root;
   final String content;
   final List<String> mentionRefs;
+
+  /// Forces a specific reply transport instead of deriving it from [root].
+  /// Used by the saved-only thread, where replies always post as feed notes.
+  final NoteSource? sourceOverride;
 }
 
 /// Posts a reply to [PostReplyParams.root], routing to the correct transport by
@@ -50,13 +54,14 @@ class PostReplyUseCase {
 
   Future<Either<Failure, Unit>> call(PostReplyParams params) async {
     final root = params.root;
-    final replyToId = root.note.id;
-    final threadRoot = root.note.rootEventId ?? root.note.id;
+    final replyToId = root.id;
+    final threadRoot = root.rootEventId ?? root.id;
+    final source = params.sourceOverride ?? root.replyTransport;
 
     final keysResult = await _getKeys();
     return keysResult.fold((f) => Left(f), (keys) async {
       try {
-        switch (root.source) {
+        switch (source) {
           case NoteSource.feed:
             return _replyToFeed(
               privkeyHex: keys.privkeyHex,
@@ -68,7 +73,7 @@ class PostReplyUseCase {
 
           case NoteSource.channel:
             final r = await _createChannelMessage.call(CreateChannelMessageInput(
-              channelId: root.channelId ?? '',
+              channelId: root.sourceChannelId ?? '',
               content: params.content,
               privateKey: keys.privkeyHex,
               replyToEventId: replyToId,
@@ -78,7 +83,7 @@ class PostReplyUseCase {
 
           case NoteSource.privateChannel:
             await _sendPrivate.execute(
-              groupId: root.groupId ?? '',
+              groupId: root.sourcePrivateGroupId ?? '',
               content: params.content,
               authorPubkey: keys.pubkeyHex,
               privkeyHex: keys.privkeyHex,
@@ -91,9 +96,9 @@ class PostReplyUseCase {
           case NoteSource.dm:
             // The reply goes to the conversation partner: if the root is my own
             // message, that's its receiver; otherwise it's the root's author.
-            final counterparty = root.note.authorPubkey == keys.pubkeyHex
-                ? (root.dmReceiverPubkey ?? root.note.authorPubkey)
-                : root.note.authorPubkey;
+            final counterparty = root.authorPubkey == keys.pubkeyHex
+                ? (root.dmReceiverPubkey ?? root.authorPubkey)
+                : root.authorPubkey;
             return _sendDm.call(SendDmParams(
               otherPubkey: counterparty,
               content: params.content,
@@ -147,7 +152,6 @@ class PostReplyUseCase {
       pTagRefs: const [],
       tTags: const [],
       created: DateTime.fromMillisecondsSinceEpoch(signed.createdAt * 1000),
-      isSeen: true,
       rootEventId: threadRoot,
       replyToEventId: replyToId,
     );

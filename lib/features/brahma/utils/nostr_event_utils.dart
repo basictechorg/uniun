@@ -66,7 +66,6 @@ NoteEntity noteEntityFromEvent({
     pTagRefs: const [],
     tTags: tTags,
     created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
-    isSeen: true,
     rootEventId: rootEventId,
     replyToEventId: replyToEventId,
   );

@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
 
 class GetChannelMessagesInput {
@@ -19,12 +19,12 @@ class GetChannelMessagesInput {
 
 @lazySingleton
 class GetChannelMessagesUseCase extends UseCase<
-    Either<Failure, List<ChannelMessageEntity>>, GetChannelMessagesInput> {
+    Either<Failure, List<NoteEntity>>, GetChannelMessagesInput> {
   final ChannelMessageRepository _repository;
   const GetChannelMessagesUseCase(this._repository);
 
   @override
-  Future<Either<Failure, List<ChannelMessageEntity>>> call(
+  Future<Either<Failure, List<NoteEntity>>> call(
     GetChannelMessagesInput input, {
     bool cached = false,
   }) {
@@ -38,24 +38,24 @@ class GetChannelMessagesUseCase extends UseCase<
 
 @lazySingleton
 class GetChannelMessageByIdUseCase
-    extends UseCase<Either<Failure, ChannelMessageEntity?>, String> {
+    extends UseCase<Either<Failure, NoteEntity?>, String> {
   final ChannelMessageRepository _repository;
   const GetChannelMessageByIdUseCase(this._repository);
 
   @override
-  Future<Either<Failure, ChannelMessageEntity?>> call(String input,
+  Future<Either<Failure, NoteEntity?>> call(String input,
           {bool cached = false}) =>
       _repository.getMessageByEventId(input);
 }
 
 @lazySingleton
 class GetChannelMessageRepliesUseCase
-    extends UseCase<Either<Failure, List<ChannelMessageEntity>>, String> {
+    extends UseCase<Either<Failure, List<NoteEntity>>, String> {
   final ChannelMessageRepository _repository;
   const GetChannelMessageRepliesUseCase(this._repository);
 
   @override
-  Future<Either<Failure, List<ChannelMessageEntity>>> call(String input,
+  Future<Either<Failure, List<NoteEntity>>> call(String input,
           {bool cached = false}) =>
       _repository.getChannelMessageReplies(input);
 }

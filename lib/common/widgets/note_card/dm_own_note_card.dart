@@ -1,72 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/entities/profile/profile_entity.dart';
 
-class DmOwnNoteCard extends StatefulWidget {
+/// Outgoing (own) DM bubble. Self-contained: owns profile, saved, and follow
+/// via an internal [NoteCardCubit] (follow state is watched reactively from
+/// Isar).
+class DmOwnNoteCard extends StatelessWidget {
   const DmOwnNoteCard({
     super.key,
     required this.note,
     this.onTap,
-    this.profile,
-    this.replyCount = 0,
-    this.isFollowed = false,
-    this.isSaved = false,
-    this.onFollowTap,
-    this.onSaveTap,
   });
 
   final NoteEntity note;
   final VoidCallback? onTap;
-  final ProfileEntity? profile;
-  final int replyCount;
-  final bool isFollowed;
-  final bool isSaved;
-  final VoidCallback? onFollowTap;
-  final VoidCallback? onSaveTap;
-
-  @override
-  State<DmOwnNoteCard> createState() => _DmOwnNoteCardState();
-}
-
-class _DmOwnNoteCardState extends State<DmOwnNoteCard> {
-  late bool _isSaved;
-
-  @override
-  void initState() {
-    super.initState();
-    _isSaved = widget.isSaved;
-  }
-
-  @override
-  void didUpdateWidget(DmOwnNoteCard old) {
-    super.didUpdateWidget(old);
-    if (old.isSaved != widget.isSaved) _isSaved = widget.isSaved;
-  }
 
   @override
   Widget build(BuildContext context) {
-    final profile = widget.profile;
+    return BlocProvider(
+      create: (_) => getIt<NoteCardCubit>(param1: note),
+      child: _DmOwnNoteCardView(note: note, onTap: onTap),
+    );
+  }
+}
+
+class _DmOwnNoteCardView extends StatelessWidget {
+  const _DmOwnNoteCardView({
+    required this.note,
+    this.onTap,
+  });
+
+  final NoteEntity note;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.watch<NoteCardCubit>();
+    final cardState = cubit.state;
+    final profile = cardState.profile;
+
+    final isFollowed = cardState.isFollowed;
+
     final displayName = profile?.name ??
         profile?.username ??
-        _shortName(widget.note.authorPubkey);
+        _shortName(note.authorPubkey);
 
-    final mentionRefs = widget.note.eTagRefs
-        .where((id) =>
-            id != widget.note.rootEventId && id != widget.note.replyToEventId)
+    final mentionRefs = note.eTagRefs
+        .where((id) => id != note.rootEventId && id != note.replyToEventId)
         .toSet()
         .length;
-    final hasParent = widget.note.rootEventId != null ||
-        widget.note.replyToEventId != null;
+    final hasParent =
+        note.rootEventId != null || note.replyToEventId != null;
     final refCount = mentionRefs + (hasParent ? 1 : 0);
 
     const onBubble = AppColors.onPrimary;
     final onBubbleMuted = AppColors.onPrimary.withValues(alpha: 0.75);
 
     return InkWell(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: const BoxDecoration(
@@ -108,7 +104,7 @@ class _DmOwnNoteCardState extends State<DmOwnNoteCard> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          formatTimeAgo(widget.note.created),
+                          formatTimeAgo(note.created),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -119,19 +115,19 @@ class _DmOwnNoteCardState extends State<DmOwnNoteCard> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      widget.note.content,
+                      note.content,
                       style: const TextStyle(
                         fontSize: 15,
                         color: onBubble,
                         height: 1.55,
                       ),
                     ),
-                    if (widget.note.tTags.isNotEmpty) ...[
+                    if (note.tTags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
-                        children: widget.note.tTags
+                        children: note.tTags
                             .take(3)
                             .map(
                               (t) => Text(
@@ -152,32 +148,29 @@ class _DmOwnNoteCardState extends State<DmOwnNoteCard> {
                       children: [
                         _ActionChip(
                           icon: Icons.chat_bubble_outline_rounded,
-                          label: '${widget.replyCount}',
+                          label: '${note.cachedReplyCount}',
                           color: onBubbleMuted,
-                          onTap: widget.onTap ?? () {},
+                          onTap: onTap ?? () {},
                         ),
                         _ActionChip(
                           icon: Icons.link_rounded,
                           label: '$refCount',
                           color: onBubbleMuted,
-                          onTap: widget.onTap ?? () {},
+                          onTap: onTap ?? () {},
                         ),
                         _ActionChip(
-                          icon: _isSaved
+                          icon: cardState.isSaved
                               ? Icons.bookmark_rounded
                               : Icons.bookmark_border_rounded,
                           color: onBubble,
-                          onTap: () {
-                            setState(() => _isSaved = !_isSaved);
-                            widget.onSaveTap?.call();
-                          },
+                          onTap: () => cubit.toggleSave(),
                         ),
                         _ActionChip(
-                          icon: widget.isFollowed
+                          icon: isFollowed
                               ? Icons.notifications
                               : Icons.notifications_none,
                           color: onBubble,
-                          onTap: widget.onFollowTap ?? () {},
+                          onTap: () => cubit.toggleFollow(),
                         ),
                       ],
                     ),
@@ -187,7 +180,7 @@ class _DmOwnNoteCardState extends State<DmOwnNoteCard> {
             ),
             const SizedBox(width: 12),
             UserAvatar(
-              seed: widget.note.authorPubkey,
+              seed: note.authorPubkey,
               photoUrl: profile?.avatarUrl,
               size: 40,
               borderRadius: 20,

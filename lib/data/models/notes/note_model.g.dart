@@ -22,39 +22,50 @@ const NoteModelSchema = CollectionSchema(
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
+    r'channelId': PropertySchema(
+      id: 1,
+      name: r'channelId',
+      type: IsarType.string,
+    ),
+    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
+    r'conversationId': PropertySchema(
+      id: 3,
+      name: r'conversationId',
+      type: IsarType.long,
+    ),
     r'created': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
-    r'isSeen': PropertySchema(id: 5, name: r'isSeen', type: IsarType.bool),
+    r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
+    r'groupId': PropertySchema(id: 7, name: r'groupId', type: IsarType.string),
+    r'kind': PropertySchema(id: 8, name: r'kind', type: IsarType.long),
     r'pTagRefs': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 9, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 10, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 11, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 12, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 13, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 14, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -90,6 +101,58 @@ const NoteModelSchema = CollectionSchema(
           name: r'authorPubkey',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+      ],
+    ),
+    r'kind': IndexSchema(
+      id: 1484550194077596484,
+      name: r'kind',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'kind',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+      ],
+    ),
+    r'channelId': IndexSchema(
+      id: -8352446570702114471,
+      name: r'channelId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'channelId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+    r'groupId': IndexSchema(
+      id: -8523216633229774932,
+      name: r'groupId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'groupId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
+    r'conversationId': IndexSchema(
+      id: 2945908346256754300,
+      name: r'conversationId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'conversationId',
+          type: IndexType.value,
+          caseSensitive: false,
         ),
       ],
     ),
@@ -132,24 +195,6 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
-    r'isSeen_created': IndexSchema(
-      id: -4335404229533762258,
-      name: r'isSeen_created',
-      unique: false,
-      replace: false,
-      properties: [
-        IndexPropertySchema(
-          name: r'isSeen',
-          type: IndexType.value,
-          caseSensitive: false,
-        ),
-        IndexPropertySchema(
-          name: r'created',
-          type: IndexType.value,
-          caseSensitive: false,
-        ),
-      ],
-    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -167,6 +212,12 @@ int _noteModelEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.authorPubkey.length * 3;
+  {
+    final value = object.channelId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.eTagRefs.length * 3;
   {
@@ -176,6 +227,12 @@ int _noteModelEstimateSize(
     }
   }
   bytesCount += 3 + object.eventId.length * 3;
+  {
+    final value = object.groupId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.pTagRefs.length * 3;
   {
     for (var i = 0; i < object.pTagRefs.length; i++) {
@@ -220,18 +277,21 @@ void _noteModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.created);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeString(offsets[4], object.eventId);
-  writer.writeBool(offsets[5], object.isSeen);
-  writer.writeStringList(offsets[6], object.pTagRefs);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeString(offsets[9], object.sig);
-  writer.writeString(offsets[10], object.subject);
-  writer.writeStringList(offsets[11], object.tTags);
-  writer.writeString(offsets[12], object.type.name);
+  writer.writeString(offsets[1], object.channelId);
+  writer.writeString(offsets[2], object.content);
+  writer.writeLong(offsets[3], object.conversationId);
+  writer.writeDateTime(offsets[4], object.created);
+  writer.writeStringList(offsets[5], object.eTagRefs);
+  writer.writeString(offsets[6], object.eventId);
+  writer.writeString(offsets[7], object.groupId);
+  writer.writeLong(offsets[8], object.kind);
+  writer.writeStringList(offsets[9], object.pTagRefs);
+  writer.writeString(offsets[10], object.replyToEventId);
+  writer.writeString(offsets[11], object.rootEventId);
+  writer.writeString(offsets[12], object.sig);
+  writer.writeString(offsets[13], object.subject);
+  writer.writeStringList(offsets[14], object.tTags);
+  writer.writeString(offsets[15], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -242,19 +302,22 @@ NoteModel _noteModelDeserialize(
 ) {
   final object = NoteModel(
     authorPubkey: reader.readString(offsets[0]),
-    content: reader.readString(offsets[1]),
-    created: reader.readDateTime(offsets[2]),
-    eTagRefs: reader.readStringList(offsets[3]) ?? [],
-    eventId: reader.readString(offsets[4]),
-    isSeen: reader.readBool(offsets[5]),
-    pTagRefs: reader.readStringList(offsets[6]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[7]),
-    rootEventId: reader.readStringOrNull(offsets[8]),
-    sig: reader.readString(offsets[9]),
-    subject: reader.readStringOrNull(offsets[10]),
-    tTags: reader.readStringList(offsets[11]) ?? [],
+    channelId: reader.readStringOrNull(offsets[1]),
+    content: reader.readString(offsets[2]),
+    conversationId: reader.readLongOrNull(offsets[3]),
+    created: reader.readDateTime(offsets[4]),
+    eTagRefs: reader.readStringList(offsets[5]) ?? [],
+    eventId: reader.readString(offsets[6]),
+    groupId: reader.readStringOrNull(offsets[7]),
+    kind: reader.readLongOrNull(offsets[8]) ?? kNoteKind,
+    pTagRefs: reader.readStringList(offsets[9]) ?? [],
+    replyToEventId: reader.readStringOrNull(offsets[10]),
+    rootEventId: reader.readStringOrNull(offsets[11]),
+    sig: reader.readString(offsets[12]),
+    subject: reader.readStringOrNull(offsets[13]),
+    tTags: reader.readStringList(offsets[14]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[12])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[15])] ??
         NoteType.text,
   );
   object.id = id;
@@ -271,28 +334,34 @@ P _noteModelDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 4:
       return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readLongOrNull(offset)) as P;
+    case 4:
+      return (reader.readDateTime(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
-    case 6:
       return (reader.readStringList(offset) ?? []) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 15:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -391,18 +460,26 @@ extension NoteModelQueryWhereSort
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyCreated() {
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'created'),
+        const IndexWhereClause.any(indexName: r'kind'),
       );
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyIsSeenCreated() {
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyConversationId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        const IndexWhereClause.any(indexName: r'isSeen_created'),
+        const IndexWhereClause.any(indexName: r'conversationId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyCreated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'created'),
       );
     });
   }
@@ -586,6 +663,386 @@ extension NoteModelQueryWhere
               ),
             );
       }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> kindEqualTo(int kind) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'kind', value: [kind]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> kindNotEqualTo(
+    int kind,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'kind',
+                lower: [],
+                upper: [kind],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'kind',
+                lower: [kind],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'kind',
+                lower: [kind],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'kind',
+                lower: [],
+                upper: [kind],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> kindGreaterThan(
+    int kind, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'kind',
+          lower: [kind],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> kindLessThan(
+    int kind, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'kind',
+          lower: [],
+          upper: [kind],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> kindBetween(
+    int lowerKind,
+    int upperKind, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'kind',
+          lower: [lowerKind],
+          includeLower: includeLower,
+          upper: [upperKind],
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'channelId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'channelId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdEqualTo(
+    String? channelId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'channelId', value: [channelId]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdNotEqualTo(
+    String? channelId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [],
+                upper: [channelId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [channelId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [channelId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [],
+                upper: [channelId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> groupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'groupId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> groupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'groupId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> groupIdEqualTo(
+    String? groupId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'groupId', value: [groupId]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> groupIdNotEqualTo(
+    String? groupId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [],
+                upper: [groupId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [groupId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [groupId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [],
+                upper: [groupId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> conversationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'conversationId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  conversationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'conversationId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> conversationIdEqualTo(
+    int? conversationId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'conversationId',
+          value: [conversationId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  conversationIdNotEqualTo(int? conversationId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'conversationId',
+                lower: [],
+                upper: [conversationId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'conversationId',
+                lower: [conversationId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'conversationId',
+                lower: [conversationId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'conversationId',
+                lower: [],
+                upper: [conversationId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  conversationIdGreaterThan(int? conversationId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'conversationId',
+          lower: [conversationId],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> conversationIdLessThan(
+    int? conversationId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'conversationId',
+          lower: [],
+          upper: [conversationId],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> conversationIdBetween(
+    int? lowerConversationId,
+    int? upperConversationId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'conversationId',
+          lower: [lowerConversationId],
+          includeLower: includeLower,
+          upper: [upperConversationId],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
@@ -849,173 +1306,6 @@ extension NoteModelQueryWhere
       );
     });
   }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenEqualToAnyCreated(
-    bool isSeen,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'isSeen_created', value: [isSeen]),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenNotEqualToAnyCreated(bool isSeen) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [],
-                upper: [isSeen],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                includeLower: false,
-                upper: [],
-              ),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [],
-                upper: [isSeen],
-                includeUpper: false,
-              ),
-            );
-      }
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> isSeenCreatedEqualTo(
-    bool isSeen,
-    DateTime created,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(
-          indexName: r'isSeen_created',
-          value: [isSeen, created],
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedNotEqualTo(bool isSeen, DateTime created) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                upper: [isSeen, created],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen, created],
-                includeLower: false,
-                upper: [isSeen],
-              ),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen, created],
-                includeLower: false,
-                upper: [isSeen],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'isSeen_created',
-                lower: [isSeen],
-                upper: [isSeen, created],
-                includeUpper: false,
-              ),
-            );
-      }
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedGreaterThan(
-    bool isSeen,
-    DateTime created, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen, created],
-          includeLower: include,
-          upper: [isSeen],
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedLessThan(
-    bool isSeen,
-    DateTime created, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen],
-          upper: [isSeen, created],
-          includeUpper: include,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
-  isSeenEqualToCreatedBetween(
-    bool isSeen,
-    DateTime lowerCreated,
-    DateTime upperCreated, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'isSeen_created',
-          lower: [isSeen, lowerCreated],
-          includeLower: includeLower,
-          upper: [isSeen, upperCreated],
-          includeUpper: includeUpper,
-        ),
-      );
-    });
-  }
 }
 
 extension NoteModelQueryFilter
@@ -1164,6 +1454,171 @@ extension NoteModelQueryFilter
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'channelId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  channelIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'channelId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  channelIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'channelId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'channelId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'channelId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'channelId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  channelIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'channelId', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> contentEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1307,6 +1762,79 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'content', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'conversationId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'conversationId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'conversationId', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'conversationId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'conversationId',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  conversationIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'conversationId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -1710,6 +2238,169 @@ extension NoteModelQueryFilter
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'groupId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'groupId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'groupId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'groupId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'groupId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'groupId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  groupIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'groupId', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> idEqualTo(
     Id value,
   ) {
@@ -1769,12 +2460,61 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> isSeenEqualTo(
-    bool value,
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> kindEqualTo(
+    int value,
   ) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'isSeen', value: value),
+        FilterCondition.equalTo(property: r'kind', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> kindGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'kind',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> kindLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'kind',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> kindBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'kind',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
       );
     });
   }
@@ -2968,6 +3708,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -2977,6 +3729,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByContentDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByConversationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'conversationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByConversationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'conversationId', Sort.desc);
     });
   }
 
@@ -3004,15 +3768,27 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByIsSeen() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.asc);
+      return query.addSortBy(r'groupId', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByIsSeenDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.desc);
+      return query.addSortBy(r'groupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByKindDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
@@ -3091,6 +3867,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByChannelId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByChannelIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'channelId', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -3100,6 +3888,18 @@ extension NoteModelQuerySortThenBy
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByContentDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByConversationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'conversationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByConversationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'conversationId', Sort.desc);
     });
   }
 
@@ -3127,6 +3927,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'groupId', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -3139,15 +3951,15 @@ extension NoteModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByIsSeen() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByKind() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.asc);
+      return query.addSortBy(r'kind', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByIsSeenDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByKindDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isSeen', Sort.desc);
+      return query.addSortBy(r'kind', Sort.desc);
     });
   }
 
@@ -3222,11 +4034,25 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByChannelId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'channelId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByContent({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'content', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByConversationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'conversationId');
     });
   }
 
@@ -3250,9 +4076,17 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByIsSeen() {
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByGroupId({
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isSeen');
+      return query.addDistinctBy(r'groupId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByKind() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'kind');
     });
   }
 
@@ -3326,9 +4160,21 @@ extension NoteModelQueryProperty
     });
   }
 
+  QueryBuilder<NoteModel, String?, QQueryOperations> channelIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'channelId');
+    });
+  }
+
   QueryBuilder<NoteModel, String, QQueryOperations> contentProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'content');
+    });
+  }
+
+  QueryBuilder<NoteModel, int?, QQueryOperations> conversationIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'conversationId');
     });
   }
 
@@ -3350,9 +4196,15 @@ extension NoteModelQueryProperty
     });
   }
 
-  QueryBuilder<NoteModel, bool, QQueryOperations> isSeenProperty() {
+  QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isSeen');
+      return query.addPropertyName(r'groupId');
+    });
+  }
+
+  QueryBuilder<NoteModel, int, QQueryOperations> kindProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'kind');
     });
   }
 

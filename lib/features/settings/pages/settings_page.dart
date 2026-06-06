@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
@@ -74,7 +75,10 @@ class _SettingsContent extends StatelessWidget {
               // ── AI · Shiv ─────────────────────────────────────────────────
               SettingsSectionLabel(
                 l10n.settingsAiShiv,
-                icon: Icons.smart_toy_outlined,
+                leading: const DropIcon(
+                  size: 14,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               const AICard(),

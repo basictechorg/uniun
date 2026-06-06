@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/channel_message_model.dart';
-import 'package:uniun/data/models/feed_read_state_model.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/datasources/feed_read_state_store.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
-import 'package:uniun/data/models/private_channel_message_model.dart';
-import 'package:uniun/domain/entities/channel_message/channel_message_entity.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/feed_repository.dart';
 import 'package:uniun/domain/repositories/followed_user_repository.dart';
@@ -24,6 +22,7 @@ class FeedRepositoryImpl extends FeedRepository {
   final SourceLabelRepository _sourceLabels;
   final FollowedUserRepository _follows;
   final UserRepository _users;
+  final FeedReadStateStore _feedReadState;
 
   FeedRepositoryImpl({
     required this.isar,
@@ -31,14 +30,16 @@ class FeedRepositoryImpl extends FeedRepository {
     required SourceLabelRepository sourceLabels,
     required FollowedUserRepository follows,
     required UserRepository users,
+    required FeedReadStateStore feedReadState,
   })  : _relations = relations,
         _sourceLabels = sourceLabels,
         _follows = follows,
-        _users = users;
+        _users = users,
+        _feedReadState = feedReadState;
 
   /// Author allow-list for Kind 1 feed notes: own pubkey + everyone followed.
-  /// Empty result = effectively-impossible filter (no notes shown) — but in
-  /// practice we always have at least the own pubkey here once a user is
+  /// Empty result = effectively-impossible filter (no Kind 1 notes shown) — but
+  /// in practice we always have at least the own pubkey here once a user is
   /// signed in, so the empty-state UI handles the no-content case upstream.
   Future<List<String>> _allowedAuthors() async {
     final user = await _users.getActiveUser();
@@ -53,14 +54,10 @@ class FeedRepositoryImpl extends FeedRepository {
   @override
   Future<Either<Failure, DateTime>> getOrInitFeedLoadedAt() async {
     try {
-      final row = await isar.feedReadStateModels.get(0);
-      if (row != null) return Right(row.feedLoadedAt);
+      final existing = _feedReadState.loadedAt;
+      if (existing != null) return Right(existing);
       final now = DateTime.now();
-      await isar.writeTxn(() async {
-        await isar.feedReadStateModels.put(
-          FeedReadStateModel()..feedLoadedAt = now,
-        );
-      });
+      await _feedReadState.setLoadedAt(now);
       return Right(now);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -70,11 +67,7 @@ class FeedRepositoryImpl extends FeedRepository {
   @override
   Future<Either<Failure, Unit>> setFeedLoadedAt(DateTime ts) async {
     try {
-      await isar.writeTxn(() async {
-        await isar.feedReadStateModels.put(
-          FeedReadStateModel()..feedLoadedAt = ts,
-        );
-      });
+      await _feedReadState.setLoadedAt(ts);
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -91,11 +84,13 @@ class FeedRepositoryImpl extends FeedRepository {
   }) async {
     try {
       final authors = await _allowedAuthors();
-      final notes = await _queryUnseenNotes(loadedAt, limit, before, authors);
-      final channelMsgs = await _queryUnseenChannelMessages(loadedAt, limit, before);
-      final privateMsgs = await _queryUnseenPrivateMessages(loadedAt, limit, before);
-      final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
-      return Right(merged);
+      final rows = await _queueRows(
+        loadedAt: loadedAt,
+        limit: limit,
+        before: before,
+        authors: authors,
+      );
+      return Right(await _toEntities(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -108,215 +103,145 @@ class FeedRepositoryImpl extends FeedRepository {
   }) async {
     try {
       final authors = await _allowedAuthors();
-      final notes = await _querySeenNotes(limit, before, authors);
-      final channelMsgs = await _querySeenChannelMessages(limit, before);
-      final privateMsgs = await _querySeenPrivateMessages(limit, before);
-      final merged = await _merge(notes, channelMsgs, privateMsgs, limit);
-      return Right(merged);
+      final rows = await _seenRows(
+        limit: limit,
+        before: before,
+        authors: authors,
+      );
+      return Right(await _toEntities(rows));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
-  Future<List<NoteModel>> _queryUnseenNotes(
-    DateTime loadedAt,
-    int limit,
+  /// Queue bucket — unread feed-eligible notes created at-or-before [loadedAt].
+  /// Served from the `UnreadNote` collection (indexed) then hydrated from the
+  /// `Note` collection. Feed-eligible kinds: Kind 1 (gated to [authors]),
+  /// Kind 42 public channel, Kind 9023 private channel — re-filtered live so a
+  /// follow/unfollow takes effect immediately. DMs (14/15) never appear.
+  Future<List<NoteModel>> _queueRows({
+    required DateTime loadedAt,
+    required int limit,
     DateTime? before,
-    List<String> authors,
-  ) async {
-    if (authors.isEmpty) return const [];
-    final q = isar.noteModels
+    required List<String> authors,
+  }) async {
+    var q = isar.unreadNoteModels
         .filter()
-        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
-        .and()
-        .isSeenEqualTo(false)
+        .group((g) => g
+            .group((k1) => k1
+                .kindEqualTo(kNoteKind)
+                .and()
+                .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+            .or()
+            .kindEqualTo(kChannelMessageKind)
+            .or()
+            .kindEqualTo(kPrivateChannelKind))
         .and()
         .createdLessThan(loadedAt, include: true);
     if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
+      q = q.and().createdLessThan(before, include: true);
     }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
+    final unreadRows = await q.sortByCreatedDesc().limit(limit).findAll();
+    if (unreadRows.isEmpty) return const [];
 
-  Future<List<NoteModel>> _querySeenNotes(
-    int limit,
-    DateTime? before,
-    List<String> authors,
-  ) async {
-    if (authors.isEmpty) return const [];
-    final q = isar.noteModels
+    final ids = unreadRows.map((r) => r.eventId).toList();
+    final notes = await isar.noteModels
         .filter()
-        .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
-        .and()
-        .isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<ChannelMessageModel>> _queryUnseenChannelMessages(
-    DateTime loadedAt,
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.channelMessageModels
-        .filter()
-        .isSeenEqualTo(false)
-        .and()
-        .createdLessThan(loadedAt, include: true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<ChannelMessageModel>> _querySeenChannelMessages(
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.channelMessageModels.filter().isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .createdLessThan(before, include: true)
-          .sortByCreatedDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByCreatedDesc().limit(limit).findAll();
-  }
-
-  Future<List<PrivateChannelMessageModel>> _queryUnseenPrivateMessages(
-    DateTime loadedAt,
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.privateChannelMessageModels
-        .filter()
-        .isSeenEqualTo(false)
-        .and()
-        .timestampLessThan(loadedAt, include: true);
-    if (before != null) {
-      return q
-          .and()
-          .timestampLessThan(before, include: true)
-          .sortByTimestampDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByTimestampDesc().limit(limit).findAll();
-  }
-
-  Future<List<PrivateChannelMessageModel>> _querySeenPrivateMessages(
-    int limit,
-    DateTime? before,
-  ) async {
-    final q = isar.privateChannelMessageModels.filter().isSeenEqualTo(true);
-    if (before != null) {
-      return q
-          .and()
-          .timestampLessThan(before, include: true)
-          .sortByTimestampDesc()
-          .limit(limit + 1)
-          .findAll();
-    }
-    return q.sortByTimestampDesc().limit(limit).findAll();
-  }
-
-  /// Three-way merge by `created` desc → truncate → enrich.
-  Future<List<NoteEntity>> _merge(
-    List<NoteModel> notes,
-    List<ChannelMessageModel> msgs,
-    List<PrivateChannelMessageModel> privateMsgs,
-    int limit,
-  ) async {
-    final items = <_FeedItem>[
-      for (final n in notes) _FeedItem(n.created, _NoteSrc(n)),
-      for (final m in msgs) _FeedItem(m.created, _PublicMsgSrc(m)),
-      for (final p in privateMsgs) _FeedItem(p.timestamp, _PrivateMsgSrc(p)),
-    ]..sort((a, b) => b.created.compareTo(a.created));
-
-    final truncated = items.length > limit ? items.sublist(0, limit) : items;
-    if (truncated.isEmpty) return const [];
-
-    // Batch-resolve labels via the shared repo (same code path as the
-    // saved-notes cubit uses) so labels look identical everywhere.
-    final labels = await _sourceLabels.resolveMany([
-      for (final i in truncated)
-        if (i.source is _PublicMsgSrc)
-          (
-            eventId: (i.source as _PublicMsgSrc).model.eventId,
-            channelId: (i.source as _PublicMsgSrc).model.channelId,
-            groupId: null,
-          )
-        else if (i.source is _PrivateMsgSrc)
-          (
-            eventId: (i.source as _PrivateMsgSrc).model.eventId,
-            channelId: null,
-            groupId: (i.source as _PrivateMsgSrc).model.groupId,
-          ),
-    ]);
-
+        .anyOf(ids, (qq, id) => qq.eventIdEqualTo(id))
+        .findAll();
+    final byId = {for (final n in notes) n.eventId: n};
+    // Preserve the unread rows' created-desc ordering.
     return [
-      for (final item in truncated)
-        await _toEntityWithCounts(item.source, labels),
+      for (final r in unreadRows)
+        if (byId[r.eventId] != null) byId[r.eventId]!,
     ];
   }
 
-  Future<NoteEntity> _toEntityWithCounts(
-    _Source src,
-    Map<String, String> labels,
-  ) async {
-    switch (src) {
-      case _NoteSrc(:final model):
-        return model.toDomain().copyWith(
-              cachedReplyCount: await _relations.replyCount(model.eventId),
-              referenceCount: await _relations.referenceCount(model.eventId),
-            );
-      case _PublicMsgSrc(:final model):
-        final base = model.toDomain().copyWith(
-              cachedReplyCount: await _relations.replyCount(model.eventId),
-              referenceCount: await _relations.referenceCount(model.eventId),
-            );
-        return base.toNoteEntity().copyWith(
-              sourceLabel: labels[model.eventId],
-            );
-      case _PrivateMsgSrc(:final model):
-        return NoteEntity(
-          id: model.eventId,
-          sig: '',
-          authorPubkey: model.senderPubkey,
-          content: model.decryptedContent,
-          type: NoteType.text,
-          eTagRefs: model.eTagRefs,
-          pTagRefs: model.pTagRefs,
-          tTags: const [],
-          created: model.timestamp,
-          isSeen: model.isSeen,
-          rootEventId: model.rootEventId,
-          replyToEventId: model.replyToEventId,
-          cachedReplyCount: await _relations.replyCount(model.eventId),
-          referenceCount: await _relations.referenceCount(model.eventId),
-          sourcePrivateGroupId: model.groupId,
-          sourceLabel: labels[model.eventId],
-        );
+  /// Seen bucket — feed-eligible notes that have NO unread row, `created` desc.
+  /// Isar can't anti-join across collections, so we page the `Note` collection
+  /// and drop candidates present in the (small) feed-eligible unread id set,
+  /// over-fetching and looping so a run of unread notes never short-circuits
+  /// the bucket into a false "exhausted".
+  Future<List<NoteModel>> _seenRows({
+    required int limit,
+    DateTime? before,
+    required List<String> authors,
+  }) async {
+    final out = <NoteModel>[];
+    final addedIds = <String>{};
+    Set<String>? unreadIds;
+    DateTime? cursor = before;
+
+    while (out.length < limit) {
+      var q = isar.noteModels.filter().group((g) => g
+          .group((k1) => k1
+              .kindEqualTo(kNoteKind)
+              .and()
+              .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+          .or()
+          .kindEqualTo(kChannelMessageKind)
+          .or()
+          .kindEqualTo(kPrivateChannelKind));
+      if (cursor != null) {
+        q = q.and().createdLessThan(cursor, include: true);
+      }
+      final candidates =
+          await q.sortByCreatedDesc().limit(limit * 2).findAll();
+      if (candidates.isEmpty) break;
+
+      unreadIds ??= await _feedEligibleUnreadIds(authors);
+      for (final c in candidates) {
+        if (!unreadIds.contains(c.eventId) && addedIds.add(c.eventId)) {
+          out.add(c);
+          if (out.length == limit) break;
+        }
+      }
+
+      final nextCursor = candidates.last.created;
+      final progressed = cursor == null || nextCursor.isBefore(cursor);
+      cursor = nextCursor;
+      // Source exhausted, or timestamps stopped advancing (degenerate boundary).
+      if (candidates.length < limit * 2 || !progressed) break;
     }
+    return out;
+  }
+
+  /// All feed-eligible unread event ids (used to exclude unread notes from the
+  /// seen bucket). Small set — only currently-unread notes.
+  Future<Set<String>> _feedEligibleUnreadIds(List<String> authors) async {
+    final ids = await isar.unreadNoteModels
+        .filter()
+        .group((g) => g
+            .group((k1) => k1
+                .kindEqualTo(kNoteKind)
+                .and()
+                .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+            .or()
+            .kindEqualTo(kChannelMessageKind)
+            .or()
+            .kindEqualTo(kPrivateChannelKind))
+        .eventIdProperty()
+        .findAll();
+    return ids.toSet();
+  }
+
+  /// Map rows → NoteEntity, attaching live reply/reference counts (edge table)
+  /// and channel/group source labels (shared [SourceLabelRepository]).
+  Future<List<NoteEntity>> _toEntities(List<NoteModel> rows) async {
+    if (rows.isEmpty) return const [];
+    final labels = await _sourceLabels.resolveMany([
+      for (final m in rows)
+        if (m.channelId != null || m.groupId != null)
+          (eventId: m.eventId, channelId: m.channelId, groupId: m.groupId),
+    ]);
+    return [
+      for (final m in rows)
+        m.toDomain().copyWith(
+              cachedReplyCount: await _relations.replyCount(m.eventId),
+              referenceCount: await _relations.referenceCount(m.eventId),
+              sourceLabel: labels[m.eventId],
+            ),
+    ];
   }
 
   // ── Banner: live count of new arrivals ─────────────────────────────────────
@@ -328,44 +253,32 @@ class FeedRepositoryImpl extends FeedRepository {
     Future<void> push() async {
       try {
         final authors = await _allowedAuthors();
-        final n = authors.isEmpty
-            ? 0
-            : await isar.noteModels
-                .filter()
-                .anyOf(authors, (q, a) => q.authorPubkeyEqualTo(a))
-                .and()
-                .isSeenEqualTo(false)
-                .and()
-                .createdGreaterThan(loadedAt)
-                .count();
-        final m = await isar.channelMessageModels
+        final n = await isar.unreadNoteModels
             .filter()
-            .isSeenEqualTo(false)
+            .group((g) => g
+                .group((k1) => k1
+                    .kindEqualTo(kNoteKind)
+                    .and()
+                    .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+                .or()
+                .kindEqualTo(kChannelMessageKind)
+                .or()
+                .kindEqualTo(kPrivateChannelKind))
             .and()
             .createdGreaterThan(loadedAt)
             .count();
-        final p = await isar.privateChannelMessageModels
-            .filter()
-            .isSeenEqualTo(false)
-            .and()
-            .timestampGreaterThan(loadedAt)
-            .count();
-        if (!controller.isClosed) controller.add(n + m + p);
+        if (!controller.isClosed) controller.add(n);
       } catch (_) {
         if (!controller.isClosed) controller.add(0);
       }
     }
 
-    final notesSub = isar.noteModels.watchLazy().listen((_) => push());
-    final msgsSub = isar.channelMessageModels.watchLazy().listen((_) => push());
-    final privSub =
-        isar.privateChannelMessageModels.watchLazy().listen((_) => push());
+    final notesSub =
+        isar.unreadNoteModels.watchLazy().listen((_) => push());
     push();
 
     controller.onCancel = () async {
       await notesSub.cancel();
-      await msgsSub.cancel();
-      await privSub.cancel();
     };
 
     return controller.stream;
@@ -377,63 +290,14 @@ class FeedRepositoryImpl extends FeedRepository {
   Future<Either<Failure, Unit>> markSeen(String eventId) async {
     try {
       await isar.writeTxn(() async {
-        final note = await isar.noteModels
-            .where()
+        await isar.unreadNoteModels
+            .filter()
             .eventIdEqualTo(eventId)
-            .findFirst();
-        if (note != null && !note.isSeen) {
-          note.isSeen = true;
-          await isar.noteModels.put(note);
-          return;
-        }
-        final msg = await isar.channelMessageModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (msg != null && !msg.isSeen) {
-          msg.isSeen = true;
-          await isar.channelMessageModels.put(msg);
-          return;
-        }
-        final priv = await isar.privateChannelMessageModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (priv != null && !priv.isSeen) {
-          priv.isSeen = true;
-          await isar.privateChannelMessageModels.put(priv);
-        }
+            .deleteAll();
       });
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
-}
-
-// ── Internal tagged union for merge sort ─────────────────────────────────────
-
-sealed class _Source {
-  const _Source();
-}
-
-class _NoteSrc extends _Source {
-  final NoteModel model;
-  const _NoteSrc(this.model);
-}
-
-class _PublicMsgSrc extends _Source {
-  final ChannelMessageModel model;
-  const _PublicMsgSrc(this.model);
-}
-
-class _PrivateMsgSrc extends _Source {
-  final PrivateChannelMessageModel model;
-  const _PrivateMsgSrc(this.model);
-}
-
-class _FeedItem {
-  final DateTime created;
-  final _Source source;
-  const _FeedItem(this.created, this.source);
 }

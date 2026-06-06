@@ -4,15 +4,22 @@ import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
 /// Kind 1 — short text note.
 ///
 /// Persists to [NoteModel] (idempotent), records reference edges in
-/// [NoteRelationModel] for the direct parent + non-root mention refs, and bumps
+/// [NoteRelationModel] for the direct parent + non-root mention refs, inserts an
+/// unread row for non-own notes, and bumps
 /// [FollowedNoteModel.newReferenceCount] for any followed root referenced.
 class Kind1NoteHandler implements KindHandler {
+  Kind1NoteHandler({required this.activePubkey});
+
+  /// The signed-in user's pubkey (hex) — own notes get no unread row.
+  final String? activePubkey;
+
   @override
   Set<int> get kinds => const {1};
 
@@ -31,6 +38,11 @@ class Kind1NoteHandler implements KindHandler {
             .findFirst();
         if (existing != null) return;
         await isar.noteModels.put(model);
+
+        // Unread row for notes from other users (own notes are already "seen").
+        if (model.authorPubkey != activePubkey) {
+          await putUnreadRowInTxn(isar, model);
+        }
 
         // Record one reference edge per parent. The unique (parentId, childId)
         // index makes this idempotent against relay re-delivery.
@@ -132,7 +144,6 @@ class Kind1NoteHandler implements KindHandler {
       pTagRefs: pTagRefs,
       tTags: tTags,
       created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
-      isSeen: false,
     );
   }
 }
