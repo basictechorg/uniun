@@ -137,8 +137,6 @@ class _NoteCardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Note content (text) + an optional shared-note embed
-                  // when this note quotes another (NIP-18).
                   if (note.content.isNotEmpty)
                     Text(
                       note.content,
@@ -150,7 +148,7 @@ class _NoteCardView extends StatelessWidget {
                     ),
                   if (note.quoteEventId != null) ...[
                     if (note.content.isNotEmpty) const SizedBox(height: 8),
-                    EmbeddedNoteCard(eventId: note.quoteEventId!),
+                    EmbeddedNoteCard(note: note.quotedNote),
                   ],
 
                   // Hashtag chips

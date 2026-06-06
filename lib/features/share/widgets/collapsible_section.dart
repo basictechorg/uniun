@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
-/// Reusable collapsible section header for the share sheet — mirrors the
-/// drawer's `_CollapsibleChannelSection` / `_CollapsibleFollowingSection`
-/// pattern (InkWell header + AnimatedRotation arrow + AnimatedCrossFade body).
+/// InkWell header + AnimatedRotation chevron + AnimatedCrossFade body.
 class CollapsibleSection extends StatefulWidget {
   const CollapsibleSection({
     super.key,

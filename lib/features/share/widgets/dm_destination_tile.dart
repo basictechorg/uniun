@@ -4,9 +4,7 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/domain/repositories/profile_repository.dart';
 import 'package:uniun/features/share/widgets/destination_tile.dart';
 
-/// DM destination row that resolves the peer's profile name + avatar from
-/// Isar via [ProfileRepository]. Falls back to a truncated pubkey when no
-/// profile is stored locally.
+/// DM row — resolves peer name/avatar; falls back to short pubkey.
 class DmDestinationTile extends StatefulWidget {
   const DmDestinationTile({
     super.key,

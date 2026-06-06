@@ -67,8 +67,7 @@ class NoteModel {
   @Index()
   late DateTime created;
 
-  /// NIP-18: event ID of the quoted note (`["q", id, relay, author]`).
-  /// null = this note isn't sharing/quoting another note.
+  /// NIP-18 `q` tag id. Null = no quote.
   @Index()
   String? quoteEventId;
 
@@ -119,9 +118,7 @@ class NoteModel {
           if (marker == 'reply') replyToEventId = eventId;
         }
       } else if (tagName == 'q' && tag.length >= 2) {
-        // NIP-18 quote tag — only the first one is honoured (multi-quote is
-        // not modelled in the UI today).
-        quoteEventId ??= tag[1];
+        quoteEventId ??= tag[1]; // first q-tag wins; multi-quote not modelled.
       } else if (tagName == 'p' && tag.length >= 2) {
         pTagRefs.add(tag[1]);
       } else if (tagName == 't' && tag.length >= 2) {

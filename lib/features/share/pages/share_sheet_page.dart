@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/core/share/share_uri.dart';
+import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart';
@@ -12,11 +12,6 @@ import 'package:uniun/features/share/widgets/destination_tile.dart';
 import 'package:uniun/features/share/widgets/dm_destination_tile.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Bottom-sheet picker for sharing [sourceEventId] into another surface.
-///
-/// Tap a destination → fire [SubmitShare] → on success the sheet auto-closes
-/// and a snackbar fires on the parent. An "External" row uses share_plus to
-/// surface the OS share sheet with a Universal Link.
 class ShareSheetPage extends StatelessWidget {
   const ShareSheetPage({super.key, required this.sourceEventId});
 
@@ -147,7 +142,7 @@ class _ShareSheetView extends StatelessWidget {
 
   Future<void> _externalShare(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final url = ShareUri.externalUrlFor(sourceEventId).toString();
+    final url = DeepLink.note(sourceEventId).toString();
     await Share.share(url, subject: l10n.shareExternalSubject);
   }
 }
@@ -172,7 +167,6 @@ class _DestinationList extends StatelessWidget {
       controller: scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       children: [
-        // Quick actions stay outside collapsible sections — always visible.
         DestinationTile(
           icon: Icons.dynamic_feed_rounded,
           title: l10n.shareDestFeed,

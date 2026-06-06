@@ -137,7 +137,7 @@ class _LargeNoteCardView extends StatelessWidget {
             ),
           if (note.quoteEventId != null) ...[
             if (note.content.isNotEmpty) const SizedBox(height: 10),
-            EmbeddedNoteCard(eventId: note.quoteEventId!),
+            EmbeddedNoteCard(note: note.quotedNote),
           ],
           if (note.tTags.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -200,7 +200,6 @@ class _LargeNoteCardView extends StatelessWidget {
                   onTap: () => cubit.toggleFollow(),
                 ),
                 _LargeActionChip(
-                  // Share — opens the share sheet for this note.
                   icon: Icons.share_outlined,
                   color: AppColors.onSurfaceVariant,
                   onTap: () => ShareSheetPage.show(context, note.id),

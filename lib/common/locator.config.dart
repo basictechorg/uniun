@@ -234,12 +234,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i1000.PendingExtractionRepository>(
       () => _i754.PendingExtractionRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.factory<_i47.NoteRepository>(
-      () => _i348.NoteRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-      ),
-    );
     gh.factory<_i649.GraphRepository>(
       () => _i250.GraphRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -267,9 +261,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i168.MarmotMlsService>(),
         gh<_i1017.NoteRelationRepository>(),
       ),
-    );
-    gh.factory<_i551.DmMessageRepository>(
-      () => _i398.DmMessageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i43.SavedNoteRepository>(
       () => _i669.SavedNoteRepositoryImpl(
@@ -315,12 +306,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i993.RelayRepository>(
       () => _i542.RelayRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.factory<_i964.ChannelMessageRepository>(
-      () => _i929.ChannelMessageRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-      ),
     );
     gh.lazySingleton<_i263.GetChannelByIdUseCase>(
       () => _i263.GetChannelByIdUseCase(gh<_i127.ChannelRepository>()),
@@ -432,12 +417,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i240.StorageRepository>(
       () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.lazySingleton<_i1023.FetchDmUseCase>(
-      () => _i1023.FetchDmUseCase(
-        gh<_i189.DmConversationRepository>(),
-        gh<_i551.DmMessageRepository>(),
-      ),
-    );
     gh.lazySingleton<_i78.CreatePrivateChannelUsecase>(
       () =>
           _i78.CreatePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
@@ -457,6 +436,13 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i78.LeavePrivateChannelUsecase>(
       () => _i78.LeavePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    );
+    gh.factory<_i47.NoteRepository>(
+      () => _i348.NoteRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
+      ),
     );
     gh.lazySingleton<_i475.GetFeedUseCase>(
       () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
@@ -497,25 +483,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i331.MemoryRepository>(),
       ),
     );
-    gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
-      () =>
-          _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
-      () => _i689.GetChannelMessageByIdUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageRepliesUseCase>(
-      () => _i689.GetChannelMessageRepliesUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
-      () => _i689.GetChannelMessageReplyCountUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
     gh.lazySingleton<_i78.GetPrivateChannelsUsecase>(
       () => _i78.GetPrivateChannelsUsecase(gh<_i635.E2EEGroupRepository>()),
     );
@@ -546,12 +513,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i858.UnsaveNoteUseCase(
         gh<_i43.SavedNoteRepository>(),
         gh<_i179.DeleteKnowledgeForNoteUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
-      () => _i524.CreateChannelMessageUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i849.FollowedUserRepository>(
@@ -650,10 +611,23 @@ extension GetItInjectableX on _i174.GetIt {
         groupId,
       ),
     );
+    gh.factory<_i551.DmMessageRepository>(
+      () => _i398.DmMessageRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
+      ),
+    );
     gh.lazySingleton<_i1033.CreateChannelUseCase>(
       () => _i1033.CreateChannelUseCase(
         gh<_i127.ChannelRepository>(),
         gh<_i1039.EventQueueRepository>(),
+      ),
+    );
+    gh.factory<_i964.ChannelMessageRepository>(
+      () => _i929.ChannelMessageRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
       ),
     );
     gh.factory<_i331.SettingsCubit>(
@@ -715,16 +689,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
-    gh.factory<_i830.GraphBloc>(
-      () => _i830.GraphBloc(
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-      ),
-    );
     gh.factory<_i250.FeedRepository>(
       () => _i689.FeedRepositoryImpl(
         isar: gh<_i214.Isar>(),
@@ -733,6 +697,23 @@ extension GetItInjectableX on _i174.GetIt {
         follows: gh<_i849.FollowedUserRepository>(),
         users: gh<_i103.UserRepository>(),
         feedReadState: gh<_i752.FeedReadStateStore>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i1023.FetchDmUseCase>(
+      () => _i1023.FetchDmUseCase(
+        gh<_i189.DmConversationRepository>(),
+        gh<_i551.DmMessageRepository>(),
+      ),
+    );
+    gh.factory<_i830.GraphBloc>(
+      () => _i830.GraphBloc(
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
       ),
     );
     gh.factory<_i60.DmChatBloc>(
@@ -745,6 +726,25 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i719.MarkUnreadSeenUseCase>(),
         gh<_i719.MarkConversationSeenUseCase>(),
         gh<_i214.Isar>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
+      () =>
+          _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
+      () => _i689.GetChannelMessageByIdUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageRepliesUseCase>(
+      () => _i689.GetChannelMessageRepliesUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
+      () => _i689.GetChannelMessageReplyCountUseCase(
+        gh<_i964.ChannelMessageRepository>(),
       ),
     );
     gh.lazySingleton<_i63.FollowUserUseCase>(
@@ -797,6 +797,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetFeedUseCase>(),
         gh<_i475.SearchNotesUseCase>(),
         gh<_i858.GetAllSavedNotesUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
+      () => _i524.CreateChannelMessageUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i959.UserProfileBloc>(

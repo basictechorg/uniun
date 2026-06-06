@@ -377,10 +377,7 @@ class MarmotTransportService {
 
   /// Encrypts an application message (kind 9023) and queues it.
   ///
-  /// When sharing a note into this private channel, callers pass [quoteEventId]
-  /// (NIP-18 `q` tag). The envelope carries it through to the receiver so their
-  /// renderer can embed the original. Receivers outside the MLS group never
-  /// decrypt the envelope.
+  /// [quoteEventId] is a NIP-18 `q` tag carried inside the encrypted envelope.
   Future<void> sendChannelMessage({
     required String groupId,
     required String content,

@@ -14,16 +14,8 @@ import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
-/// One mechanism across every destination: NIP-18 `q` tag.
-///
-///   - feed (Kind 1) / public channel (Kind 42) → `q` tag rides on the wire,
-///     external clients render the quote natively.
-///   - DM (Kind 14) / private channel (Kind 9023) → `q` tag rides inside the
-///     encrypted payload, opaque to non-members. Same shape.
-///
-/// `content` carries only the user's optional comment text. The receiver's
-/// renderer reads `NoteEntity.quoteEventId`, NOT the content, to decide
-/// whether to embed the original.
+/// Dispatcher only — every destination publishes through its existing kind-
+/// specific use case, carrying a NIP-18 `q` tag. No new publish path.
 @Injectable(as: ShareRepository)
 class ShareRepositoryImpl implements ShareRepository {
   final NoteResolverRepository _resolver;

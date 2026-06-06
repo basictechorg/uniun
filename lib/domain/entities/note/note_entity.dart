@@ -52,9 +52,13 @@ abstract class NoteEntity with _$NoteEntity {
     /// Resolved by [FeedRepository] at query time from the channel/group rows.
     String? sourceLabel,
 
-    /// NIP-18 quote tag — id of the note this one shares/quotes. The renderer
-    /// uses this (not content parsing) to decide whether to embed the original.
+    /// NIP-18 quote tag id.
     String? quoteEventId,
+
+    /// Pre-resolved one level deep ([quotedNote.quotedNote] is always null).
+    /// Null when [quoteEventId] is non-null but resolution missed (encrypted
+    /// or absent) — renderer shows "Note not available".
+    NoteEntity? quotedNote,
   }) = _NoteEntity;
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>

@@ -795,9 +795,7 @@ lib/
 │   ├── router/
 │   │   ├── app_router.dart        # GoRouter declaration + deep-link redirects
 │   │   ├── app_routes.dart        # Named route constants
-│   │   └── deep_link.dart         # Universal-link host/segments + ensureRelays helper
-│   ├── share/
-│   │   └── share_uri.dart         # externalUrlFor(noteId) → https://www.uniun.in/note/<hex>
+│   │   └── deep_link.dart         # Universal-link host/segments + DeepLink.note(...) builder
 │   ├── scan/                      # QR widgets (not feature-specific)
 │   │   ├── uniun_qr_card.dart     # UniunQrCard.user() / UniunChannelQrCard.channel()
 │   │   ├── uniun_qr_payload.dart  # UniunQrPayload encode/decode

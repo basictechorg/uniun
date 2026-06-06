@@ -130,8 +130,9 @@ final GoRouter appRouter = GoRouter(
     ),
     // ── Deep-linkable: note ────────────────────────────────────────────────
     // https://<host>/note/<noteIdHex>?dl=1&relays=...
-    // Internal share embeds a `nostr:note1...` pointer (see [ShareUri]); the
-    // OS-level deep link resolves to this path and opens the thread view.
+    // Internal share publishes a NIP-18 `q` tag on the destination event;
+    // external share uses [DeepLink.note] for the URL, which the OS resolves
+    // to this route via Universal Links / App Links and opens the thread.
     GoRoute(
       name: AppRoutes.noteDetail,
       path: '/$kNoteSegment/:noteId',

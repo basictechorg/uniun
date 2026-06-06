@@ -41,9 +41,8 @@ class EventQueueModel {
   late List<String> tTags;
   late DateTime created;
 
-  /// NIP-18 share/quote info. Set together when the event quotes another
-  /// note. Must be carried through to the wire so receivers can render the
-  /// embed and so the re-serialized event hashes back to [eventId].
+  /// NIP-18 quote info — re-emitted on the wire so the broadcast event
+  /// hashes back to [eventId] (sig validation depends on it).
   String? quoteEventId;
   String? quoteAuthorPubkey;
   int? quoteKind;
