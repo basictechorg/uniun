@@ -114,6 +114,7 @@ class MarmotTransportService {
           pTagRefs: const [],
           tTags: const [],
           created: encrypted.timestamp,
+          quoteEventId: envelope.quoteEventId,
         );
 
         await _isar.writeTxn(() async {
@@ -165,8 +166,12 @@ class MarmotTransportService {
     List<String> eTagRefs, {
     String? rootEventId,
     String? replyToEventId,
+    String? quoteEventId,
   }) {
-    if (eTagRefs.isEmpty && rootEventId == null && replyToEventId == null) {
+    if (eTagRefs.isEmpty &&
+        rootEventId == null &&
+        replyToEventId == null &&
+        quoteEventId == null) {
       return content;
     }
     return jsonEncode({
@@ -174,6 +179,7 @@ class MarmotTransportService {
       'e': eTagRefs,
       if (rootEventId != null) 'r': rootEventId,
       if (replyToEventId != null) 'y': replyToEventId,
+      if (quoteEventId != null) 'q': quoteEventId,
     });
   }
 
@@ -184,6 +190,7 @@ class MarmotTransportService {
     List<String> eTagRefs,
     String? rootEventId,
     String? replyToEventId,
+    String? quoteEventId,
   }) _decodeMessageEnvelope(String raw) {
     try {
       final decoded = jsonDecode(raw);
@@ -195,6 +202,7 @@ class MarmotTransportService {
           eTagRefs: (decoded['e'] as List).cast<String>(),
           rootEventId: decoded['r'] as String?,
           replyToEventId: decoded['y'] as String?,
+          quoteEventId: decoded['q'] as String?,
         );
       }
     } catch (_) {
@@ -205,6 +213,7 @@ class MarmotTransportService {
       eTagRefs: const [],
       rootEventId: null,
       replyToEventId: null,
+      quoteEventId: null,
     );
   }
 
@@ -367,6 +376,11 @@ class MarmotTransportService {
   }
 
   /// Encrypts an application message (kind 9023) and queues it.
+  ///
+  /// When sharing a note into this private channel, callers pass [quoteEventId]
+  /// (NIP-18 `q` tag). The envelope carries it through to the receiver so their
+  /// renderer can embed the original. Receivers outside the MLS group never
+  /// decrypt the envelope.
   Future<void> sendChannelMessage({
     required String groupId,
     required String content,
@@ -375,6 +389,7 @@ class MarmotTransportService {
     List<String> mentionRefs = const [],
     String? rootEventId,
     String? replyToEventId,
+    String? quoteEventId,
   }) async {
     final channel = await _findChannel(groupId);
     if (channel == null) {
@@ -391,6 +406,7 @@ class MarmotTransportService {
         mentionRefs,
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
+        quoteEventId: quoteEventId,
       ),
       groupIdIsBase64: true,
     );
@@ -420,6 +436,7 @@ class MarmotTransportService {
       pTagRefs: const [],
       tTags: const [],
       created: now,
+      quoteEventId: quoteEventId,
     );
 
     await _isar.writeTxn(() async {

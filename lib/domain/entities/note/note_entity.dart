@@ -51,6 +51,10 @@ abstract class NoteEntity with _$NoteEntity {
     ///   - `null`     for native Kind-1 Vishnu notes
     /// Resolved by [FeedRepository] at query time from the channel/group rows.
     String? sourceLabel,
+
+    /// NIP-18 quote tag — id of the note this one shares/quotes. The renderer
+    /// uses this (not content parsing) to decide whether to embed the original.
+    String? quoteEventId,
   }) = _NoteEntity;
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>

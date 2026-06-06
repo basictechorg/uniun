@@ -40,10 +40,12 @@ class Kind42Handler implements KindHandler {
     final tags = event['tags'] as List<dynamic>? ?? [];
     String? channelId;
     String? replyEventId;
+    String? quoteEventId;
     final eTagRefs = <String>[];
 
     for (final tag in tags) {
-      if (tag is List && tag.isNotEmpty && tag[0] == 'e') {
+      if (tag is! List || tag.isEmpty) continue;
+      if (tag[0] == 'e') {
         final eRef = tag[1] as String?;
         if (eRef != null) {
           eTagRefs.add(eRef);
@@ -54,6 +56,8 @@ class Kind42Handler implements KindHandler {
             replyEventId = eRef;
           }
         }
+      } else if (tag[0] == 'q' && tag.length >= 2) {
+        quoteEventId ??= tag[1] as String?;
       }
     }
 
@@ -77,6 +81,7 @@ class Kind42Handler implements KindHandler {
       pTagRefs: const [],
       tTags: const [],
       created: EventParser.dateTimeFromSec(createdAtSec),
+      quoteEventId: quoteEventId,
     );
 
     try {

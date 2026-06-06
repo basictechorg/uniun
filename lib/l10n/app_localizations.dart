@@ -2553,6 +2553,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t share QR code'**
   String get qrShareFailed;
+
+  /// Title of the in-app share bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Share note'**
+  String get shareSheetTitle;
+
+  /// Placeholder for the optional caption above the embedded shared note
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment (optional)'**
+  String get shareSheetCommentHint;
+
+  /// Share destination — re-post on the user's own Vishnu feed
+  ///
+  /// In en, this message translates to:
+  /// **'Post to my feed'**
+  String get shareDestFeed;
+
+  /// Subtitle under the 'Post to my feed' share destination
+  ///
+  /// In en, this message translates to:
+  /// **'Visible on Vishnu'**
+  String get shareDestFeedSubtitle;
+
+  /// Share destination — opens the OS share sheet with a deep link to the note
+  ///
+  /// In en, this message translates to:
+  /// **'Share via…'**
+  String get shareDestExternal;
+
+  /// Subtitle under the external share destination
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp, copy link, other apps'**
+  String get shareDestExternalSubtitle;
+
+  /// Section header in the share sheet listing public channels
+  ///
+  /// In en, this message translates to:
+  /// **'PUBLIC CHANNELS'**
+  String get shareSectionPublicChannels;
+
+  /// Section header in the share sheet listing private channels
+  ///
+  /// In en, this message translates to:
+  /// **'PRIVATE CHANNELS'**
+  String get shareSectionPrivateChannels;
+
+  /// Section header in the share sheet listing DM conversations
+  ///
+  /// In en, this message translates to:
+  /// **'DIRECT MESSAGES'**
+  String get shareSectionDms;
+
+  /// Snackbar confirmation after the note has been shared into the chosen destination
+  ///
+  /// In en, this message translates to:
+  /// **'Shared'**
+  String get shareSuccess;
+
+  /// Subject used by the OS share sheet when sharing a note link externally (e.g. email subject)
+  ///
+  /// In en, this message translates to:
+  /// **'Note from UNIUN'**
+  String get shareExternalSubject;
+
+  /// Placeholder shown inside an embedded shared-note card while the original is being resolved
+  ///
+  /// In en, this message translates to:
+  /// **'Loading note…'**
+  String get shareEmbedLoading;
+
+  /// Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-channel note shared to a public surface)
+  ///
+  /// In en, this message translates to:
+  /// **'Note not available'**
+  String get shareEmbedNotFound;
+
+  /// Hint shown in the share sheet's DM section when the user has no DM conversations yet
+  ///
+  /// In en, this message translates to:
+  /// **'Start a DM first to share notes here.'**
+  String get shareNoDmConversations;
 }
 
 class _AppLocalizationsDelegate

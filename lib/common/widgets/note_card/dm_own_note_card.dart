@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
+import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -114,14 +115,19 @@ class _DmOwnNoteCardView extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      note.content,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: onBubble,
-                        height: 1.55,
+                    if (note.content.isNotEmpty)
+                      Text(
+                        note.content,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: onBubble,
+                          height: 1.55,
+                        ),
                       ),
-                    ),
+                    if (note.quoteEventId != null) ...[
+                      if (note.content.isNotEmpty) const SizedBox(height: 8),
+                      EmbeddedNoteCard(eventId: note.quoteEventId!),
+                    ],
                     if (note.tTags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(

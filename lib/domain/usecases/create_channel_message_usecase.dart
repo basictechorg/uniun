@@ -15,6 +15,11 @@ class CreateChannelMessageInput {
   final String privateKey;
   final String? replyToEventId;
   final List<String> mentionRefs;
+  // NIP-18 quote info — emitted as `["q", id, "", author]` + `["k", kind]`
+  // + `["p", author]` tags when [quoteEventId] is set.
+  final String? quoteEventId;
+  final String? quoteAuthorPubkey;
+  final int? quoteKind;
 
   const CreateChannelMessageInput({
     required this.channelId,
@@ -22,6 +27,9 @@ class CreateChannelMessageInput {
     required this.privateKey,
     this.replyToEventId,
     this.mentionRefs = const [],
+    this.quoteEventId,
+    this.quoteAuthorPubkey,
+    this.quoteKind,
   });
 }
 
@@ -36,6 +44,9 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
   Future<Either<Failure, NoteEntity>> call(CreateChannelMessageInput input, {bool cached = false}) async {
     try {
       final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      // Tag order MUST match [EventQueueModelExtension.toSerializedRelayMessage]
+      // so the re-serialized broadcast event hashes back to the signed id:
+      //   e root → e reply → e mention... → p... → t... → q → k
       final tags = <List<String>>[
         ['e', input.channelId, '', 'root'],
       ];
@@ -44,6 +55,15 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
       }
       for (final ref in input.mentionRefs) {
         tags.add(['e', ref, '', 'mention']);
+      }
+      if (input.quoteEventId != null && input.quoteAuthorPubkey != null) {
+        tags.add(['p', input.quoteAuthorPubkey!]);
+      }
+      if (input.quoteEventId != null) {
+        tags.add(['q', input.quoteEventId!, '', input.quoteAuthorPubkey ?? '']);
+        if (input.quoteKind != null) {
+          tags.add(['k', input.quoteKind!.toString()]);
+        }
       }
 
       final kind42 = Event.from(
@@ -76,6 +96,7 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         created: created,
+        quoteEventId: input.quoteEventId,
       );
 
       final saveResult = await _channelMessageRepository.saveMessage(message);
@@ -87,12 +108,17 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
         sig: kind42.sig,
         kind: 42,
         eTagRefs: eTagRefs,
-        pTagRefs: const [],
+        pTagRefs: input.quoteAuthorPubkey != null && input.quoteEventId != null
+            ? [input.quoteAuthorPubkey!]
+            : const [],
         tTags: const [],
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         content: kind42.content,
         created: created,
+        quoteEventId: input.quoteEventId,
+        quoteAuthorPubkey: input.quoteAuthorPubkey,
+        quoteKind: input.quoteKind,
       );
       if (enqueueResult.isLeft()) {
         return Left(enqueueResult.fold((f) => f, (_) => const Failure.errorFailure('enqueue failed')));

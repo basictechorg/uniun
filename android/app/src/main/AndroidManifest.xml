@@ -36,7 +36,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Universal links: https://www.uniun.in/{channel|private|user}/...
+            <!-- Universal links: https://www.uniun.in/{channel|private|user|note}/...
                  Scoped to the deep-linkable path prefixes so unrelated
                  www.uniun.in URLs (marketing pages, etc.) open in the browser.
                  Requires https://www.uniun.in/.well-known/assetlinks.json
@@ -50,6 +50,7 @@
                       android:pathPrefix="/channel"/>
                 <data android:pathPrefix="/private"/>
                 <data android:pathPrefix="/user"/>
+                <data android:pathPrefix="/note"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

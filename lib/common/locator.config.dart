@@ -65,6 +65,7 @@ import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
 import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
+import 'package:uniun/data/repositories/share_repository_impl.dart' as _i593;
 import 'package:uniun/data/repositories/shiv_repository_impl.dart' as _i412;
 import 'package:uniun/data/repositories/source_label_repository_impl.dart'
     as _i395;
@@ -105,6 +106,7 @@ import 'package:uniun/domain/repositories/pending_extraction_repository.dart'
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
+import 'package:uniun/domain/repositories/share_repository.dart' as _i1019;
 import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
 import 'package:uniun/domain/repositories/source_label_repository.dart'
     as _i633;
@@ -138,6 +140,7 @@ import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
 import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
 import 'package:uniun/domain/usecases/save_relay_usecase.dart' as _i433;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
+import 'package:uniun/domain/usecases/share_usecases.dart' as _i1;
 import 'package:uniun/domain/usecases/shiv_usecases.dart' as _i604;
 import 'package:uniun/domain/usecases/source_label_usecases.dart' as _i978;
 import 'package:uniun/domain/usecases/storage_usecases.dart' as _i58;
@@ -162,6 +165,7 @@ import 'package:uniun/features/profile/bloc/user_profile_bloc.dart' as _i959;
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart' as _i859;
 import 'package:uniun/features/settings/cubit/settings_cubit.dart' as _i331;
 import 'package:uniun/features/settings/cubit/storage_cubit.dart' as _i13;
+import 'package:uniun/features/share/bloc/share_sheet_bloc.dart' as _i574;
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart' as _i190;
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart'
     as _i687;
@@ -326,6 +330,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i67.SaveChannelUseCase>(
       () => _i67.SaveChannelUseCase(gh<_i127.ChannelRepository>()),
+    );
+    gh.lazySingleton<_i1023.GetDmConversationsUseCase>(
+      () => _i1023.GetDmConversationsUseCase(
+        gh<_i189.DmConversationRepository>(),
+      ),
     );
     gh.lazySingleton<_i1023.CreateDmConversationUseCase>(
       () => _i1023.CreateDmConversationUseCase(
@@ -885,6 +894,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i850.EmbeddingModelDownloader>(),
       ),
     );
+    gh.factory<_i1019.ShareRepository>(
+      () => _i593.ShareRepositoryImpl(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+      ),
+    );
     gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
       () =>
           _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
@@ -895,6 +914,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.HasOpenRouterKeyUseCase>(
       () => _i918.HasOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.lazySingleton<_i1.ShareNoteUseCase>(
+      () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
     );
     gh.lazySingleton<_i837.GetOrInitFeedLoadedAtUseCase>(
       () => _i837.GetOrInitFeedLoadedAtUseCase(gh<_i250.FeedRepository>()),
@@ -923,6 +945,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i649.GraphRepository>(),
         gh<_i331.MemoryRepository>(),
         gh<_i1000.PendingExtractionRepository>(),
+      ),
+    );
+    gh.factory<_i574.ShareSheetBloc>(
+      () => _i574.ShareSheetBloc(
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i1.ShareNoteUseCase>(),
       ),
     );
     gh.lazySingleton<_i756.EmbedAndStoreNoteUseCase>(

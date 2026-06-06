@@ -26,6 +26,17 @@ class CreateDmParams {
 }
 
 @lazySingleton
+class GetDmConversationsUseCase
+    extends NoParamsUseCase<Either<Failure, List<DmConversationEntity>>> {
+  final DmConversationRepository _repository;
+  const GetDmConversationsUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, List<DmConversationEntity>>> call() =>
+      _repository.getConversations();
+}
+
+@lazySingleton
 class CreateDmConversationUseCase
     extends UseCase<Either<Failure, DmConversationEntity>, CreateDmParams> {
   final DmConversationRepository _repository;
@@ -63,6 +74,13 @@ class SendDmParams {
   /// Event ids of messages referenced (NIP-10 "mention" e-tags).
   final List<String> mentionRefs;
 
+  /// NIP-18 quote info — set when the DM is sharing/quoting another note.
+  /// Emits `["q", id, "", author]` + `["k", kind]` + `["p", author]` tags
+  /// inside the inner Kind 14 rumor.
+  final String? quoteEventId;
+  final String? quoteAuthorPubkey;
+  final int? quoteKind;
+
   SendDmParams({
     required this.otherPubkey,
     required this.content,
@@ -70,6 +88,9 @@ class SendDmParams {
     this.rootEventId,
     this.replyToEventId,
     this.mentionRefs = const [],
+    this.quoteEventId,
+    this.quoteAuthorPubkey,
+    this.quoteKind,
   });
 }
 
@@ -162,6 +183,7 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
               if (params.replyToEventId != null) params.replyToEventId!,
               ...params.mentionRefs,
             ],
+            quoteEventId: params.quoteEventId,
           );
 
           await service.sendDm(dm, receiverPubkey: resolvedOtherPubkey);

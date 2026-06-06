@@ -107,6 +107,7 @@ class Kind1NoteHandler implements KindHandler {
 
     String? rootEventId;
     String? replyToEventId;
+    String? quoteEventId;
     final eTagRefs = <String>[];
     final pTagRefs = <String>[];
     final tTags = <String>[];
@@ -125,6 +126,9 @@ class Kind1NoteHandler implements KindHandler {
             if (marker == 'root') rootEventId = tagId;
             if (marker == 'reply') replyToEventId = tagId;
           }
+        case 'q':
+          // NIP-18 quote tag — first one wins; UI doesn't render multi-quote.
+          quoteEventId ??= rawTag[1] as String;
         case 'p':
           pTagRefs.add(rawTag[1] as String);
         case 't':
@@ -144,6 +148,7 @@ class Kind1NoteHandler implements KindHandler {
       pTagRefs: pTagRefs,
       tTags: tTags,
       created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
+      quoteEventId: quoteEventId,
     );
   }
 }

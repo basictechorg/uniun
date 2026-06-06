@@ -4,6 +4,7 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
+import 'package:uniun/domain/services/download_cancellation.dart';
 
 // ── GetAvailableAIModelsUseCase ───────────────────────────────────────────────
 
@@ -31,14 +32,15 @@ class GetActiveAIModelUseCase
 // ── DownloadAndActivateAIModelUseCase ─────────────────────────────────────────
 
 @lazySingleton
-class DownloadAndActivateAIModelUseCase
-    extends StreamUseCase<AIModelDownloadEvent, AIModelId> {
+class DownloadAndActivateAIModelUseCase {
   final AIModelRepository _repository;
   const DownloadAndActivateAIModelUseCase(this._repository);
 
-  @override
-  Stream<AIModelDownloadEvent> call(AIModelId modelId) =>
-      _repository.downloadAndActivateModel(modelId);
+  Stream<AIModelDownloadEvent> call(
+    AIModelId modelId, {
+    DownloadCancellation? cancellation,
+  }) =>
+      _repository.downloadAndActivateModel(modelId, cancellation: cancellation);
 }
 
 // ── ClearActiveAIModelUseCase ─────────────────────────────────────────────────

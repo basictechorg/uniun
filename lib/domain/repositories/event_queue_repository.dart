@@ -17,5 +17,8 @@ abstract class EventQueueRepository {
     required List<String> tTags,
     required String content,
     required DateTime created,
+    String? quoteEventId,
+    String? quoteAuthorPubkey,
+    int? quoteKind,
   });
 }

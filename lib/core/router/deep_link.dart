@@ -14,7 +14,7 @@ const String kDeepLinkScheme = 'https';
 const String kChannelSegment = 'channel';
 const String kPrivateSegment = 'private';
 const String kUserSegment = 'user';
-const String kNoteSegment = 'note'; // reserved — note links are a follow-up.
+const String kNoteSegment = 'note';
 
 /// Builds shareable `https://` universal links for each entity. The path
 /// doubles as the in-app route path, so a tapped link resolves through the
@@ -37,6 +37,9 @@ abstract class DeepLink {
 
   static Uri user(String npub, {List<String> relays = const []}) =>
       _build(kUserSegment, npub, relays: relays);
+
+  static Uri note(String noteIdHex, {List<String> relays = const []}) =>
+      _build(kNoteSegment, noteIdHex, relays: relays);
 
   static Uri _build(
     String segment,

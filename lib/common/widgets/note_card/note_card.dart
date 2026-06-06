@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
+import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
+import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/features/share/pages/share_sheet_page.dart';
 
 /// Self-contained note card. Owns its author profile, saved flag, and follow
 /// flag via an internal [NoteCardCubit] (follow state is watched reactively
@@ -69,6 +72,11 @@ class _NoteCardView extends StatelessWidget {
               photoUrl: profile?.avatarUrl,
               size: 40,
               borderRadius: 20,
+              onTap: () => openUserProfile(
+                context,
+                note.authorPubkey,
+                hintName: displayName,
+              ),
             ),
             const SizedBox(width: 12),
 
@@ -129,15 +137,21 @@ class _NoteCardView extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Note content
-                  Text(
-                    note.content,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF1E293B),
-                      height: 1.55,
+                  // Note content (text) + an optional shared-note embed
+                  // when this note quotes another (NIP-18).
+                  if (note.content.isNotEmpty)
+                    Text(
+                      note.content,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF1E293B),
+                        height: 1.55,
+                      ),
                     ),
-                  ),
+                  if (note.quoteEventId != null) ...[
+                    if (note.content.isNotEmpty) const SizedBox(height: 8),
+                    EmbeddedNoteCard(eventId: note.quoteEventId!),
+                  ],
 
                   // Hashtag chips
                   if (note.tTags.isNotEmpty) ...[
@@ -209,7 +223,8 @@ class _NoteCardView extends StatelessWidget {
                         _ActionChip(
                           icon: Icons.share_outlined,
                           color: AppColors.onSurfaceVariant,
-                          onTap: () {}, // TODO: implement share sheet
+                          onTap: () =>
+                              ShareSheetPage.show(context, note.id),
                         )
                       ],
                     ),

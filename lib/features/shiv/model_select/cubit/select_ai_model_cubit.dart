@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
-import 'package:path/path.dart' as p;
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
+import 'package:uniun/domain/services/download_cancellation.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/features/shiv/rag/embedding/embedding_model_downloader.dart';
 
@@ -22,6 +21,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   final EmbeddingModelDownloader _embeddingDownloader;
 
   StreamSubscription<AIModelDownloadEvent>? _downloadSub;
+  DownloadCancellation? _cancellation;
 
   SelectAIModelCubit(
     this._getAvailable,
@@ -89,7 +89,8 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     ));
 
     _downloadSub?.cancel();
-    _downloadSub = _download.call(modelId).listen(
+    _cancellation = DownloadCancellation();
+    _downloadSub = _download.call(modelId, cancellation: _cancellation).listen(
       (event) {
         event.when(
           progress: (value) =>
@@ -135,24 +136,11 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
 
   Future<void> cancelDownload() async {
     if (state.status != SelectAIModelStatus.downloading) return;
-    final modelId = state.selectedModelId;
+
+    _cancellation?.cancel();
+    _cancellation = null;
     await _downloadSub?.cancel();
     _downloadSub = null;
-
-    // Attempt to clean up any partial file. flutter_gemma 0.13.x has no
-    // HTTP cancel API — the background request may continue briefly, but
-    // we clear state + file so the UI and disk match.
-    if (modelId != null) {
-      final entry = state.models
-          .where((m) => m.modelId == modelId)
-          .firstOrNull;
-      if (entry != null) {
-        final filename = p.basename(Uri.parse(entry.downloadUrl).path);
-        try {
-          await FlutterGemma.uninstallModel(filename);
-        } catch (_) {}
-      }
-    }
 
     if (isClosed) return;
     emit(state.copyWith(
@@ -189,6 +177,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
 
   @override
   Future<void> close() {
+    _cancellation?.cancel();
     _downloadSub?.cancel();
     return super.close();
   }

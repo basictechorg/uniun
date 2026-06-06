@@ -1250,5 +1250,47 @@
   "qrShareAction": "Share",
   "@qrShareAction": { "description": "Button in the QR card that opens the native share sheet with the QR image and deep link" },
   "qrShareFailed": "Couldn't share QR code",
-  "@qrShareFailed": { "description": "Snackbar shown when sharing the QR image fails" }
+  "@qrShareFailed": { "description": "Snackbar shown when sharing the QR image fails" },
+
+  "shareSheetTitle": "Share note",
+  "@shareSheetTitle": { "description": "Title of the in-app share bottom sheet" },
+
+  "shareSheetCommentHint": "Add a comment (optional)",
+  "@shareSheetCommentHint": { "description": "Placeholder for the optional caption above the embedded shared note" },
+
+  "shareDestFeed": "Post to my feed",
+  "@shareDestFeed": { "description": "Share destination — re-post on the user's own Vishnu feed" },
+
+  "shareDestFeedSubtitle": "Visible on Vishnu",
+  "@shareDestFeedSubtitle": { "description": "Subtitle under the 'Post to my feed' share destination" },
+
+  "shareDestExternal": "Share via…",
+  "@shareDestExternal": { "description": "Share destination — opens the OS share sheet with a deep link to the note" },
+
+  "shareDestExternalSubtitle": "WhatsApp, copy link, other apps",
+  "@shareDestExternalSubtitle": { "description": "Subtitle under the external share destination" },
+
+  "shareSectionPublicChannels": "PUBLIC CHANNELS",
+  "@shareSectionPublicChannels": { "description": "Section header in the share sheet listing public channels" },
+
+  "shareSectionPrivateChannels": "PRIVATE CHANNELS",
+  "@shareSectionPrivateChannels": { "description": "Section header in the share sheet listing private channels" },
+
+  "shareSectionDms": "DIRECT MESSAGES",
+  "@shareSectionDms": { "description": "Section header in the share sheet listing DM conversations" },
+
+  "shareSuccess": "Shared",
+  "@shareSuccess": { "description": "Snackbar confirmation after the note has been shared into the chosen destination" },
+
+  "shareExternalSubject": "Note from UNIUN",
+  "@shareExternalSubject": { "description": "Subject used by the OS share sheet when sharing a note link externally (e.g. email subject)" },
+
+  "shareEmbedLoading": "Loading note…",
+  "@shareEmbedLoading": { "description": "Placeholder shown inside an embedded shared-note card while the original is being resolved" },
+
+  "shareEmbedNotFound": "Note not available",
+  "@shareEmbedNotFound": { "description": "Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-channel note shared to a public surface)" },
+
+  "shareNoDmConversations": "Start a DM first to share notes here.",
+  "@shareNoDmConversations": { "description": "Hint shown in the share sheet's DM section when the user has no DM conversations yet" }
 }

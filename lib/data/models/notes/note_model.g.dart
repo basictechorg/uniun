@@ -51,21 +51,26 @@ const NoteModelSchema = CollectionSchema(
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
-    r'replyToEventId': PropertySchema(
+    r'quoteEventId': PropertySchema(
       id: 10,
+      name: r'quoteEventId',
+      type: IsarType.string,
+    ),
+    r'replyToEventId': PropertySchema(
+      id: 11,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 12, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 13, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 14, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 13, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 14, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 15, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -195,6 +200,19 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
+    r'quoteEventId': IndexSchema(
+      id: -7735310670884963560,
+      name: r'quoteEventId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'quoteEventId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -238,6 +256,12 @@ int _noteModelEstimateSize(
     for (var i = 0; i < object.pTagRefs.length; i++) {
       final value = object.pTagRefs[i];
       bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.quoteEventId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   {
@@ -286,12 +310,13 @@ void _noteModelSerialize(
   writer.writeString(offsets[7], object.groupId);
   writer.writeLong(offsets[8], object.kind);
   writer.writeStringList(offsets[9], object.pTagRefs);
-  writer.writeString(offsets[10], object.replyToEventId);
-  writer.writeString(offsets[11], object.rootEventId);
-  writer.writeString(offsets[12], object.sig);
-  writer.writeString(offsets[13], object.subject);
-  writer.writeStringList(offsets[14], object.tTags);
-  writer.writeString(offsets[15], object.type.name);
+  writer.writeString(offsets[10], object.quoteEventId);
+  writer.writeString(offsets[11], object.replyToEventId);
+  writer.writeString(offsets[12], object.rootEventId);
+  writer.writeString(offsets[13], object.sig);
+  writer.writeString(offsets[14], object.subject);
+  writer.writeStringList(offsets[15], object.tTags);
+  writer.writeString(offsets[16], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -311,13 +336,14 @@ NoteModel _noteModelDeserialize(
     groupId: reader.readStringOrNull(offsets[7]),
     kind: reader.readLongOrNull(offsets[8]) ?? kNoteKind,
     pTagRefs: reader.readStringList(offsets[9]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[10]),
-    rootEventId: reader.readStringOrNull(offsets[11]),
-    sig: reader.readString(offsets[12]),
-    subject: reader.readStringOrNull(offsets[13]),
-    tTags: reader.readStringList(offsets[14]) ?? [],
+    quoteEventId: reader.readStringOrNull(offsets[10]),
+    replyToEventId: reader.readStringOrNull(offsets[11]),
+    rootEventId: reader.readStringOrNull(offsets[12]),
+    sig: reader.readString(offsets[13]),
+    subject: reader.readStringOrNull(offsets[14]),
+    tTags: reader.readStringList(offsets[15]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[15])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[16])] ??
         NoteType.text,
   );
   object.id = id;
@@ -356,12 +382,14 @@ P _noteModelDeserializeProp<P>(
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
-    case 13:
       return (reader.readStringOrNull(offset)) as P;
+    case 13:
+      return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 16:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -1304,6 +1332,85 @@ extension NoteModelQueryWhere
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> quoteEventIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'quoteEventId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  quoteEventIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'quoteEventId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> quoteEventIdEqualTo(
+    String? quoteEventId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'quoteEventId',
+          value: [quoteEventId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> quoteEventIdNotEqualTo(
+    String? quoteEventId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'quoteEventId',
+                lower: [],
+                upper: [quoteEventId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'quoteEventId',
+                lower: [quoteEventId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'quoteEventId',
+                lower: [quoteEventId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'quoteEventId',
+                lower: [],
+                upper: [quoteEventId],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 }
@@ -2713,6 +2820,168 @@ extension NoteModelQueryFilter
   }
 
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'quoteEventId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'quoteEventId'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> quoteEventIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> quoteEventIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'quoteEventId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'quoteEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> quoteEventIdMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'quoteEventId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'quoteEventId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  quoteEventIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'quoteEventId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -3792,6 +4061,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByQuoteEventId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'quoteEventId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByQuoteEventIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'quoteEventId', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -3963,6 +4244,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByQuoteEventId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'quoteEventId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByQuoteEventIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'quoteEventId', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -4096,6 +4389,14 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByQuoteEventId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'quoteEventId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByReplyToEventId({
     bool caseSensitive = true,
   }) {
@@ -4211,6 +4512,12 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, List<String>, QQueryOperations> pTagRefsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pTagRefs');
+    });
+  }
+
+  QueryBuilder<NoteModel, String?, QQueryOperations> quoteEventIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'quoteEventId');
     });
   }
 

@@ -37,6 +37,7 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
         type: entity.type,
         tTags: const [],
         created: entity.created,
+        quoteEventId: entity.quoteEventId,
       );
 
       await isar.writeTxn(() async {

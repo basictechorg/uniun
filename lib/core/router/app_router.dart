@@ -128,6 +128,24 @@ final GoRouter appRouter = GoRouter(
       path: '/saved-notes',
       builder: (_, __) => const SavedNotesPage(),
     ),
+    // ── Deep-linkable: note ────────────────────────────────────────────────
+    // https://<host>/note/<noteIdHex>?dl=1&relays=...
+    // Internal share embeds a `nostr:note1...` pointer (see [ShareUri]); the
+    // OS-level deep link resolves to this path and opens the thread view.
+    GoRoute(
+      name: AppRoutes.noteDetail,
+      path: '/$kNoteSegment/:noteId',
+      redirect: (_, state) async {
+        if (state.uri.queryParameters[kDeepLinkFlag] != '1') return null;
+        final gate = await _deepLinkAuthGate();
+        if (gate != null) return gate;
+        final relays = state.uri.queryParametersAll['relays'] ?? const [];
+        await ensureRelays(relays);
+        return null; // → builder renders ThreadPage; missing notes fetch lazily.
+      },
+      builder: (_, state) =>
+          ThreadPage(noteId: state.pathParameters['noteId']!),
+    ),
     // ── Deep-linkable: public channel ──────────────────────────────────────
     // https://<host>/channel/<channelId>?dl=1&relays=...&name=...
     GoRoute(

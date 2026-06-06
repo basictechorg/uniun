@@ -1357,4 +1357,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrShareFailed => 'Couldn\'t share QR code';
+
+  @override
+  String get shareSheetTitle => 'Share note';
+
+  @override
+  String get shareSheetCommentHint => 'Add a comment (optional)';
+
+  @override
+  String get shareDestFeed => 'Post to my feed';
+
+  @override
+  String get shareDestFeedSubtitle => 'Visible on Vishnu';
+
+  @override
+  String get shareDestExternal => 'Share via…';
+
+  @override
+  String get shareDestExternalSubtitle => 'WhatsApp, copy link, other apps';
+
+  @override
+  String get shareSectionPublicChannels => 'PUBLIC CHANNELS';
+
+  @override
+  String get shareSectionPrivateChannels => 'PRIVATE CHANNELS';
+
+  @override
+  String get shareSectionDms => 'DIRECT MESSAGES';
+
+  @override
+  String get shareSuccess => 'Shared';
+
+  @override
+  String get shareExternalSubject => 'Note from UNIUN';
+
+  @override
+  String get shareEmbedLoading => 'Loading note…';
+
+  @override
+  String get shareEmbedNotFound => 'Note not available';
+
+  @override
+  String get shareNoDmConversations => 'Start a DM first to share notes here.';
 }
