@@ -1,68 +1,11 @@
 # CLAUDE.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guardrails for working in this repo. Keep code surgical and explicit.
 
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+- **Think before coding.** State assumptions, surface tradeoffs, ask when unclear instead of guessing silently.
+- **Simplicity first.** Minimum code that solves the problem. No speculative abstractions, no error handling for impossible cases.
+- **Surgical changes.** Touch only what the user asked for; remove only orphans your own edits created.
+- **Goal-driven.** Define a verifiable success criterion before you write code; loop until it's met.
 
 ---
 
@@ -139,19 +82,13 @@ Nostr Relay Network
 - BLoC receives Events, calls use cases, emits States.
 - Use `bloc_concurrency` for event transformers (e.g. `droppable()`, `sequential()`).
 
-### Key Technical Decisions (from FINDINGS.md)
+### Key Technical Decisions
 
-**Finding 001 — Unread Tracking via lastReadEventId**:
-Unread badges for Channels and DMs are NOT implemented by marking all messages read on channel open. Instead, `ChannelReadStateModel` and `DMReadStateModel` each store a `lastReadEventId`. As the user scrolls, the last visible event ID is reported to the BLoC which updates `lastReadEventId`. `unreadCount = messages with createdAt after lastReadEventId`. This gives scroll-position resume (like Telegram's "you are here" marker) and a "jump to first unread" feature for free. The SyncEngine updates these models when new messages arrive.
-
-**Finding 002 — On-Device LLM via flutter_gemma**:
-Shiv uses `flutter_gemma ^0.13.1` as the single LLM backend. No Strategy pattern — one backend, no unnecessary abstraction. API: `FlutterGemma.getActiveModel(maxTokens:)` → `model.createChat()` → `InferenceChat`. Each user turn: `chat.addQuery(Message.text(text:))` + `chat.generateChatResponseAsync()` streams `TextResponse` tokens. `InferenceChat` manages conversation history internally — never rebuild history in our own prompt. The system instruction is prepended to the first user turn directly (Qwen chat templates ignore the `systemInstruction` param in `createChat()`). Supported models: Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B — user-selectable from `AIModelSelectionPage`.
-
-**Finding 003 — Feed + Chat Use Same Scroll Model**:
-Both the Vishnu feed and Channel/DM chat use the same `lastReadEventId` + chronological pagination pattern. Feed is chronological-only for v1 (no ranking algorithm). Pagination uses Isar's `createdLessThan(before)` cursor pattern. No separate architecture is needed for feed vs chat scroll.
-
-**Finding 004 — GraphRAG: UNIUN's Nostr Graph IS the Knowledge Graph**:
-Standard vector RAG retrieves notes by semantic similarity but fails at multi-hop queries and global summarization. GraphRAG solves both by traversing the note reference graph. UNIUN already has this graph for free: every `e` tag is a note→note edge (stored in `eTagRefs`), every `t` tag is a note→topic edge (stored in `tTags`), every reply thread is a directed conversation graph. No LLM entity extraction needed — these are user-asserted edges. v1 approach: seed with vector similarity, then BFS-expand via the graph. See `docs/graphrag.md` for full implementation details.
+- **Unread tracking via `lastReadEventId`.** `ChannelReadStateModel` / `DMReadStateModel` / `FeedReadStateModel` store the last visible event id; unread count = messages with `created > lastReadEventId`. Scroll resume + "jump to first unread" come for free.
+- **On-device LLM via `flutter_gemma`.** Single backend, no Strategy pattern. `FlutterGemma.installModel().fromNetwork().withProgress().withCancelToken().install()` for downloads; `InferenceChat` manages history — never rebuild it in our prompt. System instruction is prepended to the first user turn (Qwen ignores `systemInstruction` in `createChat()`).
+- **Same scroll model for feed and chat.** Chronological only in v1. Pagination via `createdLessThan(before)`. No separate ranking.
+- **GraphRAG = the Nostr event graph.** Every `e` tag is a note→note edge (`eTagRefs`), every `t` tag a note→topic edge (`tTags`), every reply a directed subgraph. No LLM entity extraction — these are user-asserted edges. v1 retrieval: vector-seed → 1-hop BFS expand. See `docs/graphrag.md`.
+- **Share / quote via NIP-18 `q` tag.** Sharing a note into any destination (feed / channel / DM / private channel) publishes a new event in the target surface whose tags include `["q", id, relay, author]` + `["k", sourceKind]` + `["p", author]`. `content` carries only the user's optional caption — **never** an embedded `nostr:note1...` URI. The receiver's renderer reads `NoteEntity.quoteEventId` and renders `EmbeddedNoteCard`. Encrypted destinations carry the same `q` data inside the encrypted envelope. **Tag-order discipline:** publishers must sign in the same order that `EventQueueModel.toSerializedRelayMessage` rebuilds in, or the re-serialized event won't hash back to the signed id (relay rejects sig).
 
 ---
 
@@ -270,6 +207,7 @@ Key files — read these directly rather than relying on this doc:
 - `kind` is the unified discriminator; `channelId`/`groupId`/`conversationId` are non-null only for their respective kinds (all indexed).
 - `rootEventId` and `replyToEventId` are NIP-10 threading fields. Both null = top-level feed note.
 - `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately. For `kind == 42`, `toDomain()` strips `channelId`/`replyToEventId` from `eTagRefs` so NoteCard counts only genuine mentions.
+- `quoteEventId` (NIP-18) — indexed nullable. Non-null when this note shares/quotes another. The renderer reads this directly to decide whether to embed `EmbeddedNoteCard` below the content; never parses content for `nostr:note1...` URIs.
 - `NoteType` enum (`text|image|link|reference`) stored as `EnumType.name` in Isar.
 
 **Generated files — never edit manually.** Regenerate with:
@@ -340,81 +278,19 @@ Note composition and publishing.
 
 ### Shiv — AI Assistant
 
-On-device AI assistant using GraphRAG over the user's saved notes. Fully implemented.
+On-device AI assistant using GraphRAG over the user's saved notes.
 
-**Model selection:**
-- `AIModelSelectionPage` + `SelectAIModelCubit` — user picks from supported models (Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B, Gemma 4 E4B).
-- Selection stored in `AppSettingsModel` (Isar singleton). `AIModelRunner.hasActiveModel()` checks `FlutterGemma.hasActiveModel()`.
-- `ShivPage` redirects to `AIModelSelectionPage` if no model is active.
+- **Model selection** via `AIModelSelectionPage`/`SelectAIModelCubit`. Catalog: Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B/E4B. Selection stored in `AppSettingsModel`. Downloads use `FlutterGemma.installModel().withCancelToken(...)` — `SelectAIModelCubit.cancelDownload()` aborts in-flight via a domain-side `DownloadCancellation` handle.
+- **RAG pipeline** (`lib/features/shiv/rag/`): Phase 1 — `RagPipeline.init()` + `AIModelRunner.initChat()` once per conversation (Qwen ignores `systemInstruction` in `createChat()`, so it's prepended to first user turn). Phase 2 — each turn: `EmbeddingService` → `VectorSearchService` (cosine top-K) → 1-hop graph expansion (`GetGraphNeighboursUseCase`) → memory lookup (`GetMemoriesByNoteIdsUseCase`) → `EnrichedContext` → `PromptBuilder` lays out within `PromptBudget`.
+- **Conversation persistence**: `ShivConversationModel` + `ShivMessageModel`. `parentId` chain enables the branch tree view; `activeLeafMessageId` tracks which leaf the user reads. Auto-title: first 40 chars of first user message.
+- **Memory nodes**: `MemoryNodeModel` carries wiki-style summaries linked to graph nodes; loaded as additional RAG context.
+- **Thinking tag**: DeepSeek R1 emits `<think>...</think>` blocks. `ShivMessageBubble._parseThinking()` splits visible vs. collapsible. Known gap: NoteCard does not strip `<think>` from notes that contain raw AI text.
 
-**RAG pipeline (two-phase per InferenceChat design):**
-
-Phase 1 — session open (once per conversation):
-1. `RagPipeline.init()` — loads `EmbeddingService` (all-MiniLM-L6-v2 via tflite_flutter, ~80MB TFLite model).
-2. `RagPipeline.buildSystemInstruction()` — loads active user profile + own notes → `PromptBuilder` emits Shiv persona + user name/bio/interests as a static system instruction string.
-3. `AIModelRunner.initChat(systemInstruction:)` — opens an `InferenceChat` session via `flutter_gemma ^0.13.1`. The system instruction is prepended to the first user turn because Qwen templates ignore the systemInstruction parameter from `createChat()`.
-
-Phase 2 — each user message:
-1. `RagPipeline.buildMessage(userQuestion:)` returns a `RagMessage` containing the assembled per-turn string.
-2. Internally: `EmbeddingService.embed(query)` → `VectorSearchService.search()` (cosine similarity, top-K) → 1-hop graph expansion via `GetGraphNeighboursUseCase` → memory lookup via `GetMemoriesByNoteIdsUseCase` → all results packaged into `EnrichedContext`.
-3. `PromptBuilder.buildUserMessage(enrichedContext, PromptBudget)` — lays out the context within a per-model token budget. Priority order: user query → top seed notes → strong graph relations → remaining notes → memory summaries.
-4. `AIModelRunner.sendAndStream(message)` → `chat.addQuery()` + `chat.generateChatResponseAsync()` → streams `TextResponse` tokens.
-5. `InferenceChat` manages conversation history internally — we never duplicate it in our own prompt.
-
-**Key classes in RAG:**
-- `EnrichedContext` — bundle: `seedNotes` (vector hits) + `graphNodes` + `graphEdges` (1-hop expansion) + `memories` (wiki summaries via `MemoryNodeModel`).
-- `PromptBudget` — per-model token allocation split across priority buckets (dynamic: smaller models = smaller budgets).
-- `RagMessage` — output of `buildMessage()`: `userMessage` string + `contextCount` (how many items were injected).
-
-**Thinking tag handling:**
-- Models like DeepSeek R1 emit `<think>...</think>` blocks before the actual response.
-- `ShivMessageBubble._parseThinking()` splits the raw text into `thinking` (collapsible) and `response` (visible) parts.
-- The thinking block is capped at `maxThinkChars` if the model hits token limit mid-reasoning.
-- **Bug to watch:** `<think>` tags only make sense inside Shiv. If they appear in channel thread or feed, the NoteCard does NOT strip them — that is a known issue caused by notes containing raw AI output text. No fix in place yet.
-
-**Conversation persistence:**
-- `ShivConversationModel` (Isar) — conversationId, title, activeLeafMessageId (branch pointer), createdAt, updatedAt.
-- `ShivMessageModel` (Isar) — messageId, conversationId, parentId (linked-list for branching), role (user/assistant), content, createdAt.
-- `parentId` chain enables the branch tree view. `activeLeafMessageId` tracks which leaf the user is reading.
-- Auto-title: first user message → first 40 chars become the conversation title via `UpdateConversationTitleUseCase`.
-
-**Memory nodes (new):**
-- `MemoryNodeModel` (Isar) — wiki-style summaries associated with graph nodes, used as additional RAG context.
-- Linked to notes via graph edges. Loaded by `GetMemoriesByNoteIdsUseCase` during RAG Phase 2.
-
-**BLoC**: `ShivAIBloc` (events via `@freezed`)
-- `loadConversations` → `RagPipeline.init()` + `GetConversationsUseCase`
-- `createConversation` → `CreateConversationUseCase` → prepends to list immediately
-- `openConversation(id)` → `GetMessagesUseCase` + `AIModelRunner.initChat()`
-- `closeConversation` → return to conversation list view
-- `sendMessage(text)` → RAG pipeline → streaming tokens
-- `stopStreaming` → cancel native stream, persist partial response
-- `switchBranch(leafMessageId)` → walk parentId chain from leaf to root, reload that path
-- `createBranchFrom(parentMessageId)` → fork conversation from any node
-- `selectGraphNode(messageId?)` → show action panel in branch tree view
-- `tokenReceived`, `streamDone`, `streamError` — internal streaming events
-
-**Use cases** (`lib/domain/usecases/shiv_usecases.dart`):
-`GetConversationsUseCase`, `CreateConversationUseCase`, `DeleteConversationUseCase`, `GetMessagesUseCase`, `SaveMessageUseCase`, `UpdateMessageContentUseCase`, `UpdateConversationTitleUseCase`, `UpdateActiveLeafUseCase`
-
-**UI structure** (`lib/features/shiv/`):
-- `shiv/pages/shiv_page.dart` — model check → landing or active chat
-- `shiv/chat/pages/shiv_chat_page.dart` — message list + streaming bubble
-- `shiv/chat/tree/pages/shiv_branch_tree_page.dart` — visual conversation branch tree
-- `shiv/chat/tree/widgets/branch_tree_graph.dart` — force-directed graph of message nodes
-- `shiv/chat/tree/widgets/node_action_panel.dart` — action panel on node tap (branch/switch)
-- `shiv/chat/widgets/shiv_history_drawer.dart` — side drawer (Scaffold.drawer), lists conversations
-- `shiv/chat/widgets/shiv_conversation_tile.dart` — dismissible tile, swipe-to-delete
-- `shiv/chat/widgets/shiv_input_composer.dart` — send bar with streaming lock
-- `shiv/chat/widgets/shiv_message_bubble.dart` — user/assistant bubbles; parses `<think>` blocks
-- `shiv/model_select/` — model picker UI (cubit + page + widgets)
-- `shiv/rag/embedding/` — EmbeddingService (TFLite)
-- `shiv/rag/pipeline/rag_pipeline.dart` — orchestrator
-- `shiv/rag/prompt/prompt_builder.dart` — assembles LLM prompt
-- `shiv/rag/prompt/prompt_budget.dart` — per-model token budgets
-- `shiv/rag/retrieval/enriched_context.dart` — retrieval bundle type
-- `shiv/rag/retrieval/vector_search_service.dart` — cosine similarity search
-- `shiv/services/ai_model_runner.dart` — InferenceChat wrapper
+Read these files for the full picture rather than expanding this section:
+- `lib/features/shiv/chat/bloc/shiv_ai_bloc.dart`
+- `lib/features/shiv/rag/pipeline/rag_pipeline.dart`
+- `lib/features/shiv/services/ai_model_runner.dart`
+- `lib/domain/usecases/shiv_usecases.dart`
 
 ### Channels — Public Chat (NIP-28)
 
@@ -451,12 +327,15 @@ Phase 2 — each user message:
 
 Subscribing to a note's reference graph — distinct from saved notes (which are for Shiv AI).
 
-- `FollowedNoteModel` stores `eventId`, `contentPreview`, `followedAt`, `newReferenceCount`.
-- The Gateway opens `{"kinds":[1],"#e":["followedNoteId"]}` per followed note.
-- `newReferenceCount` incremented by SyncEngine on each new match.
-- **Cubit**: `FollowedNotesCubit` — `load()`, `followNote()`, `unfollowNote()`, `clearNewReferences()`
-- **UX**: The drawer contains a collapsible "Followed Notes" section listing all followed notes with unread badges. Tapping a followed note directly opens `FollowedNoteDetailPage` (no separate list page). There is NO standalone `FollowedNotesPage` or `FollowedNoteFeedPage`.
-- **Detail view**: `followed_notes/followed_note_detail/` — cubit (`FollowedNoteDetailCubit`) + page (`FollowedNoteDetailPage`) showing the original note and its incoming references.
+- `FollowedNoteModel` (`eventId`, `contentPreview`, `followedAt`, `newReferenceCount`). Gateway opens `{"kinds":[1],"#e":["followedNoteId"]}` per followed note; SyncEngine bumps `newReferenceCount` on each match.
+- `FollowedNotesCubit`: `load() / followNote() / unfollowNote() / clearNewReferences()`.
+- UX: drawer hosts a collapsible "Followed Notes" section. Tapping a row opens `FollowedNoteDetailPage` directly — there is NO standalone `FollowedNotesPage`.
+
+### Sharing (NIP-18)
+
+The share button on any NoteCard opens `ShareSheetPage` (modal bottom sheet) with destinations: Feed / Public channel / Private channel / DM, plus "Share via…" external link via `share_plus`. `ShareRepositoryImpl` dispatches each to the existing publish use case (`PublishNoteUseCase` / `CreateChannelMessageUseCase` / `SendDmUseCase` / `SendPrivateChannelMessageUsecase`) — no new publish path. Each carries `quoteEventId` (+ author + kind for non-encrypted destinations) which becomes a NIP-18 `q` tag on the wire. Renderer reads `note.quoteEventId` and shows `EmbeddedNoteCard` below the content. External URL: `https://www.uniun.in/note/<hex>` (App Links + Universal Links, see `lib/core/router/deep_link.dart`).
+
+**Tag-order discipline** (re-read this before reordering tags anywhere): publishers must emit tags in the same order `EventQueueModel.toSerializedRelayMessage` rebuilds (`e root → e reply → e mention... → p... → t... → q → k`), or the broadcast event re-serializes to a different hash and the relay rejects the signature. Inline docs in `event_queue_model.dart` are authoritative.
 
 ---
 
@@ -684,29 +563,9 @@ UNIUN does **not** implement a people-following / social graph in v1. There is n
 
 ---
 
-## What Is Already Built
+## Permanent Exclusions
 
-Core identity, feed, threading, followed notes, settings, and onboarding are all implemented. Key modules:
-
-| Area | Status |
-|------|--------|
-| Onboarding (welcome, key gen, import, profile setup) | ✅ Done |
-| Home shell + floating nav (Vishnu / Brahma / Shiv tabs) | ✅ Done |
-| Vishnu feed — BLoC, NoteCard, pagination, save/unsave | ✅ Done |
-| Thread view — BFS load, nested replies, reply composer | ✅ Done |
-| Followed notes — cubit, detail page, reference graph | ✅ Done |
-| Settings — profile edit, identity, storage, style, alerts | ✅ Done |
-| SavedNote — full note copy stored in Isar (not just ID) | ✅ Done |
-| Brahma create note — BLoC, compose page, graph preview | ✅ Done |
-| Shiv AI — model selection, RAG pipeline, conversation persistence, chat UI | ✅ Done |
-| Gateway isolate (CentralRelayManager + WebSocketService) | ✅ Done |
-| Public channels — create, feed, thread, join by QR (NIP-28) | ✅ Done |
-| Private channels — create, join, chat, admin join-requests | ✅ Done |
-| QR card + scanner (UniunQrCard / UniunChannelQrCard / QrScannerPage) | ✅ Done |
-| Private channel QR share button | 🔲 Pending (add to PrivateChannelDetailPage) |
-| DMs (NIP-17) | 🔲 Pending |
-
-**NIP-09 (event deletion) is permanently excluded.** Notes are forever — this is a core product principle, not a gap. Never add a `deleted` field, Kind 5 event handling, or any soft-delete mechanism anywhere in the codebase.
+**NIP-09 (event deletion) is permanently excluded.** Notes are forever — core product principle, not a gap. Never add a `deleted` field, Kind 5 event handling, or any soft-delete mechanism. See "Feed Freedom" under Core Philosophy.
 
 ---
 
@@ -933,13 +792,16 @@ lib/
 │   ├── extensions/                # Dart extension methods
 │   ├── router/
 │   │   └── app_routes.dart        # Named route constants (see routes list below)
-│   ├── scan/                      # QR + OCR scanner widgets (not feature-specific)
-│   │   ├── uniun_qr_card.dart     # UniunQrCard.user() + UniunChannelQrCard.channel() + UniunQrView
+│   ├── router/
+│   │   ├── app_router.dart        # GoRouter declaration + deep-link redirects
+│   │   ├── app_routes.dart        # Named route constants
+│   │   └── deep_link.dart         # Universal-link host/segments + ensureRelays helper
+│   ├── share/
+│   │   └── share_uri.dart         # externalUrlFor(noteId) → https://www.uniun.in/note/<hex>
+│   ├── scan/                      # QR widgets (not feature-specific)
+│   │   ├── uniun_qr_card.dart     # UniunQrCard.user() / UniunChannelQrCard.channel()
 │   │   ├── uniun_qr_payload.dart  # UniunQrPayload encode/decode
-│   │   ├── qr_scanner_page.dart   # QrScannerPage (MobileScanner)
-│   │   ├── uniun_card.dart        # Legacy OCR card (kept, not in use)
-│   │   ├── uniun_payload.dart     # Legacy OCR payload (kept, not in use)
-│   │   └── text_scanner_page.dart # Legacy OCR scanner (kept, AppRoutes.scanCard)
+│   │   └── qr_scanner_page.dart   # QrScannerPage (MobileScanner)
 │   ├── theme/
 │   │   └── app_theme.dart         # AppColors, AppTextStyles, ThemeData
 │   └── usecases/
@@ -1041,6 +903,10 @@ lib/
     │   └── chat/                  # DmChatPage
     ├── followed_notes/cubit/      # FollowedNotesCubit
     ├── saved_notes/               # SavedNotesCubit + SavedNotesPage
+    ├── share/                     # NIP-18 share sheet
+    │   ├── bloc/                  # ShareSheetBloc (loads destinations, dispatches share)
+    │   ├── pages/                 # ShareSheetPage (modal bottom sheet)
+    │   └── widgets/               # DestinationTile, DmDestinationTile, CollapsibleSection
     └── settings/                  # SettingsCubit, EditProfileCubit, StorageCubit + pages/widgets
 ```
 
@@ -1048,14 +914,21 @@ lib/
 ```dart
 splash, welcome, importIdentity, yourIdentityKeys, aboutYou
 home, settings, editProfile, privacyPolicy
-thread, followedNoteDetail
+thread, followedNoteDetail, noteDetail
 aiModelSelection, graph, brahmaCreate
-createChannel, joinChannel, channelDetail
-createPrivateChannel, joinPrivateChannel, privateChannelDetail
+channelEntry, createChannel, joinChannel, channelDetail
+privateChannelEntry, createPrivateChannel, joinPrivateChannel, privateChannelDetail
 savedNotes, createDm, chatDm
-scanCard   ← legacy OCR scanner (kept)
-scanQr     ← QR scanner (active)
+scanQr, userProfile
 ```
+
+Deep-linkable (Universal Links / App Links — host `www.uniun.in`):
+- `/channel/<channelId>` → `channelDetail`
+- `/private/<groupId>` → `privateChannelDetail`
+- `/user/<npub|hex>` → anonymous route (in-app uses `userProfile`)
+- `/note/<hex>` → `noteDetail` (used by share)
+
+External links carry `?dl=1`; redirects gate auth/relay-ensure via `_deepLinkAuthGate()`. In-app navigation skips those checks. Path constants live in `lib/core/router/deep_link.dart` (single source of truth — manifest + AASA + Dart all read the same segments).
 
 ---
 
