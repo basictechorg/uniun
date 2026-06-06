@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/enum/message_role.dart';
+import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -176,8 +177,7 @@ class _ShivBubble extends StatelessWidget {
                 color: AppColors.secondaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.smart_toy_outlined,
+              child: const DropIcon(
                 size: 16,
                 color: AppColors.primary,
               ),

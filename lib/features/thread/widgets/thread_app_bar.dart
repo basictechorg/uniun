@@ -45,11 +45,6 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: AppColors.onSurfaceVariant),
                 onPressed: () {},
               ),
-              IconButton(
-                icon: const Icon(Icons.more_vert_rounded,
-                    color: AppColors.onSurfaceVariant),
-                onPressed: () {},
-              ),
             ],
           ),
         ),

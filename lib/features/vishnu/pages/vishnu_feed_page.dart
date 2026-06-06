@@ -103,6 +103,7 @@ class _VishnuFeedView extends StatefulWidget {
 class _VishnuFeedViewState extends State<_VishnuFeedView> {
   final _scrollController = ScrollController();
   final Set<String> _everVisible = <String>{};
+  bool _scrollingUp = false;
 
   @override
   void initState() {
@@ -119,7 +120,15 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
   }
 
   void _onScroll() {
-    widget.onScrollDirection(_scrollController.position.userScrollDirection);
+    final dir = _scrollController.position.userScrollDirection;
+    widget.onScrollDirection(dir);
+    // The "new notes" button only surfaces while scrolling up toward the top;
+    // it stays hidden while reading/scrolling down. Idle keeps the last state.
+    if (dir == ScrollDirection.forward && !_scrollingUp) {
+      setState(() => _scrollingUp = true);
+    } else if (dir == ScrollDirection.reverse && _scrollingUp) {
+      setState(() => _scrollingUp = false);
+    }
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       context.read<VishnuFeedBloc>().add(const LoadMoreFeedEvent());
@@ -257,12 +266,18 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             top: 4,
                             left: 0,
                             right: 0,
-                            child: IgnorePointer(
-                              ignoring: feedState.newCount <= 0,
-                              child: NewNotesBanner(
-                                count: feedState.newCount,
-                                onTap: _onLoadNewNotes,
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final showBanner =
+                                    _scrollingUp && feedState.newCount > 0;
+                                return IgnorePointer(
+                                  ignoring: !showBanner,
+                                  child: NewNotesBanner(
+                                    count: showBanner ? feedState.newCount : 0,
+                                    onTap: _onLoadNewNotes,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],

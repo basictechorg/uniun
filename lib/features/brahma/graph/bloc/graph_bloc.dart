@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
@@ -51,6 +52,9 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
       final ownResult = await _getOwnNotes.call(pubkeyHex);
       ownResult.fold((_) {}, (notes) {
         for (final n in notes) {
+          // DMs (kind 14/15) are authored by this user too, but they are
+          // private messages — never surface them in the Brahma graph.
+          if (n.kind == kDmTextKind || n.kind == kDmFileKind) continue;
           if (!savedIds.contains(n.id)) {
             ownNotes.add(GraphNodeData(
               eventId: n.id,
