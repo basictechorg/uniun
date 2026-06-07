@@ -1264,12 +1264,6 @@
   "shareDestFeedSubtitle": "Visible on Vishnu",
   "@shareDestFeedSubtitle": { "description": "Subtitle under the 'Post to my feed' share destination" },
 
-  "shareDestExternal": "Share via…",
-  "@shareDestExternal": { "description": "Share destination — opens the OS share sheet with a deep link to the note" },
-
-  "shareDestExternalSubtitle": "WhatsApp, copy link, other apps",
-  "@shareDestExternalSubtitle": { "description": "Subtitle under the external share destination" },
-
   "shareSectionPublicChannels": "PUBLIC CHANNELS",
   "@shareSectionPublicChannels": { "description": "Section header in the share sheet listing public channels" },
 
@@ -1281,9 +1275,6 @@
 
   "shareSuccess": "Shared",
   "@shareSuccess": { "description": "Snackbar confirmation after the note has been shared into the chosen destination" },
-
-  "shareExternalSubject": "Note from UNIUN",
-  "@shareExternalSubject": { "description": "Subject used by the OS share sheet when sharing a note link externally (e.g. email subject)" },
 
   "shareEmbedLoading": "Loading note…",
   "@shareEmbedLoading": { "description": "Placeholder shown inside an embedded shared-note card while the original is being resolved" },

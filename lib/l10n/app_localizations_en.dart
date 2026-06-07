@@ -1371,12 +1371,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareDestFeedSubtitle => 'Visible on Vishnu';
 
   @override
-  String get shareDestExternal => 'Share via…';
-
-  @override
-  String get shareDestExternalSubtitle => 'WhatsApp, copy link, other apps';
-
-  @override
   String get shareSectionPublicChannels => 'PUBLIC CHANNELS';
 
   @override
@@ -1387,9 +1381,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareSuccess => 'Shared';
-
-  @override
-  String get shareExternalSubject => 'Note from UNIUN';
 
   @override
   String get shareEmbedLoading => 'Loading note…';

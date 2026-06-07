@@ -2578,18 +2578,6 @@ abstract class AppLocalizations {
   /// **'Visible on Vishnu'**
   String get shareDestFeedSubtitle;
 
-  /// Share destination — opens the OS share sheet with a deep link to the note
-  ///
-  /// In en, this message translates to:
-  /// **'Share via…'**
-  String get shareDestExternal;
-
-  /// Subtitle under the external share destination
-  ///
-  /// In en, this message translates to:
-  /// **'WhatsApp, copy link, other apps'**
-  String get shareDestExternalSubtitle;
-
   /// Section header in the share sheet listing public channels
   ///
   /// In en, this message translates to:
@@ -2613,12 +2601,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shared'**
   String get shareSuccess;
-
-  /// Subject used by the OS share sheet when sharing a note link externally (e.g. email subject)
-  ///
-  /// In en, this message translates to:
-  /// **'Note from UNIUN'**
-  String get shareExternalSubject;
 
   /// Placeholder shown inside an embedded shared-note card while the original is being resolved
   ///

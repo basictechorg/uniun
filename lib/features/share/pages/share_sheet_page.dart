@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart';
@@ -123,7 +121,6 @@ class _ShareSheetView extends StatelessWidget {
                                 destination: dest,
                               ),
                             ),
-                            onExternalShare: () => _externalShare(context),
                           ),
                   ),
                   if (state.submitting)
@@ -140,11 +137,6 @@ class _ShareSheetView extends StatelessWidget {
     );
   }
 
-  Future<void> _externalShare(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final url = DeepLink.note(sourceEventId).toString();
-    await Share.share(url, subject: l10n.shareExternalSubject);
-  }
 }
 
 class _DestinationList extends StatelessWidget {
@@ -152,13 +144,11 @@ class _DestinationList extends StatelessWidget {
     required this.state,
     required this.scrollController,
     required this.onPick,
-    required this.onExternalShare,
   });
 
   final ShareSheetState state;
   final ScrollController scrollController;
   final ValueChanged<ShareDestination> onPick;
-  final VoidCallback onExternalShare;
 
   @override
   Widget build(BuildContext context) {
@@ -172,12 +162,6 @@ class _DestinationList extends StatelessWidget {
           title: l10n.shareDestFeed,
           subtitle: l10n.shareDestFeedSubtitle,
           onTap: () => onPick(const ShareDestination.feed()),
-        ),
-        DestinationTile(
-          icon: Icons.ios_share_rounded,
-          title: l10n.shareDestExternal,
-          subtitle: l10n.shareDestExternalSubtitle,
-          onTap: onExternalShare,
         ),
         if (state.publicChannels.isNotEmpty)
           CollapsibleSection(
