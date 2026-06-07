@@ -32,6 +32,9 @@ class FeedNotesSubscription extends SubscriptionProvider {
   @override
   Future<Map<String, int>> localIndex(SubscriptionContext ctx) async {
     final ids = await ctx.isar.noteModels.where().eventIdProperty().findAll();
-    return {for (final id in ids) id: 0};
+    return {
+      for (final id in ids) id: 0,
+      for (final id in await deletedEventIds(ctx)) id: 0,
+    };
   }
 }

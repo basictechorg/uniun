@@ -4,6 +4,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
+import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -45,6 +46,11 @@ class _NoteCardView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.watch<NoteCardCubit>();
     final cardState = cubit.state;
+
+    // Locally deleted — collapse the card. It's already gone from Isar and
+    // won't return on the next feed load.
+    if (cardState.isRemoved) return const SizedBox.shrink();
+
     final profile = cardState.profile;
 
     final isFollowed = cardState.isFollowed;
@@ -132,7 +138,13 @@ class _NoteCardView extends StatelessWidget {
                             ],
                           ],
                         ),
-                      )
+                      ),
+                      // ── Overflow menu (Delete / Block) ──────────────────
+                      NoteCardMenu(
+                        cubit: cubit,
+                        isOwnNote: cardState.isOwnNote,
+                        displayName: displayName,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),

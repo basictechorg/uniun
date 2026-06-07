@@ -4,12 +4,23 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 
 @Injectable(as: NoteResolverRepository)
 class NoteResolverRepositoryImpl implements NoteResolverRepository {
   final Isar isar;
-  NoteResolverRepositoryImpl({required this.isar});
+  final NoteRelationRepository _relations;
+  NoteResolverRepositoryImpl({required this.isar, required NoteRelationRepository relations})
+      : _relations = relations;
+
+  /// Maps a row to its domain entity with live edge-table counts attached.
+  /// The resolver feeds the thread root + parent/mention/reply cards, all of
+  /// which read [NoteEntity.referenceCount] / [NoteEntity.cachedReplyCount].
+  Future<NoteEntity> _withCounts(NoteModel m) async => m.toDomain().copyWith(
+        cachedReplyCount: await _relations.replyCount(m.eventId),
+        referenceCount: await _relations.referenceCount(m.eventId),
+      );
 
   @override
   Future<Either<Failure, NoteEntity>> resolveById(String id) async {
@@ -17,8 +28,7 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
       final note =
           await isar.noteModels.where().eventIdEqualTo(id).findFirst();
       if (note != null) {
-        final enriched = await enrichWithQuotes([note.toDomain()]);
-        return Right(enriched.first);
+        return Right(await _withCounts(note));
       }
 
       return Left(Failure.notFoundFailure('Note not found: $id'));
@@ -42,7 +52,7 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
           .filter()
           .replyToEventIdEqualTo(id)
           .findAll();
-      final out = replies.map((m) => m.toDomain()).toList()
+      final out = [for (final m in replies) await _withCounts(m)]
         ..sort((a, b) => a.created.compareTo(b.created));
       return Right(await enrichWithQuotes(out));
     } catch (e) {

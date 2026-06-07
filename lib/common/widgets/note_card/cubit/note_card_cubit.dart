@@ -1,13 +1,18 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/core/utils/formatters.dart';
+import 'package:uniun/domain/usecases/blocked_user_usecases.dart';
+import 'package:uniun/domain/usecases/deleted_note_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 
 part 'note_card_state.dart';
@@ -27,6 +32,9 @@ class NoteCardCubit extends Cubit<NoteCardState> {
   final WatchIsFollowedUseCase _watchIsFollowed;
   final FollowNoteUseCase _followNote;
   final UnfollowNoteUseCase _unfollowNote;
+  final BlockUserUseCase _blockUser;
+  final DeleteNoteUseCase _deleteNote;
+  final GetActiveUserUseCase _getActiveUser;
   final NoteEntity note;
 
   StreamSubscription<ProfileEntity?>? _profileSub;
@@ -42,6 +50,9 @@ class NoteCardCubit extends Cubit<NoteCardState> {
     this._watchIsFollowed,
     this._followNote,
     this._unfollowNote,
+    this._blockUser,
+    this._deleteNote,
+    this._getActiveUser,
     @factoryParam this.note,
   ) : super(const NoteCardState()) {
     _init();
@@ -57,6 +68,16 @@ class NoteCardCubit extends Cubit<NoteCardState> {
       if (!isClosed) emit(state.copyWith(isFollowed: followed));
     });
     _loadSaved();
+    _loadIsOwnNote();
+  }
+
+  Future<void> _loadIsOwnNote() async {
+    final r = await _getActiveUser.call();
+    r.fold((_) {}, (user) {
+      if (!isClosed && user.pubkeyHex == note.authorPubkey) {
+        emit(state.copyWith(isOwnNote: true));
+      }
+    });
   }
 
   Future<void> _loadSaved() async {
@@ -103,6 +124,21 @@ class NoteCardCubit extends Cubit<NoteCardState> {
         ),
       );
     }
+  }
+
+  /// Blocks the note's author. Future inbound events from this pubkey are
+  /// dropped by the gateway; existing notes already in Isar stay visible.
+  Future<Either<Failure, Unit>> blockUser() =>
+      _blockUser.call(note.authorPubkey);
+
+  /// Deletes this note locally and tombstones it so the gateway never resyncs
+  /// it. On success the card collapses itself via [NoteCardState.isRemoved].
+  Future<Either<Failure, Unit>> deleteNote() async {
+    final result = await _deleteNote.call(note.id);
+    result.fold((_) {}, (_) {
+      if (!isClosed) emit(state.copyWith(isRemoved: true));
+    });
+    return result;
   }
 
   @override

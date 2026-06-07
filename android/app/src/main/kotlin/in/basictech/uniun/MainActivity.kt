@@ -1,4 +1,4 @@
-package com.basictech.uniun
+package `in`.basictech.uniun
 
 import io.flutter.embedding.android.FlutterActivity
 

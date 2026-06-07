@@ -50,6 +50,9 @@ class PrivateChannelsSubscription extends SubscriptionProvider {
     for (final id in decIds) {
       out[id] = 0;
     }
+    for (final id in await deletedEventIds(ctx)) {
+      out[id] = 0;
+    }
     return out;
   }
 

@@ -75,9 +75,7 @@ class _DmOwnNoteCardView extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Spacer(),
-            Flexible(
-              flex: 8,
+            Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,

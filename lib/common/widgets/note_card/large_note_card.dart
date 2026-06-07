@@ -4,6 +4,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
+import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -74,6 +75,7 @@ class _LargeNoteCardView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               UserAvatar(
                 seed: note.authorPubkey,
@@ -121,6 +123,12 @@ class _LargeNoteCardView extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              // ── Overflow menu (Delete / Block) ──────────────────────────
+              NoteCardMenu(
+                cubit: cubit,
+                isOwnNote: cardState.isOwnNote,
+                displayName: displayName,
               ),
             ],
           ),

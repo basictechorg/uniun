@@ -1522,6 +1522,30 @@ abstract class AppLocalizations {
   /// **'E2E ENCRYPTED'**
   String get keysE2eEncrypted;
 
+  /// Leading text of the terms-acceptance checkbox on identity-keys page
+  ///
+  /// In en, this message translates to:
+  /// **'I agree to the '**
+  String get keysAgreePrefix;
+
+  /// Tappable Terms & Conditions link in the acceptance checkbox
+  ///
+  /// In en, this message translates to:
+  /// **'Terms & Conditions'**
+  String get keysAgreeTerms;
+
+  /// Conjunction between the two links in the acceptance checkbox
+  ///
+  /// In en, this message translates to:
+  /// **' and '**
+  String get keysAgreeConjunction;
+
+  /// Tappable Privacy Policy link in the acceptance checkbox
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get keysAgreePrivacy;
+
   /// Snackbar after copying npub on identity-keys page
   ///
   /// In en, this message translates to:
@@ -2619,6 +2643,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start a DM first to share notes here.'**
   String get shareNoDmConversations;
+
+  /// Action in the note card overflow menu that blocks the note's author
+  ///
+  /// In en, this message translates to:
+  /// **'Block user'**
+  String get noteCardBlockUser;
+
+  /// Action in the note card overflow menu that deletes the note locally
+  ///
+  /// In en, this message translates to:
+  /// **'Delete note'**
+  String get noteCardDeleteNote;
+
+  /// Confirmation snackbar shown after deleting a note from a note card
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted.'**
+  String get deleteNoteSnackbar;
+
+  /// Confirmation snackbar shown after blocking a user from a note card
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked {name}. New posts from them won\'t appear.'**
+  String blockUserSnackbar(String name);
+
+  /// Settings row that opens the blocked users management screen
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked Users'**
+  String get settingsBlockedUsers;
+
+  /// App bar title of the blocked users management screen
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked Users'**
+  String get blockedUsersTitle;
+
+  /// Empty state on the blocked users screen when no users are blocked
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t blocked anyone'**
+  String get blockedUsersEmpty;
+
+  /// Button that unblocks a user on the blocked users screen
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get actionUnblock;
 }
 
 class _AppLocalizationsDelegate
