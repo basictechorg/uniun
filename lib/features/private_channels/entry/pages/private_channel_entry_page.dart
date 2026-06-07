@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/common/widgets/channel_entry_chooser.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -15,14 +16,9 @@ class PrivateChannelEntryPage extends StatelessWidget {
       joinLabel: l10n.privateChannelEntryJoin,
       createLabel: l10n.privateChannelEntryCreate,
       icon: Icons.lock_outline_rounded,
-      onJoin: () => Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.joinPrivateChannel,
-      ),
-      onCreate: () => Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.createPrivateChannel,
-      ),
+      onJoin: () => context.pushReplacementNamed(AppRoutes.joinPrivateChannel),
+      onCreate: () =>
+          context.pushReplacementNamed(AppRoutes.createPrivateChannel),
     );
   }
 }

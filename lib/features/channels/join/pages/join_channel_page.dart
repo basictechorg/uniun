@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
@@ -9,19 +10,25 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class JoinChannelPage extends StatelessWidget {
-  const JoinChannelPage({super.key});
+  const JoinChannelPage({super.key, this.payload});
+
+  /// Pre-fill data from a QR scan or a `/channel/<id>` deep link that fell
+  /// back here because the channel isn't joined yet.
+  final UniunQrPayload? payload;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<JoinChannelBloc>()..add(const LoadJoinRelaysEvent()),
-      child: const _JoinChannelView(),
+      child: _JoinChannelView(payload: payload),
     );
   }
 }
 
 class _JoinChannelView extends StatefulWidget {
-  const _JoinChannelView();
+  const _JoinChannelView({this.payload});
+
+  final UniunQrPayload? payload;
 
   @override
   State<_JoinChannelView> createState() => _JoinChannelViewState();
@@ -32,15 +39,12 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
   final _relayUrlController = TextEditingController();
   final List<String> _selectedRelays = [];
   String _prefilledName = '';
-  bool _appliedArgs = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_appliedArgs) return;
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is UniunQrPayload && args.kind == UniunQrKind.publicChannel) {
-      _appliedArgs = true;
+  void initState() {
+    super.initState();
+    final args = widget.payload;
+    if (args != null && args.kind == UniunQrKind.publicChannel) {
       _channelIdController.text = args.id;
       _prefilledName = args.name ?? '';
       _selectedRelays
@@ -69,7 +73,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
   Future<void> _joinByQr() async {
     // The unified scanner replaces this page with the right destination, so
     // we just push and let it take over.
-    await Navigator.of(context).pushNamed(AppRoutes.scanQr);
+    context.pushNamed(AppRoutes.scanQr);
   }
 
   Future<String?> _showAddRelayDialog() async {

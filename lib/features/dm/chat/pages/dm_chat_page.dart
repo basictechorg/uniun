@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -17,19 +18,16 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class DmChatPage extends StatelessWidget {
-  const DmChatPage({super.key});
+  const DmChatPage({super.key, required this.otherPubkey});
+
+  /// Recipient's hex pubkey (already normalised by the chatDm route).
+  final String otherPubkey;
 
   @override
   Widget build(BuildContext context) {
-    final otherPubkey = ModalRoute.of(context)!.settings.arguments as String;
-
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => getIt<DmChatBloc>()
-            ..add(DmChatLoadEvent(otherPubkey: otherPubkey)),
-        ),
-      ],
+    return BlocProvider(
+      create: (_) =>
+          getIt<DmChatBloc>()..add(DmChatLoadEvent(otherPubkey: otherPubkey)),
       child: const _DmChatView(),
     );
   }
@@ -119,7 +117,7 @@ class _DmChatViewState extends State<_DmChatView> {
   }
 
   void _openThread(BuildContext context, String messageId) {
-    Navigator.pushNamed(context, AppRoutes.thread, arguments: messageId);
+    context.pushNamed(AppRoutes.thread, pathParameters: {'noteId': messageId});
   }
 
   @override
@@ -200,15 +198,6 @@ class _DmChatViewState extends State<_DmChatView> {
                   onTap: () => _showQr(state.otherPubkey!),
                   tooltip: 'Share keys',
                 ),
-              IconButton(
-                icon: const Icon(
-                  Icons.refresh,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                onPressed: () {
-                  context.read<DmChatBloc>().add(DmChatRefreshEvent());
-                },
-              ),
             ],
           ),
           body: Column(

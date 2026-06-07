@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
@@ -88,7 +89,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
 
   void _openThread(BuildContext ctx, NoteEntity msg, String channelName) {
     final bloc = ctx.read<ChannelFeedBloc>();
-    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: msg.id).then((_) {
+    ctx.pushNamed(AppRoutes.thread, pathParameters: {'noteId': msg.id}).then((_) {
       // Silent refresh — no loading spinner, scroll position preserved.
       // listenWhen fires only if new messages arrived, scrolling to bottom
       // only when there is genuinely new content to show.
@@ -167,7 +168,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
               ],
             ),
             actions: [
-              if (state.channel != null)
+              if (state.channel != null) ...[
                 IconButton(
                   onPressed: () => _showChannelQrSheet(context, state),
                   icon: const Icon(
@@ -176,6 +177,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
                   ),
                   tooltip: l10n.channelShareQrTitle,
                 ),
+              ],
             ],
           ),
           body: Column(

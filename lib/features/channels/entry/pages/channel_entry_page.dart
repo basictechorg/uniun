@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/common/widgets/channel_entry_chooser.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -14,14 +15,8 @@ class ChannelEntryPage extends StatelessWidget {
       subtitle: l10n.channelEntrySubtitle,
       joinLabel: l10n.channelEntryJoin,
       createLabel: l10n.channelEntryCreate,
-      onJoin: () => Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.joinChannel,
-      ),
-      onCreate: () => Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.createChannel,
-      ),
+      onJoin: () => context.pushReplacementNamed(AppRoutes.joinChannel),
+      onCreate: () => context.pushReplacementNamed(AppRoutes.createChannel),
     );
   }
 }

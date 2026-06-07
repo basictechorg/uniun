@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
@@ -24,7 +25,9 @@ import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 ///   Step 1 — private key revealed after pub is copied (must copy to proceed)
 ///   Step 2 — Save & Continue enabled after both keys copied
 class YourIdentityKeysPage extends StatefulWidget {
-  const YourIdentityKeysPage({super.key});
+  const YourIdentityKeysPage({super.key, this.args});
+
+  final Map? args;
 
   @override
   State<YourIdentityKeysPage> createState() => _YourIdentityKeysPageState();
@@ -37,7 +40,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
   Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
     final l10n = AppLocalizations.of(context)!;
-    final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final result = await getIt<ImportKeyUseCase>().call(nsec);
     if (!mounted) return;
@@ -68,10 +71,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
           await _enqueueKind0MetadataEvent(user.nsec, profile);
         }
         if (!mounted) return;
-        navigator.pushNamedAndRemoveUntil(
-          AppRoutes.home,
-          (r) => false,
-        );
+        router.goNamed(AppRoutes.home);
       },
     );
   }
@@ -162,8 +162,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map? ?? {};
+    final args = widget.args ?? {};
     final npub = args['npub'] as String? ?? 'npub1...';
     final nsec = args['nsec'] as String? ?? 'nsec1...';
     final canContinue = _pubKeyCopied && _privKeyCopied;

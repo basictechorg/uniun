@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -8,9 +9,11 @@ import 'package:uniun/features/onboarding/widgets/generated_avatar.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 
 /// Profile setup — shown after key generation on Create New Identity flow.
-/// Route args: Map{'npub': String, 'nsec': String}
+/// Route args (passed via go_router `extra`): Map{'npub', 'nsec', 'pubkeyHex'}.
 class AboutYouPage extends StatefulWidget {
-  const AboutYouPage({super.key});
+  const AboutYouPage({super.key, this.args});
+
+  final Map? args;
 
   @override
   State<AboutYouPage> createState() => _AboutYouPageState();
@@ -45,8 +48,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
     super.dispose();
   }
 
-  Map _args(BuildContext context) =>
-      ModalRoute.of(context)?.settings.arguments as Map? ?? {};
+  Map _args(BuildContext context) => widget.args ?? {};
 
   bool get _canContinue =>
       _displayNameController.text.trim().isNotEmpty &&
@@ -82,10 +84,9 @@ class _AboutYouPageState extends State<AboutYouPage> {
 
     final args = _args(context);
     final pubkeyHex = args['pubkeyHex'] as String? ?? '';
-    Navigator.pushNamed(
-      context,
+    context.pushNamed(
       AppRoutes.yourIdentityKeys,
-      arguments: {
+      extra: {
         ...args,
         'displayName': name,
         'username': username,
@@ -97,11 +98,7 @@ class _AboutYouPageState extends State<AboutYouPage> {
   }
 
   void _goHome() {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.home,
-      (route) => false,
-    );
+    context.goNamed(AppRoutes.home);
   }
 
   @override

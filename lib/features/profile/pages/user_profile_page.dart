@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
@@ -15,25 +16,21 @@ class UserProfileArgs {
 }
 
 class UserProfilePage extends StatelessWidget {
-  const UserProfilePage({super.key});
+  const UserProfilePage({super.key, required this.args});
+
+  final UserProfileArgs? args;
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    final String hex;
-    final String? hintName;
-    if (args is UserProfileArgs && args.pubkeyHex.isNotEmpty) {
-      hex = args.pubkeyHex;
-      hintName = args.hintName;
-    } else if (args is String && args.isNotEmpty) {
-      hex = args;
-      hintName = null;
-    } else {
+    final args = this.args;
+    if (args == null || args.pubkeyHex.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (Navigator.canPop(context)) Navigator.pop(context);
       });
       return const Scaffold();
     }
+    final hex = args.pubkeyHex;
+    final hintName = args.hintName;
     return MultiBlocProvider(
       providers: [
         BlocProvider(
@@ -89,10 +86,9 @@ class _UserProfileView extends StatelessWidget {
                         return NoteCard(
                           key: ValueKey(note.id),
                           note: note,
-                          onTap: () => Navigator.pushNamed(
-                            context,
+                          onTap: () => context.pushNamed(
                             AppRoutes.thread,
-                            arguments: note.id,
+                            pathParameters: {'noteId': note.id},
                           ),
                         );
                       },
@@ -284,10 +280,9 @@ class _DmButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
-      onPressed: () => Navigator.pushNamed(
-        context,
+      onPressed: () => context.pushNamed(
         AppRoutes.createDm,
-        arguments: pubkeyHex,
+        extra: pubkeyHex,
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,

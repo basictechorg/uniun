@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -77,7 +78,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   }
 
   void _openThread(BuildContext context, String messageId) {
-    Navigator.pushNamed(context, AppRoutes.thread, arguments: messageId);
+    context.pushNamed(AppRoutes.thread, pathParameters: {'noteId': messageId});
   }
 
   void _showJoinRequests(BuildContext context) {
@@ -124,7 +125,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
           );
         }
         if (state.isLeft) {
-          Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+          context.goNamed(AppRoutes.home);
         }
       },
       builder: (context, state) {
@@ -195,7 +196,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                       ),
                   ],
                 ),
-              if (state.channel != null)
+              if (state.channel != null) ...[
                 UniunQrButton(
                   onTap: () => showDialog<void>(
                     context: context,
@@ -207,6 +208,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                   ),
                   tooltip: 'Share QR',
                 ),
+              ],
               PopupMenuButton<String>(
                 onSelected: (val) {
                   if (val == 'leave') {

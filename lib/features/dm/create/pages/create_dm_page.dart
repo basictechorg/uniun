@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
@@ -8,19 +9,26 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart';
 
 class CreateDmPage extends StatelessWidget {
-  const CreateDmPage({super.key});
+  const CreateDmPage({super.key, this.initialPubkey, this.payload});
+
+  /// Pre-filled recipient (npub/hex) — e.g. from a QR scan.
+  final String? initialPubkey;
+  final UniunQrPayload? payload;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<CreateDmBloc>()..add(LoadRelaysEvent()),
-      child: const _CreateDmView(),
+      child: _CreateDmView(initialPubkey: initialPubkey, payload: payload),
     );
   }
 }
 
 class _CreateDmView extends StatefulWidget {
-  const _CreateDmView();
+  const _CreateDmView({this.initialPubkey, this.payload});
+
+  final String? initialPubkey;
+  final UniunQrPayload? payload;
 
   @override
   State<_CreateDmView> createState() => _CreateDmViewState();
@@ -29,22 +37,19 @@ class _CreateDmView extends StatefulWidget {
 class _CreateDmViewState extends State<_CreateDmView> {
   final _pubkeyController = TextEditingController();
   final List<String> _selectedRelays = [];
-  bool _appliedArgs = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_appliedArgs) return;
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is String && args.isNotEmpty) {
-      _appliedArgs = true;
-      _pubkeyController.text = args;
-    } else if (args is UniunQrPayload && args.kind == UniunQrKind.user) {
-      _appliedArgs = true;
-      _pubkeyController.text = args.id;
+  void initState() {
+    super.initState();
+    final initial = widget.initialPubkey;
+    final payload = widget.payload;
+    if (initial != null && initial.isNotEmpty) {
+      _pubkeyController.text = initial;
+    } else if (payload != null && payload.kind == UniunQrKind.user) {
+      _pubkeyController.text = payload.id;
       _selectedRelays
         ..clear()
-        ..addAll(args.relays);
+        ..addAll(payload.relays);
     }
   }
 
@@ -78,8 +83,12 @@ class _CreateDmViewState extends State<_CreateDmView> {
         }
         if (state.isSuccess) {
            final pubkey = _pubkeyController.text.trim();
-           Navigator.pop(context); // Pop creation screen
-           Navigator.pushNamed(context, AppRoutes.chatDm, arguments: pubkey);
+           // Replace the creation screen with the chat (route id may be hex
+           // or npub — the chatDm route normalises it).
+           context.pushReplacementNamed(
+             AppRoutes.chatDm,
+             pathParameters: {'id': pubkey},
+           );
         }
       },
       child: Scaffold(

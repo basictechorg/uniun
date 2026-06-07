@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
@@ -10,19 +11,25 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart';
 
 class JoinPrivateChannelPage extends StatelessWidget {
-  const JoinPrivateChannelPage({super.key});
+  const JoinPrivateChannelPage({super.key, this.payload});
+
+  /// Pre-fill data from a QR scan or a `/private/<id>` deep link that fell
+  /// back here because the channel isn't joined yet.
+  final UniunQrPayload? payload;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<JoinPrivateChannelBloc>(),
-      child: const _JoinPrivateChannelView(),
+      child: _JoinPrivateChannelView(payload: payload),
     );
   }
 }
 
 class _JoinPrivateChannelView extends StatefulWidget {
-  const _JoinPrivateChannelView();
+  const _JoinPrivateChannelView({this.payload});
+
+  final UniunQrPayload? payload;
 
   @override
   State<_JoinPrivateChannelView> createState() => _JoinPrivateChannelViewState();
@@ -31,15 +38,12 @@ class _JoinPrivateChannelView extends StatefulWidget {
 class _JoinPrivateChannelViewState extends State<_JoinPrivateChannelView> {
   final _groupIdController = TextEditingController();
   final List<String> _selectedRelays = [];
-  bool _appliedArgs = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_appliedArgs) return;
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is UniunQrPayload && args.kind == UniunQrKind.privateChannel) {
-      _appliedArgs = true;
+  void initState() {
+    super.initState();
+    final args = widget.payload;
+    if (args != null && args.kind == UniunQrKind.privateChannel) {
       _groupIdController.text = args.id;
       _selectedRelays
         ..clear()
@@ -166,8 +170,7 @@ class _JoinPrivateChannelViewState extends State<_JoinPrivateChannelView> {
                       child: OutlinedButton.icon(
                         onPressed: state.isSubmitting
                             ? null
-                            : () => Navigator.of(context)
-                                .pushNamed(AppRoutes.scanQr),
+                            : () => context.pushNamed(AppRoutes.scanQr),
                         icon: const Icon(Icons.qr_code_scanner_rounded),
                         label: Text(l10n.joinPrivateChannelScanQr),
                       ),

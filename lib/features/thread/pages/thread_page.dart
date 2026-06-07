@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -7,14 +8,6 @@ import 'package:uniun/features/thread/bloc/thread_bloc.dart';
 import 'package:uniun/features/thread/widgets/thread_app_bar.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
 import 'package:uniun/common/widgets/thread/message_thread_page.dart';
-
-/// Route argument for [ThreadPage]. Pass either a plain [String] (eventId) or a
-/// [ThreadRouteArgs] when the thread should filter to saved notes only.
-class ThreadRouteArgs {
-  const ThreadRouteArgs(this.noteId, {this.savedOnly = false});
-  final String noteId;
-  final bool savedOnly;
-}
 
 /// The single thread screen for every note, regardless of which collection
 /// holds it. [ThreadBloc] resolves the id across all collections.
@@ -46,9 +39,12 @@ class _ThreadView extends StatefulWidget {
 }
 
 class _ThreadViewState extends State<_ThreadView> {
-  // Note ids currently open as a ThreadPage anywhere in the stack — prevents
-  // pushing a duplicate of a page that already exists in the back stack.
-  static final Set<String> _openNoteIds = {};
+  // Note ids currently open as a ThreadPage, in stack order (oldest first) —
+  // prevents pushing a duplicate of a page already in the back stack, and lets
+  // us pop back to it. A list (not a set) so we know how many pages sit above a
+  // given thread; go_router names pages by route name ('thread'), not by the
+  // resolved location, so we can't identify a page by its note id via Route.
+  static final List<String> _openNoteIds = [];
 
   @override
   void initState() {
@@ -63,23 +59,29 @@ class _ThreadViewState extends State<_ThreadView> {
   }
 
   void _openThread(BuildContext ctx, String noteId) {
-    if (_openNoteIds.contains(noteId)) {
-      Navigator.of(ctx).popUntil((route) {
-        final args = route.settings.arguments;
-        final id = args is String
-            ? args
-            : args is ThreadRouteArgs
-                ? args.noteId
-                : null;
-        return id == noteId || route.isFirst;
-      });
+    final existingIndex = _openNoteIds.indexOf(noteId);
+    if (existingIndex != -1) {
+      // Already open deeper in the stack — pop the thread pages stacked above it
+      // instead of pushing a duplicate. We pop by count (rather than matching on
+      // Route) because go_router names every thread page 'thread', so a Route
+      // can't be identified by its note id.
+      final popCount = _openNoteIds.length - 1 - existingIndex;
+      final navigator = Navigator.of(ctx);
+      for (var i = 0; i < popCount && navigator.canPop(); i++) {
+        navigator.pop();
+      }
       return;
     }
     final bloc = context.read<ThreadBloc>();
     final savedOnly = bloc.state.savedOnly;
-    final args = savedOnly ? ThreadRouteArgs(noteId, savedOnly: true) : noteId;
     // Reload this thread when the child pops so new nested replies are reflected.
-    Navigator.pushNamed(ctx, AppRoutes.thread, arguments: args).then((_) {
+    ctx
+        .pushNamed(
+      AppRoutes.thread,
+      pathParameters: {'noteId': noteId},
+      extra: savedOnly ? true : null,
+    )
+        .then((_) {
       if (mounted) {
         bloc.add(LoadThreadEvent(widget.noteId, savedOnly: savedOnly));
       }

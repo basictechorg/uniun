@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
-import 'package:uniun/domain/usecases/get_relays_usecase.dart';
-import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -24,7 +24,11 @@ import 'package:uniun/l10n/app_localizations.dart';
 enum UniunQrScanIntent { generic, follow, dm }
 
 class UniunQrScannerPage extends StatefulWidget {
-  const UniunQrScannerPage({super.key});
+  const UniunQrScannerPage({super.key, this.intent = UniunQrScanIntent.generic});
+
+  /// What to do once a user QR is decoded. Set by the launching route via
+  /// `extra` — see [appRouter]'s scanQr route.
+  final UniunQrScanIntent intent;
 
   @override
   State<UniunQrScannerPage> createState() => _UniunQrScannerPageState();
@@ -57,13 +61,11 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
     }
     _handled = true;
 
-    await _ensureRelaysPresent(payload.relays);
+    await ensureRelays(payload.relays);
     if (!mounted) return;
 
-    final intent = ModalRoute.of(context)?.settings.arguments;
-
     if (payload.kind == UniunQrKind.user) {
-      await _dispatchUser(payload, intent);
+      await _dispatchUser(payload, widget.intent);
       return;
     }
 
@@ -72,15 +74,13 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
       UniunQrKind.publicChannel => AppRoutes.joinChannel,
       UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
     };
-    Navigator.of(context).pushReplacementNamed(route, arguments: payload);
+    context.pushReplacementNamed(route, extra: payload);
   }
 
-  Future<void> _dispatchUser(UniunQrPayload payload, Object? intent) async {
+  Future<void> _dispatchUser(
+      UniunQrPayload payload, UniunQrScanIntent intent) async {
     if (intent == UniunQrScanIntent.dm) {
-      Navigator.of(context).pushReplacementNamed(
-        AppRoutes.createDm,
-        arguments: payload,
-      );
+      context.pushReplacementNamed(AppRoutes.createDm, extra: payload);
       return;
     }
 
@@ -112,26 +112,10 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
       return;
     }
 
-    Navigator.of(context).pushReplacementNamed(
+    context.pushReplacementNamed(
       AppRoutes.userProfile,
-      arguments: UserProfileArgs(pubkeyHex: hex, hintName: payload.name),
+      extra: UserProfileArgs(pubkeyHex: hex, hintName: payload.name),
     );
-  }
-
-  /// Add any scanned relay we don't already have to the local relay list, so
-  /// the user can join/DM seamlessly without manual setup.
-  Future<void> _ensureRelaysPresent(List<String> relays) async {
-    if (relays.isEmpty) return;
-    final existing = await getIt<GetRelaysUseCase>().call();
-    final known = existing.fold(
-      (_) => <String>{},
-      (list) => list.map((r) => r.url).toSet(),
-    );
-    final save = getIt<SaveRelayUseCase>();
-    for (final url in relays) {
-      if (url.isEmpty || known.contains(url)) continue;
-      await save.call(url);
-    }
   }
 
   Future<void> _pickFromGallery() async {

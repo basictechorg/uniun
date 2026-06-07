@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
@@ -62,7 +63,7 @@ class IdentityCard extends StatelessWidget {
             icon: Icons.privacy_tip_outlined,
             label: l10n.identityPrivacyPolicy,
             trailing: Icons.chevron_right_rounded,
-            onTap: () => Navigator.pushNamed(context, AppRoutes.privacyPolicy),
+            onTap: () => context.pushNamed(AppRoutes.privacyPolicy),
           ),
         ],
       ),

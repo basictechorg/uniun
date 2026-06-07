@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
@@ -10,7 +11,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
-import 'package:uniun/features/thread/pages/thread_page.dart' show ThreadRouteArgs;
+import 'package:uniun/features/profile/pages/user_profile_page.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 
 class VishnuDrawer extends StatelessWidget {
@@ -64,7 +65,7 @@ class VishnuDrawer extends StatelessWidget {
                       label: l10n.drawerSavedNotes,
                       onTap: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.savedNotes);
+                        context.pushNamed(AppRoutes.savedNotes);
                       },
                     ),
 
@@ -80,10 +81,9 @@ class VishnuDrawer extends StatelessWidget {
                         await openEventThread(
                           context,
                           item.eventId,
-                          openAsNote: () => Navigator.pushNamed(
-                            context,
+                          openAsNote: () => context.pushNamed(
                             AppRoutes.thread,
-                            arguments: ThreadRouteArgs(item.eventId),
+                            pathParameters: {'noteId': item.eventId},
                           ),
                         );
                         // ignore: use_build_context_synchronously
@@ -100,18 +100,16 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.followedUsers ?? [],
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(
-                          context,
+                        context.pushNamed(
                           AppRoutes.scanQr,
-                          arguments: UniunQrScanIntent.follow,
+                          extra: UniunQrScanIntent.follow,
                         );
                       },
                       onItemTap: (user) {
                         _close(context);
-                        Navigator.pushNamed(
-                          context,
+                        context.pushNamed(
                           AppRoutes.userProfile,
-                          arguments: user.pubkey,
+                          extra: UserProfileArgs(pubkeyHex: user.pubkey),
                         );
                       },
                     ),
@@ -123,14 +121,13 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.channels ?? [],
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(context, AppRoutes.channelEntry);
+                        context.pushNamed(AppRoutes.channelEntry);
                       },
                       onItemTap: (channelId) {
                         _close(context);
-                        Navigator.pushNamed(
-                          context,
+                        context.pushNamed(
                           AppRoutes.channelDetail,
-                          arguments: channelId,
+                          pathParameters: {'channelId': channelId},
                         );
                       },
                     ),
@@ -142,15 +139,13 @@ class VishnuDrawer extends StatelessWidget {
                       items: loaded?.privateChannels ?? [],
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(
-                            context, AppRoutes.privateChannelEntry);
+                        context.pushNamed(AppRoutes.privateChannelEntry);
                       },
                       onItemTap: (groupId) {
                         _close(context);
-                        Navigator.pushNamed(
-                          context,
+                        context.pushNamed(
                           AppRoutes.privateChannelDetail,
-                          arguments: groupId,
+                          pathParameters: {'groupId': groupId},
                         );
                       },
                     ),
@@ -162,10 +157,9 @@ class VishnuDrawer extends StatelessWidget {
                       label: l10n.drawerDirectMessages,
                       onAdd: () {
                         _close(context);
-                        Navigator.pushNamed(
-                          context,
+                        context.pushNamed(
                           AppRoutes.scanQr,
-                          arguments: UniunQrScanIntent.dm,
+                          extra: UniunQrScanIntent.dm,
                         );
                       },
                     ),
@@ -177,10 +171,9 @@ class VishnuDrawer extends StatelessWidget {
                             dm: dm,
                             onTap: () {
                               _close(context);
-                              Navigator.pushNamed(
-                                context, 
-                                AppRoutes.chatDm, 
-                                arguments: dm.pubkey,
+                              context.pushNamed(
+                                AppRoutes.chatDm,
+                                pathParameters: {'id': dm.pubkey},
                               );
                             },
                           )),
@@ -191,7 +184,7 @@ class VishnuDrawer extends StatelessWidget {
               _DrawerFooter(
                 onSettings: () {
                   _close(context);
-                  Navigator.pushNamed(context, AppRoutes.settings);
+                  context.pushNamed(AppRoutes.settings);
                 },
               ),
             ],
@@ -279,7 +272,7 @@ class _DrawerHeader extends StatelessWidget {
             ),
           ),
           UniunQrScanButton(
-            onTap: () => Navigator.pushNamed(context, AppRoutes.scanQr),
+            onTap: () => context.pushNamed(AppRoutes.scanQr),
             tooltip: 'Scan QR',
           ),
           UniunQrButton(
