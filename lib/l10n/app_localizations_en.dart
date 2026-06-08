@@ -1428,4 +1428,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionUnblock => 'Unblock';
+
+  @override
+  String get actionReadMore => 'Read more';
+
+  @override
+  String get actionReadLess => 'Read less';
 }

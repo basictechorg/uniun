@@ -98,7 +98,10 @@ class AIModelRunner {
       InferenceChat? chat;
       try {
         final params = _activeParams;
-        final model = await FlutterGemma.getActiveModel(maxTokens: 4096);
+        final model = await FlutterGemma.getActiveModel(
+          maxTokens: 4096,
+          preferredBackend: PreferredBackend.gpu,
+        );
         chat = await model.openChat(
           temperature: 0.8,
           topK: 40,
@@ -155,7 +158,10 @@ class AIModelRunner {
     try {
       debugPrint('🧪 generateOneShot: opening throwaway chat…');
       final params = _activeParams;
-      final model = await FlutterGemma.getActiveModel(maxTokens: maxTokens);
+      final model = await FlutterGemma.getActiveModel(
+        maxTokens: maxTokens,
+        preferredBackend: PreferredBackend.gpu,
+      );
       oneShot = await model.openChat(
         temperature: 0.2,
         topK: 20,

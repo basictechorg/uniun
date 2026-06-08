@@ -613,6 +613,10 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i719.MarkConversationSeenUseCase>(
       () => _i719.MarkConversationSeenUseCase(gh<_i497.UnreadRepository>()),
     );
+    gh.lazySingleton<_i719.GetChannelOldestUnreadTimeUseCase>(
+      () =>
+          _i719.GetChannelOldestUnreadTimeUseCase(gh<_i497.UnreadRepository>()),
+    );
     gh.lazySingleton<_i141.RemoteLlmDataSource>(
       () => _i141.RemoteLlmDataSource(
         gh<_i981.LlmCredentialsDataSource>(),
@@ -737,16 +741,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i551.DmMessageRepository>(),
       ),
     );
-    gh.factory<_i830.GraphBloc>(
-      () => _i830.GraphBloc(
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-      ),
-    );
     gh.factory<_i60.DmChatBloc>(
       () => _i60.DmChatBloc(
         gh<_i1023.FetchDmUseCase>(),
@@ -762,6 +756,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
       () =>
           _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
+    );
+    gh.lazySingleton<_i689.GetChannelMessagesAfterUseCase>(
+      () => _i689.GetChannelMessagesAfterUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+      ),
     );
     gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
       () => _i689.GetChannelMessageByIdUseCase(
@@ -822,6 +821,17 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.factory<_i830.GraphBloc>(
+      () => _i830.GraphBloc(
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i214.Isar>(),
+      ),
     );
     gh.factory<_i734.ReferencePickerCubit>(
       () => _i734.ReferencePickerCubit(

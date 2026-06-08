@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_relay_usecase.dart';
@@ -50,6 +51,12 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
       );
       _loading = false;
     });
+    // Auto-select the UNIUN backend relay when the user hasn't picked any yet,
+    // so publishing works out of the box without hand-picking a relay.
+    if (widget.selected.isEmpty &&
+        _available.contains(AppConstants.kUniunBackend)) {
+      widget.onChanged([AppConstants.kUniunBackend]);
+    }
   }
 
   Future<void> _showAddRelayDialog() async {

@@ -72,32 +72,44 @@ class VishnuDrawer extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // ── Following Notes (collapsible) ─────────────────────
-                    _CollapsibleFollowingSection(
-                      items: loaded?.followedNotes ?? [],
+                    _CollapsibleSection(
+                      title: l10n.drawerFollowingNotes,
+                      itemCount: (loaded?.followedNotes ?? []).length,
+                      emptyHint: l10n.drawerNoFollowedNotes,
                       onAdd: () => _showComingSoon(context, l10n.drawerHome),
-                      onItemTap: (item) async {
-                        _close(context);
-                        getIt<ClearNewReferencesUseCase>().call(item.eventId);
-                        await openEventThread(
-                          context,
-                          item.eventId,
-                          openAsNote: () => context.pushNamed(
-                            AppRoutes.thread,
-                            pathParameters: {'noteId': item.eventId},
+                      children: [
+                        for (final item in loaded?.followedNotes ?? [])
+                          _FollowedNoteRow(
+                            item: item,
+                            onTap: () async {
+                              _close(context);
+                              getIt<ClearNewReferencesUseCase>()
+                                  .call(item.eventId);
+                              await openEventThread(
+                                context,
+                                item.eventId,
+                                openAsNote: () => context.pushNamed(
+                                  AppRoutes.thread,
+                                  pathParameters: {'noteId': item.eventId},
+                                ),
+                              );
+                              // ignore: use_build_context_synchronously
+                              if (context.mounted) {
+                                context.read<app_drawer.DrawerBloc>().add(
+                                    app_drawer.DrawerLoadEvent());
+                              }
+                            },
                           ),
-                        );
-                        // ignore: use_build_context_synchronously
-                        if (context.mounted) {
-                          context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
-                        }
-                      },
+                      ],
                     ),
 
                     const SizedBox(height: 16),
 
                     // ── Following Users (collapsible) ─────────────────────
-                    _CollapsibleFollowedUsersSection(
-                      items: loaded?.followedUsers ?? [],
+                    _CollapsibleSection(
+                      title: l10n.drawerFollowingSectionTitle,
+                      itemCount: (loaded?.followedUsers ?? []).length,
+                      emptyHint: l10n.drawerFollowingEmpty,
                       onAdd: () {
                         _close(context);
                         context.pushNamed(
@@ -105,69 +117,87 @@ class VishnuDrawer extends StatelessWidget {
                           extra: UniunQrScanIntent.follow,
                         );
                       },
-                      onItemTap: (user) {
-                        _close(context);
-                        context.pushNamed(
-                          AppRoutes.userProfile,
-                          extra: UserProfileArgs(pubkeyHex: user.pubkey),
-                        );
-                      },
+                      children: [
+                        for (final user in loaded?.followedUsers ?? [])
+                          _FollowedUserRow(
+                            user: user,
+                            onTap: () {
+                              _close(context);
+                              context.pushNamed(
+                                AppRoutes.userProfile,
+                                extra: UserProfileArgs(pubkeyHex: user.pubkey),
+                              );
+                            },
+                          ),
+                      ],
                     ),
 
                     const SizedBox(height: 16),
 
                     // ── Channels (collapsible) ────────────────────────────
-                    _CollapsibleChannelSection(
-                      items: loaded?.channels ?? [],
+                    _CollapsibleSection(
+                      title: l10n.drawerChannels,
+                      itemCount: (loaded?.channels ?? []).length,
+                      emptyHint: l10n.drawerNoChannels,
                       onAdd: () {
                         _close(context);
                         context.pushNamed(AppRoutes.channelEntry);
                       },
-                      onItemTap: (channelId) {
-                        _close(context);
-                        context.pushNamed(
-                          AppRoutes.channelDetail,
-                          pathParameters: {'channelId': channelId},
-                        );
-                      },
+                      children: [
+                        for (final ch in loaded?.channels ?? [])
+                          _ChannelRow(
+                            channel: ch,
+                            onTap: () {
+                              _close(context);
+                              context.pushNamed(
+                                AppRoutes.channelDetail,
+                                pathParameters: {'channelId': ch.id},
+                              );
+                            },
+                          ),
+                      ],
                     ),
 
                     const SizedBox(height: 16),
 
-                    // ── Private Channels (collapsible) ────────────────────────────
-                    _CollapsiblePrivateChannelSection(
-                      items: loaded?.privateChannels ?? [],
+                    // ── Private Channels (collapsible) ────────────────────
+                    _CollapsibleSection(
+                      title: l10n.drawerPrivateChannels,
+                      itemCount: (loaded?.privateChannels ?? []).length,
+                      emptyHint: l10n.drawerNoPrivateChannels,
                       onAdd: () {
                         _close(context);
                         context.pushNamed(AppRoutes.privateChannelEntry);
                       },
-                      onItemTap: (groupId) {
-                        _close(context);
-                        context.pushNamed(
-                          AppRoutes.privateChannelDetail,
-                          pathParameters: {'groupId': groupId},
-                        );
-                      },
+                      children: [
+                        for (final ch in loaded?.privateChannels ?? [])
+                          _PrivateChannelRow(
+                            channel: ch,
+                            onTap: () {
+                              _close(context);
+                              context.pushNamed(
+                                AppRoutes.privateChannelDetail,
+                                pathParameters: {'groupId': ch.id},
+                              );
+                            },
+                          ),
+                      ],
                     ),
 
                     const SizedBox(height: 16),
 
-                    // ── Direct Messages ───────────────────────────────────
-                    _SectionHeader(
-                      label: l10n.drawerDirectMessages,
+                    // ── Direct Messages (collapsible) ─────────────────────
+                    _CollapsibleSection(
+                      title: l10n.drawerDirectMessages,
+                      itemCount: (loaded?.dms ?? []).length,
+                      emptyHint: l10n.drawerNoMessages,
                       onAdd: () {
                         _close(context);
-                        context.pushNamed(
-                          AppRoutes.scanQr,
-                          extra: UniunQrScanIntent.dm,
-                        );
+                        context.pushNamed(AppRoutes.createDm);
                       },
-                    ),
-                    const SizedBox(height: 4),
-                    if ((loaded?.dms ?? []).isEmpty)
-                      _EmptyHint(l10n.drawerNoMessages)
-                    else
-                      ...loaded!.dms.map((dm) => _DmRow(
+                      children: [
+                        for (final dm in loaded?.dms ?? [])
+                          _DmRow(
                             dm: dm,
                             onTap: () {
                               _close(context);
@@ -176,7 +206,9 @@ class VishnuDrawer extends StatelessWidget {
                                 pathParameters: {'id': dm.pubkey},
                               );
                             },
-                          )),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -285,39 +317,93 @@ class _DrawerHeader extends StatelessWidget {
   }
 }
 
-// ── Section header ─────────────────────────────────────────────────────────────
+// ── Collapsible section ────────────────────────────────────────────────────────
+//
+// One reusable section header + expandable body. Collapse default rule: a list
+// with more than 3 items starts collapsed; 3 or fewer start expanded. Once the
+// user taps the header their choice wins (and survives async item reloads,
+// because the user toggle is preferred over the count-derived default).
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label, this.onAdd});
+class _CollapsibleSection extends StatefulWidget {
+  const _CollapsibleSection({
+    required this.title,
+    required this.itemCount,
+    required this.emptyHint,
+    required this.children,
+    this.onAdd,
+  });
 
-  final String label;
+  final String title;
+  final int itemCount;
+  final String emptyHint;
+  final List<Widget> children;
   final VoidCallback? onAdd;
 
   @override
+  State<_CollapsibleSection> createState() => _CollapsibleSectionState();
+}
+
+class _CollapsibleSectionState extends State<_CollapsibleSection> {
+  bool? _userExpanded;
+
+  bool get _expanded => _userExpanded ?? widget.itemCount <= 3;
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-                color: AppColors.outline,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _userExpanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                ),
+                if (widget.onAdd != null)
+                  GestureDetector(
+                    onTap: widget.onAdd,
+                    child: const Icon(Icons.add_rounded,
+                        size: 18, color: AppColors.outline),
+                  ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0 : -0.25,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+              ],
             ),
           ),
-          if (onAdd != null)
-            GestureDetector(
-              onTap: onAdd,
-              child: const Icon(Icons.add_rounded,
-                  size: 18, color: AppColors.outline),
-            ),
-        ],
-      ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState:
+              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          firstChild: Column(
+            children: [
+              const SizedBox(height: 4),
+              if (widget.itemCount == 0)
+                _EmptyHint(widget.emptyHint)
+              else
+                ...widget.children,
+            ],
+          ),
+          secondChild: const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
@@ -418,181 +504,7 @@ class _FollowedNoteRow extends StatelessWidget {
   }
 }
 
-// ── Collapsible following section ─────────────────────────────────────────────
-
-class _CollapsibleFollowingSection extends StatefulWidget {
-  const _CollapsibleFollowingSection({
-    required this.items,
-    required this.onAdd,
-    required this.onItemTap,
-  });
-
-  final List<app_drawer.DrawerFollowedNoteItem> items;
-  final VoidCallback onAdd;
-  final void Function(app_drawer.DrawerFollowedNoteItem) onItemTap;
-
-  @override
-  State<_CollapsibleFollowingSection> createState() =>
-      _CollapsibleFollowingSectionState();
-}
-
-class _CollapsibleFollowingSectionState
-    extends State<_CollapsibleFollowingSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Section header with toggle ───────────────────────────────────
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context)!.drawerFollowingNotes,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.onAdd,
-                  child: const Icon(Icons.add_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // ── Expandable list ───────────────────────────────────────────────
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState: _expanded
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          firstChild: Column(
-            children: [
-              const SizedBox(height: 4),
-              if (widget.items.isEmpty)
-                _EmptyHint(AppLocalizations.of(context)!.drawerNoFollowedNotes)
-              else
-                ...widget.items.map(
-                  (n) => _FollowedNoteRow(
-                    item: n,
-                    onTap: () => widget.onItemTap(n),
-                  ),
-                ),
-            ],
-          ),
-          secondChild: const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Collapsible followed users section ────────────────────────────────────────
-
-class _CollapsibleFollowedUsersSection extends StatefulWidget {
-  const _CollapsibleFollowedUsersSection({
-    required this.items,
-    required this.onAdd,
-    required this.onItemTap,
-  });
-
-  final List<app_drawer.DrawerFollowedUserItem> items;
-  final VoidCallback onAdd;
-  final void Function(app_drawer.DrawerFollowedUserItem) onItemTap;
-
-  @override
-  State<_CollapsibleFollowedUsersSection> createState() =>
-      _CollapsibleFollowedUsersSectionState();
-}
-
-class _CollapsibleFollowedUsersSectionState
-    extends State<_CollapsibleFollowedUsersSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.drawerFollowingSectionTitle,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.onAdd,
-                  child: const Icon(Icons.add_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: Column(
-            children: [
-              const SizedBox(height: 4),
-              if (widget.items.isEmpty)
-                _EmptyHint(l10n.drawerFollowingEmpty)
-              else
-                ...widget.items.map(
-                  (u) => _FollowedUserRow(
-                    user: u,
-                    onTap: () => widget.onItemTap(u),
-                  ),
-                ),
-            ],
-          ),
-          secondChild: const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-}
+// ── Followed user row ──────────────────────────────────────────────────────────
 
 class _FollowedUserRow extends StatelessWidget {
   const _FollowedUserRow({required this.user, required this.onTap});
@@ -627,179 +539,7 @@ class _FollowedUserRow extends StatelessWidget {
   }
 }
 
-// ── Collapsible channel section ───────────────────────────────────────────────
-
-class _CollapsibleChannelSection extends StatefulWidget {
-  const _CollapsibleChannelSection({
-    required this.items,
-    required this.onAdd,
-    required this.onItemTap,
-  });
-
-  final List<app_drawer.DrawerChannelItem> items;
-  final VoidCallback onAdd;
-  final ValueChanged<String> onItemTap;
-
-  @override
-  State<_CollapsibleChannelSection> createState() =>
-      _CollapsibleChannelSectionState();
-}
-
-class _CollapsibleChannelSectionState
-    extends State<_CollapsibleChannelSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.drawerChannels,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.onAdd,
-                  child: const Icon(Icons.add_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: Column(
-            children: [
-              const SizedBox(height: 4),
-              if (widget.items.isEmpty)
-                _EmptyHint(l10n.drawerNoChannels)
-              else
-                ...widget.items.map(
-                  (ch) => _ChannelRow(
-                    channel: ch,
-                    onTap: () => widget.onItemTap(ch.id),
-                  ),
-                ),
-            ],
-          ),
-          secondChild: const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Collapsible private channel section ────────────────────────────────────────
-
-class _CollapsiblePrivateChannelSection extends StatefulWidget {
-  const _CollapsiblePrivateChannelSection({
-    required this.items,
-    required this.onAdd,
-    required this.onItemTap,
-  });
-
-  final List<app_drawer.DrawerPrivateChannelItem> items;
-  final VoidCallback onAdd;
-  final ValueChanged<String> onItemTap;
-
-  @override
-  State<_CollapsiblePrivateChannelSection> createState() =>
-      _CollapsiblePrivateChannelSectionState();
-}
-
-class _CollapsiblePrivateChannelSectionState
-    extends State<_CollapsiblePrivateChannelSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.drawerPrivateChannels,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: widget.onAdd,
-                  child: const Icon(Icons.add_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 18, color: AppColors.outline),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: Column(
-            children: [
-              const SizedBox(height: 4),
-              if (widget.items.isEmpty)
-                _EmptyHint(l10n.drawerNoPrivateChannels)
-              else
-                ...widget.items.map(
-                  (ch) => _PrivateChannelRow(
-                    channel: ch,
-                    onTap: () => widget.onItemTap(ch.id),
-                  ),
-                ),
-            ],
-          ),
-          secondChild: const SizedBox.shrink(),
-        ),
-      ],
-    );
-  }
-}
+// ── Private channel row ────────────────────────────────────────────────────────
 
 class _PrivateChannelRow extends StatelessWidget {
   const _PrivateChannelRow({required this.channel, required this.onTap});

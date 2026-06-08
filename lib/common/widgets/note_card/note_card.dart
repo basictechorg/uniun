@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
+import 'package:uniun/common/widgets/note_card/expandable_note_text.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -150,8 +151,8 @@ class _NoteCardView extends StatelessWidget {
                   const SizedBox(height: 6),
 
                   if (note.content.isNotEmpty)
-                    Text(
-                      note.content,
+                    ExpandableNoteText(
+                      text: note.content,
                       style: const TextStyle(
                         fontSize: 15,
                         color: Color(0xFF1E293B),

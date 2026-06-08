@@ -47,3 +47,17 @@ class MarkConversationSeenUseCase extends UseCase<Either<Failure, Unit>, int> {
           {bool cached = false}) =>
       _repository.markConversationSeen(conversationId);
 }
+
+// ── Read→unread boundary ──────────────────────────────────────────────────────
+
+@lazySingleton
+class GetChannelOldestUnreadTimeUseCase
+    extends UseCase<Either<Failure, DateTime?>, String> {
+  final UnreadRepository _repository;
+  const GetChannelOldestUnreadTimeUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, DateTime?>> call(String channelId,
+          {bool cached = false}) =>
+      _repository.oldestUnreadTimeForChannel(channelId);
+}

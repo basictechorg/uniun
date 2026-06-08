@@ -62,7 +62,7 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   @override
   Stream<List<PrivateChannelJoinRequestEntity>> watchJoinRequests(String groupId) {
     return isar.privateChannelJoinRequestModels
-        .where()
+        .filter()
         .groupIdEqualTo(groupId)
         .sortByTimestamp()
         .watch(fireImmediately: true)

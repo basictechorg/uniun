@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
+import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/relay_model.dart';
@@ -79,7 +80,7 @@ class RelayRepositoryImpl extends RelayRepository {
     }
   }
 
-  static const _kSystemRelayUrls = <String>{'wss://dev.uniun.in:8080'};
+  static const _kSystemRelayUrls = <String>{AppConstants.kUniunBackend};
 
   @override
   Future<void> insertDefaultRelayIfEmpty() async {

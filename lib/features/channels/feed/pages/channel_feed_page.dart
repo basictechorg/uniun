@@ -41,8 +41,20 @@ class _ChannelFeedView extends StatefulWidget {
 
 class _ChannelFeedViewState extends State<_ChannelFeedView> {
   final _scrollController = ScrollController();
-  bool _didScrollToBottom = false;
+
+  /// Anchor key for the center sliver (the unread/bottom section). Slivers
+  /// before it lay out upward, so prepending older messages never shifts the
+  /// visible content.
+  final _centerKey = const ValueKey('channel-feed-center');
+
+  /// Distance from an edge at which the next page is requested.
+  static const double _loadTrigger = 240;
+
   final Set<String> _everVisible = <String>{};
+
+  /// Guards the blanket mark-all-seen so it fires once per arrival at the
+  /// bottom rather than on every scroll frame.
+  bool _markedAllAtBottom = false;
 
   @override
   void initState() {
@@ -57,15 +69,46 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     super.dispose();
   }
 
-  /// Reaching the bottom of the list marks every message in the channel read.
+  /// Drives bidirectional pagination: nearing the top loads older read
+  /// messages, nearing the bottom loads newer unread messages and — once those
+  /// are exhausted — marks the channel fully read.
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final pos = _scrollController.position;
-    if (pos.pixels >= pos.maxScrollExtent - 8) {
-      context
-          .read<ChannelFeedBloc>()
-          .add(MarkAllChannelSeenEvent(widget.channelId));
+    final bloc = context.read<ChannelFeedBloc>();
+    final state = bloc.state;
+
+    if (pos.pixels <= pos.minScrollExtent + _loadTrigger) {
+      if (state.hasMoreOlder && !state.isLoadingOlder) {
+        bloc.add(LoadOlderChannelMessagesEvent(widget.channelId));
+      }
     }
+
+    if (pos.pixels >= pos.maxScrollExtent - _loadTrigger) {
+      if (state.hasMoreUnread && !state.isLoadingUnread) {
+        bloc.add(LoadNewerChannelMessagesEvent(widget.channelId));
+        _markedAllAtBottom = false;
+      } else if (!state.hasMoreUnread && !_markedAllAtBottom) {
+        _markedAllAtBottom = true;
+        bloc.add(MarkAllChannelSeenEvent(widget.channelId));
+      }
+    } else {
+      _markedAllAtBottom = false;
+    }
+  }
+
+  /// Over-pulling past the bottom edge re-checks the relay-synced store for
+  /// unread messages that arrived after the feed opened.
+  bool _onScrollNotification(ScrollNotification n) {
+    if (n is OverscrollNotification && n.overscroll > 0) {
+      final bloc = context.read<ChannelFeedBloc>();
+      if (!bloc.state.isLoadingUnread) {
+        bloc.add(
+          LoadNewerChannelMessagesEvent(widget.channelId, isRefresh: true),
+        );
+      }
+    }
+    return false;
   }
 
   /// Marks a message seen once it has been majority-visible then leaves view.
@@ -90,10 +133,13 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   void _openThread(BuildContext ctx, NoteEntity msg, String channelName) {
     final bloc = ctx.read<ChannelFeedBloc>();
     ctx.pushNamed(AppRoutes.thread, pathParameters: {'noteId': msg.id}).then((_) {
-      // Silent refresh — no loading spinner, scroll position preserved.
-      // listenWhen fires only if new messages arrived, scrolling to bottom
-      // only when there is genuinely new content to show.
-      if (mounted) bloc.add(LoadChannelFeedEvent(widget.channelId, silent: true));
+      // Pull any replies posted in the thread back in as newer messages,
+      // without resetting the boundary anchor or scroll position.
+      if (mounted) {
+        bloc.add(
+          LoadNewerChannelMessagesEvent(widget.channelId, isRefresh: true),
+        );
+      }
     });
   }
 
@@ -114,18 +160,13 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return BlocConsumer<ChannelFeedBloc, ChannelFeedState>(
-      listenWhen: (prev, curr) => prev.messages.length != curr.messages.length,
+      // Scroll to the bottom only when the user's own sent message lands.
+      listenWhen: (prev, curr) =>
+          prev.isSending &&
+          !curr.isSending &&
+          curr.messages.length > prev.messages.length,
       listener: (context, state) {
-        if (!_didScrollToBottom && state.status == ChannelFeedStatus.loaded) {
-          _didScrollToBottom = true;
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _scrollToBottom(),
-          );
-        } else if (state.messages.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _scrollToBottom(),
-          );
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       },
       builder: (context, state) {
         final channelName = state.channel?.name ?? '';
@@ -229,30 +270,90 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
       );
     }
 
-    return Builder(
-      builder: (ctx) {
-        return ListView.builder(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).padding.bottom + 8,
-          ),
-          itemCount: state.messages.length,
-          itemBuilder: (context, i) {
-            final msg = state.messages[i];
+    // Split the loaded range at the read→unread boundary. The top section is
+    // rendered in the reversed (pre-center) sliver so it grows upward; the
+    // bottom section is the center sliver and grows downward.
+    final top = state.messages.sublist(0, state.boundaryIndex);
+    final bottom = state.messages.sublist(state.boundaryIndex);
 
-            return VisibilityDetector(
-              key: ValueKey('chan-${msg.id}'),
-              onVisibilityChanged: (info) => _onMessageVisibility(msg.id, info),
-              child: NoteCard(
-                key: ValueKey(msg.id),
-                note: msg,
-                onTap: () => _openThread(ctx, msg, channelName),
+    return Stack(
+      children: [
+        NotificationListener<ScrollNotification>(
+          onNotification: _onScrollNotification,
+          child: CustomScrollView(
+            controller: _scrollController,
+            center: _centerKey,
+            // Boundary at mid-screen when there are unread messages; otherwise
+            // anchored at the bottom like a standard chat.
+            anchor: state.openedAtMiddle ? 0.5 : 1.0,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _messageTile(
+                    ctx,
+                    top[top.length - 1 - i],
+                    channelName,
+                  ),
+                  childCount: top.length,
+                ),
               ),
-            );
-          },
-        );
-      },
+              SliverList(
+                key: _centerKey,
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _messageTile(ctx, bottom[i], channelName),
+                  childCount: bottom.length,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).padding.bottom + 8,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (state.isLoadingOlder)
+          const Positioned(top: 0, left: 0, right: 0, child: _EdgeSpinner()),
+        if (state.isLoadingUnread)
+          const Positioned(bottom: 0, left: 0, right: 0, child: _EdgeSpinner()),
+      ],
+    );
+  }
+
+  Widget _messageTile(BuildContext ctx, NoteEntity msg, String channelName) {
+    return VisibilityDetector(
+      key: ValueKey('chan-${msg.id}'),
+      onVisibilityChanged: (info) => _onMessageVisibility(msg.id, info),
+      child: NoteCard(
+        key: ValueKey(msg.id),
+        note: msg,
+        onTap: () => _openThread(ctx, msg, channelName),
+      ),
+    );
+  }
+}
+
+/// A small progress strip shown while an older/newer page is loading.
+class _EdgeSpinner extends StatelessWidget {
+  const _EdgeSpinner();
+
+  @override
+  Widget build(BuildContext context) {
+    return const IgnorePointer(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              color: AppColors.primary,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

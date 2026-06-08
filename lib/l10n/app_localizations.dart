@@ -2691,6 +2691,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unblock'**
   String get actionUnblock;
+
+  /// Button that expands a note's text when it is longer than the collapsed line limit
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get actionReadMore;
+
+  /// Button that collapses a previously expanded note's text
+  ///
+  /// In en, this message translates to:
+  /// **'Read less'**
+  String get actionReadLess;
 }
 
 class _AppLocalizationsDelegate

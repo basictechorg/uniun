@@ -15,4 +15,11 @@ abstract class UnreadRepository {
 
   /// Mark every message in a DM conversation read.
   Future<Either<Failure, Unit>> markConversationSeen(int conversationId);
+
+  /// `created` timestamp of the oldest unread message in a public channel, or
+  /// null when the channel has no unread messages. Marks the read→unread
+  /// boundary the channel feed anchors on.
+  Future<Either<Failure, DateTime?>> oldestUnreadTimeForChannel(
+    String channelId,
+  );
 }
