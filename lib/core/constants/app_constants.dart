@@ -14,7 +14,7 @@ class AppConstants {
   static const String kAppVersion = 'UNIUN v1.0.0-beta';
 
   /// Privacy contact email.
-  static const String kPrivacyEmail = 'privacy@uniun.app';
+  static const String kPrivacyEmail = 'info@uniun.in';
 
   /// The UNIUN backend relay — the default system relay every device connects
   /// to and the one auto-selected when publishing. Use this constant instead

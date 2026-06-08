@@ -1615,13 +1615,13 @@ abstract class AppLocalizations {
   /// Footer date on privacy policy page
   ///
   /// In en, this message translates to:
-  /// **'Last updated: June 2025'**
+  /// **'Last updated: June 2026'**
   String get privacyLastUpdated;
 
   /// Contact email shown on privacy policy page
   ///
   /// In en, this message translates to:
-  /// **'privacy@uniun.app'**
+  /// **'info@uniun.in'**
   String get privacyContactEmail;
 
   /// No description provided for @privacyStoredLocallyTitle.
@@ -1717,7 +1717,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyContactBody.
   ///
   /// In en, this message translates to:
-  /// **'For privacy questions: privacy@uniun.app'**
+  /// **'For privacy questions: info@uniun.in'**
   String get privacyContactBody;
 
   /// No description provided for @termsResponsibilityTitle.
