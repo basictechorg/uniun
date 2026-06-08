@@ -37,6 +37,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   bool _pubKeyCopied = false;
   bool _privKeyCopied = false;
   bool _nsecVisible = false;
+  bool _termsAccepted = false;
 
   Future<void> _saveAndContinue(BuildContext context, Map args, String nsec) async {
     final l10n = AppLocalizations.of(context)!;
@@ -165,7 +166,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
     final args = widget.args ?? {};
     final npub = args['npub'] as String? ?? 'npub1...';
     final nsec = args['nsec'] as String? ?? 'nsec1...';
-    final canContinue = _pubKeyCopied && _privKeyCopied;
+    final canContinue = _pubKeyCopied && _privKeyCopied && _termsAccepted;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -251,6 +252,20 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
                         const Spacer(),
 
+                        _TermsCheckbox(
+                          accepted: _termsAccepted,
+                          onChanged: (v) =>
+                              setState(() => _termsAccepted = v),
+                          onOpenTerms: () => context.pushNamed(
+                            AppRoutes.privacyPolicy,
+                            extra: true,
+                          ),
+                          onOpenPrivacy: () =>
+                              context.pushNamed(AppRoutes.privacyPolicy),
+                        ),
+
+                        SizedBox(height: midGap),
+
                         GestureDetector(
                           onTap: canContinue
                               ? () => _saveAndContinue(context, args, nsec)
@@ -334,6 +349,81 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Terms & Conditions / Privacy Policy acceptance checkbox shown above the
+/// Save & Continue button. Both labels are tappable and open the policy page.
+class _TermsCheckbox extends StatelessWidget {
+  const _TermsCheckbox({
+    required this.accepted,
+    required this.onChanged,
+    required this.onOpenTerms,
+    required this.onOpenPrivacy,
+  });
+
+  final bool accepted;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    const linkStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      color: AppColors.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: AppColors.primary,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: accepted,
+            onChanged: (v) => onChanged(v ?? false),
+            activeColor: AppColors.primary,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                l10n.keysAgreePrefix,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              GestureDetector(
+                onTap: onOpenTerms,
+                child: Text(l10n.keysAgreeTerms, style: linkStyle),
+              ),
+              Text(
+                l10n.keysAgreeConjunction,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              GestureDetector(
+                onTap: onOpenPrivacy,
+                child: Text(l10n.keysAgreePrivacy, style: linkStyle),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -60,6 +60,12 @@ class IdentityCard extends StatelessWidget {
             },
           ),
           IdentityRow(
+            icon: Icons.block_rounded,
+            label: l10n.settingsBlockedUsers,
+            trailing: Icons.chevron_right_rounded,
+            onTap: () => context.pushNamed(AppRoutes.blockedUsers),
+          ),
+          IdentityRow(
             icon: Icons.privacy_tip_outlined,
             label: l10n.identityPrivacyPolicy,
             trailing: Icons.chevron_right_rounded,

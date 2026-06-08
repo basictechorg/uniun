@@ -81,17 +81,15 @@ class FeedRepositoryImpl extends FeedRepository {
   // ── Queue / Seen pagination ────────────────────────────────────────────────
 
   @override
-  Future<Either<Failure, List<NoteEntity>>> getUnseenQueue({
-    required DateTime loadedAt,
+  Future<Either<Failure, List<NoteEntity>>> getUnread({
     required int limit,
-    DateTime? before,
+    required Set<String> excludeIds,
   }) async {
     try {
       final authors = await _allowedAuthors();
-      final rows = await _queueRows(
-        loadedAt: loadedAt,
+      final rows = await _unreadRows(
         limit: limit,
-        before: before,
+        excludeIds: excludeIds,
         authors: authors,
       );
       return Right(await _toEntities(rows));
@@ -118,34 +116,56 @@ class FeedRepositoryImpl extends FeedRepository {
     }
   }
 
-  /// Queue bucket — unread feed-eligible notes created at-or-before [loadedAt].
+  /// Unread phase — feed-eligible notes that still have an unread row,
+  /// `created` desc, skipping anything in [excludeIds] (the already-loaded set).
   /// Served from the `UnreadNote` collection (indexed) then hydrated from the
   /// `Note` collection. Feed-eligible kinds: Kind 1 (gated to [authors]),
   /// Kind 42 public channel, Kind 9023 private channel — re-filtered live so a
   /// follow/unfollow takes effect immediately. DMs (14/15) never appear.
-  Future<List<NoteModel>> _queueRows({
-    required DateTime loadedAt,
+  ///
+  /// NOT bounded by `feedLoadedAt`: newly arrived unread notes are drained too.
+  /// No `before` cursor — new arrivals are newer than any cursor would allow.
+  /// Over-fetches and loops (advancing an internal `created` cursor) so a run
+  /// of already-loaded rows never short-circuits the page.
+  Future<List<NoteModel>> _unreadRows({
     required int limit,
-    DateTime? before,
+    required Set<String> excludeIds,
     required List<String> authors,
   }) async {
-    var q = isar.unreadNoteModels
-        .filter()
-        .group((g) => g
-            .group((k1) => k1
-                .kindEqualTo(kNoteKind)
-                .and()
-                .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
-            .or()
-            .kindEqualTo(kChannelMessageKind)
-            .or()
-            .kindEqualTo(kPrivateChannelKind))
-        .and()
-        .createdLessThan(loadedAt, include: true);
-    if (before != null) {
-      q = q.and().createdLessThan(before, include: true);
+    final unreadRows = <UnreadNoteModel>[];
+    final addedIds = <String>{};
+    DateTime? cursor;
+
+    while (unreadRows.length < limit) {
+      var q = isar.unreadNoteModels.filter().group((g) => g
+          .group((k1) => k1
+              .kindEqualTo(kNoteKind)
+              .and()
+              .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
+          .or()
+          .kindEqualTo(kChannelMessageKind)
+          .or()
+          .kindEqualTo(kPrivateChannelKind));
+      if (cursor != null) {
+        q = q.and().createdLessThan(cursor, include: true);
+      }
+      final candidates =
+          await q.sortByCreatedDesc().limit(limit * 2).findAll();
+      if (candidates.isEmpty) break;
+
+      for (final c in candidates) {
+        if (!excludeIds.contains(c.eventId) && addedIds.add(c.eventId)) {
+          unreadRows.add(c);
+          if (unreadRows.length == limit) break;
+        }
+      }
+
+      final nextCursor = candidates.last.created;
+      final progressed = cursor == null || nextCursor.isBefore(cursor);
+      cursor = nextCursor;
+      // Source exhausted, or timestamps stopped advancing (degenerate boundary).
+      if (candidates.length < limit * 2 || !progressed) break;
     }
-    final unreadRows = await q.sortByCreatedDesc().limit(limit).findAll();
     if (unreadRows.isEmpty) return const [];
 
     final ids = unreadRows.map((r) => r.eventId).toList();

@@ -784,6 +784,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keysE2eEncrypted => 'E2E ENCRYPTED';
 
   @override
+  String get keysAgreePrefix => 'I agree to the ';
+
+  @override
+  String get keysAgreeTerms => 'Terms & Conditions';
+
+  @override
+  String get keysAgreeConjunction => ' and ';
+
+  @override
+  String get keysAgreePrivacy => 'Privacy Policy';
+
+  @override
   String get keysPublicCopied =>
       'Public key copied — now reveal your private key';
 
@@ -1390,4 +1402,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareNoDmConversations => 'Start a DM first to share notes here.';
+
+  @override
+  String get noteCardBlockUser => 'Block user';
+
+  @override
+  String get noteCardDeleteNote => 'Delete note';
+
+  @override
+  String get deleteNoteSnackbar => 'Note deleted.';
+
+  @override
+  String blockUserSnackbar(String name) {
+    return 'Blocked $name. New posts from them won\'t appear.';
+  }
+
+  @override
+  String get settingsBlockedUsers => 'Blocked Users';
+
+  @override
+  String get blockedUsersTitle => 'Blocked Users';
+
+  @override
+  String get blockedUsersEmpty => 'You haven\'t blocked anyone';
+
+  @override
+  String get actionUnblock => 'Unblock';
 }

@@ -2,17 +2,14 @@ part of 'vishnu_feed_bloc.dart';
 
 enum VishnuFeedStatus { initial, loading, loaded, loadingMore, error }
 
-/// Where the next page comes from.
-enum FeedBucket { queue, seen, exhausted }
-
 class VishnuFeedState {
   const VishnuFeedState({
     this.items = const [],
     this.profiles = const {},
     this.savedIds = const {},
     this.status = VishnuFeedStatus.initial,
-    this.bucket = FeedBucket.queue,
-    this.cursor,
+    this.seenCursor,
+    this.exhausted = false,
     this.loadedAt,
     this.newCount = 0,
     this.errorMessage,
@@ -30,14 +27,14 @@ class VishnuFeedState {
 
   final VishnuFeedStatus status;
 
-  /// Which collection the *next* page reads from. `exhausted` = end-of-feed.
-  final FeedBucket bucket;
+  /// Last loaded seen-phase item's `created` — passed as `before` to the next
+  /// seen page. Null until the unread phase yields to the seen phase.
+  final DateTime? seenCursor;
 
-  /// Last loaded item's `created` — passed as `before` to the next page.
-  /// Null on first page of a bucket.
-  final DateTime? cursor;
+  /// End-of-feed: both unread and seen phases are dry. Stops infinite scroll.
+  final bool exhausted;
 
-  /// The persisted anchor that splits queue from new-buffer.
+  /// The persisted anchor that drives the "X new notes" banner count.
   final DateTime? loadedAt;
 
   /// Banner count — number of unseen items newer than [loadedAt].
@@ -46,16 +43,16 @@ class VishnuFeedState {
   final String? errorMessage;
 
   bool get isEmpty => items.isEmpty;
-  bool get hasMore => bucket != FeedBucket.exhausted;
+  bool get hasMore => !exhausted;
 
   VishnuFeedState copyWith({
     List<NoteEntity>? items,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
     VishnuFeedStatus? status,
-    FeedBucket? bucket,
-    DateTime? cursor,
-    bool clearCursor = false,
+    DateTime? seenCursor,
+    bool clearSeenCursor = false,
+    bool? exhausted,
     DateTime? loadedAt,
     int? newCount,
     String? errorMessage,
@@ -65,8 +62,8 @@ class VishnuFeedState {
       profiles: profiles ?? this.profiles,
       savedIds: savedIds ?? this.savedIds,
       status: status ?? this.status,
-      bucket: bucket ?? this.bucket,
-      cursor: clearCursor ? null : (cursor ?? this.cursor),
+      seenCursor: clearSeenCursor ? null : (seenCursor ?? this.seenCursor),
+      exhausted: exhausted ?? this.exhausted,
       loadedAt: loadedAt ?? this.loadedAt,
       newCount: newCount ?? this.newCount,
       errorMessage: errorMessage,

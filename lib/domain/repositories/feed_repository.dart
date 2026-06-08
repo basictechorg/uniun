@@ -5,13 +5,14 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 /// Vishnu unified feed repository.
 ///
 /// Merges two collections — Kind 1 notes and Kind 42 public channel messages
-/// from joined channels — under one read model. Three derived buckets keyed
-/// off the persisted [feedLoadedAt] anchor + the presence of an `UnreadNote`
-/// row (a note is "unread" iff a row exists for its eventId):
+/// from joined channels — under one read model. A note is "unread" iff an
+/// `UnreadNote` row exists for its eventId. The feed drains in two phases:
 ///
-///   - **New buffer**: `unread && created >  feedLoadedAt` — banner only.
-///   - **Queue**:      `unread && created <= feedLoadedAt` — top of feed.
-///   - **Seen**:       no unread row                       — after queue.
+///   - **Unread**: any note with an unread row — drained first, `created` desc,
+///     regardless of the [feedLoadedAt] anchor (newly arrived unread included).
+///   - **Seen**:   no unread row — shown after unread, `created` desc.
+///
+/// The [feedLoadedAt] anchor is used only for the "X new notes" banner count.
 abstract class FeedRepository {
   /// Reads the persisted anchor (creates it as `now` on first call).
   Future<Either<Failure, DateTime>> getOrInitFeedLoadedAt();
@@ -19,25 +20,26 @@ abstract class FeedRepository {
   /// Snaps the anchor forward (called on banner tap / pull-to-refresh).
   Future<Either<Failure, Unit>> setFeedLoadedAt(DateTime ts);
 
-  /// Bucket **B** — unseen notes/channel-msgs created at-or-before [loadedAt].
-  /// Returns up to [limit] items, merged and sorted by `created` desc.
-  /// [before] is the previous page's last item's created (cursor).
-  Future<Either<Failure, List<NoteEntity>>> getUnseenQueue({
-    required DateTime loadedAt,
+  /// Unread phase — feed-eligible notes/channel-msgs that still have an unread
+  /// row, `created` desc. Returns up to [limit] items, skipping any eventId in
+  /// [excludeIds] (the already-loaded set). No `before` cursor: new arrivals
+  /// are newer than any cursor, and the unread collection self-prunes (rows are
+  /// deleted on mark-seen) so it stays small.
+  Future<Either<Failure, List<NoteEntity>>> getUnread({
     required int limit,
-    DateTime? before,
+    required Set<String> excludeIds,
   });
 
-  /// Bucket **C** — seen notes/channel-msgs, `created` desc, paginated by
-  /// [before].
+  /// Seen phase — feed-eligible notes/channel-msgs with NO unread row,
+  /// `created` desc, paginated by [before].
   Future<Either<Failure, List<NoteEntity>>> getSeen({
     required int limit,
     DateTime? before,
   });
 
-  /// Live count of bucket **A** — new arrivals since [loadedAt]. Drives the
-  /// "X new notes" banner. Emits the current value immediately, then again
-  /// whenever the underlying collections change.
+  /// Live count of new arrivals since [loadedAt]. Drives the "X new notes"
+  /// banner. Emits the current value immediately, then again whenever the
+  /// underlying collections change.
   Stream<int> watchNewBufferCount(DateTime loadedAt);
 
   /// Mark a note or channel message seen by deleting its unread row.

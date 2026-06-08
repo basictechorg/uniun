@@ -52,6 +52,7 @@ class GatewayOrchestrator {
   late final RelayRegistry _registry;
   late final TempSessionCoordinator _tempCoordinator;
   late final IsarWatcherHub _watcherHub;
+  late final InboundBus _inboundBus;
 
   int _lastHandledQueueId = 0;
   Timer? _dequeueTimer;
@@ -82,7 +83,7 @@ class GatewayOrchestrator {
       ],
     );
 
-    final inboundBus = InboundBus(
+    final inboundBus = _inboundBus = InboundBus(
       isar: _isar,
       missingProfileTracker: MissingProfileTracker(_isar),
       handlers: [
@@ -97,6 +98,9 @@ class GatewayOrchestrator {
         Kind9021To9025Handler(activePubkey: _activePubkey),
       ],
     );
+    // Load the blocked-pubkey set and start watching it before any session is
+    // attached, so the inbound filter is active from the first event.
+    await inboundBus.init();
 
     _registry = RelayRegistry(
       isar: _isar,
@@ -165,6 +169,7 @@ class GatewayOrchestrator {
     await _watcherHub.dispose();
     _tempCoordinator.disposeAll();
     await _registry.disposeAll();
+    await _inboundBus.dispose();
   }
 
   List<SubscriptionProvider> _subscriptionProviders() => [

@@ -29,33 +29,24 @@ class SetFeedLoadedAtUseCase extends UseCase<Either<Failure, Unit>, DateTime> {
 
 // ── Pagination ───────────────────────────────────────────────────────────────
 
-class FeedPageInput {
-  final DateTime loadedAt;
+class UnreadPageInput {
   final int limit;
-  final DateTime? before;
-  const FeedPageInput({
-    required this.loadedAt,
-    required this.limit,
-    this.before,
-  });
+  final Set<String> excludeIds;
+  const UnreadPageInput({required this.limit, required this.excludeIds});
 }
 
 @lazySingleton
-class GetUnseenQueuePageUseCase
-    extends UseCase<Either<Failure, List<NoteEntity>>, FeedPageInput> {
+class GetUnreadPageUseCase
+    extends UseCase<Either<Failure, List<NoteEntity>>, UnreadPageInput> {
   final FeedRepository _repo;
-  const GetUnseenQueuePageUseCase(this._repo);
+  const GetUnreadPageUseCase(this._repo);
 
   @override
   Future<Either<Failure, List<NoteEntity>>> call(
-    FeedPageInput input, {
+    UnreadPageInput input, {
     bool cached = false,
   }) =>
-      _repo.getUnseenQueue(
-        loadedAt: input.loadedAt,
-        limit: input.limit,
-        before: input.before,
-      );
+      _repo.getUnread(limit: input.limit, excludeIds: input.excludeIds);
 }
 
 class SeenPageInput {

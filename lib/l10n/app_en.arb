@@ -756,6 +756,18 @@
   "keysE2eEncrypted": "E2E ENCRYPTED",
   "@keysE2eEncrypted": { "description": "Badge on identity-keys page footer" },
 
+  "keysAgreePrefix": "I agree to the ",
+  "@keysAgreePrefix": { "description": "Leading text of the terms-acceptance checkbox on identity-keys page" },
+
+  "keysAgreeTerms": "Terms & Conditions",
+  "@keysAgreeTerms": { "description": "Tappable Terms & Conditions link in the acceptance checkbox" },
+
+  "keysAgreeConjunction": " and ",
+  "@keysAgreeConjunction": { "description": "Conjunction between the two links in the acceptance checkbox" },
+
+  "keysAgreePrivacy": "Privacy Policy",
+  "@keysAgreePrivacy": { "description": "Tappable Privacy Policy link in the acceptance checkbox" },
+
   "keysPublicCopied": "Public key copied — now reveal your private key",
   "@keysPublicCopied": { "description": "Snackbar after copying npub on identity-keys page" },
 
@@ -1283,5 +1295,33 @@
   "@shareEmbedNotFound": { "description": "Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-channel note shared to a public surface)" },
 
   "shareNoDmConversations": "Start a DM first to share notes here.",
-  "@shareNoDmConversations": { "description": "Hint shown in the share sheet's DM section when the user has no DM conversations yet" }
+  "@shareNoDmConversations": { "description": "Hint shown in the share sheet's DM section when the user has no DM conversations yet" },
+  "noteCardBlockUser": "Block user",
+  "@noteCardBlockUser": { "description": "Action in the note card overflow menu that blocks the note's author" },
+
+  "noteCardDeleteNote": "Delete note",
+  "@noteCardDeleteNote": { "description": "Action in the note card overflow menu that deletes the note locally" },
+
+  "deleteNoteSnackbar": "Note deleted.",
+  "@deleteNoteSnackbar": { "description": "Confirmation snackbar shown after deleting a note from a note card" },
+
+  "blockUserSnackbar": "Blocked {name}. New posts from them won't appear.",
+  "@blockUserSnackbar": {
+    "description": "Confirmation snackbar shown after blocking a user from a note card",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "settingsBlockedUsers": "Blocked Users",
+  "@settingsBlockedUsers": { "description": "Settings row that opens the blocked users management screen" },
+
+  "blockedUsersTitle": "Blocked Users",
+  "@blockedUsersTitle": { "description": "App bar title of the blocked users management screen" },
+
+  "blockedUsersEmpty": "You haven't blocked anyone",
+  "@blockedUsersEmpty": { "description": "Empty state on the blocked users screen when no users are blocked" },
+
+  "actionUnblock": "Unblock",
+  "@actionUnblock": { "description": "Button that unblocks a user on the blocked users screen" }
 }

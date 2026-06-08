@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/gateway/session/relay_session.dart';
 
 /// Context passed to every [SubscriptionProvider] call.
@@ -31,6 +32,14 @@ abstract class SubscriptionProvider {
   /// Map of `{eventId: timestamp}` of events we already have locally that
   /// match this filter. Fed to NIP-77's negentropy reconciliation.
   Future<Map<String, int>> localIndex(SubscriptionContext ctx);
+
+  /// Event ids the active identity has tombstoned via [DeletedNoteModel].
+  /// Providers whose filter can match a deletable note seed these into their
+  /// [localIndex] so NIP-77 treats them as already-held and the relay stops
+  /// re-offering them on every sync. (Reconciliation is download-only, so
+  /// seeding ids the relay doesn't have under this filter is harmless.)
+  Future<Iterable<String>> deletedEventIds(SubscriptionContext ctx) =>
+      ctx.isar.deletedNoteModels.where().eventIdProperty().findAll();
 
   /// Optional companion REQ to fire right after the main subscription opens.
   /// Returns the (subId, filter) pair, or null for none.

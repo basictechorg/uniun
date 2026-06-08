@@ -5,15 +5,19 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
 
 class PrivacyPolicyPage extends StatefulWidget {
-  const PrivacyPolicyPage({super.key});
+  const PrivacyPolicyPage({super.key, this.expandTerms = false});
+
+  /// When true the page opens with the Terms section expanded (and Privacy
+  /// collapsed) — used when reached via the Terms & Conditions link.
+  final bool expandTerms;
 
   @override
   State<PrivacyPolicyPage> createState() => _PrivacyPolicyPageState();
 }
 
 class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
-  bool _privacyExpanded = true;
-  bool _termsExpanded = false;
+  late bool _privacyExpanded = !widget.expandTerms;
+  late bool _termsExpanded = widget.expandTerms;
 
   @override
   Widget build(BuildContext context) {

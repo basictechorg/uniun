@@ -21,7 +21,7 @@ const _pageSize = 20;
 class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   final GetOrInitFeedLoadedAtUseCase _getOrInitLoadedAt;
   final SetFeedLoadedAtUseCase _setLoadedAt;
-  final GetUnseenQueuePageUseCase _getQueuePage;
+  final GetUnreadPageUseCase _getUnreadPage;
   final GetSeenPageUseCase _getSeenPage;
   final WatchNewBufferCountUseCase _watchNewCount;
   final MarkFeedItemSeenUseCase _markSeen;
@@ -41,7 +41,7 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
   VishnuFeedBloc(
     this._getOrInitLoadedAt,
     this._setLoadedAt,
-    this._getQueuePage,
+    this._getUnreadPage,
     this._getSeenPage,
     this._watchNewCount,
     this._markSeen,
@@ -138,10 +138,10 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     _loadedIds.clear();
     emit(state.copyWith(
       items: const [],
-      bucket: FeedBucket.queue,
-      clearCursor: true,
+      exhausted: false,
+      clearSeenCursor: true,
     ));
-    await _fetchPage(emit, loadedAt: loadedAt);
+    await _fetchPage(emit);
   }
 
   // ── Infinite scroll ────────────────────────────────────────────────────────
@@ -151,54 +151,44 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
     Emitter<VishnuFeedState> emit,
   ) async {
     if (state.status == VishnuFeedStatus.loadingMore) return;
-    if (state.bucket == FeedBucket.exhausted) return;
+    if (state.exhausted) return;
     if (state.loadedAt == null) return;
     if (state.items.isEmpty) return;
     emit(state.copyWith(status: VishnuFeedStatus.loadingMore));
-    await _fetchPage(emit, loadedAt: state.loadedAt!);
+    await _fetchPage(emit);
   }
 
-  /// One page = one screen of items. May straddle bucket B → C in a single
-  /// fetch when the queue partially fills the page, so users see no gap.
-  Future<void> _fetchPage(
-    Emitter<VishnuFeedState> emit, {
-    required DateTime loadedAt,
-  }) async {
+  /// One page = one screen of items. Always drains unread first (newest-first,
+  /// re-checked on every page so newly arrived unread are picked up), then
+  /// fills any remaining slots from the seen phase so users see no gap.
+  Future<void> _fetchPage(Emitter<VishnuFeedState> emit) async {
     final newItems = <NoteEntity>[];
-    var bucket = state.bucket;
-    DateTime? cursor = state.cursor;
+    DateTime? seenCursor = state.seenCursor;
 
-    // Bucket B (queue)
-    if (bucket == FeedBucket.queue) {
-      final queueRes = await _getQueuePage.call(
-        FeedPageInput(loadedAt: loadedAt, limit: _pageSize, before: cursor),
-      );
-      final queueItems = queueRes.fold(
-        (f) {
-          emit(state.copyWith(
-            status: VishnuFeedStatus.error,
-            errorMessage: f.toMessage(),
-          ));
-          return <NoteEntity>[];
-        },
-        (l) => l,
-      );
-      _appendDedup(newItems, queueItems);
-      if (queueItems.length < _pageSize) {
-        bucket = FeedBucket.seen;
-        cursor = null;
-      } else {
-        cursor = queueItems.last.created;
-      }
-    }
+    // Unread phase — all unread, newest-first, excluding already-loaded ids.
+    final unreadRes = await _getUnreadPage.call(
+      UnreadPageInput(limit: _pageSize, excludeIds: _loadedIds),
+    );
+    final unreadItems = unreadRes.fold(
+      (f) {
+        emit(state.copyWith(
+          status: VishnuFeedStatus.error,
+          errorMessage: f.toMessage(),
+        ));
+        return <NoteEntity>[];
+      },
+      (l) => l,
+    );
+    _appendDedup(newItems, unreadItems);
 
-    // Bucket C (seen) — fills any remaining slots in this page
-    if (bucket == FeedBucket.seen && newItems.length < _pageSize) {
+    // Seen phase — fills any remaining slots in this page.
+    var seenItems = const <NoteEntity>[];
+    if (newItems.length < _pageSize) {
       final remaining = _pageSize - newItems.length;
       final seenRes = await _getSeenPage.call(
-        SeenPageInput(limit: remaining, before: cursor),
+        SeenPageInput(limit: remaining, before: seenCursor),
       );
-      final seenItems = seenRes.fold(
+      seenItems = seenRes.fold(
         (f) {
           emit(state.copyWith(
             status: VishnuFeedStatus.error,
@@ -209,10 +199,8 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
         (l) => l,
       );
       _appendDedup(newItems, seenItems);
-      if (seenItems.isEmpty) {
-        bucket = FeedBucket.exhausted;
-      } else {
-        cursor = seenItems.last.created;
+      if (seenItems.isNotEmpty) {
+        seenCursor = seenItems.last.created;
       }
     }
 
@@ -225,9 +213,8 @@ class VishnuFeedBloc extends Bloc<VishnuFeedEvent, VishnuFeedState> {
       profiles: profiles,
       savedIds: savedIds,
       status: VishnuFeedStatus.loaded,
-      bucket: bucket,
-      cursor: cursor,
-      clearCursor: bucket == FeedBucket.exhausted,
+      seenCursor: seenCursor,
+      exhausted: unreadItems.isEmpty && seenItems.isEmpty,
     ));
   }
 

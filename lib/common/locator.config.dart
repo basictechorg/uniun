@@ -32,9 +32,13 @@ import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart'
     as _i141;
 import 'package:uniun/data/datasources/tostore_module.dart' as _i740;
 import 'package:uniun/data/repositories/ai_model_repository_impl.dart' as _i72;
+import 'package:uniun/data/repositories/blocked_user_repository_impl.dart'
+    as _i877;
 import 'package:uniun/data/repositories/channel_message_repository_impl.dart'
     as _i929;
 import 'package:uniun/data/repositories/channel_repository_impl.dart' as _i1009;
+import 'package:uniun/data/repositories/deleted_note_repository_impl.dart'
+    as _i438;
 import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart'
     as _i1011;
 import 'package:uniun/data/repositories/dm_message_repository_impl.dart'
@@ -76,9 +80,13 @@ import 'package:uniun/data/repositories/unread_repository_impl.dart' as _i1024;
 import 'package:uniun/data/repositories/user_repository_impl.dart' as _i582;
 import 'package:uniun/domain/entities/note/note_entity.dart' as _i697;
 import 'package:uniun/domain/repositories/ai_model_repository.dart' as _i646;
+import 'package:uniun/domain/repositories/blocked_user_repository.dart'
+    as _i756;
 import 'package:uniun/domain/repositories/channel_message_repository.dart'
     as _i964;
 import 'package:uniun/domain/repositories/channel_repository.dart' as _i127;
+import 'package:uniun/domain/repositories/deleted_note_repository.dart'
+    as _i775;
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart'
     as _i189;
 import 'package:uniun/domain/repositories/dm_message_repository.dart' as _i551;
@@ -117,10 +125,12 @@ import 'package:uniun/domain/repositories/vector_repository.dart' as _i739;
 import 'package:uniun/domain/services/marmot_mls_service.dart' as _i168;
 import 'package:uniun/domain/services/marmot_transport_service.dart' as _i761;
 import 'package:uniun/domain/usecases/ai_model_usecases.dart' as _i894;
+import 'package:uniun/domain/usecases/blocked_user_usecases.dart' as _i278;
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart'
     as _i524;
 import 'package:uniun/domain/usecases/create_channel_usecase.dart' as _i1033;
 import 'package:uniun/domain/usecases/delete_relay_usecase.dart' as _i700;
+import 'package:uniun/domain/usecases/deleted_note_usecases.dart' as _i232;
 import 'package:uniun/domain/usecases/dm_usecases.dart' as _i1023;
 import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/feed_usecases.dart' as _i837;
@@ -234,6 +244,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i1000.PendingExtractionRepository>(
       () => _i754.PendingExtractionRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i756.BlockedUserRepository>(
+      () => _i877.BlockedUserRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i649.GraphRepository>(
       () => _i250.GraphRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -251,6 +264,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i775.DeletedNoteRepository>(
+      () => _i438.DeletedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i170.DraftRepository>(
       () => _i640.DraftRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -271,9 +287,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i635.E2EEGroupRepository>(
       () => _i896.E2EEGroupRepositoryImpl(gh<_i214.Isar>()),
     );
-    gh.factory<_i789.NoteResolverRepository>(
-      () => _i526.NoteResolverRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -282,6 +295,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i789.NoteResolverRepository>(
+      () => _i526.NoteResolverRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+      ),
     );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
       () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
@@ -515,6 +534,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.DeleteKnowledgeForNoteUseCase>(),
       ),
     );
+    gh.lazySingleton<_i232.DeleteNoteUseCase>(
+      () => _i232.DeleteNoteUseCase(gh<_i775.DeletedNoteRepository>()),
+    );
     gh.factory<_i849.FollowedUserRepository>(
       () => _i791.FollowedUserRepositoryImpl(
         isar: gh<_i214.Isar>(),
@@ -557,6 +579,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i475.SearchNotesUseCase>(
       () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i278.GetBlockedUsersUseCase>(
+      () => _i278.GetBlockedUsersUseCase(gh<_i756.BlockedUserRepository>()),
+    );
+    gh.lazySingleton<_i278.BlockUserUseCase>(
+      () => _i278.BlockUserUseCase(gh<_i756.BlockedUserRepository>()),
+    );
+    gh.lazySingleton<_i278.UnblockUserUseCase>(
+      () => _i278.UnblockUserUseCase(gh<_i756.BlockedUserRepository>()),
     );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
@@ -930,8 +961,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i837.SetFeedLoadedAtUseCase>(
       () => _i837.SetFeedLoadedAtUseCase(gh<_i250.FeedRepository>()),
     );
-    gh.lazySingleton<_i837.GetUnseenQueuePageUseCase>(
-      () => _i837.GetUnseenQueuePageUseCase(gh<_i250.FeedRepository>()),
+    gh.lazySingleton<_i837.GetUnreadPageUseCase>(
+      () => _i837.GetUnreadPageUseCase(gh<_i250.FeedRepository>()),
     );
     gh.lazySingleton<_i837.GetSeenPageUseCase>(
       () => _i837.GetSeenPageUseCase(gh<_i250.FeedRepository>()),
@@ -968,23 +999,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
-    gh.factory<_i886.BrahmaCreateBloc>(
-      () => _i886.BrahmaCreateBloc(
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i537.SaveDraftUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i475.SearchNotesUseCase>(),
-        gh<_i475.GetNoteByIdUseCase>(),
-      ),
-    );
     gh.factory<_i1039.VishnuFeedBloc>(
       () => _i1039.VishnuFeedBloc(
         gh<_i837.GetOrInitFeedLoadedAtUseCase>(),
         gh<_i837.SetFeedLoadedAtUseCase>(),
-        gh<_i837.GetUnseenQueuePageUseCase>(),
+        gh<_i837.GetUnreadPageUseCase>(),
         gh<_i837.GetSeenPageUseCase>(),
         gh<_i837.WatchNewBufferCountUseCase>(),
         gh<_i837.MarkFeedItemSeenUseCase>(),
@@ -996,10 +1015,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i63.WatchFollowedUsersUseCase>(),
       ),
     );
-    gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
-      () => _i179.DrainPendingExtractionsUseCase(
-        gh<_i1000.PendingExtractionRepository>(),
-        gh<_i179.ExtractKnowledgeUseCase>(),
+    gh.factory<_i886.BrahmaCreateBloc>(
+      () => _i886.BrahmaCreateBloc(
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i537.SaveDraftUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i475.GetNoteByIdUseCase>(),
       ),
     );
     gh.factoryParam<_i226.NoteCardCubit, _i697.NoteEntity, dynamic>(
@@ -1013,7 +1038,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i561.WatchIsFollowedUseCase>(),
         gh<_i561.FollowNoteUseCase>(),
         gh<_i561.UnfollowNoteUseCase>(),
+        gh<_i278.BlockUserUseCase>(),
+        gh<_i232.DeleteNoteUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
         note,
+      ),
+    );
+    gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
+      () => _i179.DrainPendingExtractionsUseCase(
+        gh<_i1000.PendingExtractionRepository>(),
+        gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(
