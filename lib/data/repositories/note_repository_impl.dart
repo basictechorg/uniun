@@ -7,14 +7,20 @@ import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/note_repository.dart';
+import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 
 @Injectable(as: NoteRepository)
 class NoteRepositoryImpl extends NoteRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
+  final NoteResolverRepository _resolver;
 
-  NoteRepositoryImpl({required this.isar, required NoteRelationRepository relations})
-      : _relations = relations;
+  NoteRepositoryImpl({
+    required this.isar,
+    required NoteRelationRepository relations,
+    required NoteResolverRepository resolver,
+  })  : _relations = relations,
+        _resolver = resolver;
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getFeed({
@@ -47,13 +53,14 @@ class NoteRepositoryImpl extends NoteRepository {
   /// edge table. Indexed count queries — fast even with many notes.
   Future<List<NoteEntity>> _withReplyCounts(List<NoteModel> models) async {
     final entities = models.map((n) => n.toDomain()).toList();
-    return [
+    final base = <NoteEntity>[
       for (final e in entities)
         e.copyWith(
           cachedReplyCount: await _relations.replyCount(e.id),
           referenceCount: await _relations.referenceCount(e.id),
         ),
     ];
+    return _resolver.enrichWithQuotes(base);
   }
 
   @override
@@ -66,7 +73,8 @@ class NoteRepositoryImpl extends NoteRepository {
       if (note == null) {
         return const Left(Failure.errorFailure('Note not found'));
       }
-      return Right(note.toDomain().copyWith(
+      final enriched = await _resolver.enrichWithQuotes([note.toDomain()]);
+      return Right(enriched.first.copyWith(
             cachedReplyCount: await _relations.replyCount(eventId),
             referenceCount: await _relations.referenceCount(eventId),
           ));
@@ -170,6 +178,7 @@ class NoteRepositoryImpl extends NoteRepository {
         pTagRefs: note.pTagRefs,
         tTags: note.tTags,
         created: note.created,
+        quoteEventId: note.quoteEventId,
       );
 
       final parents = replyEdgeParentIds(
@@ -223,7 +232,8 @@ class NoteRepositoryImpl extends NoteRepository {
           .authorPubkeyEqualTo(pubkeyHex)
           .sortByCreatedDesc()
           .findAll();
-      return Right(notes.map((m) => m.toDomain()).toList());
+      final entities = notes.map((m) => m.toDomain()).toList();
+      return Right(await _resolver.enrichWithQuotes(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -239,7 +249,8 @@ class NoteRepositoryImpl extends NoteRepository {
           .sortByCreatedDesc()
           .limit(30)
           .findAll();
-      return Right(results.map((m) => m.toDomain()).toList());
+      final entities = results.map((m) => m.toDomain()).toList();
+      return Right(await _resolver.enrichWithQuotes(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

@@ -12,6 +12,7 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/feed_repository.dart';
 import 'package:uniun/domain/repositories/followed_user_repository.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
+import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/repositories/source_label_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 
@@ -23,6 +24,7 @@ class FeedRepositoryImpl extends FeedRepository {
   final FollowedUserRepository _follows;
   final UserRepository _users;
   final FeedReadStateStore _feedReadState;
+  final NoteResolverRepository _resolver;
 
   FeedRepositoryImpl({
     required this.isar,
@@ -31,11 +33,13 @@ class FeedRepositoryImpl extends FeedRepository {
     required FollowedUserRepository follows,
     required UserRepository users,
     required FeedReadStateStore feedReadState,
+    required NoteResolverRepository resolver,
   })  : _relations = relations,
         _sourceLabels = sourceLabels,
         _follows = follows,
         _users = users,
-        _feedReadState = feedReadState;
+        _feedReadState = feedReadState,
+        _resolver = resolver;
 
   /// Author allow-list for Kind 1 feed notes: own pubkey + everyone followed.
   /// Empty result = effectively-impossible filter (no Kind 1 notes shown) — but
@@ -234,7 +238,7 @@ class FeedRepositoryImpl extends FeedRepository {
         if (m.channelId != null || m.groupId != null)
           (eventId: m.eventId, channelId: m.channelId, groupId: m.groupId),
     ]);
-    return [
+    final base = <NoteEntity>[
       for (final m in rows)
         m.toDomain().copyWith(
               cachedReplyCount: await _relations.replyCount(m.eventId),
@@ -242,6 +246,7 @@ class FeedRepositoryImpl extends FeedRepository {
               sourceLabel: labels[m.eventId],
             ),
     ];
+    return _resolver.enrichWithQuotes(base);
   }
 
   // ── Banner: live count of new arrivals ─────────────────────────────────────

@@ -95,6 +95,7 @@ class Nip17EncryptionService {
         final eTagRefs = <String>[];
         String? rootTo;
         String? replyTo;
+        String? quoteEventId;
 
         final tagsList = chatEvent['tags'] as List<dynamic>? ?? [];
         for (final tagObj in tagsList) {
@@ -110,6 +111,9 @@ class Nip17EncryptionService {
             } else if (marker != 'mention') {
               replyTo ??= tagObj[1] as String;
             }
+          }
+          if (tagObj[0] == 'q' && tagObj.length >= 2) {
+            quoteEventId ??= tagObj[1] as String;
           }
           if (tagObj[0] == 'subject' && tagObj.length >= 2) subject = tagObj[1] as String;
         }
@@ -162,6 +166,7 @@ class Nip17EncryptionService {
             created: DateTime.fromMillisecondsSinceEpoch(
               (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
             ),
+            quoteEventId: quoteEventId,
           );
 
           await _isar.noteModels.put(dmModel);
@@ -234,7 +239,9 @@ class Nip17EncryptionService {
               id != unsignedModel.rootEventId)
           .toList();
 
-      // Build the NIP-14 unsigned payload
+      // Build the NIP-14 unsigned payload. When the model carries a
+      // [quoteEventId] (a share/quote), emit a NIP-18 `q` tag inside the
+      // encrypted rumor so the receiver can render the embed.
       final chatPayload = {
         'pubkey': myPubkey,
         'created_at': currentSec,
@@ -246,6 +253,8 @@ class Nip17EncryptionService {
           if (unsignedModel.replyToEventId != null)
             ['e', unsignedModel.replyToEventId, '', 'reply'],
           for (final id in mentionRefs) ['e', id, '', 'mention'],
+          if (unsignedModel.quoteEventId != null)
+            ['q', unsignedModel.quoteEventId!],
         ],
         'content': unsignedModel.content,
       };

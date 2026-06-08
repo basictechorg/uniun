@@ -14,7 +14,6 @@ const String kDeepLinkScheme = 'https';
 const String kChannelSegment = 'channel';
 const String kPrivateSegment = 'private';
 const String kUserSegment = 'user';
-const String kNoteSegment = 'note'; // reserved — note links are a follow-up.
 
 /// Builds shareable `https://` universal links for each entity. The path
 /// doubles as the in-app route path, so a tapped link resolves through the

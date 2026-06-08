@@ -43,6 +43,11 @@ class SavedNoteModel {
   /// Source group id if this saved item was a NIP-29 private channel message.
   /// Mutually exclusive with [sourceChannelId].
   String? sourcePrivateGroupId;
+
+  /// NIP-18 `q` tag. The quoted note is NOT saved-forever — read-time lookup
+  /// against the live `Note` collection; misses render as not-available.
+  @Index()
+  String? quoteEventId;
 }
 
 extension SavedNoteModelExtension on SavedNoteModel {
@@ -59,5 +64,6 @@ extension SavedNoteModelExtension on SavedNoteModel {
         savedAt: savedAt,
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
+        quoteEventId: quoteEventId,
       );
 }

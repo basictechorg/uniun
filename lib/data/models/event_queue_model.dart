@@ -41,6 +41,12 @@ class EventQueueModel {
   late List<String> tTags;
   late DateTime created;
 
+  /// NIP-18 quote info — re-emitted on the wire so the broadcast event
+  /// hashes back to [eventId] (sig validation depends on it).
+  String? quoteEventId;
+  String? quoteAuthorPubkey;
+  int? quoteKind;
+
   /// Number of write-relay connections that have received ["OK", id, true].
   /// Incremented atomically by each WebSocketService on successful ACK.
   late int sentCount = 0;
@@ -49,12 +55,15 @@ class EventQueueModel {
   late DateTime enqueuedAt;
 }
 
-/// Tag reconstruction order (must match [PublishNoteUseCase._buildTags]):
+/// Tag reconstruction order (must match the order callers use when signing,
+/// otherwise the re-serialized event hash will not match [eventId]):
 ///   1. root e-tag (NIP-10)
 ///   2. reply e-tag (NIP-10)
 ///   3. mention e-tags (remaining eTagRefs)
 ///   4. p-tags
 ///   5. t-tags
+///   6. q-tag (NIP-18 share/quote, optional)
+///   7. k-tag (kind of the quoted event, optional)
 extension EventQueueModelExtension on EventQueueModel {
   /// Populates this queue row from a data-layer [NoteModel].
   EventQueueModel populateFromNoteModel(NoteModel note) {
@@ -105,6 +114,9 @@ extension EventQueueModelExtension on EventQueueModel {
           ['e', ref, '', 'mention'],
       for (final p in pTagRefs) ['p', p],
       for (final t in tTags) ['t', t],
+      if (quoteEventId != null)
+        ['q', quoteEventId!, '', quoteAuthorPubkey ?? ''],
+      if (quoteKind != null) ['k', quoteKind!.toString()],
     ];
 
     return jsonEncode([

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
+import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
+import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/features/share/pages/share_sheet_page.dart';
 
 /// Larger, container-styled variant of [NoteCard] — used as the focused/root
 /// note in a thread. Self-contained: owns profile, saved, and follow via an
@@ -77,6 +80,11 @@ class _LargeNoteCardView extends StatelessWidget {
                 photoUrl: profile?.avatarUrl,
                 size: 48,
                 borderRadius: 24,
+                onTap: () => openUserProfile(
+                  context,
+                  note.authorPubkey,
+                  hintName: displayName,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -117,15 +125,20 @@ class _LargeNoteCardView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            note.content,
-            style: const TextStyle(
-              fontSize: 17,
-              color: AppColors.onSurface,
-              height: 1.6,
-              fontWeight: FontWeight.w400,
+          if (note.content.isNotEmpty)
+            Text(
+              note.content,
+              style: const TextStyle(
+                fontSize: 17,
+                color: AppColors.onSurface,
+                height: 1.6,
+                fontWeight: FontWeight.w400,
+              ),
             ),
-          ),
+          if (note.quoteEventId != null) ...[
+            if (note.content.isNotEmpty) const SizedBox(height: 10),
+            EmbeddedNoteCard(note: note.quotedNote),
+          ],
           if (note.tTags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
@@ -189,7 +202,7 @@ class _LargeNoteCardView extends StatelessWidget {
                 _LargeActionChip(
                   icon: Icons.share_outlined,
                   color: AppColors.onSurfaceVariant,
-                  onTap: () {}, // TODO: implement share sheet
+                  onTap: () => ShareSheetPage.show(context, note.id),
                 ),
               ],
             ),

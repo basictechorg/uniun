@@ -12,6 +12,7 @@ import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
+import 'package:uniun/domain/services/download_cancellation.dart';
 import 'package:path/path.dart' as p;
 
 @Injectable(as: AIModelRepository)
@@ -178,7 +179,9 @@ class AIModelRepositoryImpl implements AIModelRepository {
 
   @override
   Stream<AIModelDownloadEvent> downloadAndActivateModel(
-      AIModelId modelId) async* {
+    AIModelId modelId, {
+    DownloadCancellation? cancellation,
+  }) async* {
     final entry = _catalog.where((m) => m.modelId == modelId).firstOrNull;
     if (entry == null) {
       yield AIModelDownloadEvent.failed('Unknown model: ${modelId.name}');
@@ -199,6 +202,12 @@ class AIModelRepositoryImpl implements AIModelRepository {
       return;
     }
 
+    // Bridge the domain cancellation handle to flutter_gemma's CancelToken.
+    final cancelToken = CancelToken();
+    final cancelBridge = cancellation?.whenCancelled.then((_) {
+      if (!cancelToken.isCancelled) cancelToken.cancel('User cancelled');
+    });
+
     final progressController = StreamController<int>();
 
     FlutterGemma.installModel(
@@ -209,6 +218,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
         .withProgress((percent) {
           if (!progressController.isClosed) progressController.add(percent);
         })
+        .withCancelToken(cancelToken)
         .install()
         .then((_) {
           if (!progressController.isClosed) progressController.close();
@@ -225,8 +235,15 @@ class AIModelRepositoryImpl implements AIModelRepository {
         yield AIModelDownloadEvent.progress(percent / 100.0);
       }
     } catch (e) {
+      if (CancelToken.isCancel(e)) {
+        // Silent close — caller initiated the cancel, no failure to report.
+        return;
+      }
       yield AIModelDownloadEvent.failed(e.toString());
       return;
+    } finally {
+      // Detach the bridge so a later cancel() doesn't fire a stale token.
+      unawaited(cancelBridge ?? Future<void>.value());
     }
 
     // install() completed — persist download record to Isar and active

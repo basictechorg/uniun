@@ -23,6 +23,9 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
     required List<String> tTags,
     required String content,
     required DateTime created,
+    String? quoteEventId,
+    String? quoteAuthorPubkey,
+    int? quoteKind,
   }) async {
     try {
       final existing = await isar.eventQueueModels
@@ -45,6 +48,9 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
         ..tTags = List<String>.from(tTags)
         ..content = content
         ..created = created
+        ..quoteEventId = quoteEventId
+        ..quoteAuthorPubkey = quoteAuthorPubkey
+        ..quoteKind = quoteKind
         ..sentCount = 0
         ..enqueuedAt = DateTime.now();
 

@@ -5,11 +5,14 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
+import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 
 @Injectable(as: DmMessageRepository)
 class DmMessageRepositoryImpl extends DmMessageRepository {
   final Isar isar;
-  DmMessageRepositoryImpl({required this.isar});
+  final NoteResolverRepository _resolver;
+  DmMessageRepositoryImpl({required this.isar, required NoteResolverRepository resolver})
+      : _resolver = resolver;
 
   @override
   Future<Either<Failure, NoteEntity>> saveMessage(NoteEntity entity) async {
@@ -37,6 +40,7 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
         type: entity.type,
         tTags: const [],
         created: entity.created,
+        quoteEventId: entity.quoteEventId,
       );
 
       await isar.writeTxn(() async {
@@ -66,7 +70,8 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
           ? rows
           : rows.where((m) => m.created.isBefore(before)).toList();
 
-      return Right(filtered.take(limit).map((m) => m.toDomain()).toList());
+      final entities = filtered.take(limit).map((m) => m.toDomain()).toList();
+      return Right(await _resolver.enrichWithQuotes(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -84,7 +89,8 @@ class DmMessageRepositoryImpl extends DmMessageRepository {
           Failure.notFoundFailure('DM message not found for eventId: $eventId'),
         );
       }
-      return Right(row.toDomain());
+      final enriched = await _resolver.enrichWithQuotes([row.toDomain()]);
+      return Right(enriched.first);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

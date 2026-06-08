@@ -12,6 +12,7 @@ class UserAvatar extends StatelessWidget {
     this.size = 40,
     this.borderRadius,
     this.showBorder = false,
+    this.onTap,
   });
 
   final String seed;
@@ -19,6 +20,11 @@ class UserAvatar extends StatelessWidget {
   final double size;
   final double? borderRadius;
   final bool showBorder;
+
+  /// When non-null, the avatar becomes tappable. Callers wire this to navigate
+  /// to the user's profile (see [openUserProfileFromPubkey] for the canonical
+  /// invocation).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +44,7 @@ class UserAvatar extends StatelessWidget {
         ? photoUrl!.substring('generated:'.length)
         : (seed.isEmpty ? AppConstants.kAppName : seed);
 
-    return Container(
+    final container = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -62,6 +68,12 @@ class UserAvatar extends StatelessWidget {
               errorWidget: (_, __, ___) => _generated(generatedSeed),
             )
           : _generated(generatedSeed),
+    );
+    if (onTap == null) return container;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(radius),
+      child: container,
     );
   }
 

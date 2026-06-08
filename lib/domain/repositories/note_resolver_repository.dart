@@ -22,4 +22,8 @@ abstract class NoteResolverRepository {
 
   /// Resolves each id in [ids], skipping any that aren't found.
   Future<Either<Failure, List<NoteEntity>>> resolveMany(List<String> ids);
+
+  /// Populates [NoteEntity.quotedNote] one level deep via a single batched
+  /// query. Does NOT recurse — `quotedNote.quotedNote` is always null.
+  Future<List<NoteEntity>> enrichWithQuotes(List<NoteEntity> notes);
 }

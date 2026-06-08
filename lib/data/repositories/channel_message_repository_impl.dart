@@ -9,16 +9,20 @@ import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
+import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 
 @Injectable(as: ChannelMessageRepository)
 class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
+  final NoteResolverRepository _resolver;
 
   ChannelMessageRepositoryImpl({
     required this.isar,
     required NoteRelationRepository relations,
-  }) : _relations = relations;
+    required NoteResolverRepository resolver,
+  })  : _relations = relations,
+        _resolver = resolver;
 
   @override
   Future<Either<Failure, NoteEntity>> saveMessage(NoteEntity message) async {
@@ -45,6 +49,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
         replyToEventId: message.replyToEventId,
         tTags: const [],
         created: message.created,
+        quoteEventId: message.quoteEventId,
       );
 
       final parents = replyEdgeParentIds(
@@ -110,13 +115,14 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
   /// edge table (reply = edges pointing to it; reference = edges from it).
   Future<List<NoteEntity>> _withReplyCounts(List<NoteModel> models) async {
     final entities = models.map(_toChannelDomain).toList();
-    return [
+    final base = <NoteEntity>[
       for (final e in entities)
         e.copyWith(
           cachedReplyCount: await _relations.replyCount(e.id),
           referenceCount: await _relations.referenceCount(e.id),
         ),
     ];
+    return _resolver.enrichWithQuotes(base);
   }
 
   @override
@@ -128,7 +134,9 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
           .where()
           .eventIdEqualTo(eventId)
           .findFirst();
-      return Right(row == null ? null : _toChannelDomain(row));
+      if (row == null) return const Right(null);
+      final enriched = await _resolver.enrichWithQuotes([_toChannelDomain(row)]);
+      return Right(enriched.first);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

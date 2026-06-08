@@ -25,6 +25,10 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     String? sourceChannelId,
     /// Source group id if the saved item was a NIP-29 private channel msg.
     String? sourcePrivateGroupId,
+
+    String? quoteEventId,
+    /// Resolved at read time from the live `Note` collection. Null when missed.
+    NoteEntity? quotedNote,
   }) = _SavedNoteEntity;
 }
 
@@ -55,5 +59,7 @@ extension SavedNoteToNote on SavedNoteEntity {
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         sourceLabel: sourceLabel,
+        quoteEventId: quoteEventId,
+        quotedNote: quotedNote,
       );
 }

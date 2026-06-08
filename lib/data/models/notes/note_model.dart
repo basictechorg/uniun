@@ -67,6 +67,10 @@ class NoteModel {
   @Index()
   late DateTime created;
 
+  /// NIP-18 `q` tag id. Null = no quote.
+  @Index()
+  String? quoteEventId;
+
   NoteModel({
     required this.eventId,
     required this.sig,
@@ -84,6 +88,7 @@ class NoteModel {
     required this.pTagRefs,
     required this.tTags,
     required this.created,
+    this.quoteEventId,
   });
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
@@ -99,6 +104,7 @@ class NoteModel {
     String? subject;
     final pTagRefs = <String>[];
     final tTags = <String>[];
+    String? quoteEventId;
 
     for (final tag in event.tags) {
       if (tag.isEmpty) continue;
@@ -111,6 +117,8 @@ class NoteModel {
           if (marker == 'root') rootEventId = eventId;
           if (marker == 'reply') replyToEventId = eventId;
         }
+      } else if (tagName == 'q' && tag.length >= 2) {
+        quoteEventId ??= tag[1]; // first q-tag wins; multi-quote not modelled.
       } else if (tagName == 'p' && tag.length >= 2) {
         pTagRefs.add(tag[1]);
       } else if (tagName == 't' && tag.length >= 2) {
@@ -149,6 +157,7 @@ class NoteModel {
       pTagRefs: pTagRefs,
       tTags: tTags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
+      quoteEventId: quoteEventId,
     );
   }
 }
@@ -171,5 +180,6 @@ extension NoteModelExtension on NoteModel {
         conversationId: conversationId,
         sourceChannelId: channelId,
         sourcePrivateGroupId: groupId,
+        quoteEventId: quoteEventId,
       );
 }
