@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/local_inference_queue.dart';
 import 'package:uniun/data/datasources/llm/local_model_params.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 
 /// Wraps flutter_gemma 0.16.x for token-streaming inference.
 ///
@@ -54,6 +55,37 @@ class AIModelRunner {
   LocalModelParams? get _activeParams =>
       LocalModelParams.forId(_settings.activeModelId);
 
+  /// Backend that actually worked for the current model. We prefer GPU, but
+  /// the Metal GPU delegate cannot be applied to every model on every device —
+  /// large LiteRT graphs trip Metal's 31-texture-binding limit
+  /// ("texture binding ... index 31 that is greater than 30") and the iOS
+  /// simulator has no usable GPU delegate at all. On the first GPU failure we
+  /// retry on CPU and remember it so later turns skip the doomed GPU attempt.
+  /// Reset whenever the active model changes, to re-probe GPU for the new one.
+  PreferredBackend _backend = PreferredBackend.gpu;
+  AIModelId? _backendForModel;
+
+  /// Open the active model, falling back GPU → CPU on engine-creation failure.
+  Future<InferenceModel> _openActiveModel(int maxTokens) async {
+    final activeId = _settings.activeModelId;
+    if (activeId != _backendForModel) {
+      _backendForModel = activeId;
+      _backend = PreferredBackend.gpu;
+    }
+    try {
+      return await FlutterGemma.getActiveModel(
+        maxTokens: maxTokens,
+        preferredBackend: _backend,
+      );
+    } catch (e) {
+      if (_backend == PreferredBackend.cpu) rethrow;
+      debugPrint('⚠️ GPU backend failed to open model ($e) — retrying on CPU');
+      return FlutterGemma.getActiveModel(
+        maxTokens: maxTokens,
+      );
+    }
+  }
+
   bool get hasActiveModel => FlutterGemma.hasActiveModel();
   bool get hasChatSession => _systemInstruction != null;
 
@@ -98,10 +130,7 @@ class AIModelRunner {
       InferenceChat? chat;
       try {
         final params = _activeParams;
-        final model = await FlutterGemma.getActiveModel(
-          maxTokens: 4096,
-          preferredBackend: PreferredBackend.gpu,
-        );
+        final model = await _openActiveModel(params?.maxTokens ?? 4096);
         chat = await model.openChat(
           temperature: 0.8,
           topK: 40,
@@ -158,10 +187,10 @@ class AIModelRunner {
     try {
       debugPrint('🧪 generateOneShot: opening throwaway chat…');
       final params = _activeParams;
-      final model = await FlutterGemma.getActiveModel(
-        maxTokens: maxTokens,
-        preferredBackend: PreferredBackend.gpu,
-      );
+      // Never exceed the model's hard cache size — the requested [maxTokens] is
+      // only a ceiling for this task, capped by what the engine can open.
+      final cap = params?.maxTokens ?? maxTokens;
+      final model = await _openActiveModel(maxTokens < cap ? maxTokens : cap);
       oneShot = await model.openChat(
         temperature: 0.2,
         topK: 20,

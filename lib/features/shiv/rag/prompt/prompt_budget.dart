@@ -68,10 +68,14 @@ class PromptBudget {
         maxHops = 2;
         break;
       case AIModelId.gemma4E2b:
-      case AIModelId.deepseekR1:
         max = 4096;
         topK = 5;
         maxHops = 2;
+        break;
+      case AIModelId.deepseekR1:
+        max = 1024;
+        topK = 3;
+        maxHops = 1;
         break;
       case AIModelId.qwen25_05b:
       case null:

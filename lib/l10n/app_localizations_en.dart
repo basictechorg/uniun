@@ -837,10 +837,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacyExpandTerms => 'Terms of Use';
 
   @override
-  String get privacyLastUpdated => 'Last updated: June 2025';
+  String get privacyLastUpdated => 'Last updated: June 2026';
 
   @override
-  String get privacyContactEmail => 'privacy@uniun.app';
+  String get privacyContactEmail => 'info@uniun.in';
 
   @override
   String get privacyStoredLocallyTitle => 'What We Store Locally';
@@ -895,7 +895,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacyContactTitle => 'Contact';
 
   @override
-  String get privacyContactBody => 'For privacy questions: privacy@uniun.app';
+  String get privacyContactBody => 'For privacy questions: info@uniun.in';
 
   @override
   String get termsResponsibilityTitle => 'Your Responsibility';

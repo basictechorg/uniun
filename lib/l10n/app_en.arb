@@ -811,10 +811,10 @@
   "privacyExpandTerms": "Terms of Use",
   "@privacyExpandTerms": { "description": "Expandable section title — terms of use" },
 
-  "privacyLastUpdated": "Last updated: June 2025",
+  "privacyLastUpdated": "Last updated: June 2026",
   "@privacyLastUpdated": { "description": "Footer date on privacy policy page" },
 
-  "privacyContactEmail": "privacy@uniun.app",
+  "privacyContactEmail": "info@uniun.in",
   "@privacyContactEmail": { "description": "Contact email shown on privacy policy page" },
 
   "privacyStoredLocallyTitle": "What We Store Locally",
@@ -854,7 +854,7 @@
 
   "privacyContactTitle": "Contact",
   "@privacyContactTitle": {},
-  "privacyContactBody": "For privacy questions: privacy@uniun.app",
+  "privacyContactBody": "For privacy questions: info@uniun.in",
   "@privacyContactBody": {},
 
   "termsResponsibilityTitle": "Your Responsibility",
