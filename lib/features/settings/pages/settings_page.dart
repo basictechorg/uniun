@@ -7,14 +7,12 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 import 'package:uniun/features/settings/widgets/ai_card.dart';
-import 'package:uniun/features/settings/widgets/alerts_card.dart';
 import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
 import 'package:uniun/features/settings/widgets/storage_card.dart';
-import 'package:uniun/features/settings/widgets/style_card.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -102,42 +100,6 @@ class _SettingsContent extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const StorageCard(),
-
-              const SizedBox(height: 16),
-
-              // ── Alerts + Style ────────────────────────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SettingsSectionLabel(
-                          l10n.settingsAlerts,
-                          icon: Icons.notifications_outlined,
-                        ),
-                        const SizedBox(height: 12),
-                        AlertsCard(state: state),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SettingsSectionLabel(
-                          l10n.settingsStyle,
-                          icon: Icons.palette_outlined,
-                        ),
-                        const SizedBox(height: 12),
-                        const StyleCard(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
 
               const SizedBox(height: 36),
 
