@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -68,10 +69,19 @@ class _CreateDmViewState extends State<_CreateDmView> {
     );
   }
 
+  void _scanByQr() {
+    // The unified scanner replaces this page with a fresh CreateDmPage
+    // pre-filled from the scanned user payload.
+    context.pushNamed(AppRoutes.scanQr, extra: UniunQrScanIntent.dm);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<CreateDmBloc, CreateDmState>(
       listener: (context, state) {
+        // Relay pre-selection is handled by [RelaySelectorField], which
+        // auto-selects the UNIUN backend relay when none is picked yet. A QR
+        // payload that already carried relays is left untouched.
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -145,8 +155,20 @@ class _CreateDmViewState extends State<_CreateDmView> {
                           ..addAll(next)),
                   ),
 
-                  const SizedBox(height: 48),
-                  
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: state.isSubmitting ? null : _scanByQr,
+                      icon: const Icon(Icons.qr_code_scanner_rounded),
+                      label: const Text('Scan QR Code'),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
                   SizedBox(
                     width: double.infinity,
                     height: 50,

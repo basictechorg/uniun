@@ -11,6 +11,7 @@ import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -31,6 +32,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetRelaysUseCase _getRelays;
   final Isar _isar;
   StreamSubscription<void>? _dmWatcher;
+  StreamSubscription<void>? _channelWatcher;
   StreamSubscription<void>? _privateChannelWatcher;
   StreamSubscription<void>? _followedUsersWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
@@ -48,6 +50,11 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
 
+    // NIP-28 public channels: creating/joining a channel writes a ChannelModel,
+    // so the new channel shows in the drawer immediately without a refresh.
+    _channelWatcher = _isar.channelModels.watchLazy().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
     _privateChannelWatcher = _getPrivateChannels.execute().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
@@ -204,6 +211,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   @override
   Future<void> close() {
     _dmWatcher?.cancel();
+    _channelWatcher?.cancel();
     _privateChannelWatcher?.cancel();
     _followedUsersWatcher?.cancel();
     _followedNotesWatcher?.cancel();

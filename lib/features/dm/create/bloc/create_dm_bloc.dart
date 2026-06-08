@@ -64,9 +64,15 @@ class CreateDmBloc extends Bloc<CreateDmEvent, CreateDmState> {
         return;
       }
 
+      // Relays are not something the user must hand-pick to start a DM — if
+      // none were chosen, fall back to the device's configured relay list.
+      final relays = event.selectedRelays.isNotEmpty
+          ? event.selectedRelays
+          : state.availableRelays;
+
       final params = CreateDmParams(
         otherPubkey: resolvedPubkey,
-        relays: event.selectedRelays,
+        relays: relays,
       );
 
       final result = await _createDmConversationUseCase.call(params);

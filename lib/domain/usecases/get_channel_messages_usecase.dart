@@ -36,6 +36,40 @@ class GetChannelMessagesUseCase extends UseCase<
   }
 }
 
+class GetChannelMessagesAfterInput {
+  final String channelId;
+  final DateTime after;
+  final bool inclusive;
+  final int limit;
+
+  const GetChannelMessagesAfterInput({
+    required this.channelId,
+    required this.after,
+    this.inclusive = false,
+    this.limit = 10,
+  });
+}
+
+@lazySingleton
+class GetChannelMessagesAfterUseCase extends UseCase<
+    Either<Failure, List<NoteEntity>>, GetChannelMessagesAfterInput> {
+  final ChannelMessageRepository _repository;
+  const GetChannelMessagesAfterUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, List<NoteEntity>>> call(
+    GetChannelMessagesAfterInput input, {
+    bool cached = false,
+  }) {
+    return _repository.getMessagesForChannelAfter(
+      channelId: input.channelId,
+      after: input.after,
+      inclusive: input.inclusive,
+      limit: input.limit,
+    );
+  }
+}
+
 @lazySingleton
 class GetChannelMessageByIdUseCase
     extends UseCase<Either<Failure, NoteEntity?>, String> {

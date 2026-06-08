@@ -1323,5 +1323,11 @@
   "@blockedUsersEmpty": { "description": "Empty state on the blocked users screen when no users are blocked" },
 
   "actionUnblock": "Unblock",
-  "@actionUnblock": { "description": "Button that unblocks a user on the blocked users screen" }
+  "@actionUnblock": { "description": "Button that unblocks a user on the blocked users screen" },
+
+  "actionReadMore": "Read more",
+  "@actionReadMore": { "description": "Button that expands a note's text when it is longer than the collapsed line limit" },
+
+  "actionReadLess": "Read less",
+  "@actionReadLess": { "description": "Button that collapses a previously expanded note's text" }
 }

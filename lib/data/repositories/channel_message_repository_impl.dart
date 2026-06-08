@@ -99,6 +99,27 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, List<NoteEntity>>> getMessagesForChannelAfter({
+    required String channelId,
+    required DateTime after,
+    bool inclusive = false,
+    int limit = 10,
+  }) async {
+    try {
+      final rows = await isar.noteModels
+          .filter()
+          .channelIdEqualTo(channelId)
+          .createdGreaterThan(after, include: inclusive)
+          .sortByCreated()
+          .limit(limit)
+          .findAll();
+      return Right(await _withReplyCounts(rows));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
   /// A channel message stores the channel root and its direct reply parent
   /// inside [NoteModel.eTagRefs]. Strip those here so the resulting entity's
   /// `eTagRefs` carries only genuine mention references.

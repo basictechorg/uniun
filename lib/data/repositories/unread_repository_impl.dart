@@ -69,4 +69,20 @@ class UnreadRepositoryImpl extends UnreadRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, DateTime?>> oldestUnreadTimeForChannel(
+    String channelId,
+  ) async {
+    try {
+      final row = await isar.unreadNoteModels
+          .filter()
+          .channelIdEqualTo(channelId)
+          .sortByCreated()
+          .findFirst();
+      return Right(row?.created);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

@@ -15,4 +15,9 @@ class AppConstants {
 
   /// Privacy contact email.
   static const String kPrivacyEmail = 'privacy@uniun.app';
+
+  /// The UNIUN backend relay — the default system relay every device connects
+  /// to and the one auto-selected when publishing. Use this constant instead
+  /// of hardcoding the URL anywhere.
+  static const String kUniunBackend = 'wss://dev.uniun.in:8080';
 }

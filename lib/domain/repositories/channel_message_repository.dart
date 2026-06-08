@@ -14,6 +14,16 @@ abstract class ChannelMessageRepository {
     DateTime? before,
   });
 
+  /// Channel messages after [after] (or at/after when [inclusive]), oldest
+  /// first. Used for downward pagination through unread / newly-synced
+  /// messages.
+  Future<Either<Failure, List<NoteEntity>>> getMessagesForChannelAfter({
+    required String channelId,
+    required DateTime after,
+    bool inclusive,
+    int limit,
+  });
+
   Future<Either<Failure, NoteEntity?>> getMessageByEventId(String eventId);
 
   /// Direct replies to a single channel message, oldest first.

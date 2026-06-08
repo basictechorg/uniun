@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:isar_community/isar.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
@@ -20,6 +24,9 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
   final GetActiveUserProfileUseCase _getActiveUserProfile;
   final DeleteDraftUseCase _deleteDraft;
   final GetProfileUseCase _getProfile;
+  final Isar _isar;
+
+  StreamSubscription<void>? _deletedNoteWatcher;
 
   GraphBloc(
     this._getAllSavedNotes,
@@ -28,11 +35,24 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     this._getActiveUserProfile,
     this._deleteDraft,
     this._getProfile,
+    this._isar,
   ) : super(const GraphState()) {
     on<LoadGraphEvent>(_onLoad);
     on<SelectGraphNodeEvent>(_onSelect);
     on<DeselectGraphNodeEvent>(_onDeselect);
     on<DeleteDraftNodeEvent>(_onDeleteDraft);
+
+    // Deleting a note tombstones it in deletedNoteModels and removes its
+    // NoteModel row. Rebuild the graph so the deleted node disappears.
+    _deletedNoteWatcher = _isar.deletedNoteModels.watchLazy().listen((_) {
+      if (!isClosed) add(const LoadGraphEvent());
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _deletedNoteWatcher?.cancel();
+    return super.close();
   }
 
   Future<void> _onLoad(LoadGraphEvent event, Emitter<GraphState> emit) async {

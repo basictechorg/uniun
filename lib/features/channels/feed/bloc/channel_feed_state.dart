@@ -9,9 +9,15 @@ class ChannelFeedState {
     this.status = ChannelFeedStatus.initial,
     this.channel,
     this.messages = const [],
+    this.boundaryIndex = 0,
+    this.openedAtMiddle = false,
     this.profiles = const {},
     this.savedIds = const {},
+    this.hasMoreOlder = false,
+    this.hasMoreUnread = false,
     this.isLoading = false,
+    this.isLoadingOlder = false,
+    this.isLoadingUnread = false,
     this.isSending = false,
     this.errorMessage,
   });
@@ -19,8 +25,19 @@ class ChannelFeedState {
   final ChannelFeedStatus status;
   final ChannelEntity? channel;
 
-  /// Messages in oldest→newest order (ready for chat-style display).
+  /// All loaded messages, oldest→newest (chat-style display).
+  ///
+  /// `messages[0 .. boundaryIndex - 1]` were already read when the feed opened
+  /// (the top section); `messages[boundaryIndex ..]` were unread on open (the
+  /// bottom section). The split is the read→unread boundary the list anchors on.
   final List<NoteEntity> messages;
+
+  /// Count of leading read messages — the index where the unread section begins.
+  final int boundaryIndex;
+
+  /// True when the channel had unread messages on open, so the list anchors the
+  /// boundary at the vertical middle. False → anchored at the bottom (newest).
+  final bool openedAtMiddle;
 
   /// pubkeyHex → ProfileEntity (for author display names / avatars).
   final Map<String, ProfileEntity> profiles;
@@ -28,7 +45,15 @@ class ChannelFeedState {
   /// eventIds the active user has saved/bookmarked.
   final Set<String> savedIds;
 
+  /// More older (read) messages exist above the loaded range.
+  final bool hasMoreOlder;
+
+  /// More unread / newer messages may exist below the loaded range.
+  final bool hasMoreUnread;
+
   final bool isLoading;
+  final bool isLoadingOlder;
+  final bool isLoadingUnread;
   final bool isSending;
   final String? errorMessage;
 
@@ -36,9 +61,15 @@ class ChannelFeedState {
     ChannelFeedStatus? status,
     ChannelEntity? channel,
     List<NoteEntity>? messages,
+    int? boundaryIndex,
+    bool? openedAtMiddle,
     Map<String, ProfileEntity>? profiles,
     Set<String>? savedIds,
+    bool? hasMoreOlder,
+    bool? hasMoreUnread,
     bool? isLoading,
+    bool? isLoadingOlder,
+    bool? isLoadingUnread,
     bool? isSending,
     String? errorMessage,
   }) {
@@ -46,9 +77,15 @@ class ChannelFeedState {
       status: status ?? this.status,
       channel: channel ?? this.channel,
       messages: messages ?? this.messages,
+      boundaryIndex: boundaryIndex ?? this.boundaryIndex,
+      openedAtMiddle: openedAtMiddle ?? this.openedAtMiddle,
       profiles: profiles ?? this.profiles,
       savedIds: savedIds ?? this.savedIds,
+      hasMoreOlder: hasMoreOlder ?? this.hasMoreOlder,
+      hasMoreUnread: hasMoreUnread ?? this.hasMoreUnread,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
+      isLoadingUnread: isLoadingUnread ?? this.isLoadingUnread,
       isSending: isSending ?? this.isSending,
       errorMessage: errorMessage ?? this.errorMessage,
     );
