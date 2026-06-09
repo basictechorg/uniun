@@ -207,6 +207,8 @@ class PromptBuilder {
     if (sections.isEmpty) return userQuestion;
 
     final buf = StringBuffer();
+    buf.writeln('Question: $userQuestion');
+    buf.writeln();
     for (final s in sections) {
       buf.writeln(s);
       buf.writeln();
