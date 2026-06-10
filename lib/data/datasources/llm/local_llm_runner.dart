@@ -143,14 +143,20 @@ class AIModelRunner {
           systemInstruction: _systemInstruction!,
           cleanHistory: cleanHistory,
           currentMessage: message,
+          historyBudget: _historyBudgetTokens(params),
         );
 
         await chat.addQueryChunk(Message.text(text: prompt));
+        final scrubber = _StopTokenScrubber();
         await for (final response in chat.generateChatResponseAsync()) {
           if (response is TextResponse && response.token.isNotEmpty) {
-            tokens.add(response.token);
+            final safe = scrubber.feed(response.token);
+            if (safe != null) tokens.add(safe);
+            if (scrubber.isDone) break;
           }
         }
+        final tail = scrubber.flush();
+        if (tail != null) tokens.add(tail);
       } catch (e, st) {
         tokens.addError(e, st);
       } finally {
@@ -202,9 +208,16 @@ class AIModelRunner {
 
       await oneShot.addQueryChunk(Message.text(text: prompt));
       final buffer = StringBuffer();
+      final scrubber = _StopTokenScrubber();
       await for (final response in oneShot.generateChatResponseAsync()) {
-        if (response is TextResponse) buffer.write(response.token);
+        if (response is TextResponse) {
+          final safe = scrubber.feed(response.token);
+          if (safe != null) buffer.write(safe);
+          if (scrubber.isDone) break;
+        }
       }
+      final tail = scrubber.flush();
+      if (tail != null) buffer.write(tail);
       debugPrint('🧪 generateOneShot: done (${buffer.length} chars)');
       return buffer.toString();
     } catch (e, st) {
@@ -235,11 +248,14 @@ class AIModelRunner {
     required String systemInstruction,
     required List<(String, String)> cleanHistory,
     required String currentMessage,
+    required int historyBudget,
   }) {
     final buf = StringBuffer();
     buf.write(systemInstruction);
     if (!systemInstruction.endsWith('\n')) buf.writeln();
-    for (final (q, a) in cleanHistory) {
+
+    final kept = _trimHistory(cleanHistory, historyBudget);
+    for (final (q, a) in kept) {
       buf.writeln();
       buf.writeln('User: $q');
       buf.writeln('Assistant: $a');
@@ -247,5 +263,92 @@ class AIModelRunner {
     buf.writeln();
     buf.write(currentMessage);
     return buf.toString();
+  }
+
+  int _historyBudgetTokens(LocalModelParams? params) {
+    final max = params?.maxTokens ?? 1024;
+    return (max * 0.20).round();
+  }
+
+  List<(String, String)> _trimHistory(
+    List<(String, String)> history,
+    int budgetTokens,
+  ) {
+    if (history.isEmpty || budgetTokens <= 0) return const [];
+    final kept = <(String, String)>[];
+    int used = 0;
+    for (final pair in history.reversed) {
+      final line = 'User: ${pair.$1}\nAssistant: ${pair.$2}\n';
+      final cost = (line.length / 4).ceil();
+      if (used + cost > budgetTokens) break;
+      kept.insert(0, pair);
+      used += cost;
+    }
+    return kept;
+  }
+}
+
+/// Strips per-model stop tokens from a streaming token feed.
+///
+/// flutter_gemma 0.16.4's [StopTokenFilter] only matches `<end_of_turn>` (Gemma).
+/// On iOS the MediaPipe `.litertlm` backend does not honour stop tokens itself,
+/// so non-Gemma models (Qwen, DeepSeek, Llama) leak their terminator plus BPE
+/// byte-level junk after it. We catch the rest here. Safe on Android too —
+/// these tokens simply never appear there.
+class _StopTokenScrubber {
+  static const _stopTokens = <String>[
+    '<|im_end|>',                  // Qwen
+    '<|endoftext|>',               // Qwen / GPT-style alt
+    '<end_of_turn>',               // Gemma (already filtered upstream; harmless)
+    '<｜end▁of▁sentence｜>',      // DeepSeek (full-width pipes + underscores)
+    '<|eot_id|>',                  // Llama 3
+  ];
+
+  String _buffer = '';
+  bool _done = false;
+
+  bool get isDone => _done;
+
+  String? feed(String chunk) {
+    if (_done) return null;
+    _buffer += chunk;
+
+    int earliest = -1;
+    for (final s in _stopTokens) {
+      final i = _buffer.indexOf(s);
+      if (i >= 0 && (earliest < 0 || i < earliest)) earliest = i;
+    }
+    if (earliest >= 0) {
+      final out = _buffer.substring(0, earliest);
+      _buffer = '';
+      _done = true;
+      return out.isEmpty ? null : out;
+    }
+
+    // Hold back any tail that could be the start of a stop token spanning
+    // the next chunk.
+    int hold = 0;
+    for (final s in _stopTokens) {
+      final maxI = s.length - 1 < _buffer.length ? s.length - 1 : _buffer.length;
+      for (int i = 1; i <= maxI; i++) {
+        if (_buffer.endsWith(s.substring(0, i)) && i > hold) hold = i;
+      }
+    }
+
+    if (hold == 0) {
+      final out = _buffer;
+      _buffer = '';
+      return out.isEmpty ? null : out;
+    }
+    final out = _buffer.substring(0, _buffer.length - hold);
+    _buffer = _buffer.substring(_buffer.length - hold);
+    return out.isEmpty ? null : out;
+  }
+
+  String? flush() {
+    if (_done || _buffer.isEmpty) return null;
+    final out = _buffer;
+    _buffer = '';
+    return out;
   }
 }
