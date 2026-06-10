@@ -7,6 +7,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
 import 'package:uniun/features/shiv/pages/shiv_page.dart';
+import 'package:uniun/gateway/gateway.dart';
 
 /// App shell — standard Flutter Scaffold + floating pill nav.
 ///   0 = Vishnu (feed)
@@ -29,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
+    GatewayBootstrap.start();
   }
 
   @override

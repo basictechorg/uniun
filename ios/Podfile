@@ -37,8 +37,35 @@ target 'Runner' do
   end
 end
 
+# Isar device-link fix.
+# isar_community_flutter_libs ships a *static* libisar.a whose C API symbols
+# (isar_version, isar_open, ...) are only reached at runtime via dlsym. Under
+# `use_frameworks! :linkage => :static` + release Dead Code Stripping the linker
+# drops those never-statically-referenced objects, so on a physical device
+# Isar.open() throws "Could not initialize IsarCore library ... symbol not
+# found". (It also collides with MediaPipe over Rust's `_rust_eh_personality`.)
+#
+# Fix (per isar issue #1072): build *only* isar as a dynamic framework. As its
+# own dynamic image its exports survive stripping (dlsym finds them) and its
+# Rust runtime symbols stay inside the isar dylib, so they never clash with
+# MediaPipe in the app binary.
+isar_dynamic_framework = ['isar_community_flutter_libs']
+
+pre_install do |installer|
+  # Allow a single dynamic framework among otherwise-static pods.
+  Pod::Installer::Xcode::TargetValidator.send(:define_method, :verify_no_static_framework_transitive_dependencies) {}
+  installer.pod_targets.each do |pod|
+    next unless isar_dynamic_framework.include?(pod.name)
+    def pod.dynamic_framework; true; end
+    def pod.build_type; Pod::BuildType.dynamic_framework; end
+  end
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+    end
   end
 end

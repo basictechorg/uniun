@@ -12,7 +12,6 @@ import 'package:uniun/core/router/app_router.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
-import 'package:uniun/gateway/gateway.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +34,6 @@ Future<void> main() async {
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
 
-  GatewayBootstrap.start();
   runApp(const UniunApp());
 }
 
@@ -48,7 +46,7 @@ Future<void> _ensureDownloaderCacheDir() async {
   try {
     final cacheDir = await getApplicationCacheDirectory();
     final dir = Directory(
-      p.join(cacheDir.path, 'com.basictech.uniun'),
+      p.join(cacheDir.path, 'in.uniun.app'),
     );
     if (!await dir.exists()) {
       await dir.create(recursive: true);

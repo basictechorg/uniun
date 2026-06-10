@@ -28,6 +28,10 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>UNIUN needs camera access to scan channel QR codes.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>UNIUN needs access to your photo library so you can attach images to your notes.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>UNIUN needs permission to save images to your photo library.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

@@ -3,8 +3,8 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "in.basictech.uniun",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_YOUR_SHA256_FINGERPRINT"]
+      "package_name": "in.uniun.app",
+      "sha256_cert_fingerprints": ["39:AC:9D:C3:12:4D:1A:62:D2:4D:4C:82:26:8B:CF:7B:47:AB:38:4B:1E:54:7C:61:18:64:4B:31:74:C4:0D:72"]
     }
   }
 ]
