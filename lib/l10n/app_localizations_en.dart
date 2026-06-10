@@ -242,6 +242,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get brahmaDraft => 'Draft';
 
   @override
+  String get markdownToolbarHeading => 'Heading';
+
+  @override
+  String get markdownToolbarBold => 'Bold';
+
+  @override
+  String get markdownToolbarItalic => 'Italic';
+
+  @override
+  String get markdownToolbarCode => 'Inline code';
+
+  @override
+  String get markdownToolbarBulletList => 'Bullet list';
+
+  @override
+  String get markdownToolbarNumberList => 'Numbered list';
+
+  @override
+  String get markdownToolbarQuote => 'Quote';
+
+  @override
+  String get markdownToolbarLink => 'Link';
+
+  @override
   String get brahmaDraftSaved => 'Draft saved';
 
   @override

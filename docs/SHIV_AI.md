@@ -278,6 +278,10 @@ userQuestion: "what did i write about the saga pattern?"
        ▼  EnrichedContext { seedNotes, graphNodes, graphEdges, memories }
        │
 [8] PromptBuilder.buildUserMessage(enriched, budget)
+       │  Lays out as: "Question: <q>" → context sections → "## Question\n<q>"
+       │  (question repeated at both ends — Lost-in-the-Middle countermeasure
+       │  from Liu et al. 2023; small models attend strongest to start + end).
+       │
        │  Priority order — drops lowest first if over budget:
        │    query (10%)  →  top 1-2 seed notes (35%)
        │                 →  graph relations (20%)
@@ -461,18 +465,40 @@ See the [RAG per turn](#rag-per-turn--what-happens-inside-ragpipelinebuildmessag
 
 `PromptBudget.forActiveModel(LlmModelInfo)` resolves the budget each turn — RAG automatically grows or shrinks to match the active engine's context window. Caller does nothing special.
 
-| Active model | maxTokens | topK seed notes | graph hops |
-|---|---:|---:|---:|
-| Qwen3 0.6B (default small) | 2,048 | 3 | 1 |
-| DeepSeek R1 1.5B | 4,096 | 5 | 2 |
-| Gemma 4 E2B | 4,096 | 5 | 2 |
-| Gemma 4 E4B | 8,192 | 10 | 2 |
-| **Cloud (OpenRouter)** | **16,384** | **15** | **2** |
-| no active model | 2,048 | 3 | 1 |
+| Active model | RAG budget | topK seed notes | graph hops | Engine `maxTokens` |
+|---|---:|---:|---:|---:|
+| Qwen3 0.6B (default small) | 2,048 | 3 | 1 | 2,048 |
+| DeepSeek R1 1.5B | 1,024 | 3 | 1 | 1,280 |
+| Gemma 4 E2B | 4,096 | 5 | 2 | 4,096 |
+| Gemma 4 E4B | 8,192 | 10 | 2 | 8,192 |
+| **Cloud (OpenRouter)** | **16,384** | **15** | **2** | — |
+| no active model | 2,048 | 3 | 1 | — |
+
+Engine `maxTokens` is the hard KV-cache size baked into the local model file (e.g. `deepseek_q8_ekv1280.task` = 1,280-token cache; opening larger aborts at `CalculatorGraph::Run`). RAG budget for DeepSeek therefore reserves ~256 tokens for the generated response.
 
 Cloud's 16k cap is intentional — most cloud models expose 32k–1M context but pulling too much makes answers noisier *and* costs more. `openrouter_api 1.0.2` doesn't expose `LlmModel.contextWindow` yet; when it does, `_cloud()` will read it and adapt per-model.
 
 Section split inside any budget: query 10%, top notes 35%, graph relations 20%, summaries 15%. Trimming order (drops lowest first): summaries → extra seed notes → graph relations.
+
+### Chat history budget (separate from RAG budget)
+
+RAG sections compete inside `PromptBudget`; chat history is budgeted **separately** inside `LocalLlmRunner` so old turns can't eat into the RAG context. On every call to `sendAndStream`:
+
+```dart
+historyBudgetTokens = (LocalModelParams.maxTokens × 0.20).round()
+```
+
+| Active model | History budget |
+|---|---:|
+| Qwen3 0.6B | ~410 |
+| DeepSeek R1 1.5B | ~256 |
+| Gemma 4 E2B | ~820 |
+| Gemma 4 E4B | ~1,640 |
+
+`_trimHistory` walks `cleanHistory` newest-first and keeps as many `(user, assistant)` pairs as fit, restoring chronological order before composing the prompt. Older turns are silently dropped — the LLM never sees them. The current question is always preserved (it's a separate `currentMessage` arg, not part of the history budget). Why 20%: leaves 80% for system instruction + RAG sections + response — empirically the sweet spot for keeping multi-turn coherence on small models without starving retrieval.
+
+Source: `lib/data/datasources/llm/local_llm_runner.dart` — `_historyBudgetTokens`, `_trimHistory`, `_composePrompt`.
+
 
 ### Embedding stays local even on cloud backend
 

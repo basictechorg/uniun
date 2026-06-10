@@ -22,13 +22,23 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
         referenceCount: await _relations.referenceCount(m.eventId),
       );
 
+  /// Resolves a single NIP-18 quoted note, if any. Cheap fall-through when
+  /// [note.quoteEventId] is null. Batched callers should use [enrichWithQuotes].
+  Future<NoteEntity> _enrichQuote(NoteEntity note) async {
+    final qid = note.quoteEventId;
+    if (qid == null) return note;
+    final row = await isar.noteModels.where().eventIdEqualTo(qid).findFirst();
+    if (row == null) return note;
+    return note.copyWith(quotedNote: row.toDomain());
+  }
+
   @override
   Future<Either<Failure, NoteEntity>> resolveById(String id) async {
     try {
       final note =
           await isar.noteModels.where().eventIdEqualTo(id).findFirst();
       if (note != null) {
-        return Right(await _withCounts(note));
+        return Right(await _enrichQuote(await _withCounts(note)));
       }
 
       return Left(Failure.notFoundFailure('Note not found: $id'));
