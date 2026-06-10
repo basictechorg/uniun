@@ -199,8 +199,11 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				FE16000000000000FE160001 /* Patch Native Asset MinimumOSVersion */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				DFEB8EDC200A63A1C44E9FD6 /* [CP] Copy Pods Resources */,
+				FE16000000000000FE160002 /* Re-sign Native Asset Frameworks */,
+				AEF6B197463B7B674E46FF42 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -325,6 +328,23 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
 		};
+		AEF6B197463B7B674E46FF42 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		DFEB8EDC200A63A1C44E9FD6 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -363,6 +383,36 @@
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
+		};
+		FE16000000000000FE160001 /* Patch Native Asset MinimumOSVersion */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Patch Native Asset MinimumOSVersion";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# qdrant_edge_ffi.framework (from the tostore native asset) ships an Info.plist\n# declaring MinimumOSVersion 13.0, but its Mach-O binary is built for minos 16.0.\n# Apple rejects this (ITMS-90208). Patch the source framework Info.plist to the\n# app deployment target BEFORE the Thin Binary phase embeds + signs it, so the\n# embedded copy carries the correct value and a valid signature.\nset -e\nNA_DIR=\"$SRCROOT/../build/native_assets/ios\"\nfor PLIST in \"$NA_DIR\"/*.framework/Info.plist; do\n  [ -f \"$PLIST\" ] || continue\n  CUR=$(/usr/libexec/PlistBuddy -c \"Print :MinimumOSVersion\" \"$PLIST\" 2>/dev/null || echo \"\")\n  if [ \"$CUR\" != \"$IPHONEOS_DEPLOYMENT_TARGET\" ]; then\n    /usr/libexec/PlistBuddy -c \"Set :MinimumOSVersion $IPHONEOS_DEPLOYMENT_TARGET\" \"$PLIST\" \\\n      || /usr/libexec/PlistBuddy -c \"Add :MinimumOSVersion string $IPHONEOS_DEPLOYMENT_TARGET\" \"$PLIST\"\n    echo \"Patched $PLIST MinimumOSVersion: ${CUR:-<none>} -> $IPHONEOS_DEPLOYMENT_TARGET\"\n  fi\ndone\n";
+		};
+		FE16000000000000FE160002 /* Re-sign Native Asset Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign Native Asset Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Flutter native-asset frameworks (objective_c, qdrant_edge_ffi, ...) get signed\n# during the build, then have their Info.plist/binary rewritten by later embed,\n# patch, and thin phases WITHOUT being re-signed. The stale _CodeSignature seal\n# fails on-device install with 0xe8008001 (ApplicationVerificationFailed). Re-sign\n# every embedded native-asset framework here, as the final phase before Xcode's\n# automatic app signing, so each nested signature is valid.\nset -e\nif [ \"${CODE_SIGNING_ALLOWED}\" = \"NO\" ] || [ -z \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n  echo \"Code signing disabled; skipping native-asset re-sign.\"\n  exit 0\nfi\nFW_DIR=\"${CODESIGNING_FOLDER_PATH}/Frameworks\"\n[ -d \"$FW_DIR\" ] || exit 0\nfor FW in \"$FW_DIR\"/*.framework; do\n  [ -d \"$FW\" ] || continue\n  ID=$(/usr/libexec/PlistBuddy -c \"Print :CFBundleIdentifier\" \"$FW/Info.plist\" 2>/dev/null || echo \"\")\n  case \"$ID\" in\n    io.flutter.flutter.native-assets.*)\n      PLIST=\"$FW/Info.plist\"\n      CUR=$(/usr/libexec/PlistBuddy -c \"Print :MinimumOSVersion\" \"$PLIST\" 2>/dev/null || echo \"\")\n      if [ \"$CUR\" != \"$IPHONEOS_DEPLOYMENT_TARGET\" ]; then\n        /usr/libexec/PlistBuddy -c \"Set :MinimumOSVersion $IPHONEOS_DEPLOYMENT_TARGET\" \"$PLIST\" || /usr/libexec/PlistBuddy -c \"Add :MinimumOSVersion string $IPHONEOS_DEPLOYMENT_TARGET\" \"$PLIST\"\n      fi\n      echo \"Re-signing native-asset framework: $(basename \"$FW\")\"\n      /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements,flags \"$FW\"\n      ;;\n  esac\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -458,7 +508,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -473,16 +523,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = XCM437ST6L;
+				DEVELOPMENT_TEAM = A86M9D5A43;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -499,7 +549,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -517,7 +567,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -533,7 +583,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun.RunnerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
@@ -589,7 +639,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -640,7 +690,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -657,16 +707,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = XCM437ST6L;
+				DEVELOPMENT_TEAM = A86M9D5A43;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -681,16 +731,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
-				DEVELOPMENT_TEAM = XCM437ST6L;
+				DEVELOPMENT_TEAM = A86M9D5A43;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = com.basictech.uniun;
+				PRODUCT_BUNDLE_IDENTIFIER = in.uniun.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

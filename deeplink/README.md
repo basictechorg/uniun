@@ -36,7 +36,7 @@ so the same file works for both test and production installs:
 ```
 
 The iOS file (`apple-app-site-association`) needs no fingerprint — it uses the App ID
-`XCM437ST6L.com.basictech.uniun` (Team ID + bundle ID), which is already filled in.
+`XCM437ST6L.in.uniun.app` (Team ID + bundle ID), which is already filled in.
 
 ## Hosting rules (all required, or verification silently fails)
 
@@ -75,7 +75,7 @@ Both should return `200` with `Content-Type: application/json`.
   (Apple's CDN; may take time to refresh after you publish changes.)
 
 ### On-device checks
-- **Android:** after installing the app, `adb shell pm get-app-links com.basictech.uniun` should
+- **Android:** after installing the app, `adb shell pm get-app-links in.uniun.app` should
   show `www.uniun.in: verified`. Then
   `adb shell am start -a android.intent.action.VIEW -d "https://www.uniun.in/user/<npub>"`
   should open the app.
@@ -83,5 +83,5 @@ Both should return `200` with `Content-Type: application/json`.
   fetches AASA at install time and caches it; delete + reinstall to force a refresh.
 
 > Reminder (iOS, one-time): enable the **Associated Domains** capability for App ID
-> `com.basictech.uniun` (Team `XCM437ST6L`) in the Apple Developer portal and regenerate the
+> `in.uniun.app` (Team `XCM437ST6L`) in the Apple Developer portal and regenerate the
 > provisioning profile, otherwise the `applinks:www.uniun.in` entitlement won't be valid at signing.

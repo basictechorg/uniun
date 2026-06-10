@@ -6,7 +6,7 @@
 	<true/>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.basictech.uniun</string>
+		<string>$(AppIdentifierPrefix)in.uniun.app</string>
 	</array>
 	<key>com.apple.security.network.client</key>
 	<true/>

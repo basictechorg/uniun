@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "XCM437ST6L.com.basictech.uniun",
+        "appID": "A86M9D5A43.in.uniun.app",
         "paths": ["/channel/*", "/private/*", "/user/*"]
       }
     ]

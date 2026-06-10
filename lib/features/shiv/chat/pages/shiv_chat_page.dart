@@ -203,7 +203,7 @@ class _ShivChatHeader extends StatelessWidget {
           ),
           // Tree — branch graph for this conversation
           _HeaderIcon(
-            icon: Icons.account_tree_outlined,
+            assetPath: 'assets/images/network_node.svg',
             onTap: onTreeTap,
             tooltip: l10n.shivBranchTreeTooltip,
           ),
@@ -215,12 +215,14 @@ class _ShivChatHeader extends StatelessWidget {
 
 class _HeaderIcon extends StatelessWidget {
   const _HeaderIcon({
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.onTap,
     required this.tooltip,
-  });
+  }) : assert(icon != null || assetPath != null);
 
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final VoidCallback onTap;
   final String tooltip;
 
@@ -233,11 +235,21 @@ class _HeaderIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Icon(
-            icon,
-            size: 22,
-            color: AppColors.onSurfaceVariant,
-          ),
+          child: assetPath != null
+              ? SvgPicture.asset(
+                  assetPath!,
+                  width: 22,
+                  height: 22,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.onSurfaceVariant,
+                    BlendMode.srcIn,
+                  ),
+                )
+              : Icon(
+                  icon,
+                  size: 22,
+                  color: AppColors.onSurfaceVariant,
+                ),
         ),
       ),
     );
