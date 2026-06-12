@@ -201,7 +201,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                   minLines: 8,
                   maxLines: 14,
                   applyBottomInset: false,
-                  showMarkdownToolbar: true,
+                  markdownEnabled: true,
                   avatarUrl: _avatarUrl,
                   avatarSeed: _pubkeySeed,
                   hintText: l10n.brahmaHintText,

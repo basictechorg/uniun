@@ -23,7 +23,7 @@ class ComposerReference {
 ///
 /// The avatar slot doubles as the future "switch to Shiv mode" button — pass
 /// [onAvatarTap] to make it interactive.
-class UniunComposer extends StatelessWidget {
+class UniunComposer extends StatefulWidget {
   const UniunComposer({
     super.key,
     required this.controller,
@@ -47,7 +47,7 @@ class UniunComposer extends StatelessWidget {
     this.minLines = 1,
     this.maxLines = 6,
     this.applyBottomInset = true,
-    this.showMarkdownToolbar = false,
+    this.markdownEnabled = false,
   });
 
   final TextEditingController controller;
@@ -88,17 +88,26 @@ class UniunComposer extends StatelessWidget {
   /// indicator. Set false when the composer is anchored at the top.
   final bool applyBottomInset;
 
-  /// Shows a row of inline markdown formatting buttons (B/I/code/list/quote/
-  /// link) above the text field. Off by default to keep tight chat replies
-  /// compact; turn on for the Brahma note composer.
-  final bool showMarkdownToolbar;
+  /// Enables markdown editing: a toggle button in the control row (right of the
+  /// add-reference button) that expands a collapsible formatting toolbar
+  /// (B/I/code/list/quote/link) carrying a close button. Off by default to keep
+  /// tight chat replies compact; turn on for chat composers and Brahma.
+  final bool markdownEnabled;
+
+  @override
+  State<UniunComposer> createState() => _UniunComposerState();
+}
+
+class _UniunComposerState extends State<UniunComposer> {
+  /// Whether the collapsible markdown formatting toolbar is expanded.
+  bool _markdownExpanded = false;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     // Keyboard height when open, otherwise the bottom safe-area inset (home
     // indicator) so the composer never sits under the rounded screen corner.
-    final bottom = !applyBottomInset
+    final bottom = !widget.applyBottomInset
         ? 0.0
         : media.viewInsets.bottom > 0
             ? media.viewInsets.bottom
@@ -114,33 +123,30 @@ class UniunComposer extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            if (replyingToName != null) ...[
-              _ReplyPill(name: replyingToName!, onClear: onClearReply),
+            if (widget.replyingToName != null) ...[
+              _ReplyPill(
+                  name: widget.replyingToName!, onClear: widget.onClearReply),
               const SizedBox(height: 8),
             ],
-            if (references.isNotEmpty) ...[
+            if (widget.references.isNotEmpty) ...[
               _ReferenceRow(
-                references: references,
-                onRemove: onRemoveReference,
+                references: widget.references,
+                onRemove: widget.onRemoveReference,
               ),
               const SizedBox(height: 8),
-            ],
-            if (showMarkdownToolbar) ...[
-              MarkdownFormattingToolbar(controller: controller),
-              const SizedBox(height: 6),
             ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                autofocus: autofocus,
-                onChanged: onTextChanged,
-                minLines: minLines,
-                maxLines: maxLines,
+                controller: widget.controller,
+                focusNode: widget.focusNode,
+                autofocus: widget.autofocus,
+                onChanged: widget.onTextChanged,
+                minLines: widget.minLines,
+                maxLines: widget.maxLines,
                 style: const TextStyle(fontSize: 15, color: AppColors.onSurface),
                 decoration: InputDecoration(
-                  hintText: hintText,
+                  hintText: widget.hintText,
                   hintStyle: const TextStyle(
                       color: AppColors.onSurfaceVariant, fontSize: 15),
                   border: InputBorder.none,
@@ -155,53 +161,18 @@ class UniunComposer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: onAvatarTap,
-                  child: UserAvatar(
-                    seed: avatarSeed,
-                    photoUrl: avatarUrl,
-                    size: 34,
-                    borderRadius: 17,
+            // When the markdown toolbar is expanded it takes the place of the
+            // control row, and the close button sits where the send button was.
+            if (widget.markdownEnabled && _markdownExpanded)
+              Row(
+                children: [
+                  Expanded(
+                    child: MarkdownFormattingToolbar(
+                        controller: widget.controller),
                   ),
-                ),
-                if (onAddReference != null) ...[
                   const SizedBox(width: 8),
-                  _CircleButton(
-                    icon: Icons.add_link_rounded,
-                    onTap: onAddReference!,
-                    active: references.isNotEmpty,
-                  ),
-                ],
-                const Spacer(),
-                if (onDraft != null) ...[
                   GestureDetector(
-                    onTap: isSending ? null : onDraft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        draftLabel ?? 'Draft',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                GestureDetector(
-                  onTap: canSend && !isSending ? onSend : null,
-                  child: AnimatedOpacity(
-                    opacity: canSend ? 1.0 : 0.4,
-                    duration: const Duration(milliseconds: 150),
+                    onTap: () => setState(() => _markdownExpanded = false),
                     child: Container(
                       width: 40,
                       height: 40,
@@ -209,19 +180,89 @@ class UniunComposer extends StatelessWidget {
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: isSending
-                          ? const Padding(
-                              padding: EdgeInsets.all(11),
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Icon(Icons.arrow_upward_rounded,
-                              size: 20, color: Colors.white),
+                      child: const Icon(Icons.close_rounded,
+                          size: 20, color: Colors.white),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: widget.onAvatarTap,
+                    child: UserAvatar(
+                      seed: widget.avatarSeed,
+                      photoUrl: widget.avatarUrl,
+                      size: 34,
+                      borderRadius: 17,
+                    ),
+                  ),
+                  if (widget.onAddReference != null) ...[
+                    const SizedBox(width: 8),
+                    _CircleButton(
+                      icon: Icons.add_link_rounded,
+                      onTap: widget.onAddReference!,
+                      active: widget.references.isNotEmpty,
+                    ),
+                  ],
+                  if (widget.markdownEnabled) ...[
+                    const SizedBox(width: 8),
+                    _CircleButton(
+                      icon: Icons.text_format_rounded,
+                      onTap: () => setState(() => _markdownExpanded = true),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (widget.onDraft != null) ...[
+                    GestureDetector(
+                      onTap: widget.isSending ? null : widget.onDraft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          widget.draftLabel ?? 'Draft',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  GestureDetector(
+                    onTap: widget.canSend && !widget.isSending
+                        ? widget.onSend
+                        : null,
+                    child: AnimatedOpacity(
+                      opacity: widget.canSend ? 1.0 : 0.4,
+                      duration: const Duration(milliseconds: 150),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: widget.isSending
+                            ? const Padding(
+                                padding: EdgeInsets.all(11),
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.arrow_upward_rounded,
+                                size: 20, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
     );

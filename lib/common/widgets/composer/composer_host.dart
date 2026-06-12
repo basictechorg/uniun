@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -32,7 +33,7 @@ class ComposerHost extends StatefulWidget {
 }
 
 class _ComposerHostState extends State<ComposerHost> {
-  final _controller = TextEditingController();
+  final _controller = MarkdownTextEditingController();
   final _focusNode = FocusNode();
   bool _hasText = false;
   String? _avatarUrl;
@@ -110,6 +111,7 @@ class _ComposerHostState extends State<ComposerHost> {
       canSend: _hasText,
       isSending: widget.isSending,
       references: _mentionRefs,
+      markdownEnabled: true,
       applyBottomInset: widget.applyBottomInset,
       onRemoveReference: (id) =>
           setState(() => _mentionRefs.removeWhere((r) => r.id == id)),
