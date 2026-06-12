@@ -20,5 +20,6 @@ abstract class EventQueueRepository {
     String? quoteEventId,
     String? quoteAuthorPubkey,
     int? quoteKind,
+    bool rawPassthrough,
   });
 }

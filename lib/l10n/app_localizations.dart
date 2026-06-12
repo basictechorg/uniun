@@ -2745,6 +2745,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read less'**
   String get actionReadLess;
+
+  /// App bar title of the media gallery / file manager
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get mediaGalleryTitle;
+
+  /// Filter chip in the media gallery showing every blob
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get mediaTabAll;
+
+  /// Filter chip restricting the media gallery to image blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get mediaTabImages;
+
+  /// Filter chip restricting the media gallery to video blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get mediaTabVideos;
+
+  /// Filter chip restricting the media gallery to audio blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get mediaTabAudio;
+
+  /// Filter chip showing non-media file blobs (PDFs, etc.)
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get mediaTabFiles;
+
+  /// Filter chip restricting the media gallery to blobs the user pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get mediaTabPinned;
+
+  /// Filter chip restricting the media gallery to blobs already downloaded to local cache
+  ///
+  /// In en, this message translates to:
+  /// **'On device'**
+  String get mediaFilterCached;
+
+  /// Filter chip restricting the media gallery to blobs not yet downloaded
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded'**
+  String get mediaFilterNotCached;
+
+  /// Action in the media action sheet that downloads the blob bytes from the server
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get mediaActionDownload;
+
+  /// Action that pins the blob so cleanup never evicts it
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get mediaActionPin;
+
+  /// Action that unpins the blob, restoring normal retention
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get mediaActionUnpin;
+
+  /// Action that deletes the local copy of the blob (server copy stays)
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from device'**
+  String get mediaActionRemoveLocal;
+
+  /// Action that copies the blob's sha256 hash to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy sha256'**
+  String get mediaActionCopySha;
+
+  /// Action that copies the blob's server URL to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy URL'**
+  String get mediaActionCopyUrl;
+
+  /// Empty state shown in the media gallery when there are no known blobs
+  ///
+  /// In en, this message translates to:
+  /// **'No media yet. Notes you receive with attachments will appear here.'**
+  String get mediaEmptyState;
+
+  /// Metadata row label showing how many notes reference this blob
+  ///
+  /// In en, this message translates to:
+  /// **'Referenced by'**
+  String get mediaDetailReferencedBy;
+
+  /// Metadata row label for the blob's sha256 hash on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'sha256'**
+  String get mediaDetailLabelSha;
+
+  /// Metadata row label for the blob's MIME type on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get mediaDetailLabelMime;
+
+  /// Metadata row label for the blob's byte size on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get mediaDetailLabelSize;
+
+  /// Metadata row label for the blob's width × height on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions'**
+  String get mediaDetailLabelDim;
+
+  /// Metadata row label for when the blob was downloaded locally
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get mediaDetailLabelCached;
+
+  /// Metadata row label for each Blossom server URL hosting the blob
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get mediaDetailLabelServer;
+
+  /// Title of the media picker bottom sheet shown from the composer
+  ///
+  /// In en, this message translates to:
+  /// **'Attach from library'**
+  String get mediaPickerTitle;
+
+  /// Empty state shown in the media picker when there are no known blobs
+  ///
+  /// In en, this message translates to:
+  /// **'No media available yet.'**
+  String get mediaPickerEmpty;
+
+  /// Composer button opening the media picker for already-known blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get composerAttachLibrary;
+
+  /// Composer button that picks a photo from the device
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get composerAttachPhone;
+
+  /// Settings row that opens the media gallery / file manager
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get storageMediaRow;
+
+  /// Subtitle under the Storage→Media settings row
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, videos and files from your notes'**
+  String get storageMediaRowSubtitle;
+
+  /// Label on the download button overlay on an attached-media tile in a note card
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get noteCardDownloadMedia;
+
+  /// Status text shown on a note-card media tile while bytes are downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get noteCardMediaDownloading;
+
+  /// Status text shown on a note-card media tile when the download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get noteCardMediaFailed;
 }
 
 class _AppLocalizationsDelegate

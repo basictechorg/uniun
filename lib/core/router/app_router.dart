@@ -29,6 +29,8 @@ import 'package:uniun/features/private_channels/detail/pages/private_channel_det
 import 'package:uniun/features/private_channels/entry/pages/private_channel_entry_page.dart';
 import 'package:uniun/features/private_channels/join/pages/join_private_channel_page.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
+import 'package:uniun/features/media/pages/media_detail_page.dart';
+import 'package:uniun/features/media/pages/media_gallery_page.dart';
 import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/features/settings/pages/blocked_users_page.dart';
 import 'package:uniun/features/settings/pages/edit_profile_page.dart';
@@ -128,6 +130,18 @@ final GoRouter appRouter = GoRouter(
       name: AppRoutes.savedNotes,
       path: '/saved-notes',
       builder: (_, __) => const SavedNotesPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.mediaGallery,
+      path: '/media',
+      builder: (_, __) => const MediaGalleryPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.mediaDetail,
+      path: '/media/:sha256',
+      builder: (_, state) => MediaDetailPage(
+        sha256: state.pathParameters['sha256']!,
+      ),
     ),
     GoRoute(
       name: AppRoutes.blockedUsers,

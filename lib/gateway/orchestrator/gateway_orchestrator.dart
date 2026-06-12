@@ -13,6 +13,7 @@ import 'package:uniun/gateway/inbound/handlers/kind41_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind42_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind9002_handler.dart';
 import 'package:uniun/gateway/inbound/handlers/kind9021_25_handler.dart';
+import 'package:uniun/gateway/inbound/handlers/kind10063_user_server_list_handler.dart';
 import 'package:uniun/gateway/inbound/inbound_bus.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/gateway/orchestrator/relay_registry.dart';
@@ -96,6 +97,7 @@ class GatewayOrchestrator {
         Kind1059DmHandler(),
         Kind9002Handler(),
         Kind9021To9025Handler(activePubkey: _activePubkey),
+        Kind10063UserServerListHandler(activePubkey: _activePubkey),
       ],
     );
     // Load the blocked-pubkey set and start watching it before any session is

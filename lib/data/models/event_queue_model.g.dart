@@ -60,23 +60,28 @@ const EventQueueModelSchema = CollectionSchema(
       name: r'quoteKind',
       type: IsarType.long,
     ),
-    r'replyToEventId': PropertySchema(
+    r'rawPassthrough': PropertySchema(
       id: 11,
+      name: r'rawPassthrough',
+      type: IsarType.bool,
+    ),
+    r'replyToEventId': PropertySchema(
+      id: 12,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'sentCount': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'sentCount',
       type: IsarType.long,
     ),
-    r'sig': PropertySchema(id: 14, name: r'sig', type: IsarType.string),
-    r'tTags': PropertySchema(id: 15, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 15, name: r'sig', type: IsarType.string),
+    r'tTags': PropertySchema(id: 16, name: r'tTags', type: IsarType.stringList),
   },
 
   estimateSize: _eventQueueModelEstimateSize,
@@ -183,11 +188,12 @@ void _eventQueueModelSerialize(
   writer.writeString(offsets[8], object.quoteAuthorPubkey);
   writer.writeString(offsets[9], object.quoteEventId);
   writer.writeLong(offsets[10], object.quoteKind);
-  writer.writeString(offsets[11], object.replyToEventId);
-  writer.writeString(offsets[12], object.rootEventId);
-  writer.writeLong(offsets[13], object.sentCount);
-  writer.writeString(offsets[14], object.sig);
-  writer.writeStringList(offsets[15], object.tTags);
+  writer.writeBool(offsets[11], object.rawPassthrough);
+  writer.writeString(offsets[12], object.replyToEventId);
+  writer.writeString(offsets[13], object.rootEventId);
+  writer.writeLong(offsets[14], object.sentCount);
+  writer.writeString(offsets[15], object.sig);
+  writer.writeStringList(offsets[16], object.tTags);
 }
 
 EventQueueModel _eventQueueModelDeserialize(
@@ -209,11 +215,12 @@ EventQueueModel _eventQueueModelDeserialize(
   object.quoteAuthorPubkey = reader.readStringOrNull(offsets[8]);
   object.quoteEventId = reader.readStringOrNull(offsets[9]);
   object.quoteKind = reader.readLongOrNull(offsets[10]);
-  object.replyToEventId = reader.readStringOrNull(offsets[11]);
-  object.rootEventId = reader.readStringOrNull(offsets[12]);
-  object.sentCount = reader.readLong(offsets[13]);
-  object.sig = reader.readString(offsets[14]);
-  object.tTags = reader.readStringList(offsets[15]) ?? [];
+  object.rawPassthrough = reader.readBool(offsets[11]);
+  object.replyToEventId = reader.readStringOrNull(offsets[12]);
+  object.rootEventId = reader.readStringOrNull(offsets[13]);
+  object.sentCount = reader.readLong(offsets[14]);
+  object.sig = reader.readString(offsets[15]);
+  object.tTags = reader.readStringList(offsets[16]) ?? [];
   return object;
 }
 
@@ -247,14 +254,16 @@ P _eventQueueModelDeserializeProp<P>(
     case 10:
       return (reader.readLongOrNull(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
       return (reader.readStringList(offset) ?? []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1892,6 +1901,15 @@ extension EventQueueModelQueryFilter
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  rawPassthroughEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'rawPassthrough', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2727,6 +2745,20 @@ extension EventQueueModelQuerySortBy
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByRawPassthrough() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawPassthrough', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByRawPassthroughDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawPassthrough', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
   sortByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -2918,6 +2950,20 @@ extension EventQueueModelQuerySortThenBy
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByRawPassthrough() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawPassthrough', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByRawPassthroughDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawPassthrough', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
   thenByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -3056,6 +3102,13 @@ extension EventQueueModelQueryWhereDistinct
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
+  distinctByRawPassthrough() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rawPassthrough');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
   distinctByReplyToEventId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
@@ -3171,6 +3224,13 @@ extension EventQueueModelQueryProperty
   QueryBuilder<EventQueueModel, int?, QQueryOperations> quoteKindProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'quoteKind');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, bool, QQueryOperations>
+  rawPassthroughProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rawPassthrough');
     });
   }
 

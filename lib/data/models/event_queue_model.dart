@@ -19,6 +19,13 @@ part 'event_queue_model.g.dart';
 /// Kinds used by the Marmot private channel protocol.
 const _privateChannelKinds = {9002, 9021, 9022, 9023, 9024, 9025};
 
+/// Kinds whose tag layout the shaped [toSerializedRelayMessage] cannot
+/// produce (e.g. `["server", url]` for Kind 10063, `["h", groupId]` for
+/// private channels). Senders enqueue these with the full signed event JSON
+/// in [EventQueueModel.content] and the outbound pump emits via
+/// [toRawRelayMessage].
+const _rawPassthroughKinds = {..._privateChannelKinds, 10063};
+
 @Collection(ignore: {'copyWith'})
 @Name('EventQueue')
 class EventQueueModel {
@@ -53,6 +60,12 @@ class EventQueueModel {
 
   /// When this event was enqueued. Used for the 30-minute dequeue gate.
   late DateTime enqueuedAt;
+
+  /// True when [content] holds the full signed event JSON and the outbound
+  /// pump must emit it verbatim via [toRawRelayMessage]. Set for Kind 1
+  /// notes carrying NIP-92 `imeta` tags (the shaped serializer can't
+  /// reproduce imeta byte-for-byte, so we sign once and ship the original).
+  late bool rawPassthrough = false;
 }
 
 /// Tag reconstruction order (must match the order callers use when signing,
@@ -135,12 +148,18 @@ extension EventQueueModelExtension on EventQueueModel {
 }
 
 extension EventQueuePrivateChannelExt on EventQueueModel {
-  /// Returns true when this queue entry carries a Marmot private-channel event.
-  ///
-  /// For these events the full signed Nostr event JSON is stored in [content]
-  /// (rather than just the event's content string) so we can preserve the
-  /// `["h", groupId]` tag that [toSerializedRelayMessage] cannot produce.
+  /// Routing predicate — true for Marmot private-channel events that must
+  /// fan out to channel-specific relays (used by
+  /// [PrivateChannelRoutingStrategy]).
   bool get isPrivateChannelEvent => _privateChannelKinds.contains(kind);
+
+  /// Serialization predicate — true when [content] holds the full signed
+  /// event JSON and the outbound pump should emit it verbatim via
+  /// [toRawRelayMessage] instead of the shaped [toSerializedRelayMessage].
+  /// Either the kind is in [_rawPassthroughKinds] or the row was enqueued
+  /// with the per-row [rawPassthrough] flag set (e.g. Kind 1 with imeta).
+  bool get isRawPassthroughEvent =>
+      rawPassthrough || _rawPassthroughKinds.contains(kind);
 
   /// Converts this entry to the relay wire format `["EVENT", {signed-event}]`.
   ///

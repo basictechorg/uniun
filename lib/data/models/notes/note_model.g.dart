@@ -45,32 +45,33 @@ const NoteModelSchema = CollectionSchema(
     ),
     r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
     r'groupId': PropertySchema(id: 7, name: r'groupId', type: IsarType.string),
-    r'kind': PropertySchema(id: 8, name: r'kind', type: IsarType.long),
+    r'hasMedia': PropertySchema(id: 8, name: r'hasMedia', type: IsarType.bool),
+    r'kind': PropertySchema(id: 9, name: r'kind', type: IsarType.long),
     r'pTagRefs': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'quoteEventId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'quoteEventId',
       type: IsarType.string,
     ),
     r'replyToEventId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 13, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 14, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 15, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 14, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 15, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 16, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -213,6 +214,19 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
+    r'hasMedia': IndexSchema(
+      id: 1924470543478053751,
+      name: r'hasMedia',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'hasMedia',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+      ],
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -308,15 +322,16 @@ void _noteModelSerialize(
   writer.writeStringList(offsets[5], object.eTagRefs);
   writer.writeString(offsets[6], object.eventId);
   writer.writeString(offsets[7], object.groupId);
-  writer.writeLong(offsets[8], object.kind);
-  writer.writeStringList(offsets[9], object.pTagRefs);
-  writer.writeString(offsets[10], object.quoteEventId);
-  writer.writeString(offsets[11], object.replyToEventId);
-  writer.writeString(offsets[12], object.rootEventId);
-  writer.writeString(offsets[13], object.sig);
-  writer.writeString(offsets[14], object.subject);
-  writer.writeStringList(offsets[15], object.tTags);
-  writer.writeString(offsets[16], object.type.name);
+  writer.writeBool(offsets[8], object.hasMedia);
+  writer.writeLong(offsets[9], object.kind);
+  writer.writeStringList(offsets[10], object.pTagRefs);
+  writer.writeString(offsets[11], object.quoteEventId);
+  writer.writeString(offsets[12], object.replyToEventId);
+  writer.writeString(offsets[13], object.rootEventId);
+  writer.writeString(offsets[14], object.sig);
+  writer.writeString(offsets[15], object.subject);
+  writer.writeStringList(offsets[16], object.tTags);
+  writer.writeString(offsets[17], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -334,16 +349,17 @@ NoteModel _noteModelDeserialize(
     eTagRefs: reader.readStringList(offsets[5]) ?? [],
     eventId: reader.readString(offsets[6]),
     groupId: reader.readStringOrNull(offsets[7]),
-    kind: reader.readLongOrNull(offsets[8]) ?? kNoteKind,
-    pTagRefs: reader.readStringList(offsets[9]) ?? [],
-    quoteEventId: reader.readStringOrNull(offsets[10]),
-    replyToEventId: reader.readStringOrNull(offsets[11]),
-    rootEventId: reader.readStringOrNull(offsets[12]),
-    sig: reader.readString(offsets[13]),
-    subject: reader.readStringOrNull(offsets[14]),
-    tTags: reader.readStringList(offsets[15]) ?? [],
+    hasMedia: reader.readBoolOrNull(offsets[8]) ?? false,
+    kind: reader.readLongOrNull(offsets[9]) ?? kNoteKind,
+    pTagRefs: reader.readStringList(offsets[10]) ?? [],
+    quoteEventId: reader.readStringOrNull(offsets[11]),
+    replyToEventId: reader.readStringOrNull(offsets[12]),
+    rootEventId: reader.readStringOrNull(offsets[13]),
+    sig: reader.readString(offsets[14]),
+    subject: reader.readStringOrNull(offsets[15]),
+    tTags: reader.readStringList(offsets[16]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[16])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[17])] ??
         NoteType.text,
   );
   object.id = id;
@@ -374,22 +390,24 @@ P _noteModelDeserializeProp<P>(
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 9:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readString(offset)) as P;
-    case 14:
       return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
     case 15:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 17:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -508,6 +526,14 @@ extension NoteModelQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'created'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'hasMedia'),
       );
     });
   }
@@ -1407,6 +1433,60 @@ extension NoteModelQueryWhere
                 indexName: r'quoteEventId',
                 lower: [],
                 upper: [quoteEventId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> hasMediaEqualTo(
+    bool hasMedia,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'hasMedia', value: [hasMedia]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> hasMediaNotEqualTo(
+    bool hasMedia,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [],
+                upper: [hasMedia],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [hasMedia],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [hasMedia],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [],
+                upper: [hasMedia],
                 includeUpper: false,
               ),
             );
@@ -2504,6 +2584,16 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'groupId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> hasMediaEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hasMedia', value: value),
       );
     });
   }
@@ -4049,6 +4139,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByHasMediaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'kind', Sort.asc);
@@ -4220,6 +4322,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByHasMediaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -4377,6 +4491,12 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasMedia');
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'kind');
@@ -4500,6 +4620,12 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupId');
+    });
+  }
+
+  QueryBuilder<NoteModel, bool, QQueryOperations> hasMediaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasMedia');
     });
   }
 

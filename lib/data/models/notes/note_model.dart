@@ -71,6 +71,13 @@ class NoteModel {
   @Index()
   String? quoteEventId;
 
+  /// True when this note carries one or more NIP-92 `imeta` tags. Set by the
+  /// inbound handler and the outbound media publish path. Indexed so the
+  /// note card can cheaply decide whether to query for attachments instead
+  /// of doing it for every note in the feed.
+  @Index()
+  late bool hasMedia = false;
+
   NoteModel({
     required this.eventId,
     required this.sig,
@@ -89,6 +96,7 @@ class NoteModel {
     required this.tTags,
     required this.created,
     this.quoteEventId,
+    this.hasMedia = false,
   });
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
@@ -181,5 +189,6 @@ extension NoteModelExtension on NoteModel {
         sourceChannelId: channelId,
         sourcePrivateGroupId: groupId,
         quoteEventId: quoteEventId,
+        hasMedia: hasMedia,
       );
 }

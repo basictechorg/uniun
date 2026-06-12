@@ -26,6 +26,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
     String? quoteEventId,
     String? quoteAuthorPubkey,
     int? quoteKind,
+    bool rawPassthrough = false,
   }) async {
     try {
       final existing = await isar.eventQueueModels
@@ -51,6 +52,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
         ..quoteEventId = quoteEventId
         ..quoteAuthorPubkey = quoteAuthorPubkey
         ..quoteKind = quoteKind
+        ..rawPassthrough = rawPassthrough
         ..sentCount = 0
         ..enqueuedAt = DateTime.now();
 

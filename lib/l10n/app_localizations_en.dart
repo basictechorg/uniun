@@ -1455,4 +1455,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionReadLess => 'Read less';
+
+  @override
+  String get mediaGalleryTitle => 'Media';
+
+  @override
+  String get mediaTabAll => 'All';
+
+  @override
+  String get mediaTabImages => 'Images';
+
+  @override
+  String get mediaTabVideos => 'Videos';
+
+  @override
+  String get mediaTabAudio => 'Audio';
+
+  @override
+  String get mediaTabFiles => 'Files';
+
+  @override
+  String get mediaTabPinned => 'Pinned';
+
+  @override
+  String get mediaFilterCached => 'On device';
+
+  @override
+  String get mediaFilterNotCached => 'Not downloaded';
+
+  @override
+  String get mediaActionDownload => 'Download';
+
+  @override
+  String get mediaActionPin => 'Pin';
+
+  @override
+  String get mediaActionUnpin => 'Unpin';
+
+  @override
+  String get mediaActionRemoveLocal => 'Remove from device';
+
+  @override
+  String get mediaActionCopySha => 'Copy sha256';
+
+  @override
+  String get mediaActionCopyUrl => 'Copy URL';
+
+  @override
+  String get mediaEmptyState =>
+      'No media yet. Notes you receive with attachments will appear here.';
+
+  @override
+  String get mediaDetailReferencedBy => 'Referenced by';
+
+  @override
+  String get mediaDetailLabelSha => 'sha256';
+
+  @override
+  String get mediaDetailLabelMime => 'Type';
+
+  @override
+  String get mediaDetailLabelSize => 'Size';
+
+  @override
+  String get mediaDetailLabelDim => 'Dimensions';
+
+  @override
+  String get mediaDetailLabelCached => 'Cached';
+
+  @override
+  String get mediaDetailLabelServer => 'Server';
+
+  @override
+  String get mediaPickerTitle => 'Attach from library';
+
+  @override
+  String get mediaPickerEmpty => 'No media available yet.';
+
+  @override
+  String get composerAttachLibrary => 'Library';
+
+  @override
+  String get composerAttachPhone => 'Photo';
+
+  @override
+  String get storageMediaRow => 'Media';
+
+  @override
+  String get storageMediaRowSubtitle =>
+      'Photos, videos and files from your notes';
+
+  @override
+  String get noteCardDownloadMedia => 'Download';
+
+  @override
+  String get noteCardMediaDownloading => 'Downloading…';
+
+  @override
+  String get noteCardMediaFailed => 'Download failed';
 }

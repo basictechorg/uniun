@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
+
 import 'package:uuid/uuid.dart';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
+import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
@@ -20,6 +25,7 @@ part 'brahma_create_state.dart';
 class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final PublishNoteUseCase _publishUseCase;
+  final PublishMediaNoteUseCase _publishMediaUseCase;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final SaveDraftUseCase _saveDraft;
   final GetDraftsUseCase _getDrafts;
@@ -30,6 +36,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   BrahmaCreateBloc(
     this._getActiveUserKeys,
     this._publishUseCase,
+    this._publishMediaUseCase,
     this._embedAndStore,
     this._saveDraft,
     this._getDrafts,
@@ -48,6 +55,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<RemoveMentionEvent>(_onRemoveMention);
     on<ClearMentionSearchEvent>(_onClearMentionSearch);
     on<RestoreDraftMentionsEvent>(_onRestoreDraftMentions);
+    on<AttachExistingMediaEvent>(_onAttachExistingMedia);
+    on<RemoveAttachedMediaEvent>(_onRemoveAttachedMedia);
   }
 
   Future<void> _onSubmitNote(
@@ -74,12 +83,16 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     // 2. Build tags
     final hashtags = extractHashtags(content);
     final mentionIds = state.selectedMentions.map((m) => m.id).toList();
+    final attached = state.attachedMedia;
     final tags = buildNoteTags(
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
       mentionIds: mentionIds,
       hashtags: hashtags,
     );
+    if (attached.isNotEmpty) {
+      tags.addAll(_buildImetaTags(attached));
+    }
 
     // 3. Sign
     late final Event signedEvent;
@@ -106,10 +119,26 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       tTags: hashtags,
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
+    ).copyWith(
+      type: attached.any((b) => b.mime.startsWith('image/'))
+          ? NoteType.image
+          : NoteType.text,
+      hasMedia: attached.isNotEmpty,
     );
 
-    // 5. Publish: save locally + enqueue for relay
-    final result = await _publishUseCase.call(note);
+    // 5. Publish: text-only uses the shaped serializer; attachments use the
+    //    raw-passthrough path so imeta tag order survives.
+    final result = attached.isEmpty
+        ? await _publishUseCase.call(note)
+        : await _publishMediaUseCase.call(PublishMediaNoteInput(
+            note: note,
+            fullSignedJson: _encodeSignedEvent(
+              event: signedEvent,
+              tags: tags,
+              pubkeyHex: pubkeyHex,
+            ),
+            attachedShas: attached.map((b) => b.sha256).toList(),
+          ));
     result.fold(
       (f) => emit(state.copyWith(
         status: BrahmaCreateStatus.error,
@@ -119,11 +148,70 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         emit(state.copyWith(
           status: BrahmaCreateStatus.success,
           selectedMentions: [],
+          attachedMedia: [],
         ));
         // Fire-and-forget: embed this note for RAG (no-op if model not ready yet).
         unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
       },
     );
+  }
+
+  /// Builds NIP-92 imeta tags from attached blobs. One tag per blob; each
+  /// is a string array `["imeta", "url ...", "m ...", "x ...", ...]`.
+  List<List<String>> _buildImetaTags(List<MediaBlobEntity> blobs) {
+    final out = <List<String>>[];
+    for (final b in blobs) {
+      final url = b.serverUrls.isNotEmpty ? b.serverUrls.first : '';
+      if (url.isEmpty) continue;
+      final dim = b.dim;
+      out.add([
+        'imeta',
+        'url $url',
+        'm ${b.mime}',
+        'x ${b.sha256}',
+        if (b.sizeBytes > 0) 'size ${b.sizeBytes}',
+        if (dim != null) 'dim ${dim.width}x${dim.height}',
+        if (b.blurhash != null) 'blurhash ${b.blurhash}',
+      ]);
+    }
+    return out;
+  }
+
+  String _encodeSignedEvent({
+    required Event event,
+    required List<List<String>> tags,
+    required String pubkeyHex,
+  }) {
+    return jsonEncode({
+      'id': event.id,
+      'pubkey': pubkeyHex,
+      'created_at': event.createdAt,
+      'kind': event.kind,
+      'tags': tags,
+      'content': event.content,
+      'sig': event.sig,
+    });
+  }
+
+  void _onAttachExistingMedia(
+    AttachExistingMediaEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) {
+    if (state.attachedMedia.any((b) => b.sha256 == event.blob.sha256)) return;
+    emit(state.copyWith(
+      attachedMedia: [...state.attachedMedia, event.blob],
+    ));
+  }
+
+  void _onRemoveAttachedMedia(
+    RemoveAttachedMediaEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) {
+    emit(state.copyWith(
+      attachedMedia: state.attachedMedia
+          .where((b) => b.sha256 != event.sha256)
+          .toList(),
+    ));
   }
 
   Future<void> _onSaveDraft(

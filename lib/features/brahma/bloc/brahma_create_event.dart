@@ -80,3 +80,17 @@ final class RestoreDraftMentionsEvent extends BrahmaCreateEvent {
   const RestoreDraftMentionsEvent(this.mentionIds);
   final List<String> mentionIds;
 }
+
+// ── Media attachment events ───────────────────────────────────────────────────
+
+/// User picked an already-known blob from the media library — no upload, no
+/// download. The blob's sha256 will land in the note's imeta tag on submit.
+final class AttachExistingMediaEvent extends BrahmaCreateEvent {
+  const AttachExistingMediaEvent(this.blob);
+  final MediaBlobEntity blob;
+}
+
+final class RemoveAttachedMediaEvent extends BrahmaCreateEvent {
+  const RemoveAttachedMediaEvent(this.sha256);
+  final String sha256;
+}

@@ -20,4 +20,10 @@ class AppConstants {
   /// to and the one auto-selected when publishing. Use this constant instead
   /// of hardcoding the URL anywhere.
   static const String kUniunBackend = 'wss://dev.uniun.in:8080';
+
+  /// HTTP base for our backend's Blossom (NIP-B7) endpoints. Same host as
+  /// [kUniunBackend], HTTPS instead of WSS. The Go relay wires
+  /// `blossom.New(relay, RelayURL)` against this URL — `PUT /upload`,
+  /// `GET /<sha256>`, `HEAD /<sha256>`, etc. live here.
+  static const String kUniunBlossom = 'https://dev.uniun.in:8080';
 }

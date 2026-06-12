@@ -8,6 +8,7 @@ import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/features/media/widgets/media_picker_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Compose page opened from the graph FAB or draft edit button.
@@ -38,6 +39,62 @@ class GraphComposePage extends StatelessWidget {
 }
 
 // ── View ────────────────────────────────────────────────────────────────────────
+
+/// Strip above the composer showing attached media chips + an
+/// "Attach from library" button. v1 only supports picking from existing
+/// blobs; upload-from-phone arrives separately.
+class _MediaAttachStrip extends StatelessWidget {
+  const _MediaAttachStrip({required this.state});
+  final BrahmaCreateState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          TextButton.icon(
+            onPressed: () async {
+              final blob = await MediaPickerSheet.show(context);
+              if (blob == null) return;
+              if (!context.mounted) return;
+              context
+                  .read<BrahmaCreateBloc>()
+                  .add(AttachExistingMediaEvent(blob));
+            },
+            icon: const Icon(Icons.photo_library_outlined, size: 18),
+            label: Text(l10n.composerAttachLibrary),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+          ),
+          const Spacer(),
+          if (state.attachedMedia.isNotEmpty)
+            Text(
+              '${state.attachedMedia.length}',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          for (final b in state.attachedMedia)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: InputChip(
+                avatar: const Icon(Icons.image_outlined, size: 14),
+                label: Text(
+                  b.sha256.substring(0, 6),
+                  style: const TextStyle(fontSize: 11),
+                ),
+                onDeleted: () => context
+                    .read<BrahmaCreateBloc>()
+                    .add(RemoveAttachedMediaEvent(b.sha256)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
 
 class _GraphComposeView extends StatefulWidget {
   const _GraphComposeView({this.initialDraftId, this.autoPublish = false});
@@ -194,6 +251,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
             child: Column(
               children: [
                 ComposeHeader(l10n: l10n),
+                _MediaAttachStrip(state: state),
                 UniunComposer(
                   controller: _controller,
                   focusNode: _focusNode,

@@ -6,6 +6,7 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
+import 'package:uniun/gateway/inbound/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
 /// Kind 42 — NIP-28 channel message.
@@ -82,6 +83,7 @@ class Kind42Handler implements KindHandler {
       tTags: const [],
       created: EventParser.dateTimeFromSec(createdAtSec),
       quoteEventId: quoteEventId,
+      hasMedia: ImetaParser.hasImeta(event),
     );
 
     try {
@@ -92,6 +94,13 @@ class Kind42Handler implements KindHandler {
             .findFirst();
         if (existing != null) return;
         await isar.noteModels.put(model);
+
+        // NIP-92 imeta — persist attached blob metadata + join rows.
+        await ImetaParser.persistInTxn(
+          isar: isar,
+          noteEventId: eventId,
+          event: event,
+        );
 
         // Unread row for messages from other users (own sends are pre-seen).
         if (pubkey != activePubkey) {

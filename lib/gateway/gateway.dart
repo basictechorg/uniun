@@ -4,6 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/gateway/cleanup/cleanup_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/gateway/orchestrator/gateway_orchestrator.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
@@ -42,6 +43,8 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
 
     await orchestrator.start();
     nip17Service.start();
+
+    CleanupManager(isar: isar, activePubkey: init.pubkeyHex).start();
 
     debugPrint("Gateway isolate fully started!");
   } catch (e, stackTrace) {

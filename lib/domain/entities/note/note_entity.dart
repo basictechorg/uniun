@@ -59,6 +59,10 @@ abstract class NoteEntity with _$NoteEntity {
     /// Null when [quoteEventId] is non-null but resolution missed (encrypted
     /// or absent) — renderer shows "Note not available".
     NoteEntity? quotedNote,
+
+    /// True when this note carries one or more NIP-92 `imeta` tags. Lets
+    /// note cards skip the attachment lookup entirely for text-only notes.
+    @Default(false) bool hasMedia,
   }) = _NoteEntity;
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>
