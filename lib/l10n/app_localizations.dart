@@ -544,6 +544,54 @@ abstract class AppLocalizations {
   /// **'Draft'**
   String get brahmaDraft;
 
+  /// Tooltip for the heading button (cycles H1/H2/H3)
+  ///
+  /// In en, this message translates to:
+  /// **'Heading'**
+  String get markdownToolbarHeading;
+
+  /// Tooltip for the bold formatting button in the composer
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get markdownToolbarBold;
+
+  /// Tooltip for the italic formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get markdownToolbarItalic;
+
+  /// Tooltip for the inline-code formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Inline code'**
+  String get markdownToolbarCode;
+
+  /// Tooltip for the bullet-list formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Bullet list'**
+  String get markdownToolbarBulletList;
+
+  /// Tooltip for the numbered-list formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered list'**
+  String get markdownToolbarNumberList;
+
+  /// Tooltip for the blockquote formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get markdownToolbarQuote;
+
+  /// Tooltip for the link formatting button
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get markdownToolbarLink;
+
   /// Feedback after saving a draft
   ///
   /// In en, this message translates to:

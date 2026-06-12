@@ -236,6 +236,30 @@
   "brahmaDraft": "Draft",
   "@brahmaDraft": { "description": "Save as draft button label" },
 
+  "markdownToolbarHeading": "Heading",
+  "@markdownToolbarHeading": { "description": "Tooltip for the heading button (cycles H1/H2/H3)" },
+
+  "markdownToolbarBold": "Bold",
+  "@markdownToolbarBold": { "description": "Tooltip for the bold formatting button in the composer" },
+
+  "markdownToolbarItalic": "Italic",
+  "@markdownToolbarItalic": { "description": "Tooltip for the italic formatting button" },
+
+  "markdownToolbarCode": "Inline code",
+  "@markdownToolbarCode": { "description": "Tooltip for the inline-code formatting button" },
+
+  "markdownToolbarBulletList": "Bullet list",
+  "@markdownToolbarBulletList": { "description": "Tooltip for the bullet-list formatting button" },
+
+  "markdownToolbarNumberList": "Numbered list",
+  "@markdownToolbarNumberList": { "description": "Tooltip for the numbered-list formatting button" },
+
+  "markdownToolbarQuote": "Quote",
+  "@markdownToolbarQuote": { "description": "Tooltip for the blockquote formatting button" },
+
+  "markdownToolbarLink": "Link",
+  "@markdownToolbarLink": { "description": "Tooltip for the link formatting button" },
+
   "brahmaDraftSaved": "Draft saved",
   "@brahmaDraftSaved": { "description": "Feedback after saving a draft" },
 

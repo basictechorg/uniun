@@ -9,6 +9,7 @@ import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/common/widgets/markdown/note_markdown_body.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 /// Slides up from the bottom when a graph node is tapped.
@@ -271,18 +272,25 @@ class _DraftPreview extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      isEmpty ? '—' : content,
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.55,
-                        color: isEmpty
-                            ? AppColors.onSurfaceVariant
-                            : const Color(0xFF1E293B),
-                        fontStyle:
-                            isEmpty ? FontStyle.italic : FontStyle.normal,
+                    if (isEmpty)
+                      Text(
+                        '—',
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.55,
+                          color: AppColors.outline.withValues(alpha: 0.6),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      )
+                    else
+                      NoteMarkdownBody(
+                        content: content,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.55,
+                          color: AppColors.onSurface,
+                        ),
                       ),
-                    ),
                     if (tTags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(

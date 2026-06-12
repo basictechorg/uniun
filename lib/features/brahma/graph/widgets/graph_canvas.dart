@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
+import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/graph/painters/dot_pattern_painter.dart';
@@ -540,7 +541,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
   String _labelFor(String nodeId) {
     try {
       final node = widget.nodes.firstWhere((n) => n.eventId == nodeId);
-      final text = node.content.trim().replaceAll('\n', ' ');
+      final text = stripMarkdownPreview(node.content).trim().replaceAll('\n', ' ');
       return text.length > 30 ? '${text.substring(0, 30)}…' : text;
     } catch (_) {
       return '…';

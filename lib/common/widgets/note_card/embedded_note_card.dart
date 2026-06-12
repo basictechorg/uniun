@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -106,16 +107,7 @@ class _EmbeddedNoteView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              note.content,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF1E293B),
-                height: 1.4,
-              ),
-            ),
+            _EmbeddedContentPreview(content: note.content),
           ],
         ),
       ),
@@ -124,6 +116,57 @@ class _EmbeddedNoteView extends StatelessWidget {
 
   String _shortPubkey(String pk) =>
       pk.length <= 12 ? pk : '${pk.substring(0, 6)}…${pk.substring(pk.length - 4)}';
+}
+
+/// Preview body for an embedded quote. Strips markdown, caps at 4 lines, and
+/// appends an "Open" hint when the source clearly exceeds what's shown so
+/// the user knows there's more behind the tap.
+class _EmbeddedContentPreview extends StatelessWidget {
+  const _EmbeddedContentPreview({required this.content});
+  final String content;
+
+  static const _maxLines = 4;
+  static const _overflowChars = 220;
+
+  @override
+  Widget build(BuildContext context) {
+    final stripped = stripMarkdownPreview(content);
+    final likelyOverflows = stripped.length > _overflowChars ||
+        '\n'.allMatches(stripped).length >= _maxLines;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          stripped,
+          maxLines: _maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF1E293B),
+            height: 1.4,
+          ),
+        ),
+        if (likelyOverflows) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                AppLocalizations.of(context)!.actionReadMore,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 14, color: AppColors.primary),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _Shell extends StatelessWidget {

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/features/brahma/graph/widgets/compose_header.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -48,7 +49,7 @@ class _GraphComposeView extends StatefulWidget {
 }
 
 class _GraphComposeViewState extends State<_GraphComposeView> {
-  final _controller = TextEditingController();
+  final _controller = MarkdownTextEditingController();
   final _focusNode = FocusNode();
   bool _didPrefill = false;
   bool _didAutoPublish = false;
@@ -200,6 +201,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                   minLines: 8,
                   maxLines: 14,
                   applyBottomInset: false,
+                  showMarkdownToolbar: true,
                   avatarUrl: _avatarUrl,
                   avatarSeed: _pubkeySeed,
                   hintText: l10n.brahmaHintText,

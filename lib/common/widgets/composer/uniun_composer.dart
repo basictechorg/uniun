@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
@@ -46,6 +47,7 @@ class UniunComposer extends StatelessWidget {
     this.minLines = 1,
     this.maxLines = 6,
     this.applyBottomInset = true,
+    this.showMarkdownToolbar = false,
   });
 
   final TextEditingController controller;
@@ -86,6 +88,11 @@ class UniunComposer extends StatelessWidget {
   /// indicator. Set false when the composer is anchored at the top.
   final bool applyBottomInset;
 
+  /// Shows a row of inline markdown formatting buttons (B/I/code/list/quote/
+  /// link) above the text field. Off by default to keep tight chat replies
+  /// compact; turn on for the Brahma note composer.
+  final bool showMarkdownToolbar;
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
@@ -117,6 +124,10 @@ class UniunComposer extends StatelessWidget {
                 onRemove: onRemoveReference,
               ),
               const SizedBox(height: 8),
+            ],
+            if (showMarkdownToolbar) ...[
+              MarkdownFormattingToolbar(controller: controller),
+              const SizedBox(height: 6),
             ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),

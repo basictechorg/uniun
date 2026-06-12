@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -68,7 +69,7 @@ class ReferenceNoteCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  note.content,
+                  stripMarkdownPreview(note.content),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

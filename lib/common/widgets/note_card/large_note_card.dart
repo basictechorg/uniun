@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/markdown/note_markdown_body.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
@@ -134,8 +135,8 @@ class _LargeNoteCardView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (note.content.isNotEmpty)
-            Text(
-              note.content,
+            NoteMarkdownBody(
+              content: note.content,
               style: const TextStyle(
                 fontSize: 17,
                 color: AppColors.onSurface,
