@@ -40,7 +40,12 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   }
 
   Future<void> _onLoad(LoadThreadEvent event, Emitter<ThreadState> emit) async {
-    emit(state.copyWith(status: ThreadStatus.loading));
+    // Show the full-screen spinner only on the first load. A reload (e.g. after
+    // posting a reply) keeps the current thread visible to avoid a jarring
+    // full-page refresh.
+    if (state.status != ThreadStatus.loaded) {
+      emit(state.copyWith(status: ThreadStatus.loading));
+    }
 
     // Saved-note ids are loaded in BOTH modes: in saved mode they are the
     // visible universe; in normal mode they drive the bookmark marking on
@@ -174,7 +179,10 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
         errorMessage: f.toMessage(),
       )),
       (_) async {
-        // Reload so the new reply appears under the root.
+        // Clear the sending state (so the send button stops spinning) and
+        // reload so the new reply appears under the root. The reload keeps the
+        // existing thread visible (see _onLoad).
+        emit(state.copyWith(postStatus: ThreadPostStatus.idle));
         add(LoadThreadEvent(root.id, savedOnly: state.savedOnly));
       },
     );
