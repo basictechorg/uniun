@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -36,21 +35,6 @@ class _EditProfileContentState extends State<_EditProfileContent> {
   late final TextEditingController _avatarUrl;
   late final TextEditingController _nip05;
   bool _controllersInit = false;
-  final _picker = ImagePicker();
-
-  Future<void> _pickAvatar(EditProfileCubit cubit) async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 85,
-    );
-    if (file == null) return;
-    // Update the avatarUrl field with the local path so the preview refreshes.
-    // The actual Blossom upload happens on save (future scope).
-    cubit.updateAvatarUrl(file.path);
-    _avatarUrl.text = file.path;
-  }
 
   @override
   void dispose() {
@@ -117,38 +101,15 @@ class _EditProfileContentState extends State<_EditProfileContent> {
             children: [
               // ── Avatar preview ────────────────────────────────────────
               Center(
-                child: GestureDetector(
-                  onTap: () => _pickAvatar(cubit),
-                  child: Stack(
-                    children: [
-                      UserAvatar(
-                        seed: state.username.isNotEmpty
-                            ? state.username
-                            : state.name,
-                        photoUrl: state.avatarUrl.isNotEmpty
-                            ? state.avatarUrl
-                            : null,
-                        size: 96,
-                        showBorder: true,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: AppColors.surface, width: 2),
-                          ),
-                          child: const Icon(Icons.edit_rounded,
-                              size: 13, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: UserAvatar(
+                  seed: state.username.isNotEmpty
+                      ? state.username
+                      : state.name,
+                  photoUrl: state.avatarUrl.isNotEmpty
+                      ? state.avatarUrl
+                      : null,
+                  size: 96,
+                  showBorder: true,
                 ),
               ),
 

@@ -8,6 +8,7 @@ import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -183,7 +184,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
                 size: 20,
                 color: AppColors.primary,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.popOrHome(),
             ),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

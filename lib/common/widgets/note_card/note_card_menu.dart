@@ -56,7 +56,7 @@ class NoteCardMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return PopupMenuButton<String>(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(10),
       position: PopupMenuPosition.under,
       offset: const Offset(0, 4),
       elevation: 8,
@@ -71,13 +71,10 @@ class NoteCardMenu extends StatelessWidget {
         if (value == 'block') _onBlock(context);
         if (value == 'delete') _onDelete(context);
       },
-      child: const Padding(
-        padding: EdgeInsets.only(left: 8, top: 2, bottom: 2),
-        child: Icon(
-          Icons.more_vert_rounded,
-          size: 18,
-          color: AppColors.outline,
-        ),
+      child: const Icon(
+        Icons.more_vert_rounded,
+        size: 20,
+        color: AppColors.outline,
       ),
       itemBuilder: (context) => [
         _item('delete', Icons.delete_outline_rounded, l10n.noteCardDeleteNote),

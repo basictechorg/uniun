@@ -13,7 +13,7 @@ import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 
-/// Login screen — "I Already Have a Key".
+/// Login screen — "Reclaim Your Avatar".
 class ImportIdentityPage extends StatefulWidget {
   const ImportIdentityPage({super.key});
 

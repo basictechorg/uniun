@@ -846,16 +846,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1039.EventQueueRepository>(),
       ),
     );
-    gh.factory<_i959.UserProfileBloc>(
-      () => _i959.UserProfileBloc(
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i63.IsFollowingUseCase>(),
-        gh<_i63.FollowUserUseCase>(),
-        gh<_i63.UnfollowUserUseCase>(),
-        gh<_i391.WatchProfileUseCase>(),
-        gh<_i391.RequestProfileFetchUseCase>(),
-      ),
-    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -982,6 +972,17 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i837.MarkFeedItemSeenUseCase>(
       () => _i837.MarkFeedItemSeenUseCase(gh<_i250.FeedRepository>()),
+    );
+    gh.factory<_i959.UserProfileBloc>(
+      () => _i959.UserProfileBloc(
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i63.IsFollowingUseCase>(),
+        gh<_i63.FollowUserUseCase>(),
+        gh<_i63.UnfollowUserUseCase>(),
+        gh<_i391.WatchProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+      ),
     );
     gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
       () => _i179.ExtractKnowledgeUseCase(

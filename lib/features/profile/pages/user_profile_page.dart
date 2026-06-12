@@ -5,6 +5,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/profile/bloc/user_profile_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -137,7 +138,7 @@ class _Header extends StatelessWidget {
                 size: 20,
                 color: AppColors.primary,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.popOrHome(),
             ),
             const SizedBox(width: 4),
             Expanded(
@@ -169,9 +170,11 @@ class _Header extends StatelessWidget {
                     showBorder: true,
                   ),
                   const Spacer(),
-                  _FollowButton(state: state),
-                  const SizedBox(width: 8),
-                  _DmButton(pubkeyHex: hex),
+                  if (!state.isSelf) ...[
+                    _FollowButton(state: state),
+                    const SizedBox(width: 8),
+                    _DmButton(pubkeyHex: hex),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),

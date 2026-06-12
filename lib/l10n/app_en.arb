@@ -642,14 +642,14 @@
   "editProfileSaveButton": "Save Profile",
   "@editProfileSaveButton": { "description": "Save profile button" },
 
-  "welcomeTagline": "Your notes, your\nnetwork, your identity.",
-  "@welcomeTagline": { "description": "Hero tagline on welcome screen" },
+  "welcomeTagline": "*Create* · *Share*\n*Reflect* · *Transform*",
+  "@welcomeTagline": { "description": "Hero tagline on welcome screen. Words wrapped in *asterisks* are rendered in the brand accent color; everything else is muted." },
 
-  "welcomeCreateIdentity": "Create New Identity",
-  "@welcomeCreateIdentity": { "description": "Primary CTA on welcome screen" },
+  "welcomeCreateIdentity": "Create Your Avatar",
+  "@welcomeCreateIdentity": { "description": "Primary CTA on welcome screen — generate a new Nostr keypair (a new avatar/incarnation in the network)" },
 
-  "welcomeImportKey": "I Already Have a Key",
-  "@welcomeImportKey": { "description": "Secondary CTA on welcome screen" },
+  "welcomeImportKey": "Restore Your Avatar",
+  "@welcomeImportKey": { "description": "Secondary CTA on welcome screen — import an existing nsec key (restore the same avatar onto this device)" },
 
   "welcomeLearnHow": "Learn how UNIUN works",
   "@welcomeLearnHow": { "description": "Learn more link on welcome screen" },
@@ -657,10 +657,10 @@
   "aboutYouTitle": "About You",
   "@aboutYouTitle": { "description": "Heading on the about-you onboarding page" },
 
-  "aboutYouSubtitle": "Set up your profile. Display Name and Username are required.",
+  "aboutYouSubtitle": "Set up your avatar. Display Name and Username are required.",
   "@aboutYouSubtitle": { "description": "Body subtitle on about-you page" },
 
-  "aboutYouAvatarCaption": "Auto-generated · Photo optional",
+  "aboutYouAvatarCaption": "Auto-generated",
   "@aboutYouAvatarCaption": { "description": "Caption under the avatar on about-you page" },
 
   "aboutYouDisplayNameLabel": "Display Name *",
@@ -684,9 +684,6 @@
   "aboutYouBioHint": "Tell the world a bit about yourself…",
   "@aboutYouBioHint": { "description": "Hint for bio on about-you page" },
 
-  "aboutYouSetUpLater": "SET UP LATER",
-  "@aboutYouSetUpLater": { "description": "Skip button on about-you page" },
-
   "aboutYouEncrypted": "Your data is encrypted and private.",
   "@aboutYouEncrypted": { "description": "Privacy reassurance chip on about-you page" },
 
@@ -696,10 +693,10 @@
   "aboutYouUsernameRequired": "Username is required",
   "@aboutYouUsernameRequired": { "description": "Validation error for username" },
 
-  "importTitle": "Import Your Identity",
+  "importTitle": "Restore Your Avatar",
   "@importTitle": { "description": "Heading on the import-identity page" },
 
-  "importSubtitle": "Paste your private key to recover your existing profile.",
+  "importSubtitle": "Paste your private key to restore your existing avatar.",
   "@importSubtitle": { "description": "Body subtitle on the import-identity page" },
 
   "importPrivateKeyLabel": "PRIVATE KEY",
@@ -726,7 +723,7 @@
   "importInvalidKey": "Invalid key. Please check and try again.",
   "@importInvalidKey": { "description": "Error snackbar for unrecognised key format" },
 
-  "keysTitle": "Your Identity Keys",
+  "keysTitle": "Your Avatar Keys",
   "@keysTitle": { "description": "Heading on the identity-keys onboarding page" },
 
   "keysSubtitle": "One is for sharing. One is for your eyes only.",

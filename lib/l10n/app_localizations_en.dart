@@ -665,13 +665,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editProfileSaveButton => 'Save Profile';
 
   @override
-  String get welcomeTagline => 'Your notes, your\nnetwork, your identity.';
+  String get welcomeTagline => '*Create* · *Share*\n*Reflect* · *Transform*';
 
   @override
-  String get welcomeCreateIdentity => 'Create New Identity';
+  String get welcomeCreateIdentity => 'Create Your Avatar';
 
   @override
-  String get welcomeImportKey => 'I Already Have a Key';
+  String get welcomeImportKey => 'Restore Your Avatar';
 
   @override
   String get welcomeLearnHow => 'Learn how UNIUN works';
@@ -681,10 +681,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutYouSubtitle =>
-      'Set up your profile. Display Name and Username are required.';
+      'Set up your avatar. Display Name and Username are required.';
 
   @override
-  String get aboutYouAvatarCaption => 'Auto-generated · Photo optional';
+  String get aboutYouAvatarCaption => 'Auto-generated';
 
   @override
   String get aboutYouDisplayNameLabel => 'Display Name *';
@@ -708,9 +708,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutYouBioHint => 'Tell the world a bit about yourself…';
 
   @override
-  String get aboutYouSetUpLater => 'SET UP LATER';
-
-  @override
   String get aboutYouEncrypted => 'Your data is encrypted and private.';
 
   @override
@@ -720,11 +717,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutYouUsernameRequired => 'Username is required';
 
   @override
-  String get importTitle => 'Import Your Identity';
+  String get importTitle => 'Restore Your Avatar';
 
   @override
   String get importSubtitle =>
-      'Paste your private key to recover your existing profile.';
+      'Paste your private key to restore your existing avatar.';
 
   @override
   String get importPrivateKeyLabel => 'PRIVATE KEY';
@@ -752,7 +749,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importInvalidKey => 'Invalid key. Please check and try again.';
 
   @override
-  String get keysTitle => 'Your Identity Keys';
+  String get keysTitle => 'Your Avatar Keys';
 
   @override
   String get keysSubtitle => 'One is for sharing. One is for your eyes only.';

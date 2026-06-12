@@ -1294,22 +1294,22 @@ abstract class AppLocalizations {
   /// **'Save Profile'**
   String get editProfileSaveButton;
 
-  /// Hero tagline on welcome screen
+  /// Hero tagline on welcome screen. Words wrapped in *asterisks* are rendered in the brand accent color; everything else is muted.
   ///
   /// In en, this message translates to:
-  /// **'Your notes, your\nnetwork, your identity.'**
+  /// **'*Create* · *Share*\n*Reflect* · *Transform*'**
   String get welcomeTagline;
 
-  /// Primary CTA on welcome screen
+  /// Primary CTA on welcome screen — generate a new Nostr keypair (a new avatar/incarnation in the network)
   ///
   /// In en, this message translates to:
-  /// **'Create New Identity'**
+  /// **'Create Your Avatar'**
   String get welcomeCreateIdentity;
 
-  /// Secondary CTA on welcome screen
+  /// Secondary CTA on welcome screen — import an existing nsec key (restore the same avatar onto this device)
   ///
   /// In en, this message translates to:
-  /// **'I Already Have a Key'**
+  /// **'Restore Your Avatar'**
   String get welcomeImportKey;
 
   /// Learn more link on welcome screen
@@ -1327,13 +1327,13 @@ abstract class AppLocalizations {
   /// Body subtitle on about-you page
   ///
   /// In en, this message translates to:
-  /// **'Set up your profile. Display Name and Username are required.'**
+  /// **'Set up your avatar. Display Name and Username are required.'**
   String get aboutYouSubtitle;
 
   /// Caption under the avatar on about-you page
   ///
   /// In en, this message translates to:
-  /// **'Auto-generated · Photo optional'**
+  /// **'Auto-generated'**
   String get aboutYouAvatarCaption;
 
   /// Field label for display name on about-you page
@@ -1378,12 +1378,6 @@ abstract class AppLocalizations {
   /// **'Tell the world a bit about yourself…'**
   String get aboutYouBioHint;
 
-  /// Skip button on about-you page
-  ///
-  /// In en, this message translates to:
-  /// **'SET UP LATER'**
-  String get aboutYouSetUpLater;
-
   /// Privacy reassurance chip on about-you page
   ///
   /// In en, this message translates to:
@@ -1405,13 +1399,13 @@ abstract class AppLocalizations {
   /// Heading on the import-identity page
   ///
   /// In en, this message translates to:
-  /// **'Import Your Identity'**
+  /// **'Restore Your Avatar'**
   String get importTitle;
 
   /// Body subtitle on the import-identity page
   ///
   /// In en, this message translates to:
-  /// **'Paste your private key to recover your existing profile.'**
+  /// **'Paste your private key to restore your existing avatar.'**
   String get importSubtitle;
 
   /// Field section label on import page
@@ -1465,7 +1459,7 @@ abstract class AppLocalizations {
   /// Heading on the identity-keys onboarding page
   ///
   /// In en, this message translates to:
-  /// **'Your Identity Keys'**
+  /// **'Your Avatar Keys'**
   String get keysTitle;
 
   /// Subtitle on the identity-keys onboarding page

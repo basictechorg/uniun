@@ -10,5 +10,6 @@ abstract class UserProfileState with _$UserProfileState {
     @Default(false) bool loading,
     @Default(false) bool isFollowing,
     @Default(false) bool busy,
+    @Default(false) bool isSelf,
   }) = _UserProfileState;
 }

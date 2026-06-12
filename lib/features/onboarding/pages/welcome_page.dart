@@ -10,8 +10,8 @@ import 'package:uniun/core/theme/app_theme.dart';
 /// No top app bar, no bottom nav — pure onboarding shell.
 ///
 /// Flow:
-///   "Create New Identity"  → YourIdentityKeysPage
-///   "I Already Have a Key" → ImportIdentityPage
+///   "Create Your Avatar"  → YourIdentityKeysPage (generate a new keypair)
+///   "Reclaim Your Avatar" → ImportIdentityPage (import an existing nsec)
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -47,11 +47,11 @@ class WelcomePage extends StatelessWidget {
                 const SizedBox(height: 48),
 
                 // ── Hero tagline ─────────────────────────────────────────
-                Text(
+                _taglineBlock(
                   l10n.welcomeTagline,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.onSurface,
+                  accent: AppColors.primary,
+                  muted: AppColors.onSurfaceVariant,
+                  base: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
@@ -73,7 +73,7 @@ class WelcomePage extends StatelessWidget {
 
                 const SizedBox(height: 64),
 
-                // ── Primary — Create New Identity ────────────────────────
+                // ── Primary — Create Your Avatar ─────────────────────────
                 _PrimaryButton(
                   onPressed: () {
                     // Generate keypair here so both AboutYou and KeysPage
@@ -230,4 +230,91 @@ class _SecondaryButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Splits a tagline into colour-coded spans: substrings wrapped in `*asterisks*`
+/// render in [accent], everything else in [muted]. Keeps the full phrase in one
+/// l10n string while letting the brand verbs stand out.
+List<InlineSpan> _taglineSpans(
+  String text, {
+  required Color accent,
+  required Color muted,
+}) {
+  final spans = <InlineSpan>[];
+  final pattern = RegExp(r'\*(.+?)\*');
+  var cursor = 0;
+  for (final match in pattern.allMatches(text)) {
+    if (match.start > cursor) {
+      spans.add(TextSpan(
+        text: text.substring(cursor, match.start),
+        style: TextStyle(color: muted),
+      ));
+    }
+    spans.add(TextSpan(
+      text: match.group(1),
+      style: TextStyle(color: accent),
+    ));
+    cursor = match.end;
+  }
+  if (cursor < text.length) {
+    spans.add(
+      TextSpan(text: text.substring(cursor), style: TextStyle(color: muted)),
+    );
+  }
+  return spans;
+}
+
+/// Lays out a `left · right` tagline (one such pair per `\n` line) as a column
+/// of full-width rows. Each row splits into two equal-flex halves with the `·`
+/// between them, so every dot lands on the page's centre line and the dots
+/// align vertically. Left words hug the dot from the right, right words from
+/// the left. Words wrapped in *asterisks* render in [accent]; separators in
+/// [muted].
+Widget _taglineBlock(
+  String raw, {
+  required Color accent,
+  required Color muted,
+  required TextStyle base,
+}) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      for (final line in raw.split('\n'))
+        _taglineRow(line, accent: accent, muted: muted, base: base),
+    ],
+  );
+}
+
+Widget _taglineRow(
+  String line, {
+  required Color accent,
+  required Color muted,
+  required TextStyle base,
+}) {
+  final parts = line.split(' · ');
+  final left = parts.first;
+  final right = parts.length > 1 ? parts[1] : '';
+
+  Widget half(String text, Alignment alignment) => Expanded(
+        child: Align(
+          alignment: alignment,
+          child: Text.rich(
+            TextSpan(
+              children: _taglineSpans(text, accent: accent, muted: muted),
+            ),
+            style: base,
+          ),
+        ),
+      );
+
+  return Row(
+    children: [
+      half(left, Alignment.centerRight),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text('·', style: base.copyWith(color: muted)),
+      ),
+      half(right, Alignment.centerLeft),
+    ],
+  );
 }
