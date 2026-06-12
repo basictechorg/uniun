@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -239,7 +240,13 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          Navigator.of(context).pop();
+          // In-app join → pop back where we came from. A deep-link join lands
+          // here as the navigator root, so there's nothing to pop to — open the
+          // channel we just joined instead.
+          context.popOr(() => context.goNamed(
+                AppRoutes.channelDetail,
+                pathParameters: {'channelId': _channelIdController.text.trim()},
+              ));
         }
       },
       child: KeyboardDismissOnTap(

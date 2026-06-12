@@ -8,7 +8,7 @@ import 'package:uniun/features/onboarding/widgets/field_label.dart';
 import 'package:uniun/features/onboarding/widgets/generated_avatar.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 
-/// Profile setup — shown after key generation on Create New Identity flow.
+/// Profile setup — shown after key generation on the Create Your Avatar flow.
 /// Route args (passed via go_router `extra`): Map{'npub', 'nsec', 'pubkeyHex'}.
 class AboutYouPage extends StatefulWidget {
   const AboutYouPage({super.key, this.args});
@@ -95,10 +95,6 @@ class _AboutYouPageState extends State<AboutYouPage> {
         'avatarSeed': _avatarVariant == 0 ? null : _avatarSeed(pubkeyHex),
       },
     );
-  }
-
-  void _goHome() {
-    context.goNamed(AppRoutes.home);
   }
 
   @override
@@ -278,21 +274,6 @@ class _AboutYouPageState extends State<AboutYouPage> {
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    TextButton(
-                      onPressed: _goHome,
-                      child: Text(
-                        l10n.aboutYouSetUpLater,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                          letterSpacing: 1.5,
                         ),
                       ),
                     ),

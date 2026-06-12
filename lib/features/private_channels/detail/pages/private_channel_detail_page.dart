@@ -13,6 +13,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class PrivateChannelDetailPage extends StatelessWidget {
@@ -144,7 +145,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                 size: 20,
                 color: AppColors.primary,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.popOrHome(),
             ),
             titleSpacing: 0,
             title: Row(

@@ -47,40 +47,6 @@ class GeneratedAvatar extends StatelessWidget {
           ),
         ),
 
-        // ── Camera button (bottom-right) — future Blossom upload ─────────
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: () {
-              // TODO: image_picker → Blossom upload
-            },
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.add_a_photo_rounded,
-                size: 13,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-        ),
-
         // ── Shuffle button (bottom-left) ──────────────────────────────────
         Positioned(
           bottom: 0,

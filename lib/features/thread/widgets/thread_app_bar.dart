@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/share/pages/share_sheet_page.dart';
 
 class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const ThreadAppBar({super.key});
+  const ThreadAppBar({super.key, this.sourceEventId});
+
+  /// The note this thread is anchored on. When null (loading / error states,
+  /// before the root resolves) the share action is disabled.
+  final String? sourceEventId;
 
   @override
   Size get preferredSize {
@@ -43,7 +48,9 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
               IconButton(
                 icon: const Icon(Icons.share_outlined,
                     color: AppColors.onSurfaceVariant),
-                onPressed: () {},
+                onPressed: sourceEventId == null
+                    ? null
+                    : () => ShareSheetPage.show(context, sourceEventId!),
               ),
             ],
           ),

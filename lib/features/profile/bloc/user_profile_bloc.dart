@@ -8,6 +8,7 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 part 'user_profile_event.dart';
 part 'user_profile_state.dart';
@@ -21,6 +22,7 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
   final UnfollowUserUseCase _unfollowUser;
   final WatchProfileUseCase _watchProfile;
   final RequestProfileFetchUseCase _requestProfileFetch;
+  final GetActiveUserUseCase _getActiveUser;
 
   StreamSubscription<ProfileEntity?>? _profileSub;
 
@@ -31,6 +33,7 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
     this._unfollowUser,
     this._watchProfile,
     this._requestProfileFetch,
+    this._getActiveUser,
   ) : super(const UserProfileState()) {
     on<LoadUserProfileEvent>(_onLoad);
     on<ToggleFollowEvent>(_onToggleFollow);
@@ -52,6 +55,12 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
       pubkeyHex: event.pubkeyHex,
       hintName: event.hintName,
     ));
+
+    final activeUserResult = await _getActiveUser.call();
+    activeUserResult.fold(
+      (_) {},
+      (user) => emit(state.copyWith(isSelf: user.pubkeyHex == event.pubkeyHex)),
+    );
 
     await _profileSub?.cancel();
     _profileSub = _watchProfile.call(event.pubkeyHex).listen(

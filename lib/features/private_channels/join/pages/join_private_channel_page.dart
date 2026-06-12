@@ -6,6 +6,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart';
@@ -88,7 +89,13 @@ class _JoinPrivateChannelViewState extends State<_JoinPrivateChannelView> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-          Navigator.of(context).pop();
+          // In-app join → pop back where we came from. A deep-link join lands
+          // here as the navigator root, so there's nothing to pop to — open the
+          // channel we just joined instead.
+          context.popOr(() => context.goNamed(
+                AppRoutes.privateChannelDetail,
+                pathParameters: {'groupId': _groupIdController.text.trim()},
+              ));
         }
       },
       child: KeyboardDismissOnTap(

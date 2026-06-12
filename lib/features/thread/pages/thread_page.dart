@@ -126,7 +126,7 @@ class _ThreadViewState extends State<_ThreadView> {
         final bloc = context.read<ThreadBloc>();
 
         return MessageThreadPage(
-          appBar: const ThreadAppBar(),
+          appBar: ThreadAppBar(sourceEventId: state.rootNote!.id),
           root: state.rootNote!,
           profiles: state.profiles,
           parentNotes: state.parentNotes,
