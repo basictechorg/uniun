@@ -128,8 +128,8 @@ class _GalleryAppBar extends StatelessWidget
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.onSurfaceVariant)),
+            child: Text(l10n.actionCancel,
+                style: const TextStyle(color: AppColors.onSurfaceVariant)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dctx, true),

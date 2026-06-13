@@ -74,7 +74,7 @@ class MediaTile extends StatelessWidget {
                 if (blob.pinned)
                   const _Badge(
                     icon: Icons.star,
-                    color: Colors.amber,
+                    color: AppColors.tertiary,
                   ),
                 if (blob.pinned && _cached) const SizedBox(width: 4),
                 if (_cached)

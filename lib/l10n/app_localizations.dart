@@ -2908,10 +2908,10 @@ abstract class AppLocalizations {
   /// **'File'**
   String get composerAttachFile;
 
-  /// Snackbar shown when the user picks a video/file bigger than the upload cap. Both placeholders are pre-formatted human strings (e.g. '4.2 MB', '3 MB').
+  /// Snackbar shown when the user picks a binary (video / PDF / doc / archive) bigger than the upload cap, AND on-device compression — when applicable, e.g. video — couldn't shrink it enough. Both placeholders are pre-formatted human strings (e.g. '72.4 MB', '50 MB').
   ///
   /// In en, this message translates to:
-  /// **'File too large ({size}). Max {cap}.'**
+  /// **'File too large ({size}). Max {cap}. Please compress it and try again.'**
   String mediaTooLarge(String size, String cap);
 
   /// Snackbar shown when even maximum compression can't get the picked image under the relay's body-size limit

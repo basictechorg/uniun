@@ -4,10 +4,14 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 
-const _kColorAiModels = Color(0xFF4CAF50);
-const _kColorChatHistory = Color(0xFFFF9800);
-const _kColorMedia = Color(0xFF03A9F4);
-const _kColorOther = Color(0xFF9E9E9E);
+// Legend colors are sourced from `AppColors` so the storage chart re-themes
+// with the rest of the app. Five segments need five distinguishable hues —
+// we reuse the graph palette (already tuned for this) plus the muted
+// secondary for media and the outline gray for the catch-all.
+const _kColorAiModels = AppColors.graphOwn;       // green
+const _kColorChatHistory = AppColors.graphDraft;  // orange
+const _kColorMedia = AppColors.secondary;         // muted blue (≠ primary)
+const _kColorOther = AppColors.outline;           // gray
 
 class StorageCard extends StatelessWidget {
   const StorageCard({super.key});

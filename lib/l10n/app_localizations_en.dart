@@ -1540,7 +1540,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mediaTooLarge(String size, String cap) {
-    return 'File too large ($size). Max $cap.';
+    return 'File too large ($size). Max $cap. Please compress it and try again.';
   }
 
   @override

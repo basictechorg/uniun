@@ -354,18 +354,17 @@ class _FileCard extends StatelessWidget {
   }
 }
 
-/// Visual identity for a non-image attachment — type abbreviation shown in
-/// the colored left chip, an icon, the color itself, and the human-readable
-/// "PDF Document" / "Spreadsheet" / "Video" label for the subtitle.
+/// Visual identity for a non-image attachment.
 ///
-/// Keep the palette readable on both light and dark surfaces: the chip is
-/// rendered with `.withValues(alpha: 0.12)` background and the full color as
-/// foreground, so the chosen color needs decent contrast against text.
+/// The chip is rendered in **brand primary** across every file type — the
+/// per-mime icon + 3-4 char label ("PDF", "XLSX", "MP4") already convey
+/// what the file is at a glance, so we don't need a different color per
+/// type. Keeps file cards visually consistent with the rest of the app
+/// (buttons, links, accents) instead of looking like a paint-chip sample.
 class _FileTypeStyle {
   const _FileTypeStyle({
     required this.label,
     required this.readableType,
-    required this.color,
     required this.icon,
   });
 
@@ -374,8 +373,10 @@ class _FileTypeStyle {
 
   /// Long-form label for the subtitle line ("PDF Document", "Spreadsheet").
   final String readableType;
-  final Color color;
   final IconData icon;
+
+  /// Always primary — the icon + label, not the color, encode the type.
+  Color get color => AppColors.primary;
 
   static _FileTypeStyle fromMime(String mime, String? filename) {
     final ext = _extOf(filename, mime);
@@ -384,7 +385,6 @@ class _FileTypeStyle {
         return const _FileTypeStyle(
           label: 'PDF',
           readableType: 'PDF Document',
-          color: Color(0xFFE53935),
           icon: Icons.picture_as_pdf_outlined,
         );
       case 'doc':
@@ -392,7 +392,6 @@ class _FileTypeStyle {
         return _FileTypeStyle(
           label: ext.toUpperCase(),
           readableType: 'Word Document',
-          color: const Color(0xFF1E88E5),
           icon: Icons.description_outlined,
         );
       case 'xls':
@@ -401,7 +400,6 @@ class _FileTypeStyle {
         return _FileTypeStyle(
           label: ext.toUpperCase(),
           readableType: 'Spreadsheet',
-          color: const Color(0xFF2E7D32),
           icon: Icons.table_chart_outlined,
         );
       case 'ppt':
@@ -409,7 +407,6 @@ class _FileTypeStyle {
         return _FileTypeStyle(
           label: ext.toUpperCase(),
           readableType: 'Presentation',
-          color: const Color(0xFFEF6C00),
           icon: Icons.slideshow_outlined,
         );
       case 'zip':
@@ -418,7 +415,6 @@ class _FileTypeStyle {
         return _FileTypeStyle(
           label: ext.toUpperCase(),
           readableType: 'Archive',
-          color: const Color(0xFF6D4C41),
           icon: Icons.folder_zip_outlined,
         );
       case 'txt':
@@ -426,7 +422,6 @@ class _FileTypeStyle {
         return _FileTypeStyle(
           label: ext.toUpperCase(),
           readableType: 'Text',
-          color: const Color(0xFF455A64),
           icon: Icons.notes_outlined,
         );
     }
@@ -434,7 +429,6 @@ class _FileTypeStyle {
       return _FileTypeStyle(
         label: ext.isEmpty ? 'VID' : ext.toUpperCase(),
         readableType: 'Video',
-        color: const Color(0xFF8E24AA),
         icon: Icons.play_circle_outline,
       );
     }
@@ -442,14 +436,12 @@ class _FileTypeStyle {
       return _FileTypeStyle(
         label: ext.isEmpty ? 'AUD' : ext.toUpperCase(),
         readableType: 'Audio',
-        color: const Color(0xFF00897B),
         icon: Icons.audiotrack_outlined,
       );
     }
     return _FileTypeStyle(
       label: ext.isEmpty ? 'FILE' : ext.toUpperCase(),
       readableType: 'File',
-      color: const Color(0xFF546E7A),
       icon: Icons.insert_drive_file_outlined,
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -12,6 +13,11 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 /// HEIC, PNG, WebP inputs all come back as JPEG — a sensible default for
 /// photo attachments. PNG with transparency is out of scope for v1 (most
 /// chat-style photos don't need alpha).
+///
+/// **Windows:** `flutter_image_compress` has no Windows backend. We detect
+/// this and pass [source] through unchanged so the upload path still works.
+/// Callers must use the Windows-specific cap (`kMaxUploadBytesWindows`)
+/// when sizing their `targetBytes` on that platform.
 class ImageCompressor {
   ImageCompressor._();
 
@@ -30,11 +36,17 @@ class ImageCompressor {
 
   /// Returns [source] unchanged when already under [targetBytes]. Otherwise
   /// compresses iteratively. Null on failure.
+  ///
+  /// On Windows we return [source] as-is regardless of size — the platform
+  /// has no native compressor and we'd rather hand the bytes to the
+  /// snackbar gate than block uploads outright. The picker uses
+  /// `kMaxUploadBytesWindows` as its sizing budget on this platform.
   static Future<Uint8List?> compressToTarget({
     required Uint8List source,
     required int targetBytes,
   }) async {
     if (source.length <= targetBytes) return source;
+    if (Platform.isWindows) return source;
 
     Uint8List? best;
     for (final step in _schedule) {

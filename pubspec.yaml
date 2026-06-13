@@ -69,8 +69,18 @@ dependencies:
   flutter_blurhash: ^0.9.1
   mime: ^2.0.0
   file_picker: ^8.1.4
+  # Native image compression (Android / iOS / macOS / web). Windows is the
+  # one gap — ImageCompressor short-circuits on Windows and the picker uses
+  # the larger `kMaxUploadBytesWindows` cap so users can still send photos
+  # at their native size on desktop Windows.
   flutter_image_compress: ^2.3.0
   open_filex: ^4.5.0
+  # Native video compression (Android MediaCodec / iOS AVFoundation /
+  # macOS). Same Windows-gap pattern as flutter_image_compress —
+  # VideoCompressor short-circuits on Windows and the picker enforces the
+  # 50 MB binary cap directly; users on Windows have to shrink videos
+  # externally before sending.
+  video_compress: ^3.1.4
 
 dev_dependencies:
   flutter_test:

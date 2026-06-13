@@ -13,6 +13,7 @@ import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/image_compressor.dart';
+import 'package:uniun/core/utils/video_compressor.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -97,25 +98,38 @@ Future<void> _pickAndAttachPhoto(
   final file = await ImagePicker().pickImage(source: ImageSource.gallery);
   if (file == null) return;
   final raw = await file.readAsBytes();
-  // Compress to fit the relay's request-body limit. Most phone photos are
-  // 3-8 MB; nginx in front of the relay caps at 1 MB. We aim slightly
-  // under to leave room for the auth header.
+
+  // Compression target — 3 MB on platforms with a native compressor,
+  // 10 MB on Windows where ImageCompressor is a no-op (no native backend
+  // available). The picker uses whichever cap matches the active platform
+  // so the resulting bytes are guaranteed to fit before we ship the imeta.
+  final budget = Platform.isWindows
+      ? AppConstants.kMaxUploadBytesWindows
+      : AppConstants.kMaxUploadBytes;
+
   final compressed = await ImageCompressor.compressToTarget(
     source: raw,
-    targetBytes: AppConstants.kMaxUploadBytes,
+    targetBytes: budget,
   );
-  if (compressed == null || compressed.length > AppConstants.kMaxUploadBytes) {
+  if (compressed == null || compressed.length > budget) {
     AppSnackbar.errorVia(messenger, l10n.mediaTooLargeAfterCompress);
     return;
   }
-  // Always advertise compressed output as JPEG — flutter_image_compress
-  // always re-encodes to JPEG regardless of input format.
-  const mime = 'image/jpeg';
+  // On non-Windows the compressor re-encodes everything to JPEG. On
+  // Windows it's a passthrough — the mime is whatever the user picked. We
+  // sniff the original extension to stay accurate; default to JPEG when
+  // unknown so receivers can still render via the standard image decoder.
+  final originalMime =
+      lookupMimeType(file.path) ?? 'image/jpeg';
+  final mime = Platform.isWindows ? originalMime : 'image/jpeg';
+  final filename = Platform.isWindows
+      ? p.basename(file.path)
+      : '${p.basenameWithoutExtension(file.path)}.jpg';
   final dim = await _decodeImageDim(compressed);
   bloc.add(UploadAndAttachMediaEvent(
     bytes: compressed,
     mime: mime,
-    filename: '${p.basenameWithoutExtension(file.path)}.jpg',
+    filename: filename,
     width: dim?.$1,
     height: dim?.$2,
   ));
@@ -128,9 +142,21 @@ Future<void> _pickAndAttachVideo(
 ) async {
   final file = await ImagePicker().pickVideo(source: ImageSource.gallery);
   if (file == null) return;
-  if (!await _passesUploadCap(File(file.path), messenger, l10n)) return;
-  final bytes = await file.readAsBytes();
-  final mime = lookupMimeType(file.path) ?? 'video/mp4';
+
+  // Try native compression first — picks Medium → Low → 640x480 until the
+  // result fits under the 50 MB binary cap. Already-small clips pass
+  // through unchanged. Windows is a no-op (VideoCompressor returns the
+  // source untouched there); the cap check below then surfaces the
+  // standard "compress and try again" error to the user.
+  final compressed = await VideoCompressor.compressToTarget(
+    sourcePath: file.path,
+    targetBytes: AppConstants.kMaxBinaryUploadBytes,
+  );
+  final upload = compressed ?? File(file.path);
+  if (!await _passesUploadCap(upload, messenger, l10n)) return;
+
+  final bytes = await upload.readAsBytes();
+  final mime = lookupMimeType(upload.path) ?? 'video/mp4';
   bloc.add(UploadAndAttachMediaEvent(
     bytes: bytes,
     mime: mime,
@@ -162,9 +188,11 @@ Future<void> _pickAndAttachFile(
   ));
 }
 
-/// Hard size gate for videos and arbitrary files (we don't transcode either
-/// — recompressing video on-device is out of scope for v1). Returns true
-/// when the file is under [AppConstants.kMaxUploadBytes].
+/// Hard size gate for videos and arbitrary files. Uses the binary cap
+/// ([AppConstants.kMaxBinaryUploadBytes], currently 50 MB) since we cannot
+/// safely re-encode video / PDF / docs on-device — under the cap goes
+/// through as-is, over it gets a clear error rather than a silent 413 from
+/// the relay's nginx (which would surface as a confusing failed upload).
 Future<bool> _passesUploadCap(
   File file,
   ScaffoldMessengerState messenger,
@@ -172,12 +200,12 @@ Future<bool> _passesUploadCap(
 ) async {
   try {
     final size = await file.length();
-    if (size <= AppConstants.kMaxUploadBytes) return true;
+    if (size <= AppConstants.kMaxBinaryUploadBytes) return true;
     AppSnackbar.errorVia(
       messenger,
       l10n.mediaTooLarge(
         _humanBytes(size),
-        _humanBytes(AppConstants.kMaxUploadBytes),
+        _humanBytes(AppConstants.kMaxBinaryUploadBytes),
       ),
     );
     return false;
