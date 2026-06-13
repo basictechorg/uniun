@@ -64,9 +64,9 @@ class BlossomClient {
   static const Duration _downloadTimeout = Duration(seconds: 60);
 
   /// Returns true if the server already has this blob.
-  Future<bool> head(String serverUrl, String sha256) async {
+  Future<bool> head(String serverUrl, String sha256, {String? ext}) async {
     final res = await _http
-        .head(_blobUri(serverUrl, sha256))
+        .head(_blobUri(serverUrl, sha256, ext: ext))
         .timeout(_shortTimeout);
     return res.statusCode == 200;
   }
@@ -108,9 +108,24 @@ class BlossomClient {
     return BlobDescriptor.fromJson(body);
   }
 
-  Future<Uint8List> download(String serverUrl, String sha256) async {
+  /// Download from a full blob URL (already contains sha256 + extension).
+  /// Handles wss:// → https:// coercion for legacy/broken server responses.
+  Future<Uint8List> downloadFromUrl(String blobUrl) async {
+    final uri = Uri.parse(_coerceScheme(blobUrl));
+    final res = await _http.get(uri).timeout(_downloadTimeout);
+    if (res.statusCode != 200) {
+      throw BlossomException(
+        res.statusCode,
+        res.headers['x-reason'] ?? 'download failed',
+      );
+    }
+    return res.bodyBytes;
+  }
+
+  Future<Uint8List> download(String serverUrl, String sha256,
+      {String? ext}) async {
     final res = await _http
-        .get(_blobUri(serverUrl, sha256))
+        .get(_blobUri(serverUrl, sha256, ext: ext))
         .timeout(_downloadTimeout);
     if (res.statusCode != 200) {
       throw BlossomException(
@@ -177,8 +192,16 @@ class BlossomClient {
 
   // ── helpers ────────────────────────────────────────────────────────────
 
-  Uri _blobUri(String serverUrl, String sha256) =>
-      Uri.parse('$serverUrl/$sha256');
+  Uri _blobUri(String serverUrl, String sha256, {String? ext}) {
+    final path = ext != null ? '$sha256.$ext' : sha256;
+    return Uri.parse('$serverUrl/$path');
+  }
+
+  String _coerceScheme(String url) {
+    if (url.startsWith('wss://')) return 'https://${url.substring(6)}';
+    if (url.startsWith('ws://')) return 'http://${url.substring(5)}';
+    return url;
+  }
 
   /// Builds a signed Kind 24242 event, JSON-encodes it, base64-encodes the
   /// JSON. Auth window is 5 minutes — long enough for slow uploads, short

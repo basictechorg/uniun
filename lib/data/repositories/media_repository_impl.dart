@@ -64,7 +64,7 @@ class MediaRepositoryImpl extends MediaRepository {
 
       var serverHas = false;
       try {
-        serverHas = await _blossom.head(primary, sha256);
+        serverHas = await _blossom.head(primary, sha256, ext: ext);
       } catch (_) {
         serverHas = false;
       }
@@ -143,7 +143,9 @@ class MediaRepositoryImpl extends MediaRepository {
       String? successUrl;
       for (final base in servers) {
         try {
-          bytes = await _blossom.download(_serverBase(base), sha256);
+          // Use the full stored URL directly — it already has the correct
+          // extension for any file type (png, mp4, pdf, etc.).
+          bytes = await _blossom.downloadFromUrl(base);
           successUrl = base;
           break;
         } catch (_) {
