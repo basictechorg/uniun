@@ -52,14 +52,22 @@ class BlossomException implements Exception {
 /// content is public on a public Blossom server.
 @lazySingleton
 class BlossomClient {
-  BlossomClient({http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+  BlossomClient();
 
-  final http.Client _http;
+  final http.Client _http = http.Client();
+
+  /// Per-request timeouts. Without these the http.Client waits forever for
+  /// a slow / unreachable backend, which surfaces as a stuck UI (the
+  /// composer's attach button disappears and never comes back).
+  static const Duration _shortTimeout = Duration(seconds: 10);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
+  static const Duration _downloadTimeout = Duration(seconds: 60);
 
   /// Returns true if the server already has this blob.
   Future<bool> head(String serverUrl, String sha256) async {
-    final res = await _http.head(_blobUri(serverUrl, sha256));
+    final res = await _http
+        .head(_blobUri(serverUrl, sha256))
+        .timeout(_shortTimeout);
     return res.statusCode == 200;
   }
 
@@ -76,27 +84,34 @@ class BlossomClient {
       keys: keys,
       content: 'Upload',
     );
-    final res = await _http.put(
-      Uri.parse('$serverUrl/upload'),
-      headers: {
-        'Authorization': 'Nostr $auth',
-        'Content-Type': mime,
-        'Content-Length': bytes.length.toString(),
-      },
-      body: bytes,
-    );
+    final res = await _http
+        .put(
+          Uri.parse('$serverUrl/upload'),
+          headers: {
+            'Authorization': 'Nostr $auth',
+            'Content-Type': mime,
+            'Content-Length': bytes.length.toString(),
+          },
+          body: bytes,
+        )
+        .timeout(_uploadTimeout);
     if (res.statusCode != 200 && res.statusCode != 201) {
-      throw BlossomException(
-        res.statusCode,
-        res.headers['x-reason'] ?? res.body,
-      );
+      // 413 = nginx (or any reverse proxy) rejected the request before it
+      // reached the Blossom handler. The HTML body is unhelpful — surface a
+      // short reason so the snackbar isn't a wall of HTML.
+      final reason = res.statusCode == 413
+          ? 'Server rejected upload: file too large for the relay'
+          : res.headers['x-reason'] ?? res.body;
+      throw BlossomException(res.statusCode, reason);
     }
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     return BlobDescriptor.fromJson(body);
   }
 
   Future<Uint8List> download(String serverUrl, String sha256) async {
-    final res = await _http.get(_blobUri(serverUrl, sha256));
+    final res = await _http
+        .get(_blobUri(serverUrl, sha256))
+        .timeout(_downloadTimeout);
     if (res.statusCode != 200) {
       throw BlossomException(
         res.statusCode,
@@ -120,7 +135,7 @@ class BlossomClient {
     final res = await _http.get(
       Uri.parse('$serverUrl/list/$pubkeyHex'),
       headers: {'Authorization': 'Nostr $auth'},
-    );
+    ).timeout(_shortTimeout);
     if (res.statusCode != 200) {
       throw BlossomException(
         res.statusCode,
@@ -151,7 +166,7 @@ class BlossomClient {
     final res = await _http.delete(
       _blobUri(serverUrl, sha256),
       headers: {'Authorization': 'Nostr $auth'},
-    );
+    ).timeout(_shortTimeout);
     if (res.statusCode != 200 && res.statusCode != 204) {
       throw BlossomException(
         res.statusCode,

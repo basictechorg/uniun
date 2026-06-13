@@ -4,6 +4,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/markdown/note_markdown_body.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
+import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -148,6 +149,7 @@ class _LargeNoteCardView extends StatelessWidget {
             if (note.content.isNotEmpty) const SizedBox(height: 10),
             EmbeddedNoteCard(note: note.quotedNote),
           ],
+          if (note.hasMedia) MediaAttachmentView(note: note, compact: false),
           if (note.tTags.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(

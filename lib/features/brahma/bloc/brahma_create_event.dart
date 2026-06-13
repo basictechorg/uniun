@@ -83,11 +83,24 @@ final class RestoreDraftMentionsEvent extends BrahmaCreateEvent {
 
 // ── Media attachment events ───────────────────────────────────────────────────
 
-/// User picked an already-known blob from the media library — no upload, no
-/// download. The blob's sha256 will land in the note's imeta tag on submit.
-final class AttachExistingMediaEvent extends BrahmaCreateEvent {
-  const AttachExistingMediaEvent(this.blob);
-  final MediaBlobEntity blob;
+/// User picked a Photo / Video / File from the device. The page reads bytes
+/// + (for images) decodes width/height, then fires this event. The bloc owns
+/// the upload via [UploadMediaUseCase] and appends the resulting blob to
+/// [BrahmaCreateState.attachedMedia].
+final class UploadAndAttachMediaEvent extends BrahmaCreateEvent {
+  const UploadAndAttachMediaEvent({
+    required this.bytes,
+    required this.mime,
+    this.filename,
+    this.width,
+    this.height,
+  });
+
+  final Uint8List bytes;
+  final String mime;
+  final String? filename;
+  final int? width;
+  final int? height;
 }
 
 final class RemoveAttachedMediaEvent extends BrahmaCreateEvent {

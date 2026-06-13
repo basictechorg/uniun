@@ -1373,14 +1373,11 @@
   "mediaTabPinned": "Pinned",
   "@mediaTabPinned": { "description": "Filter chip restricting the media gallery to blobs the user pinned" },
 
-  "mediaFilterCached": "On device",
-  "@mediaFilterCached": { "description": "Filter chip restricting the media gallery to blobs already downloaded to local cache" },
-
-  "mediaFilterNotCached": "Not downloaded",
-  "@mediaFilterNotCached": { "description": "Filter chip restricting the media gallery to blobs not yet downloaded" },
-
   "mediaActionDownload": "Download",
   "@mediaActionDownload": { "description": "Action in the media action sheet that downloads the blob bytes from the server" },
+
+  "mediaActionOpen": "Open",
+  "@mediaActionOpen": { "description": "Action in the media detail page that hands the cached file to the OS for viewing (PDF reader, video player, etc.)" },
 
   "mediaActionPin": "Pin",
   "@mediaActionPin": { "description": "Action that pins the blob so cleanup never evicts it" },
@@ -1427,11 +1424,26 @@
   "mediaPickerEmpty": "No media available yet.",
   "@mediaPickerEmpty": { "description": "Empty state shown in the media picker when there are no known blobs" },
 
-  "composerAttachLibrary": "Library",
-  "@composerAttachLibrary": { "description": "Composer button opening the media picker for already-known blobs" },
+  "composerAttachPhoto": "Photo",
+  "@composerAttachPhoto": { "description": "Bottom-sheet row that opens the device gallery to attach an image" },
 
-  "composerAttachPhone": "Photo",
-  "@composerAttachPhone": { "description": "Composer button that picks a photo from the device" },
+  "composerAttachVideo": "Video",
+  "@composerAttachVideo": { "description": "Bottom-sheet row that opens the device gallery to attach a video" },
+
+  "composerAttachFile": "File",
+  "@composerAttachFile": { "description": "Bottom-sheet row that opens the device file picker to attach any file" },
+
+  "mediaTooLarge": "File too large ({size} KB). Max {cap} KB.",
+  "@mediaTooLarge": {
+    "description": "Snackbar shown when the user picks a video/file bigger than the upload cap. Both numbers are formatted KB strings.",
+    "placeholders": {
+      "size": { "type": "String" },
+      "cap": { "type": "String" }
+    }
+  },
+
+  "mediaTooLargeAfterCompress": "Couldn't compress image small enough to upload. Try a different photo.",
+  "@mediaTooLargeAfterCompress": { "description": "Snackbar shown when even maximum compression can't get the picked image under the relay's body-size limit" },
 
   "storageMediaRow": "Media",
   "@storageMediaRow": { "description": "Settings row that opens the media gallery / file manager" },

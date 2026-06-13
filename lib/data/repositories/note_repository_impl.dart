@@ -179,6 +179,7 @@ class NoteRepositoryImpl extends NoteRepository {
         tTags: note.tTags,
         created: note.created,
         quoteEventId: note.quoteEventId,
+        hasMedia: note.hasMedia,
       );
 
       final parents = replyEdgeParentIds(

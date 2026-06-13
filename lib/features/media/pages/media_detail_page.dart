@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/features/media/cubit/media_detail_cubit.dart';
@@ -92,6 +93,14 @@ class _DetailBody extends StatelessWidget {
                   Icons.cloud_download_outlined,
                   l10n.mediaActionDownload,
                   cubit.download,
+                ),
+              // Non-image cached blobs: hand off to the OS so the user can
+              // actually view the PDF / play the video / read the file.
+              if (_cached && !_isImage)
+                _action(
+                  Icons.open_in_new_rounded,
+                  l10n.mediaActionOpen,
+                  () => OpenFilex.open(blob.localPath!),
                 ),
               _action(
                 blob.pinned ? Icons.star : Icons.star_outline,

@@ -11,6 +11,7 @@ class BrahmaCreateState {
     this.mentionResults = const [],
     this.isMentionSearching = false,
     this.attachedMedia = const [],
+    this.isAttachingMedia = false,
   });
 
   final BrahmaCreateStatus status;
@@ -27,9 +28,13 @@ class BrahmaCreateState {
   final bool isMentionSearching;
 
   /// Blobs the user has attached to this note. Each becomes an `imeta` tag
-  /// (NIP-92) at submit time. v1 only supports picking from the library —
-  /// upload-from-phone arrives in the same list once that path lands.
+  /// (NIP-92) at submit time. Populated by the upload-and-attach flow when
+  /// the user picks Photo / Video / File from the composer's media button.
   final List<MediaBlobEntity> attachedMedia;
+
+  /// True while an upload is in flight after a Photo / Video / File pick.
+  /// The composer disables the attach button and shows a small spinner.
+  final bool isAttachingMedia;
 
   bool get isSubmitting => status == BrahmaCreateStatus.submitting;
 
@@ -41,6 +46,7 @@ class BrahmaCreateState {
     List<NoteEntity>? mentionResults,
     bool? isMentionSearching,
     List<MediaBlobEntity>? attachedMedia,
+    bool? isAttachingMedia,
   }) {
     return BrahmaCreateState(
       status: status ?? this.status,
@@ -50,6 +56,7 @@ class BrahmaCreateState {
       mentionResults: mentionResults ?? this.mentionResults,
       isMentionSearching: isMentionSearching ?? this.isMentionSearching,
       attachedMedia: attachedMedia ?? this.attachedMedia,
+      isAttachingMedia: isAttachingMedia ?? this.isAttachingMedia,
     );
   }
 }

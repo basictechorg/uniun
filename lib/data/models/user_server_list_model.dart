@@ -11,7 +11,11 @@ class UserServerListModel {
   /// Always 0. Single-row collection — there is only ever one active user.
   Id id = 0;
 
-  late List<String> serverUrls;
+  /// Default `[]` — not `late` — so reads of a legacy row that pre-dates
+  /// this field (i.e. one stored before the field existed in the schema)
+  /// don't throw a LateInitializationError. The bootstrap path treats an
+  /// empty list as "not yet published" and re-publishes Kind 10063.
+  List<String> serverUrls = [];
 
   /// `created_at` of the Kind 10063 we last accepted. Used by the inbound
   /// handler for last-write-wins reconciliation, mirroring the draft and

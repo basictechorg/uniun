@@ -1478,13 +1478,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaTabPinned => 'Pinned';
 
   @override
-  String get mediaFilterCached => 'On device';
-
-  @override
-  String get mediaFilterNotCached => 'Not downloaded';
-
-  @override
   String get mediaActionDownload => 'Download';
+
+  @override
+  String get mediaActionOpen => 'Open';
 
   @override
   String get mediaActionPin => 'Pin';
@@ -1533,10 +1530,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaPickerEmpty => 'No media available yet.';
 
   @override
-  String get composerAttachLibrary => 'Library';
+  String get composerAttachPhoto => 'Photo';
 
   @override
-  String get composerAttachPhone => 'Photo';
+  String get composerAttachVideo => 'Video';
+
+  @override
+  String get composerAttachFile => 'File';
+
+  @override
+  String mediaTooLarge(String size, String cap) {
+    return 'File too large ($size KB). Max $cap KB.';
+  }
+
+  @override
+  String get mediaTooLargeAfterCompress =>
+      'Couldn\'t compress image small enough to upload. Try a different photo.';
 
   @override
   String get storageMediaRow => 'Media';

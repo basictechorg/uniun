@@ -3,79 +3,50 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Renders any media (NIP-92 `imeta`) attached to a note. Inbound notes
-/// arrive with `localPath == null` — the tile shows the blurhash or a mime
-/// icon plus a "Download" button. Once cached, the image renders inline.
+/// Renders the attachments (NIP-92 `imeta`) carried by a [NoteEntity]. The
+/// attachments are pre-resolved by the data layer (see
+/// `NoteAttachmentsEnricher`) — this widget is stateless and never touches
+/// the DB. Each tile owns its own download lifecycle locally so the feed
+/// doesn't have to refresh just because one blob's bytes arrived.
 ///
-/// Stateful because download / pin / remove actions need to refresh the
-/// linked blob list locally without rebuilding the whole feed.
-class MediaAttachmentView extends StatefulWidget {
-  const MediaAttachmentView({super.key, required this.noteEventId});
+/// Twitter/X-style behaviour:
+///   • [compact] (default) — feed cards, embedded quotes, DM bubbles.
+///     Image height is capped tight so a portrait photo doesn't dominate
+///     the card. Extra is cropped via `BoxFit.cover`.
+///   • `compact: false` — thread parent only. Taller cap so the original
+///     post can breathe; rest of the feed stays compact.
+class MediaAttachmentView extends StatelessWidget {
+  const MediaAttachmentView({
+    super.key,
+    required this.note,
+    this.compact = true,
+  });
 
-  final String noteEventId;
-
-  @override
-  State<MediaAttachmentView> createState() => _MediaAttachmentViewState();
-}
-
-class _MediaAttachmentViewState extends State<MediaAttachmentView> {
-  List<MediaBlobEntity> _blobs = const [];
-  bool _loaded = false;
-  final Set<String> _downloading = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _reload();
-  }
-
-  @override
-  void didUpdateWidget(covariant MediaAttachmentView old) {
-    super.didUpdateWidget(old);
-    if (old.noteEventId != widget.noteEventId) _reload();
-  }
-
-  Future<void> _reload() async {
-    final res =
-        await getIt<GetBlobsForNoteUseCase>().call(widget.noteEventId);
-    if (!mounted) return;
-    res.fold(
-      (_) => setState(() => _loaded = true),
-      (blobs) => setState(() {
-        _blobs = blobs;
-        _loaded = true;
-      }),
-    );
-  }
-
-  Future<void> _download(String sha256) async {
-    setState(() => _downloading.add(sha256));
-    await getIt<DownloadMediaUseCase>().call(sha256);
-    if (!mounted) return;
-    setState(() => _downloading.remove(sha256));
-    await _reload();
-  }
+  final NoteEntity note;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded || _blobs.isEmpty) return const SizedBox.shrink();
+    if (note.attachments.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final b in _blobs) ...[
+          for (final b in note.attachments) ...[
             _AttachmentTile(
-              blob: b,
-              downloading: _downloading.contains(b.sha256),
-              onDownload: () => _download(b.sha256),
+              key: ValueKey(b.sha256),
+              initial: b,
+              compact: compact,
             ),
             const SizedBox(height: 6),
           ],
@@ -85,92 +56,148 @@ class _MediaAttachmentViewState extends State<MediaAttachmentView> {
   }
 }
 
-class _AttachmentTile extends StatelessWidget {
+class _AttachmentTile extends StatefulWidget {
   const _AttachmentTile({
-    required this.blob,
-    required this.downloading,
-    required this.onDownload,
+    super.key,
+    required this.initial,
+    required this.compact,
   });
+  final MediaBlobEntity initial;
+  final bool compact;
 
-  final MediaBlobEntity blob;
-  final bool downloading;
-  final VoidCallback onDownload;
+  @override
+  State<_AttachmentTile> createState() => _AttachmentTileState();
+}
 
-  bool get _cached => blob.localPath != null;
-  bool get _isImage => blob.mime.startsWith('image/');
+class _AttachmentTileState extends State<_AttachmentTile> {
+  late MediaBlobEntity _blob = widget.initial;
+  bool _downloading = false;
+
+  /// Height caps tuned for scan-ability — note cards stay compact so a tall
+  /// portrait photo doesn't push the rest of the card off-screen. Detail
+  /// page is the place to view a blob at full aspect.
+  ///   • feed / DM / quote card  ~ 200 logical px
+  ///   • thread parent           ~ 360 logical px
+  /// Anything taller than the cap is cropped via BoxFit.cover.
+  static const double _compactMaxHeight = 200.0;
+  static const double _expandedMaxHeight = 360.0;
+
+  bool get _cached => _blob.localPath != null;
+  bool get _isImage => _blob.mime.startsWith('image/');
+
+  Future<void> _download() async {
+    setState(() => _downloading = true);
+    final res = await getIt<DownloadMediaUseCase>().call(_blob.sha256);
+    if (!mounted) return;
+    setState(() {
+      _downloading = false;
+      res.fold((_) {}, (newBlob) => _blob = newBlob);
+    });
+  }
+
+  /// Tap routing:
+  ///   • image  → MediaDetailPage (renders full-aspect preview).
+  ///   • everything else (video, pdf, file, …) → download if needed, then
+  ///     hand the local file to the OS so the user actually sees / plays /
+  ///     reads it, instead of staring at metadata.
+  Future<void> _onTap() async {
+    if (_isImage) {
+      context.pushNamed(
+        AppRoutes.mediaDetail,
+        pathParameters: {'sha256': _blob.sha256},
+      );
+      return;
+    }
+    if (!_cached) {
+      await _download();
+      if (!mounted) return;
+    }
+    final path = _blob.localPath;
+    if (path == null) return;
+    await OpenFilex.open(path);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final aspect = blob.dim == null
-        ? 16 / 9
-        : blob.dim!.width / blob.dim!.height;
+    final maxH = widget.compact ? _compactMaxHeight : _expandedMaxHeight;
+
     return GestureDetector(
-      onTap: () => context.pushNamed(
-        AppRoutes.mediaDetail,
-        extra: blob.sha256,
-        pathParameters: {'sha256': blob.sha256},
+      onTap: _onTap,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final width = c.maxWidth;
+          final aspect = _blob.dim == null
+              ? 16 / 9
+              : _blob.dim!.width / _blob.dim!.height;
+          // Natural height for full-width display, then clamp so portraits
+          // don't push the rest of the card off-screen.
+          final naturalH = width / aspect;
+          final height = naturalH.clamp(0.0, maxH);
+
+          return SizedBox(
+            width: width,
+            height: height,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _background(),
+                  if (!_cached) _downloadOverlay(l10n),
+                ],
+              ),
+            ),
+          );
+        },
       ),
-      child: AspectRatio(
-        aspectRatio: aspect,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _background(),
-              if (!_cached)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  alignment: Alignment.center,
-                  child: downloading
-                      ? const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : ElevatedButton.icon(
-                          onPressed: onDownload,
-                          icon: const Icon(Icons.cloud_download_outlined,
-                              size: 18),
-                          label: Text(l10n.noteCardDownloadMedia),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                          ),
-                        ),
-                ),
-            ],
-          ),
-        ),
-      ),
+    );
+  }
+
+  Widget _downloadOverlay(AppLocalizations l10n) {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.25),
+      alignment: Alignment.center,
+      child: _downloading
+          ? const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2),
+            )
+          : ElevatedButton.icon(
+              onPressed: _download,
+              icon: const Icon(Icons.cloud_download_outlined, size: 18),
+              label: Text(l10n.noteCardDownloadMedia),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primary,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+              ),
+            ),
     );
   }
 
   Widget _background() {
     if (_cached && _isImage) {
       return Image.file(
-        File(blob.localPath!),
+        File(_blob.localPath!),
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
-    if (!_cached && _isImage && blob.blurhash != null) {
-      return BlurHash(hash: blob.blurhash!);
+    if (!_cached && _isImage && _blob.blurhash != null) {
+      return BlurHash(hash: _blob.blurhash!);
     }
     return _placeholder();
   }
 
   Widget _placeholder() {
-    final icon = blob.mime.startsWith('video/')
+    final icon = _blob.mime.startsWith('video/')
         ? Icons.movie_outlined
-        : blob.mime.startsWith('audio/')
+        : _blob.mime.startsWith('audio/')
             ? Icons.audiotrack_outlined
             : Icons.insert_drive_file_outlined;
     return Container(

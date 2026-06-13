@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 part 'note_entity.freezed.dart';
 part 'note_entity.g.dart';
@@ -63,6 +64,16 @@ abstract class NoteEntity with _$NoteEntity {
     /// True when this note carries one or more NIP-92 `imeta` tags. Lets
     /// note cards skip the attachment lookup entirely for text-only notes.
     @Default(false) bool hasMedia,
+
+    /// Pre-resolved attachments. Populated by the data layer when a note is
+    /// projected from Isar (mirrors how [quotedNote] and [cachedReplyCount]
+    /// are resolved at query time). UI cards read this directly — no per-
+    /// card DB lookup. Empty when [hasMedia] is false.
+    ///
+    /// Excluded from JSON: this is an in-memory enrichment, not part of the
+    /// Nostr wire format — [MediaBlobEntity] isn't itself JSON-serializable.
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    @Default([]) List<MediaBlobEntity> attachments,
   }) = _NoteEntity;
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>

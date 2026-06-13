@@ -84,10 +84,10 @@ class MediaRepositoryImpl extends MediaRepository {
       await _cache.write(sha256, ext, bytes);
 
       // Publish Kind 10063 once so other devices know which server to fetch
-      // from. The snapshot row is absent on a fresh install — on first
-      // successful upload we set it and enqueue the user-server-list event.
+      // from. Re-publishes also when a legacy row exists with no serverUrls
+      // (e.g. row stored before the field was added) — self-heals.
       final existingRow = await isar.userServerListModels.get(0);
-      if (existingRow == null) {
+      if (existingRow == null || existingRow.serverUrls.isEmpty) {
         await _serverList.setServers([primary]);
       }
 

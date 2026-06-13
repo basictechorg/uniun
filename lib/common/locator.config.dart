@@ -10,7 +10,6 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:get_it/get_it.dart' as _i174;
-import 'package:http/http.dart' as _i519;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:isar_community/isar.dart' as _i214;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
@@ -62,6 +61,8 @@ import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
 import 'package:uniun/data/repositories/llm_repository_impl.dart' as _i19;
 import 'package:uniun/data/repositories/media_repository_impl.dart' as _i980;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
+import 'package:uniun/data/repositories/note_attachments_enricher.dart'
+    as _i182;
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart'
     as _i126;
 import 'package:uniun/data/repositories/note_repository_impl.dart' as _i348;
@@ -226,6 +227,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => tostoreModule.createTostore(),
       preResolve: true,
     );
+    gh.lazySingleton<_i706.BlossomClient>(() => _i706.BlossomClient());
     gh.lazySingleton<_i393.ModelTaskQueue>(() => _i393.ModelTaskQueue());
     gh.lazySingleton<_i366.MediaCacheDataSource>(
       () => _i366.MediaCacheDataSource(),
@@ -241,9 +243,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i789.ToStore>(),
         gh<_i214.Isar>(),
       ),
-    );
-    gh.lazySingleton<_i706.BlossomClient>(
-      () => _i706.BlossomClient(httpClient: gh<_i519.Client>()),
     );
     gh.factory<_i266.ShivRepository>(
       () => _i412.ShivRepositoryImpl(gh<_i214.Isar>()),
@@ -287,6 +286,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i170.DraftRepository>(
       () => _i640.DraftRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.lazySingleton<_i182.NoteAttachmentsEnricher>(
+      () => _i182.NoteAttachmentsEnricher(isar: gh<_i214.Isar>()),
+    );
     gh.lazySingleton<_i761.MarmotTransportService>(
       () => _i761.MarmotTransportService(
         gh<_i214.Isar>(),
@@ -300,9 +302,6 @@ extension GetItInjectableX on _i174.GetIt {
         relations: gh<_i1017.NoteRelationRepository>(),
       ),
     );
-    gh.lazySingleton<_i635.E2EEGroupRepository>(
-      () => _i896.E2EEGroupRepositoryImpl(gh<_i214.Isar>()),
-    );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -311,12 +310,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.factory<_i789.NoteResolverRepository>(
-      () => _i526.NoteResolverRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-      ),
     );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
       () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
@@ -334,6 +327,12 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i937.AIModelRunner(
         gh<_i393.ModelTaskQueue>(),
         gh<_i107.AppSettingsStore>(),
+      ),
+    );
+    gh.lazySingleton<_i635.E2EEGroupRepository>(
+      () => _i896.E2EEGroupRepositoryImpl(
+        gh<_i214.Isar>(),
+        gh<_i182.NoteAttachmentsEnricher>(),
       ),
     );
     gh.factory<_i127.ChannelRepository>(
@@ -472,28 +471,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i78.LeavePrivateChannelUsecase>(
       () => _i78.LeavePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
     );
-    gh.factory<_i47.NoteRepository>(
-      () => _i348.NoteRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-        resolver: gh<_i789.NoteResolverRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i475.GetFeedUseCase>(
-      () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.GetNoteByIdUseCase>(
-      () => _i475.GetNoteByIdUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.GetRepliesUseCase>(
-      () => _i475.GetRepliesUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.SaveNoteUseCase>(
-      () => _i475.SaveNoteUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.GetThreadUseCase>(
-      () => _i475.GetThreadUseCase(gh<_i47.NoteRepository>()),
-    );
     gh.lazySingleton<_i179.GetGraphNeighboursUseCase>(
       () => _i179.GetGraphNeighboursUseCase(gh<_i649.GraphRepository>()),
     );
@@ -551,6 +528,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i58.DeleteAllChatHistoryUseCase>(
       () => _i58.DeleteAllChatHistoryUseCase(gh<_i240.StorageRepository>()),
     );
+    gh.factory<_i789.NoteResolverRepository>(
+      () => _i526.NoteResolverRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        attachments: gh<_i182.NoteAttachmentsEnricher>(),
+      ),
+    );
     gh.lazySingleton<_i858.UnsaveNoteUseCase>(
       () => _i858.UnsaveNoteUseCase(
         gh<_i43.SavedNoteRepository>(),
@@ -593,24 +577,6 @@ extension GetItInjectableX on _i174.GetIt {
         serverList: gh<_i930.UserServerListRepository>(),
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
       ),
-    );
-    gh.lazySingleton<_i475.PublishNoteUseCase>(
-      () => _i475.PublishNoteUseCase(
-        gh<_i47.NoteRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i475.GetReplyCountUseCase>(
-      () => _i475.GetReplyCountUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.GetThreadReplyCountUseCase>(
-      () => _i475.GetThreadReplyCountUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.GetOwnNotesUseCase>(
-      () => _i475.GetOwnNotesUseCase(gh<_i47.NoteRepository>()),
-    );
-    gh.lazySingleton<_i475.SearchNotesUseCase>(
-      () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
     );
     gh.lazySingleton<_i278.GetBlockedUsersUseCase>(
       () => _i278.GetBlockedUsersUseCase(gh<_i756.BlockedUserRepository>()),
@@ -773,6 +739,28 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i551.DmMessageRepository>(),
       ),
     );
+    gh.factory<_i47.NoteRepository>(
+      () => _i348.NoteRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i475.GetFeedUseCase>(
+      () => _i475.GetFeedUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetNoteByIdUseCase>(
+      () => _i475.GetNoteByIdUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetRepliesUseCase>(
+      () => _i475.GetRepliesUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.SaveNoteUseCase>(
+      () => _i475.SaveNoteUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetThreadUseCase>(
+      () => _i475.GetThreadUseCase(gh<_i47.NoteRepository>()),
+    );
     gh.factory<_i60.DmChatBloc>(
       () => _i60.DmChatBloc(
         gh<_i1023.FetchDmUseCase>(),
@@ -859,24 +847,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i47.NoteRepository>(),
         gh<_i1039.EventQueueRepository>(),
         gh<_i683.MediaRepository>(),
-      ),
-    );
-    gh.factory<_i830.GraphBloc>(
-      () => _i830.GraphBloc(
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i214.Isar>(),
-      ),
-    );
-    gh.factory<_i734.ReferencePickerCubit>(
-      () => _i734.ReferencePickerCubit(
-        gh<_i475.GetFeedUseCase>(),
-        gh<_i475.SearchNotesUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
     gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
@@ -977,6 +947,24 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i918.GetActiveLlmModelUseCase>(
       () => _i918.GetActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
     );
+    gh.lazySingleton<_i475.PublishNoteUseCase>(
+      () => _i475.PublishNoteUseCase(
+        gh<_i47.NoteRepository>(),
+        gh<_i1039.EventQueueRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i475.GetReplyCountUseCase>(
+      () => _i475.GetReplyCountUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetThreadReplyCountUseCase>(
+      () => _i475.GetThreadReplyCountUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.GetOwnNotesUseCase>(
+      () => _i475.GetOwnNotesUseCase(gh<_i47.NoteRepository>()),
+    );
+    gh.lazySingleton<_i475.SearchNotesUseCase>(
+      () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
+    );
     gh.lazySingleton<_i681.RagPipeline>(
       () => _i681.RagPipeline(
         gh<_i587.EmbeddingService>(),
@@ -1053,6 +1041,24 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserUseCase>(),
       ),
     );
+    gh.factory<_i830.GraphBloc>(
+      () => _i830.GraphBloc(
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i214.Isar>(),
+      ),
+    );
+    gh.factory<_i734.ReferencePickerCubit>(
+      () => _i734.ReferencePickerCubit(
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i179.ExtractKnowledgeUseCase>(
       () => _i179.ExtractKnowledgeUseCase(
         gh<_i918.HasActiveLlmModelUseCase>(),
@@ -1084,6 +1090,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i475.PublishNoteUseCase>(),
         gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
         gh<_i537.SaveDraftUseCase>(),
         gh<_i537.GetDraftsUseCase>(),

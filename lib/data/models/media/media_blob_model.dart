@@ -19,8 +19,12 @@ class MediaBlobModel {
   @Index(unique: true)
   late String sha256;
 
-  late String mime;
-  late int sizeBytes;
+  /// Defaults below are deliberate — legacy rows stored before any of these
+  /// fields existed deserialize cleanly instead of throwing a
+  /// LateInitializationError on first access. Keep the field type
+  /// non-nullable for ergonomic call sites.
+  String mime = 'application/octet-stream';
+  int sizeBytes = 0;
 
   int? width;
   int? height;
@@ -29,7 +33,7 @@ class MediaBlobModel {
 
   /// Blossom server URLs known to hold this blob. v1 publishes one entry
   /// (our backend); BUD-03 leaves room for fan-out later.
-  late List<String> serverUrls;
+  List<String> serverUrls = [];
 
   /// Absolute path under getApplicationSupportDirectory()/media/. Null = not
   /// downloaded.
@@ -40,11 +44,11 @@ class MediaBlobModel {
   /// Last time we saw this sha referenced anywhere — informational, used by
   /// the gallery sort.
   @Index()
-  late DateTime lastSeenAt;
+  DateTime lastSeenAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// True = GC never deletes the local file even if no note references it.
   @Index()
-  late bool pinned;
+  bool pinned = false;
 }
 
 extension MediaBlobModelExtension on MediaBlobModel {

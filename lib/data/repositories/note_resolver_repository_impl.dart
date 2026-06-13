@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/note_resolver_repository.dart';
@@ -11,8 +12,13 @@ import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 class NoteResolverRepositoryImpl implements NoteResolverRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
-  NoteResolverRepositoryImpl({required this.isar, required NoteRelationRepository relations})
-      : _relations = relations;
+  final NoteAttachmentsEnricher _attachments;
+  NoteResolverRepositoryImpl({
+    required this.isar,
+    required NoteRelationRepository relations,
+    required NoteAttachmentsEnricher attachments,
+  })  : _relations = relations,
+        _attachments = attachments;
 
   /// Maps a row to its domain entity with live edge-table counts attached.
   /// The resolver feeds the thread root + parent/mention/reply cards, all of
@@ -38,7 +44,8 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
       final note =
           await isar.noteModels.where().eventIdEqualTo(id).findFirst();
       if (note != null) {
-        return Right(await _enrichQuote(await _withCounts(note)));
+        final enriched = await _enrichQuote(await _withCounts(note));
+        return Right(await _attachments.enrichOne(enriched));
       }
 
       return Left(Failure.notFoundFailure('Note not found: $id'));
@@ -95,17 +102,29 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
       for (final n in notes)
         if (n.quoteEventId != null) n.quoteEventId!,
     };
-    if (quoteIds.isEmpty) return notes;
 
-    final rows = await isar.noteModels
-        .filter()
-        .anyOf(quoteIds, (q, id) => q.eventIdEqualTo(id))
-        .findAll();
-    final byId = {for (final m in rows) m.eventId: m.toDomain()};
+    // Resolve quoted-note targets in one query (skip when nothing to quote).
+    Map<String, NoteEntity> quoteById = const {};
+    if (quoteIds.isNotEmpty) {
+      final rows = await isar.noteModels
+          .filter()
+          .anyOf(quoteIds, (q, id) => q.eventIdEqualTo(id))
+          .findAll();
+      // Pre-enrich attachments on quoted notes too so embedded media
+      // renders inline inside EmbeddedNoteCard.
+      final quoteEntities =
+          await _attachments.enrichAll([for (final m in rows) m.toDomain()]);
+      quoteById = {for (final n in quoteEntities) n.id: n};
+    }
 
-    return [
+    final withQuotes = [
       for (final n in notes)
-        n.quoteEventId == null ? n : n.copyWith(quotedNote: byId[n.quoteEventId]),
+        n.quoteEventId == null
+            ? n
+            : n.copyWith(quotedNote: quoteById[n.quoteEventId]),
     ];
+
+    // Top-level attachments. Cheap if nothing in the list has hasMedia.
+    return _attachments.enrichAll(withQuotes);
   }
 }

@@ -166,8 +166,7 @@ class _NoteCardView extends StatelessWidget {
                   ],
 
                   // ── Media attachments (NIP-92 imeta) ────────────────────
-                  if (note.hasMedia)
-                    MediaAttachmentView(noteEventId: note.id),
+                  if (note.hasMedia) MediaAttachmentView(note: note),
 
                   // Hashtag chips
                   if (note.tTags.isNotEmpty) ...[

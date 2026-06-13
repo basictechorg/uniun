@@ -81,13 +81,6 @@ class _FilterStrip extends StatelessWidget {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.file));
           }),
           const SizedBox(width: 12),
-          _chip(l10n.mediaFilterCached, f.cache == MediaCacheFilter.cached, () {
-            cubit.changeFilter(f.copyWith(
-              cache: f.cache == MediaCacheFilter.cached
-                  ? MediaCacheFilter.any
-                  : MediaCacheFilter.cached,
-            ));
-          }),
           _chip(l10n.mediaTabPinned, f.pinnedOnly, () {
             cubit.changeFilter(f.copyWith(pinnedOnly: !f.pinnedOnly));
           }),
@@ -163,7 +156,7 @@ class _Grid extends StatelessWidget {
           busy: state.busyShas.contains(b.sha256),
           onTap: () => context.pushNamed(
             AppRoutes.mediaDetail,
-            extra: b.sha256,
+            pathParameters: {'sha256': b.sha256},
           ),
           onLongPress: () => _showActions(context, b.sha256, b.pinned, b.localPath != null),
         );

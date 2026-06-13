@@ -2788,23 +2788,17 @@ abstract class AppLocalizations {
   /// **'Pinned'**
   String get mediaTabPinned;
 
-  /// Filter chip restricting the media gallery to blobs already downloaded to local cache
-  ///
-  /// In en, this message translates to:
-  /// **'On device'**
-  String get mediaFilterCached;
-
-  /// Filter chip restricting the media gallery to blobs not yet downloaded
-  ///
-  /// In en, this message translates to:
-  /// **'Not downloaded'**
-  String get mediaFilterNotCached;
-
   /// Action in the media action sheet that downloads the blob bytes from the server
   ///
   /// In en, this message translates to:
   /// **'Download'**
   String get mediaActionDownload;
+
+  /// Action in the media detail page that hands the cached file to the OS for viewing (PDF reader, video player, etc.)
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get mediaActionOpen;
 
   /// Action that pins the blob so cleanup never evicts it
   ///
@@ -2896,17 +2890,35 @@ abstract class AppLocalizations {
   /// **'No media available yet.'**
   String get mediaPickerEmpty;
 
-  /// Composer button opening the media picker for already-known blobs
-  ///
-  /// In en, this message translates to:
-  /// **'Library'**
-  String get composerAttachLibrary;
-
-  /// Composer button that picks a photo from the device
+  /// Bottom-sheet row that opens the device gallery to attach an image
   ///
   /// In en, this message translates to:
   /// **'Photo'**
-  String get composerAttachPhone;
+  String get composerAttachPhoto;
+
+  /// Bottom-sheet row that opens the device gallery to attach a video
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get composerAttachVideo;
+
+  /// Bottom-sheet row that opens the device file picker to attach any file
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get composerAttachFile;
+
+  /// Snackbar shown when the user picks a video/file bigger than the upload cap. Both numbers are formatted KB strings.
+  ///
+  /// In en, this message translates to:
+  /// **'File too large ({size} KB). Max {cap} KB.'**
+  String mediaTooLarge(String size, String cap);
+
+  /// Snackbar shown when even maximum compression can't get the picked image under the relay's body-size limit
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t compress image small enough to upload. Try a different photo.'**
+  String get mediaTooLargeAfterCompress;
 
   /// Settings row that opens the media gallery / file manager
   ///

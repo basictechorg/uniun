@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:uuid/uuid.dart';
 
@@ -26,6 +27,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final PublishNoteUseCase _publishUseCase;
   final PublishMediaNoteUseCase _publishMediaUseCase;
+  final UploadMediaUseCase _uploadMedia;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final SaveDraftUseCase _saveDraft;
   final GetDraftsUseCase _getDrafts;
@@ -37,6 +39,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     this._getActiveUserKeys,
     this._publishUseCase,
     this._publishMediaUseCase,
+    this._uploadMedia,
     this._embedAndStore,
     this._saveDraft,
     this._getDrafts,
@@ -55,7 +58,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<RemoveMentionEvent>(_onRemoveMention);
     on<ClearMentionSearchEvent>(_onClearMentionSearch);
     on<RestoreDraftMentionsEvent>(_onRestoreDraftMentions);
-    on<AttachExistingMediaEvent>(_onAttachExistingMedia);
+    on<UploadAndAttachMediaEvent>(_onUploadAndAttachMedia,
+        transformer: sequential());
     on<RemoveAttachedMediaEvent>(_onRemoveAttachedMedia);
   }
 
@@ -193,14 +197,35 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     });
   }
 
-  void _onAttachExistingMedia(
-    AttachExistingMediaEvent event,
+  Future<void> _onUploadAndAttachMedia(
+    UploadAndAttachMediaEvent event,
     Emitter<BrahmaCreateState> emit,
-  ) {
-    if (state.attachedMedia.any((b) => b.sha256 == event.blob.sha256)) return;
-    emit(state.copyWith(
-      attachedMedia: [...state.attachedMedia, event.blob],
+  ) async {
+    emit(state.copyWith(isAttachingMedia: true));
+    final res = await _uploadMedia.call(UploadMediaInput(
+      bytes: event.bytes,
+      mime: event.mime,
+      filename: event.filename,
+      width: event.width,
+      height: event.height,
     ));
+    res.fold(
+      (f) => emit(state.copyWith(
+        isAttachingMedia: false,
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (blob) {
+        if (state.attachedMedia.any((b) => b.sha256 == blob.sha256)) {
+          emit(state.copyWith(isAttachingMedia: false));
+          return;
+        }
+        emit(state.copyWith(
+          isAttachingMedia: false,
+          attachedMedia: [...state.attachedMedia, blob],
+        ));
+      },
+    );
   }
 
   void _onRemoveAttachedMedia(

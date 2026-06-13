@@ -26,4 +26,11 @@ class AppConstants {
   /// `blossom.New(relay, RelayURL)` against this URL — `PUT /upload`,
   /// `GET /<sha256>`, `HEAD /<sha256>`, etc. live here.
   static const String kUniunBlossom = 'https://dev.uniun.in:8080';
+
+  /// Max bytes the client will attempt to send to the Blossom server.
+  /// nginx in front of the relay caps request body at 1 MB; we target
+  /// slightly under that to leave headroom for HTTP headers + the Kind
+  /// 24242 auth event. Images larger than this are auto-compressed; videos
+  /// and arbitrary files are rejected with a friendly snackbar.
+  static const int kMaxUploadBytes = 950 * 1024;
 }
