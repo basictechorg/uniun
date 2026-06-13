@@ -15,11 +15,9 @@ class StorageStats {
   final int modelSizeBytes;
   final int chatHistorySizeBytes;
 
-  /// Bytes occupied by the content-addressed media cache (everything under
-  /// `getApplicationSupportDirectory()/media/`). Tracked separately from
-  /// [otherSizeBytes] so the storage chart can show users what their photo /
-  /// video / file downloads cost — bundling these into "Other" hid the
-  /// biggest growing bucket.
+  /// Bytes under `getApplicationSupportDirectory()/media/` — the
+  /// content-addressed blob cache. Tracked separately from
+  /// [otherSizeBytes] so the chart attributes media to its own bucket.
   final int mediaSizeBytes;
 
   final int otherSizeBytes;

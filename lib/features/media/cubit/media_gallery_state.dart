@@ -21,8 +21,7 @@ class MediaGalleryState {
   /// tile renders a spinner over the affordance while present.
   final Set<String> busyShas;
 
-  /// sha256s the user has explicitly multi-selected. Non-empty = the gallery
-  /// is in selection mode; the appbar becomes a contextual action bar.
+  /// Multi-selected sha256s. Non-empty = gallery is in selection mode.
   final Set<String> selectedShas;
 
   final String? errorMessage;

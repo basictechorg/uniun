@@ -13,18 +13,13 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Renders the attachments (NIP-92 `imeta`) carried by a [NoteEntity]. The
-/// attachments are pre-resolved by the data layer (see
-/// `NoteAttachmentsEnricher`) — this widget is stateless and never touches
-/// the DB. Each tile owns its own download lifecycle locally so the feed
-/// doesn't have to refresh just because one blob's bytes arrived.
+/// Renders the NIP-92 `imeta` attachments on a [NoteEntity]. Attachments
+/// are pre-resolved by `NoteAttachmentsEnricher`; this widget never reads
+/// Isar. Each tile owns its own download state so one blob arriving doesn't
+/// re-render the feed.
 ///
-/// Twitter/X-style behaviour:
-///   • [compact] (default) — feed cards, embedded quotes, DM bubbles.
-///     Image height is capped tight so a portrait photo doesn't dominate
-///     the card. Extra is cropped via `BoxFit.cover`.
-///   • `compact: false` — thread parent only. Taller cap so the original
-///     post can breathe; rest of the feed stays compact.
+/// [compact] caps image height tight for feeds / DMs / quotes; false gives
+/// the thread parent more room.
 class MediaAttachmentView extends StatelessWidget {
   const MediaAttachmentView({
     super.key,
@@ -74,12 +69,9 @@ class _AttachmentTileState extends State<_AttachmentTile> {
   late MediaBlobEntity _blob = widget.initial;
   bool _downloading = false;
 
-  /// Height caps tuned for scan-ability — note cards stay compact so a tall
-  /// portrait photo doesn't push the rest of the card off-screen. Detail
-  /// page is the place to view a blob at full aspect.
-  ///   • feed / DM / quote card  ~ 200 logical px
-  ///   • thread parent           ~ 360 logical px
-  /// Anything taller than the cap is cropped via BoxFit.cover.
+  /// Compact: feed / DM / quote card. Expanded: thread parent.
+  /// Excess height is cropped via `BoxFit.cover`; full aspect lives on the
+  /// detail page.
   static const double _compactMaxHeight = 200.0;
   static const double _expandedMaxHeight = 360.0;
 
@@ -94,19 +86,14 @@ class _AttachmentTileState extends State<_AttachmentTile> {
       _downloading = false;
       res.fold((_) {}, (newBlob) => _blob = newBlob);
     });
-    // Surface failure so the user knows why nothing happened — silent
-    // swallowing made cross-device download bugs invisible during testing.
     res.fold(
       (f) => AppSnackbar.error(context, f.toMessage()),
       (_) {},
     );
   }
 
-  /// Tap routing:
-  ///   • image  → MediaDetailPage (renders full-aspect preview).
-  ///   • everything else (video, pdf, file, …) → download if needed, then
-  ///     hand the local file to the OS so the user actually sees / plays /
-  ///     reads it, instead of staring at metadata.
+  /// Image → detail page. Everything else → download if needed, then hand
+  /// the local file to the OS via `OpenFilex`.
   Future<void> _onTap() async {
     if (_isImage) {
       context.pushNamed(
@@ -126,9 +113,6 @@ class _AttachmentTileState extends State<_AttachmentTile> {
 
   @override
   Widget build(BuildContext context) {
-    // Non-image attachments (PDF, video, doc, anything binary) get a proper
-    // horizontal "file card" rather than a gray icon. Filename + size + a
-    // colored type chip carry far more information at a glance.
     if (!_isImage) return _FileCard(blob: _blob, busy: _downloading, onTap: _onTap);
 
     final l10n = AppLocalizations.of(context)!;
@@ -220,10 +204,8 @@ class _AttachmentTileState extends State<_AttachmentTile> {
   }
 }
 
-/// Horizontal card used for non-image attachments. Twitter-style: colored
-/// type chip on the left, filename + meta line on the right, trailing
-/// download/open affordance. Tapping the whole card runs the same flow as
-/// the legacy gray-icon tile — download if needed, then OS handoff.
+/// Horizontal card for non-image attachments: type chip, filename + meta,
+/// trailing download/open icon. Tap → download (if needed) then OS handoff.
 class _FileCard extends StatelessWidget {
   const _FileCard({required this.blob, required this.busy, required this.onTap});
 
@@ -354,13 +336,8 @@ class _FileCard extends StatelessWidget {
   }
 }
 
-/// Visual identity for a non-image attachment.
-///
-/// The chip is rendered in **brand primary** across every file type — the
-/// per-mime icon + 3-4 char label ("PDF", "XLSX", "MP4") already convey
-/// what the file is at a glance, so we don't need a different color per
-/// type. Keeps file cards visually consistent with the rest of the app
-/// (buttons, links, accents) instead of looking like a paint-chip sample.
+/// Visual identity for a non-image attachment. Type is encoded by [label]
+/// and [icon]; color is always [AppColors.primary] for visual consistency.
 class _FileTypeStyle {
   const _FileTypeStyle({
     required this.label,
@@ -368,14 +345,13 @@ class _FileTypeStyle {
     required this.icon,
   });
 
-  /// 3-4 char abbreviation shown in the chip ("PDF", "XLSX", "MP4").
+  /// 3-4 char chip abbreviation ("PDF", "XLSX", "MP4").
   final String label;
 
-  /// Long-form label for the subtitle line ("PDF Document", "Spreadsheet").
+  /// Subtitle label ("PDF Document", "Spreadsheet").
   final String readableType;
   final IconData icon;
 
-  /// Always primary — the icon + label, not the color, encode the type.
   Color get color => AppColors.primary;
 
   static _FileTypeStyle fromMime(String mime, String? filename) {
@@ -446,9 +422,9 @@ class _FileTypeStyle {
     );
   }
 
-  /// Prefer the filename extension (publisher-supplied, accurate) over the
-  /// mime mapping. `application/octet-stream` covers anything the OS picker
-  /// couldn't sniff — the filename is then the only signal we have.
+  /// Prefer filename extension over mime mapping — filenames are accurate
+  /// when present; mime is `application/octet-stream` for anything the OS
+  /// picker couldn't sniff.
   static String _extOf(String? filename, String mime) {
     if (filename != null) {
       final dot = filename.lastIndexOf('.');

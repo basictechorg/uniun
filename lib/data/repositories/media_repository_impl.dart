@@ -69,10 +69,8 @@ class MediaRepositoryImpl extends MediaRepository {
         serverHas = false;
       }
 
-      // Khatru's blossom plugin returns descriptor.url derived from the relay's
-      // RELAY_URL env, which is the WebSocket URL (e.g. wss://...). Receivers
-      // would then HTTP GET wss://... and fail. Always build the public URL
-      // from our HTTP base instead — the bytes-fetch path is HTTP, period.
+      // Build the public URL from our HTTP base. Khatru's `descriptor.url`
+      // uses the relay's `wss://` URL — unusable for HTTP fetch.
       final String publicUrl =
           '$primary/$sha256${ext != null ? '.$ext' : ''}';
       if (!serverHas) {
@@ -87,9 +85,6 @@ class MediaRepositoryImpl extends MediaRepository {
 
       await _cache.write(sha256, ext, bytes);
 
-      // Publish Kind 10063 once so other devices know which server to fetch
-      // from. Re-publishes also when a legacy row exists with no serverUrls
-      // (e.g. row stored before the field was added) — self-heals.
       final existingRow = await isar.userServerListModels.get(0);
       if (existingRow == null || existingRow.serverUrls.isEmpty) {
         await _serverList.setServers([primary]);
@@ -383,19 +378,18 @@ class MediaRepositoryImpl extends MediaRepository {
     }
   }
 
-  /// Strip path and query so we can re-assemble blob URLs. The same server
-  /// may appear as `https://host/blob.sha256.ext` in the manifest but we
-  /// always GET via `<base>/<sha256>`.
+  /// Returns `<scheme>://<authority>` for an imeta URL. Coerces ws/wss to
+  /// http/https so blob URLs carrying the relay's WebSocket scheme still
+  /// resolve over HTTP.
   ///
-  /// Khatru's blossom plugin used to publish blob URLs with the `wss://`
-  /// scheme (it copies the relay's WebSocket URL). Coerce ws→http / wss→https
-  /// so legacy `imeta` URLs received from other devices still resolve to a
-  /// real HTTP origin instead of erroring with "scheme not supported".
+  /// Do not use `Uri.replace(query: '', fragment: '')` — empty strings
+  /// serialize back as a literal `?` / `#` and break the URL.
   String _serverBase(String url) {
-    var u = Uri.parse(url);
-    if (u.scheme == 'wss') u = u.replace(scheme: 'https');
-    if (u.scheme == 'ws') u = u.replace(scheme: 'http');
-    return u.replace(path: '', query: '', fragment: '').toString();
+    final u = Uri.parse(url);
+    var scheme = u.scheme;
+    if (scheme == 'wss') scheme = 'https';
+    if (scheme == 'ws') scheme = 'http';
+    return '$scheme://${u.authority}';
   }
 
   /// Best-effort extension from mime; falls back to filename suffix.

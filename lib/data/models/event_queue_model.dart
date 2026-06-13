@@ -19,12 +19,11 @@ part 'event_queue_model.g.dart';
 /// Kinds used by the Marmot private channel protocol.
 const _privateChannelKinds = {9002, 9021, 9022, 9023, 9024, 9025};
 
-/// Kinds whose tag layout the shaped [toSerializedRelayMessage] cannot
-/// produce (e.g. `["server", url]` for Kind 10063, `["h", groupId]` for
-/// private channels). Senders enqueue these with the full signed event JSON
-/// in [EventQueueModel.content] and the outbound pump emits via
-/// [toRawRelayMessage].
-const _rawPassthroughKinds = {..._privateChannelKinds, 10063};
+/// Kinds whose tag layout [toSerializedRelayMessage] cannot reproduce —
+/// `["server", url]` (10063), `["h", groupId]` (private channels),
+/// `["d", draftId]` (NIP-37 wraps). Enqueued with the full signed JSON in
+/// [EventQueueModel.content] and emitted via [toRawRelayMessage].
+const _rawPassthroughKinds = {..._privateChannelKinds, 10063, 31234};
 
 @Collection(ignore: {'copyWith'})
 @Name('EventQueue')

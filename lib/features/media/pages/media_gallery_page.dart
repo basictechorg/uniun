@@ -43,12 +43,9 @@ class _MediaGalleryView extends StatelessWidget {
   }
 }
 
-/// Two-mode app bar.
-///   • Normal      — gallery title only.
-///   • Selection   — back button clears the set, title shows count,
-///                   trailing trash icon performs bulk "Remove from device"
-///                   (enabled only when at least one selected blob is
-///                   cached locally — removing a remote-only row is a no-op).
+/// Two-mode app bar: normal (title only) and selection (count + bulk
+/// remove). Bulk remove is enabled only when at least one selected blob is
+/// cached locally — removing a remote-only row is a no-op.
 class _GalleryAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   const _GalleryAppBar();
@@ -257,11 +254,7 @@ class _Grid extends StatelessWidget {
           blob: b,
           busy: state.busyShas.contains(b.sha256),
           selected: selected,
-          // Tap routing depends on mode:
-          //   • In selection mode → tap toggles the tile in/out of the set.
-          //   • Normal mode       → tap opens detail. PDFs / non-images still
-          //     route through detail/download flow before any OS handoff;
-          //     bytes must be local first.
+          // Selection mode: tap toggles. Normal mode: tap opens detail.
           onTap: () {
             if (selecting) {
               cubit.toggleSelect(b.sha256);
@@ -272,15 +265,12 @@ class _Grid extends StatelessWidget {
               pathParameters: {'sha256': b.sha256},
             );
           },
-          // Long-press always enters / extends selection. The legacy
-          // single-blob action sheet (pin / remove) lives on the detail page.
           onLongPress: () => cubit.toggleSelect(b.sha256),
         );
       },
     );
   }
 
-  // Per-blob actions (pin / unpin / remove single) now live on
-  // MediaDetailPage. Long-press in the grid always enters multi-select mode,
-  // which is the single, consistent path for any destructive action here.
+  // Per-blob actions live on MediaDetailPage; long-press in the grid
+  // enters multi-select.
 }

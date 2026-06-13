@@ -3,28 +3,17 @@ import 'dart:typed_data';
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
-/// Iterative image compression to fit a byte budget.
+/// Iterative JPEG compression to fit a byte budget. Walks `_schedule`
+/// (quality, longest-edge) until output drops below [targetBytes] or the
+/// schedule is exhausted. Re-encodes HEIC / PNG / WebP to JPEG.
 ///
-/// Reduces JPEG quality and bounds the longest edge progressively until the
-/// output drops below [targetBytes] or we've exhausted the schedule. Returns
-/// null when even the smallest setting can't fit (extremely small budget +
-/// bizarre input); the caller surfaces an error.
-///
-/// HEIC, PNG, WebP inputs all come back as JPEG — a sensible default for
-/// photo attachments. PNG with transparency is out of scope for v1 (most
-/// chat-style photos don't need alpha).
-///
-/// **Windows:** `flutter_image_compress` has no Windows backend. We detect
-/// this and pass [source] through unchanged so the upload path still works.
-/// Callers must use the Windows-specific cap (`kMaxUploadBytesWindows`)
-/// when sizing their `targetBytes` on that platform.
+/// Windows has no native backend — [compressToTarget] returns [source]
+/// unchanged. Callers must use [AppConstants.kMaxUploadBytesWindows] there.
 class ImageCompressor {
   ImageCompressor._();
 
-  /// (quality 0–100, longest-edge cap in pixels). Tuned for the 3 MB budget:
-  /// the first step is near-pristine for most phone photos, and we never
-  /// fall below 60q / 1600px so receivers see a clean image, not a JPEG
-  /// stew. Anything that won't fit at 60/1600 was probably never going to.
+  /// (quality 0–100, longest-edge cap in pixels). Floor is 60q / 1600px;
+  /// anything that won't fit there is unlikely to fit at all.
   static const List<(int, int)> _schedule = [
     (95, 4096),
     (90, 3072),
@@ -34,13 +23,9 @@ class ImageCompressor {
     (60, 1600),
   ];
 
-  /// Returns [source] unchanged when already under [targetBytes]. Otherwise
-  /// compresses iteratively. Null on failure.
-  ///
-  /// On Windows we return [source] as-is regardless of size — the platform
-  /// has no native compressor and we'd rather hand the bytes to the
-  /// snackbar gate than block uploads outright. The picker uses
-  /// `kMaxUploadBytesWindows` as its sizing budget on this platform.
+  /// Returns [source] unchanged when already under [targetBytes] or when
+  /// running on Windows (no native backend). Otherwise compresses
+  /// iteratively. Null on failure.
   static Future<Uint8List?> compressToTarget({
     required Uint8List source,
     required int targetBytes,

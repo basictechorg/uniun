@@ -17,10 +17,8 @@ import 'package:uniun/domain/entities/storage/storage_stats.dart';
 import 'package:uniun/domain/repositories/storage_repository.dart';
 
 // Top-level so compute() can send it to a background isolate. Returns
-// (model, db, media, other) — media is content-addressed blob storage
-// (everything under <dirPath>/media/*), tracked separately from "other" so
-// the Storage chart can attribute photo/video/file growth to the right
-// bucket instead of the catch-all.
+// (model, db, media, other). Files under `<dirPath>/media/*` go to the
+// media bucket; everything else routes by filename.
 (int model, int db, int media, int other) _scanDir(String dirPath) {
   const modelExtensions = {'.task', '.litertlm', '.bin', '.tflite'};
   const isarFilenames = {'default.isar', 'default.isar.lock'};
@@ -29,9 +27,7 @@ import 'package:uniun/domain/repositories/storage_repository.dart';
   final dir = Directory(dirPath);
   if (!dir.existsSync()) return (0, 0, 0, 0);
 
-  // Path-separator normalised so a Windows path with backslashes also routes
-  // into the media bucket. Matches both `<dirPath>/media/<sha>.<ext>` and
-  // anything nested deeper (we may grow sub-folders later).
+  // Uses Platform.pathSeparator so Windows backslash paths also match.
   final mediaPrefix = '${dir.path}${Platform.pathSeparator}media${Platform.pathSeparator}';
 
   for (final entity in dir.listSync(recursive: true, followLinks: false)) {

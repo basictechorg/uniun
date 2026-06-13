@@ -99,10 +99,7 @@ Future<void> _pickAndAttachPhoto(
   if (file == null) return;
   final raw = await file.readAsBytes();
 
-  // Compression target — 3 MB on platforms with a native compressor,
-  // 10 MB on Windows where ImageCompressor is a no-op (no native backend
-  // available). The picker uses whichever cap matches the active platform
-  // so the resulting bytes are guaranteed to fit before we ship the imeta.
+  // Windows has no native compressor — pass through with a larger cap.
   final budget = Platform.isWindows
       ? AppConstants.kMaxUploadBytesWindows
       : AppConstants.kMaxUploadBytes;
@@ -115,12 +112,9 @@ Future<void> _pickAndAttachPhoto(
     AppSnackbar.errorVia(messenger, l10n.mediaTooLargeAfterCompress);
     return;
   }
-  // On non-Windows the compressor re-encodes everything to JPEG. On
-  // Windows it's a passthrough — the mime is whatever the user picked. We
-  // sniff the original extension to stay accurate; default to JPEG when
-  // unknown so receivers can still render via the standard image decoder.
-  final originalMime =
-      lookupMimeType(file.path) ?? 'image/jpeg';
+  // Non-Windows: compressor always emits JPEG. Windows: keep original
+  // mime + extension since bytes are unchanged.
+  final originalMime = lookupMimeType(file.path) ?? 'image/jpeg';
   final mime = Platform.isWindows ? originalMime : 'image/jpeg';
   final filename = Platform.isWindows
       ? p.basename(file.path)
@@ -143,11 +137,8 @@ Future<void> _pickAndAttachVideo(
   final file = await ImagePicker().pickVideo(source: ImageSource.gallery);
   if (file == null) return;
 
-  // Try native compression first — picks Medium → Low → 640x480 until the
-  // result fits under the 50 MB binary cap. Already-small clips pass
-  // through unchanged. Windows is a no-op (VideoCompressor returns the
-  // source untouched there); the cap check below then surfaces the
-  // standard "compress and try again" error to the user.
+  // Compresses if needed (Medium → Low → 640×480). Windows is a no-op;
+  // the cap check below then surfaces the "compress and try again" error.
   final compressed = await VideoCompressor.compressToTarget(
     sourcePath: file.path,
     targetBytes: AppConstants.kMaxBinaryUploadBytes,
@@ -188,11 +179,9 @@ Future<void> _pickAndAttachFile(
   ));
 }
 
-/// Hard size gate for videos and arbitrary files. Uses the binary cap
-/// ([AppConstants.kMaxBinaryUploadBytes], currently 50 MB) since we cannot
-/// safely re-encode video / PDF / docs on-device — under the cap goes
-/// through as-is, over it gets a clear error rather than a silent 413 from
-/// the relay's nginx (which would surface as a confusing failed upload).
+/// Hard size gate for videos and arbitrary files against
+/// [AppConstants.kMaxBinaryUploadBytes]. Over the cap → snackbar; under
+/// → pass through. Avoids the relay's nginx returning a bare 413.
 Future<bool> _passesUploadCap(
   File file,
   ScaffoldMessengerState messenger,
@@ -217,8 +206,7 @@ Future<bool> _passesUploadCap(
 /// Decodes [bytes] only far enough to read intrinsic width/height. Returns
 /// null for non-image data. The [ui.Image] is disposed immediately — we
 /// only need the two integers to populate the imeta `dim WxH` field.
-/// Formats a byte count as the largest sensible unit (B / KB / MB). Used for
-/// human-readable upload-cap snackbars now that the cap is in megabytes.
+/// Formats a byte count as B / KB / MB for upload-cap snackbars.
 String _humanBytes(int bytes) {
   if (bytes >= 1024 * 1024) {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';

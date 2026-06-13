@@ -4,10 +4,8 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 
-// Legend colors are sourced from `AppColors` so the storage chart re-themes
-// with the rest of the app. Five segments need five distinguishable hues —
-// we reuse the graph palette (already tuned for this) plus the muted
-// secondary for media and the outline gray for the catch-all.
+// Five distinguishable hues for the stacked bar. Sourced from AppColors
+// so the chart re-themes with the rest of the app.
 const _kColorAiModels = AppColors.graphOwn;       // green
 const _kColorChatHistory = AppColors.graphDraft;  // orange
 const _kColorMedia = AppColors.secondary;         // muted blue (≠ primary)

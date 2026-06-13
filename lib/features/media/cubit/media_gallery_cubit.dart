@@ -69,9 +69,7 @@ class MediaGalleryCubit extends Cubit<MediaGalleryState> {
 
   // ── Selection mode ─────────────────────────────────────────────────────
 
-  /// Toggles [sha256] in the selection set. Long-press on a tile is the
-  /// usual entry point; subsequent taps add or remove. Auto-exits selection
-  /// mode when the last item is unticked.
+  /// Toggles [sha256] in the selection set. Empty set = selection mode off.
   void toggleSelect(String sha256) {
     final next = Set<String>.from(state.selectedShas);
     if (!next.add(sha256)) next.remove(sha256);
@@ -83,10 +81,8 @@ class MediaGalleryCubit extends Cubit<MediaGalleryState> {
     emit(state.copyWith(selectedShas: const {}));
   }
 
-  /// Bulk "Remove from device" for every selected blob. Iterates so each
-  /// blob's local file is properly deleted (the repository handles ext
-  /// fallback + manifest patch). Errors stop the loop and surface on state;
-  /// successful removals are reflected via the watch stream automatically.
+  /// Bulk "Remove from device" for every selected blob. Stops on first
+  /// error; the watch stream reflects successful removals.
   Future<void> bulkRemoveLocal() async {
     final targets = state.selectedShas.toList();
     if (targets.isEmpty) return;

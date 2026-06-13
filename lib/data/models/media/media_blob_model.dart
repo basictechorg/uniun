@@ -31,10 +31,8 @@ class MediaBlobModel {
 
   String? blurhash;
 
-  /// Original filename as picked on the publisher's device (e.g.
-  /// `Q4-report.pdf`). Travels via the NIP-92 `imeta` `name` field. Nullable
-  /// because legacy rows / image attachments don't carry one — receivers
-  /// then fall back to a mime-derived label.
+  /// Original filename from the publisher (NIP-92 `imeta` `name` field).
+  /// Null when not carried — UI falls back to a mime-derived label.
   String? filename;
 
   /// Blossom server URLs known to hold this blob. v1 publishes one entry

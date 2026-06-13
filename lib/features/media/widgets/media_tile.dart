@@ -78,10 +78,6 @@ class MediaTile extends StatelessWidget {
                   ),
                 if (blob.pinned && _cached) const SizedBox(width: 4),
                 if (_cached)
-                  // "On device" badge. Was `Icons.check_circle` previously,
-                  // which read as a selection indicator and confused users
-                  // who saw every cached tile as "already selected".
-                  // download_done_rounded is unambiguous: "this is downloaded".
                   const _Badge(
                     icon: Icons.download_done_rounded,
                     color: AppColors.primary,
