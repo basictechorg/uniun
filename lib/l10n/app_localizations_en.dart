@@ -1540,7 +1540,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String mediaTooLarge(String size, String cap) {
-    return 'File too large ($size KB). Max $cap KB.';
+    return 'File too large ($size). Max $cap.';
   }
 
   @override
@@ -1556,6 +1556,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noteCardDownloadMedia => 'Download';
+
+  @override
+  String get noteCardFileFallbackName => 'Attachment';
+
+  @override
+  String get noteCardFileTapToOpen => 'Tap to open';
+
+  @override
+  String get noteCardFileTapToDownload => 'Tap to download';
+
+  @override
+  String mediaSelectionCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get mediaSelectionExit => 'Exit selection';
+
+  @override
+  String get mediaSelectionRemoveDialogTitle => 'Remove from device?';
+
+  @override
+  String mediaSelectionRemoveDialogBody(int count) {
+    return 'Free up space by deleting $count cached file(s) from this device. The server copies remain — you can re-download anytime.';
+  }
+
+  @override
+  String get storageMedia => 'Media';
 
   @override
   String get noteCardMediaDownloading => 'Downloading…';

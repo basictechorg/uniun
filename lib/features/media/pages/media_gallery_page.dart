@@ -26,26 +26,125 @@ class _MediaGalleryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        elevation: 0,
-        title: Text(l10n.mediaGalleryTitle),
-        foregroundColor: AppColors.onSurface,
-      ),
+      appBar: const _GalleryAppBar(),
       body: BlocBuilder<MediaGalleryCubit, MediaGalleryState>(
         builder: (context, state) {
           return Column(
             children: [
-              _FilterStrip(state: state),
+              if (!state.isSelecting) _FilterStrip(state: state),
               Expanded(child: _Grid(state: state)),
             ],
           );
         },
       ),
     );
+  }
+}
+
+/// Two-mode app bar.
+///   • Normal      — gallery title only.
+///   • Selection   — back button clears the set, title shows count,
+///                   trailing trash icon performs bulk "Remove from device"
+///                   (enabled only when at least one selected blob is
+///                   cached locally — removing a remote-only row is a no-op).
+class _GalleryAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const _GalleryAppBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<MediaGalleryCubit, MediaGalleryState>(
+      buildWhen: (a, b) =>
+          a.isSelecting != b.isSelecting ||
+          a.selectedShas.length != b.selectedShas.length,
+      builder: (context, state) {
+        final l10n = AppLocalizations.of(context)!;
+        final cubit = context.read<MediaGalleryCubit>();
+
+        if (!state.isSelecting) {
+          return AppBar(
+            backgroundColor: AppColors.surfaceContainerLowest,
+            elevation: 0,
+            title: Text(l10n.mediaGalleryTitle),
+            foregroundColor: AppColors.onSurface,
+          );
+        }
+
+        final selectedBlobs = state.blobs
+            .where((b) => state.selectedShas.contains(b.sha256))
+            .toList();
+        final anyCached =
+            selectedBlobs.any((b) => b.localPath != null);
+
+        return AppBar(
+          backgroundColor: AppColors.surfaceContainerLowest,
+          elevation: 0,
+          foregroundColor: AppColors.onSurface,
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            tooltip: l10n.mediaSelectionExit,
+            onPressed: cubit.clearSelection,
+          ),
+          title: Text(
+            l10n.mediaSelectionCount(state.selectedShas.length),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.error),
+              tooltip: l10n.mediaActionRemoveLocal,
+              onPressed: anyCached
+                  ? () => _confirmBulkRemove(
+                        context,
+                        cubit,
+                        l10n,
+                        state.selectedShas.length,
+                      )
+                  : null,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmBulkRemove(
+    BuildContext context,
+    MediaGalleryCubit cubit,
+    AppLocalizations l10n,
+    int count,
+  ) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        title: Text(l10n.mediaSelectionRemoveDialogTitle),
+        content: Text(l10n.mediaSelectionRemoveDialogBody(count)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.onSurfaceVariant)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dctx, true),
+            child: Text(
+              l10n.mediaActionRemoveLocal,
+              style: const TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) cubit.bulkRemoveLocal();
   }
 }
 
@@ -150,70 +249,38 @@ class _Grid extends StatelessWidget {
       itemCount: state.blobs.length,
       itemBuilder: (context, i) {
         final b = state.blobs[i];
+        final selected = state.selectedShas.contains(b.sha256);
+        final selecting = state.isSelecting;
+        final cubit = context.read<MediaGalleryCubit>();
         return MediaTile(
           key: ValueKey(b.sha256),
           blob: b,
           busy: state.busyShas.contains(b.sha256),
-          onTap: () => context.pushNamed(
-            AppRoutes.mediaDetail,
-            pathParameters: {'sha256': b.sha256},
-          ),
-          onLongPress: () => _showActions(context, b.sha256, b.pinned, b.localPath != null),
+          selected: selected,
+          // Tap routing depends on mode:
+          //   • In selection mode → tap toggles the tile in/out of the set.
+          //   • Normal mode       → tap opens detail. PDFs / non-images still
+          //     route through detail/download flow before any OS handoff;
+          //     bytes must be local first.
+          onTap: () {
+            if (selecting) {
+              cubit.toggleSelect(b.sha256);
+              return;
+            }
+            context.pushNamed(
+              AppRoutes.mediaDetail,
+              pathParameters: {'sha256': b.sha256},
+            );
+          },
+          // Long-press always enters / extends selection. The legacy
+          // single-blob action sheet (pin / remove) lives on the detail page.
+          onLongPress: () => cubit.toggleSelect(b.sha256),
         );
       },
     );
   }
 
-  Future<void> _showActions(
-    BuildContext context,
-    String sha256,
-    bool pinned,
-    bool cached,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final cubit = context.read<MediaGalleryCubit>();
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!cached)
-              ListTile(
-                leading: const Icon(Icons.cloud_download_outlined),
-                title: Text(l10n.mediaActionDownload),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  cubit.download(sha256);
-                },
-              ),
-            ListTile(
-              leading: Icon(pinned ? Icons.star : Icons.star_outline),
-              title: Text(pinned ? l10n.mediaActionUnpin : l10n.mediaActionPin),
-              onTap: () {
-                Navigator.pop(ctx);
-                cubit.togglePin(sha256, pinned);
-              },
-            ),
-            if (cached)
-              ListTile(
-                leading: const Icon(Icons.delete_outline,
-                    color: AppColors.error),
-                title: Text(l10n.mediaActionRemoveLocal,
-                    style: const TextStyle(color: AppColors.error)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  cubit.removeLocal(sha256);
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  // Per-blob actions (pin / unpin / remove single) now live on
+  // MediaDetailPage. Long-press in the grid always enters multi-select mode,
+  // which is the single, consistent path for any destructive action here.
 }

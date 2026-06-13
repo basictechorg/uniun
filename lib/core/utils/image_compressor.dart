@@ -15,16 +15,17 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 class ImageCompressor {
   ImageCompressor._();
 
-  /// (quality 0–100, longest-edge cap in pixels). Decreasing both each step
-  /// gives us a wide range while keeping the early attempts visually good.
+  /// (quality 0–100, longest-edge cap in pixels). Tuned for the 3 MB budget:
+  /// the first step is near-pristine for most phone photos, and we never
+  /// fall below 60q / 1600px so receivers see a clean image, not a JPEG
+  /// stew. Anything that won't fit at 60/1600 was probably never going to.
   static const List<(int, int)> _schedule = [
-    (88, 2048),
+    (95, 4096),
+    (90, 3072),
+    (85, 2560),
     (80, 2048),
     (70, 1920),
     (60, 1600),
-    (50, 1280),
-    (40, 1024),
-    (30, 800),
   ];
 
   /// Returns [source] unchanged when already under [targetBytes]. Otherwise

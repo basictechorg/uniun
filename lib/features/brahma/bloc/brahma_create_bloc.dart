@@ -176,6 +176,9 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         if (b.sizeBytes > 0) 'size ${b.sizeBytes}',
         if (dim != null) 'dim ${dim.width}x${dim.height}',
         if (b.blurhash != null) 'blurhash ${b.blurhash}',
+        // Original filename (NIP-92 free-form `name` field). Lets receivers
+        // render "Q4-report.pdf" instead of a bare mime icon.
+        if (b.filename != null && b.filename!.isNotEmpty) 'name ${b.filename}',
       ]);
     }
     return out;

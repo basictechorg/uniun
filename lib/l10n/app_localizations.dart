@@ -2908,10 +2908,10 @@ abstract class AppLocalizations {
   /// **'File'**
   String get composerAttachFile;
 
-  /// Snackbar shown when the user picks a video/file bigger than the upload cap. Both numbers are formatted KB strings.
+  /// Snackbar shown when the user picks a video/file bigger than the upload cap. Both placeholders are pre-formatted human strings (e.g. '4.2 MB', '3 MB').
   ///
   /// In en, this message translates to:
-  /// **'File too large ({size} KB). Max {cap} KB.'**
+  /// **'File too large ({size}). Max {cap}.'**
   String mediaTooLarge(String size, String cap);
 
   /// Snackbar shown when even maximum compression can't get the picked image under the relay's body-size limit
@@ -2937,6 +2937,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download'**
   String get noteCardDownloadMedia;
+
+  /// Filename label shown on a file attachment tile when the publisher did not include an imeta `name` field.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get noteCardFileFallbackName;
+
+  /// Subtitle hint shown on a cached file attachment tile telling the user the tap action hands the file to the OS.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open'**
+  String get noteCardFileTapToOpen;
+
+  /// Subtitle hint shown on a not-yet-cached file attachment tile telling the user the tap action triggers a Blossom download.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to download'**
+  String get noteCardFileTapToDownload;
+
+  /// Media gallery contextual app-bar title when the user has long-pressed one or more tiles to multi-select. {count} is the number of selected blobs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String mediaSelectionCount(int count);
+
+  /// Tooltip on the close (X) button that clears multi-select mode in the media gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit selection'**
+  String get mediaSelectionExit;
+
+  /// Confirmation dialog title before bulk-removing local copies of the selected media.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from device?'**
+  String get mediaSelectionRemoveDialogTitle;
+
+  /// Confirmation dialog body. Explains that only the local cache is wiped; remote bytes survive.
+  ///
+  /// In en, this message translates to:
+  /// **'Free up space by deleting {count} cached file(s) from this device. The server copies remain — you can re-download anytime.'**
+  String mediaSelectionRemoveDialogBody(int count);
+
+  /// Legend label in the Settings → Storage chart for the cached media bucket (photos / videos / files under getApplicationSupportDirectory()/media/).
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get storageMedia;
 
   /// Status text shown on a note-card media tile while bytes are downloading
   ///

@@ -11,6 +11,7 @@ abstract class MediaBlobEntity with _$MediaBlobEntity {
     required int sizeBytes,
     MediaDim? dim,
     String? blurhash,
+    String? filename,
     required List<String> serverUrls,
     String? localPath,
     DateTime? downloadedAt,

@@ -41,6 +41,7 @@ class StorageCubit extends Cubit<StorageState> {
         dbSizeBytes: stats.dbSizeBytes,
         modelSizeBytes: stats.modelSizeBytes,
         chatHistorySizeBytes: stats.chatHistorySizeBytes,
+        mediaSizeBytes: stats.mediaSizeBytes,
         otherSizeBytes: stats.otherSizeBytes,
         freeDiskBytes: stats.freeDiskBytes,
         totalNoteCount: stats.totalNoteCount,

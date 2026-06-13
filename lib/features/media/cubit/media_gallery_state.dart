@@ -9,6 +9,7 @@ class MediaGalleryState {
     this.filter = const MediaFilter(),
     this.blobs = const [],
     this.busyShas = const {},
+    this.selectedShas = const {},
     this.errorMessage,
   });
 
@@ -20,13 +21,20 @@ class MediaGalleryState {
   /// tile renders a spinner over the affordance while present.
   final Set<String> busyShas;
 
+  /// sha256s the user has explicitly multi-selected. Non-empty = the gallery
+  /// is in selection mode; the appbar becomes a contextual action bar.
+  final Set<String> selectedShas;
+
   final String? errorMessage;
+
+  bool get isSelecting => selectedShas.isNotEmpty;
 
   MediaGalleryState copyWith({
     MediaGalleryStatus? status,
     MediaFilter? filter,
     List<MediaBlobEntity>? blobs,
     Set<String>? busyShas,
+    Set<String>? selectedShas,
     String? errorMessage,
   }) {
     return MediaGalleryState(
@@ -34,6 +42,7 @@ class MediaGalleryState {
       filter: filter ?? this.filter,
       blobs: blobs ?? this.blobs,
       busyShas: busyShas ?? this.busyShas,
+      selectedShas: selectedShas ?? this.selectedShas,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }

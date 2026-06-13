@@ -28,9 +28,12 @@ class AppConstants {
   static const String kUniunBlossom = 'https://dev.uniun.in:8080';
 
   /// Max bytes the client will attempt to send to the Blossom server.
-  /// nginx in front of the relay caps request body at 1 MB; we target
-  /// slightly under that to leave headroom for HTTP headers + the Kind
-  /// 24242 auth event. Images larger than this are auto-compressed; videos
-  /// and arbitrary files are rejected with a friendly snackbar.
-  static const int kMaxUploadBytes = 950 * 1024;
+  /// nginx in front of the relay now caps request body at 100 MB; we keep
+  /// a much tighter client-side budget for two reasons:
+  ///   1. Photos at this size already cover any reasonable quality — going
+  ///      bigger just wastes the receiver's data plan.
+  ///   2. A 100 MB ceiling on the relay is the *safety net*, not the goal.
+  /// Images over this are auto-compressed with a more generous quality
+  /// schedule; videos and arbitrary files are rejected past the cap.
+  static const int kMaxUploadBytes = 3 * 1024 * 1024;
 }

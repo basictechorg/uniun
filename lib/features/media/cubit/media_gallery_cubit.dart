@@ -67,6 +67,45 @@ class MediaGalleryCubit extends Cubit<MediaGalleryState> {
     );
   }
 
+  // ── Selection mode ─────────────────────────────────────────────────────
+
+  /// Toggles [sha256] in the selection set. Long-press on a tile is the
+  /// usual entry point; subsequent taps add or remove. Auto-exits selection
+  /// mode when the last item is unticked.
+  void toggleSelect(String sha256) {
+    final next = Set<String>.from(state.selectedShas);
+    if (!next.add(sha256)) next.remove(sha256);
+    emit(state.copyWith(selectedShas: next));
+  }
+
+  void clearSelection() {
+    if (state.selectedShas.isEmpty) return;
+    emit(state.copyWith(selectedShas: const {}));
+  }
+
+  /// Bulk "Remove from device" for every selected blob. Iterates so each
+  /// blob's local file is properly deleted (the repository handles ext
+  /// fallback + manifest patch). Errors stop the loop and surface on state;
+  /// successful removals are reflected via the watch stream automatically.
+  Future<void> bulkRemoveLocal() async {
+    final targets = state.selectedShas.toList();
+    if (targets.isEmpty) return;
+    final next = Set<String>.from(state.busyShas)..addAll(targets);
+    emit(state.copyWith(busyShas: next));
+    String? err;
+    for (final sha in targets) {
+      final res = await getIt<RemoveLocalMediaUseCase>().call(sha);
+      res.fold((f) => err = f.toMessage(), (_) {});
+      if (err != null) break;
+    }
+    final cleared = Set<String>.from(state.busyShas)..removeAll(targets);
+    emit(state.copyWith(
+      busyShas: cleared,
+      selectedShas: const {},
+      errorMessage: err,
+    ));
+  }
+
   void _markBusy(String sha256, bool busy) {
     final next = Set<String>.from(state.busyShas);
     if (busy) {

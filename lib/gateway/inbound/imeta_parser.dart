@@ -16,6 +16,7 @@ class ImetaTag {
     this.width,
     this.height,
     this.blurhash,
+    this.filename,
   });
 
   final String url;
@@ -25,6 +26,7 @@ class ImetaTag {
   final int? width;
   final int? height;
   final String? blurhash;
+  final String? filename;
 }
 
 class ImetaParser {
@@ -64,6 +66,7 @@ class ImetaParser {
     int? width;
     int? height;
     String? blurhash;
+    String? filename;
 
     for (var i = 1; i < rawTag.length; i++) {
       final entry = rawTag[i];
@@ -90,6 +93,8 @@ class ImetaParser {
           }
         case 'blurhash':
           blurhash = value;
+        case 'name':
+          filename = value;
       }
     }
 
@@ -102,6 +107,7 @@ class ImetaParser {
       width: width,
       height: height,
       blurhash: blurhash,
+      filename: filename,
     );
   }
 
@@ -129,6 +135,7 @@ class ImetaParser {
       row.width = m.width ?? existing?.width;
       row.height = m.height ?? existing?.height;
       row.blurhash = m.blurhash ?? existing?.blurhash;
+      row.filename = m.filename ?? existing?.filename;
       final urls = <String>{...(existing?.serverUrls ?? const []), m.url};
       row.serverUrls = urls.toList();
       // localPath / downloadedAt left untouched — bytes are user-fetched.

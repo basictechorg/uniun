@@ -173,10 +173,13 @@ Future<bool> _passesUploadCap(
   try {
     final size = await file.length();
     if (size <= AppConstants.kMaxUploadBytes) return true;
-    final kb = (size / 1024).toStringAsFixed(0);
-    final capKb =
-        (AppConstants.kMaxUploadBytes / 1024).toStringAsFixed(0);
-    AppSnackbar.errorVia(messenger, l10n.mediaTooLarge(kb, capKb));
+    AppSnackbar.errorVia(
+      messenger,
+      l10n.mediaTooLarge(
+        _humanBytes(size),
+        _humanBytes(AppConstants.kMaxUploadBytes),
+      ),
+    );
     return false;
   } catch (_) {
     return true;
@@ -186,6 +189,16 @@ Future<bool> _passesUploadCap(
 /// Decodes [bytes] only far enough to read intrinsic width/height. Returns
 /// null for non-image data. The [ui.Image] is disposed immediately — we
 /// only need the two integers to populate the imeta `dim WxH` field.
+/// Formats a byte count as the largest sensible unit (B / KB / MB). Used for
+/// human-readable upload-cap snackbars now that the cap is in megabytes.
+String _humanBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+  return '$bytes B';
+}
+
 Future<(int, int)?> _decodeImageDim(Uint8List bytes) async {
   try {
     final completer = Completer<ui.Image>();

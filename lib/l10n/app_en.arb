@@ -1433,9 +1433,9 @@
   "composerAttachFile": "File",
   "@composerAttachFile": { "description": "Bottom-sheet row that opens the device file picker to attach any file" },
 
-  "mediaTooLarge": "File too large ({size} KB). Max {cap} KB.",
+  "mediaTooLarge": "File too large ({size}). Max {cap}.",
   "@mediaTooLarge": {
-    "description": "Snackbar shown when the user picks a video/file bigger than the upload cap. Both numbers are formatted KB strings.",
+    "description": "Snackbar shown when the user picks a video/file bigger than the upload cap. Both placeholders are pre-formatted human strings (e.g. '4.2 MB', '3 MB').",
     "placeholders": {
       "size": { "type": "String" },
       "cap": { "type": "String" }
@@ -1453,6 +1453,36 @@
 
   "noteCardDownloadMedia": "Download",
   "@noteCardDownloadMedia": { "description": "Label on the download button overlay on an attached-media tile in a note card" },
+
+  "noteCardFileFallbackName": "Attachment",
+  "@noteCardFileFallbackName": { "description": "Filename label shown on a file attachment tile when the publisher did not include an imeta `name` field." },
+
+  "noteCardFileTapToOpen": "Tap to open",
+  "@noteCardFileTapToOpen": { "description": "Subtitle hint shown on a cached file attachment tile telling the user the tap action hands the file to the OS." },
+
+  "noteCardFileTapToDownload": "Tap to download",
+  "@noteCardFileTapToDownload": { "description": "Subtitle hint shown on a not-yet-cached file attachment tile telling the user the tap action triggers a Blossom download." },
+
+  "mediaSelectionCount": "{count} selected",
+  "@mediaSelectionCount": {
+    "description": "Media gallery contextual app-bar title when the user has long-pressed one or more tiles to multi-select. {count} is the number of selected blobs.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "mediaSelectionExit": "Exit selection",
+  "@mediaSelectionExit": { "description": "Tooltip on the close (X) button that clears multi-select mode in the media gallery." },
+
+  "mediaSelectionRemoveDialogTitle": "Remove from device?",
+  "@mediaSelectionRemoveDialogTitle": { "description": "Confirmation dialog title before bulk-removing local copies of the selected media." },
+
+  "mediaSelectionRemoveDialogBody": "Free up space by deleting {count} cached file(s) from this device. The server copies remain — you can re-download anytime.",
+  "@mediaSelectionRemoveDialogBody": {
+    "description": "Confirmation dialog body. Explains that only the local cache is wiped; remote bytes survive.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "storageMedia": "Media",
+  "@storageMedia": { "description": "Legend label in the Settings → Storage chart for the cached media bucket (photos / videos / files under getApplicationSupportDirectory()/media/)." },
 
   "noteCardMediaDownloading": "Downloading…",
   "@noteCardMediaDownloading": { "description": "Status text shown on a note-card media tile while bytes are downloading" },

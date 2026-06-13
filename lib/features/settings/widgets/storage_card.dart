@@ -6,6 +6,7 @@ import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 
 const _kColorAiModels = Color(0xFF4CAF50);
 const _kColorChatHistory = Color(0xFFFF9800);
+const _kColorMedia = Color(0xFF03A9F4);
 const _kColorOther = Color(0xFF9E9E9E);
 
 class StorageCard extends StatelessWidget {
@@ -52,6 +53,7 @@ class StorageCard extends StatelessWidget {
         final dbLabel = fmtBytes(state.dbSizeBytes);
         final modelLabel = fmtBytes(state.modelSizeBytes);
         final chatLabel = fmtBytes(state.chatHistorySizeBytes);
+        final mediaLabel = fmtBytes(state.mediaSizeBytes);
         final otherLabel = fmtBytes(state.otherSizeBytes);
 
         return Container(
@@ -140,6 +142,11 @@ class StorageCard extends StatelessWidget {
                                   child:
                                       Container(color: _kColorChatHistory),
                                 ),
+                              if (state.mediaSizeBytes > 0)
+                                Expanded(
+                                  flex: state.mediaSizeBytes,
+                                  child: Container(color: _kColorMedia),
+                                ),
                               if (state.otherSizeBytes > 0)
                                 Expanded(
                                   flex: state.otherSizeBytes,
@@ -170,6 +177,12 @@ class StorageCard extends StatelessWidget {
                       color: _kColorChatHistory,
                       label: l10n.storageChatHistory,
                       value: chatLabel,
+                    ),
+                    const SizedBox(height: 8),
+                    _LegendRow(
+                      color: _kColorMedia,
+                      label: l10n.storageMedia,
+                      value: mediaLabel,
                     ),
                     const SizedBox(height: 8),
                     _LegendRow(

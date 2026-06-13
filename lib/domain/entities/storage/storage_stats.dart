@@ -3,6 +3,7 @@ class StorageStats {
     required this.dbSizeBytes,
     required this.modelSizeBytes,
     required this.chatHistorySizeBytes,
+    required this.mediaSizeBytes,
     required this.otherSizeBytes,
     required this.totalNoteCount,
     required this.deletableFeedNoteCount,
@@ -13,6 +14,14 @@ class StorageStats {
   final int dbSizeBytes;
   final int modelSizeBytes;
   final int chatHistorySizeBytes;
+
+  /// Bytes occupied by the content-addressed media cache (everything under
+  /// `getApplicationSupportDirectory()/media/`). Tracked separately from
+  /// [otherSizeBytes] so the storage chart can show users what their photo /
+  /// video / file downloads cost — bundling these into "Other" hid the
+  /// biggest growing bucket.
+  final int mediaSizeBytes;
+
   final int otherSizeBytes;
   final int totalNoteCount;
   final int deletableFeedNoteCount;
@@ -20,5 +29,9 @@ class StorageStats {
   final int freeDiskBytes;
 
   int get totalBytes =>
-      dbSizeBytes + modelSizeBytes + chatHistorySizeBytes + otherSizeBytes;
+      dbSizeBytes +
+      modelSizeBytes +
+      chatHistorySizeBytes +
+      mediaSizeBytes +
+      otherSizeBytes;
 }

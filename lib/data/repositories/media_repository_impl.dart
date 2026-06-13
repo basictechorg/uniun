@@ -103,6 +103,7 @@ class MediaRepositoryImpl extends MediaRepository {
         width: width,
         height: height,
         blurhash: blurhash,
+        filename: filename,
         addServerUrl: publicUrl,
         localPath: localFile.path,
         downloadedAt: DateTime.now(),
@@ -322,6 +323,7 @@ class MediaRepositoryImpl extends MediaRepository {
     int? width,
     int? height,
     String? blurhash,
+    String? filename,
     String? addServerUrl,
     String? localPath,
     DateTime? downloadedAt,
@@ -339,6 +341,7 @@ class MediaRepositoryImpl extends MediaRepository {
       row.width = width ?? row.width;
       row.height = height ?? row.height;
       row.blurhash = blurhash ?? row.blurhash;
+      row.filename = filename ?? row.filename;
       final urls = <String>{...row.serverUrls};
       if (addServerUrl != null) urls.add(addServerUrl);
       row.serverUrls = urls.toList();
