@@ -189,6 +189,9 @@ The text note (`kind: 1`) or channel message (`kind: 42`) is what actually goes 
 │   │         Content-Type: image/jpeg                             │    │
 │   │         body: <bytes>                                        │    │
 │   │   ─► response: { url, sha256, size, type }                   │    │
+│   │       NOTE: response.url is *ignored*. Khatru derives it from│    │
+│   │       relay.URL which is `wss://…` — useless for HTTP fetch. │    │
+│   │       We build publicUrl from `kUniunBlossom` ourselves.     │    │
 │   │                                                              │    │
 │   │   write local cache: media/<sha>.jpg                         │    │
 │   │   upsert MediaBlobModel (sha, mime, dim, localPath, …)       │    │
@@ -606,6 +609,33 @@ End-to-end smoke, run in order. Most need two devices signed into the same ident
 8. **Hard-reject paths** — pick a 4 MB video → snackbar "File too large (4096 KB). Max 950 KB."
 9. **GC** — fake-age a Kind 1 note past 7 days. Run `CleanupManager.runOnce()`. Blob with `pinned: false` and no other ref → file deleted + row deleted. Pin a blob → survives GC even with no refs.
 10. **Static checks** — `flutter analyze lib/` clean. No hardcoded English (all via `AppLocalizations`).
+
+---
+
+## 10.5. Gotchas (production issues we've actually hit)
+
+### Khatru's `descriptor.url` is a `wss://` URL
+
+Khatru's blossom plugin is constructed as `blossom.New(relay, config.RelayURL)`. `RelayURL` is the relay's *WebSocket* URL (e.g. `wss://dev.uniun.in:8080`). The plugin uses that string verbatim when it returns blob descriptors, so `descriptor.url` ends up looking like:
+
+```
+wss://dev.uniun.in:8080/<sha256>.<ext>
+```
+
+If the publisher stored that and embedded it in the `imeta` tag, every other device would try to `http.get('wss://…')` and fail — silently before the snackbar fix below.
+
+Both legs are now defended:
+
+- **Outbound** (`MediaRepositoryImpl.uploadBytes`): the response's `url` field is discarded. We always build `publicUrl` from `kUniunBlossom` (the HTTPS base in `AppConstants`). The imeta tag carries `https://…` regardless of what the server returned.
+- **Inbound / legacy rows** (`MediaRepositoryImpl._serverBase`): coerces `wss://` → `https://` and `ws://` → `http://` before any HTTP call, so notes received from older clients (or future relays with the same bug) still resolve to a fetchable origin.
+
+If you ever change blob URL construction, keep both halves consistent.
+
+### Silent download failure was invisible during testing
+
+`MediaAttachmentView._download` used to do `res.fold((_) {}, …)` — the `Either<Failure, …>` Left was swallowed. Cross-device downloads could fail for any reason (the `wss://` bug, an expired auth token, a network blip) and the UI would simply… do nothing. No spinner change, no error.
+
+Now it routes through `AppSnackbar.error(context, f.toMessage())` so the failure is visible to the user (and to whoever is QAing on a second device). If you're adding a new download trigger, keep this pattern: surface the Left, don't swallow it.
 
 ---
 

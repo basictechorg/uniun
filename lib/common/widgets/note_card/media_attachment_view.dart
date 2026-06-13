@@ -5,6 +5,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -93,6 +94,12 @@ class _AttachmentTileState extends State<_AttachmentTile> {
       _downloading = false;
       res.fold((_) {}, (newBlob) => _blob = newBlob);
     });
+    // Surface failure so the user knows why nothing happened — silent
+    // swallowing made cross-device download bugs invisible during testing.
+    res.fold(
+      (f) => AppSnackbar.error(context, f.toMessage()),
+      (_) {},
+    );
   }
 
   /// Tap routing:

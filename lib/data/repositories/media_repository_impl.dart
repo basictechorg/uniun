@@ -69,16 +69,20 @@ class MediaRepositoryImpl extends MediaRepository {
         serverHas = false;
       }
 
-      String publicUrl = '$primary/$sha256${ext != null ? '.$ext' : ''}';
+      // Khatru's blossom plugin returns descriptor.url derived from the relay's
+      // RELAY_URL env, which is the WebSocket URL (e.g. wss://...). Receivers
+      // would then HTTP GET wss://... and fail. Always build the public URL
+      // from our HTTP base instead — the bytes-fetch path is HTTP, period.
+      final String publicUrl =
+          '$primary/$sha256${ext != null ? '.$ext' : ''}';
       if (!serverHas) {
-        final descriptor = await _blossom.upload(
+        await _blossom.upload(
           serverUrl: primary,
           bytes: bytes,
           mime: mime,
           sha256: sha256,
           keys: keys,
         );
-        publicUrl = descriptor.url;
       }
 
       await _cache.write(sha256, ext, bytes);
@@ -379,8 +383,15 @@ class MediaRepositoryImpl extends MediaRepository {
   /// Strip path and query so we can re-assemble blob URLs. The same server
   /// may appear as `https://host/blob.sha256.ext` in the manifest but we
   /// always GET via `<base>/<sha256>`.
+  ///
+  /// Khatru's blossom plugin used to publish blob URLs with the `wss://`
+  /// scheme (it copies the relay's WebSocket URL). Coerce ws→http / wss→https
+  /// so legacy `imeta` URLs received from other devices still resolve to a
+  /// real HTTP origin instead of erroring with "scheme not supported".
   String _serverBase(String url) {
-    final u = Uri.parse(url);
+    var u = Uri.parse(url);
+    if (u.scheme == 'wss') u = u.replace(scheme: 'https');
+    if (u.scheme == 'ws') u = u.replace(scheme: 'http');
     return u.replace(path: '', query: '', fragment: '').toString();
   }
 
