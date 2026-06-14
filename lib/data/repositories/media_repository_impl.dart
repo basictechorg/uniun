@@ -353,6 +353,10 @@ class MediaRepositoryImpl extends MediaRepository {
   }
 
   bool _matches(MediaBlobModel r, MediaFilter f) {
+    // Gallery only surfaces blobs the user actually has on-device — either
+    // uploaded by them or explicitly downloaded. Inbound-only manifest rows
+    // (localPath == null) stay hidden until the user pulls the bytes.
+    if (r.localPath == null) return false;
     if (f.pinnedOnly && !r.pinned) return false;
     switch (f.cache) {
       case MediaCacheFilter.cached:
