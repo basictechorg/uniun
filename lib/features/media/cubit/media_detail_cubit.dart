@@ -60,21 +60,6 @@ class MediaDetailCubit extends Cubit<MediaDetailState> {
     );
   }
 
-  Future<void> togglePin() async {
-    final pinned = state.blob?.pinned ?? false;
-    emit(state.copyWith(busy: true));
-    final res = pinned
-        ? await getIt<UnpinMediaUseCase>().call(sha256)
-        : await getIt<PinMediaUseCase>().call(sha256);
-    res.fold(
-      (f) => emit(state.copyWith(busy: false, errorMessage: f.toMessage())),
-      (_) async {
-        await load();
-        emit(state.copyWith(busy: false));
-      },
-    );
-  }
-
   Future<void> removeLocal() async {
     emit(state.copyWith(busy: true));
     final res = await getIt<RemoveLocalMediaUseCase>().call(sha256);

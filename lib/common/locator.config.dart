@@ -853,12 +853,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i683.MediaRepository>(),
       ),
     );
-    gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
-      () => _i524.CreateChannelMessageUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-      ),
-    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -980,6 +974,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.GetGraphNeighboursUseCase>(),
         gh<_i179.GetGraphNodesByKeysUseCase>(),
         gh<_i918.GetActiveLlmModelUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
+      () => _i524.CreateChannelMessageUseCase(
+        gh<_i964.ChannelMessageRepository>(),
+        gh<_i1039.EventQueueRepository>(),
+        gh<_i683.MediaRepository>(),
       ),
     );
     gh.factory<_i687.SelectAIModelCubit>(
@@ -1145,6 +1146,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i924.PostReplyUseCase>(
       () => _i924.PostReplyUseCase(
         gh<_i475.PublishNoteUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
         gh<_i524.CreateChannelMessageUseCase>(),
         gh<_i78.SendPrivateChannelMessageUsecase>(),
         gh<_i1023.SendDmUseCase>(),

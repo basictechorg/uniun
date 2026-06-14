@@ -1,3 +1,4 @@
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 abstract class ChannelFeedEvent {
@@ -34,11 +35,13 @@ class SendChannelMessageEvent extends ChannelFeedEvent {
     required this.content,
     this.replyToEventId,
     this.mentionRefs = const [],
+    this.attachments = const [],
   });
   final String channelId;
   final String content;
   final String? replyToEventId;
   final List<String> mentionRefs;
+  final List<MediaBlobEntity> attachments;
 }
 
 class SaveChannelFeedMessageEvent extends ChannelFeedEvent {

@@ -21,24 +21,41 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// [compact] caps image height tight for feeds / DMs / quotes; false gives
 /// the thread parent more room.
 class MediaAttachmentView extends StatelessWidget {
+  /// Render from a [NoteEntity] (feed / DM / channel cards have an enriched
+  /// note in hand).
   const MediaAttachmentView({
     super.key,
-    required this.note,
+    required NoteEntity note,
     this.compact = true,
-  });
+  }) : _attachments = null,
+       _note = note;
 
-  final NoteEntity note;
+  /// Render from a raw blob list — used by surfaces that carry attachments
+  /// outside a [NoteEntity] (Brahma graph panel, composers, previews).
+  const MediaAttachmentView.fromBlobs({
+    super.key,
+    required List<MediaBlobEntity> attachments,
+    this.compact = true,
+  }) : _attachments = attachments,
+       _note = null;
+
+  final NoteEntity? _note;
+  final List<MediaBlobEntity>? _attachments;
   final bool compact;
+
+  List<MediaBlobEntity> get _blobs =>
+      _attachments ?? _note?.attachments ?? const [];
 
   @override
   Widget build(BuildContext context) {
-    if (note.attachments.isEmpty) return const SizedBox.shrink();
+    final blobs = _blobs;
+    if (blobs.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final b in note.attachments) ...[
+          for (final b in blobs) ...[
             _AttachmentTile(
               key: ValueKey(b.sha256),
               initial: b,

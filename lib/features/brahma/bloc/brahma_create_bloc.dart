@@ -9,6 +9,7 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -95,7 +96,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       hashtags: hashtags,
     );
     if (attached.isNotEmpty) {
-      tags.addAll(_buildImetaTags(attached));
+      tags.addAll(buildImetaTags(attached));
     }
 
     // 3. Sign
@@ -160,27 +161,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     );
   }
 
-  /// Builds NIP-92 imeta tags from attached blobs. One tag per blob; each
-  /// is a string array `["imeta", "url ...", "m ...", "x ...", ...]`.
-  List<List<String>> _buildImetaTags(List<MediaBlobEntity> blobs) {
-    final out = <List<String>>[];
-    for (final b in blobs) {
-      final url = b.serverUrls.isNotEmpty ? b.serverUrls.first : '';
-      if (url.isEmpty) continue;
-      final dim = b.dim;
-      out.add([
-        'imeta',
-        'url $url',
-        'm ${b.mime}',
-        'x ${b.sha256}',
-        if (b.sizeBytes > 0) 'size ${b.sizeBytes}',
-        if (dim != null) 'dim ${dim.width}x${dim.height}',
-        if (b.blurhash != null) 'blurhash ${b.blurhash}',
-        if (b.filename != null && b.filename!.isNotEmpty) 'name ${b.filename}',
-      ]);
-    }
-    return out;
-  }
+  // Imeta tag construction lives in lib/core/notes/imeta_builder.dart so
+  // every surface emits the same NIP-92 layout.
 
   String _encodeSignedEvent({
     required Event event,

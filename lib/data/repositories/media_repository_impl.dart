@@ -384,20 +384,6 @@ class MediaRepositoryImpl extends MediaRepository {
     }
   }
 
-  /// Returns `<scheme>://<authority>` for an imeta URL. Coerces ws/wss to
-  /// http/https so blob URLs carrying the relay's WebSocket scheme still
-  /// resolve over HTTP.
-  ///
-  /// Do not use `Uri.replace(query: '', fragment: '')` — empty strings
-  /// serialize back as a literal `?` / `#` and break the URL.
-  String _serverBase(String url) {
-    final u = Uri.parse(url);
-    var scheme = u.scheme;
-    if (scheme == 'wss') scheme = 'https';
-    if (scheme == 'ws') scheme = 'http';
-    return '$scheme://${u.authority}';
-  }
-
   /// Best-effort extension from mime; falls back to filename suffix.
   String? _extFromMime(String mime, String? filename) {
     final fromMime = _mimeToExt[mime.toLowerCase()];

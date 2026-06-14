@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/thread/thread_conversation_body.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -40,9 +41,14 @@ class MessageThreadPage extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final String? title;
 
-  /// Posts a reply with the user-picked [mentionRefs]. The caller links it back
-  /// to [root] (NIP-10 marker or reference, per surface).
-  final void Function(String content, List<String> mentionRefs) onSendReply;
+  /// Posts a reply with the user-picked [mentionRefs] and any uploaded media
+  /// [attachments]. The caller links it back to [root] (NIP-10 marker or
+  /// reference, per surface).
+  final void Function(
+    String content,
+    List<String> mentionRefs,
+    List<MediaBlobEntity> attachments,
+  ) onSendReply;
 
   /// Opens [noteId] as its own thread (nested navigation).
   final void Function(String noteId) onOpenThread;

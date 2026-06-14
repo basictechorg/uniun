@@ -6,7 +6,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 /// Grid tile rendering a [MediaBlobEntity]. When the blob is not yet cached
-/// locally, falls back to blurhash → mime icon. Badges show pin / cache state.
+/// locally, falls back to blurhash → mime icon. A badge shows cache state.
 class MediaTile extends StatelessWidget {
   const MediaTile({
     super.key,
@@ -69,26 +69,15 @@ class MediaTile extends StatelessWidget {
           Positioned(
             left: 6,
             bottom: 6,
-            child: Row(
-              children: [
-                if (blob.pinned)
-                  const _Badge(
-                    icon: Icons.star,
-                    color: AppColors.tertiary,
-                  ),
-                if (blob.pinned && _cached) const SizedBox(width: 4),
-                if (_cached)
-                  const _Badge(
+            child: _cached
+                ? const _Badge(
                     icon: Icons.download_done_rounded,
                     color: AppColors.primary,
                   )
-                else
-                  _Badge(
+                : _Badge(
                     icon: Icons.cloud_download_outlined,
                     color: Colors.white.withValues(alpha: 0.85),
                   ),
-              ],
-            ),
           ),
         ],
       ),

@@ -14,7 +14,12 @@ final class LoadThreadEvent extends ThreadEvent {
 
 /// Posts a reply to the current root, routed by source via [PostReplyUseCase].
 final class PostReplyEvent extends ThreadEvent {
-  const PostReplyEvent(this.content, {this.mentionRefs = const []});
+  const PostReplyEvent(
+    this.content, {
+    this.mentionRefs = const [],
+    this.attachments = const [],
+  });
   final String content;
   final List<String> mentionRefs;
+  final List<MediaBlobEntity> attachments;
 }

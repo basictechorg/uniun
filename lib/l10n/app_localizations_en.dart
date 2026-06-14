@@ -1496,7 +1496,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaActionCopySha => 'Copy sha256';
 
   @override
-  String get mediaActionCopyUrl => 'Copy URL';
+  String get mediaActionSaveToDevice => 'Save to device';
 
   @override
   String get mediaEmptyState =>

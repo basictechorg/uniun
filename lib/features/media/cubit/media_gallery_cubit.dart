@@ -45,18 +45,6 @@ class MediaGalleryCubit extends Cubit<MediaGalleryState> {
     );
   }
 
-  Future<void> togglePin(String sha256, bool currentlyPinned) async {
-    _markBusy(sha256, true);
-    final res = currentlyPinned
-        ? await getIt<UnpinMediaUseCase>().call(sha256)
-        : await getIt<PinMediaUseCase>().call(sha256);
-    _markBusy(sha256, false);
-    res.fold(
-      (f) => emit(state.copyWith(errorMessage: f.toMessage())),
-      (_) {},
-    );
-  }
-
   Future<void> removeLocal(String sha256) async {
     _markBusy(sha256, true);
     final res = await getIt<RemoveLocalMediaUseCase>().call(sha256);

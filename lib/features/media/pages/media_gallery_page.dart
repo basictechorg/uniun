@@ -176,10 +176,6 @@ class _FilterStrip extends StatelessWidget {
           _chip(l10n.mediaTabFiles, f.kind == MediaKindFilter.file, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.file));
           }),
-          const SizedBox(width: 12),
-          _chip(l10n.mediaTabPinned, f.pinnedOnly, () {
-            cubit.changeFilter(f.copyWith(pinnedOnly: !f.pinnedOnly));
-          }),
         ],
       ),
     );

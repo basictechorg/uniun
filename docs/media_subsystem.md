@@ -663,3 +663,175 @@ If you forget everything else, remember this:
 4. **Receivers see the metadata first, bytes only on demand.** Tap Download to fetch bytes. The blurhash or mime icon is the placeholder.
 5. **Sha256 is identity.** The same blob in 10 notes = 1 upload + 1 cache entry on each receiver. GC counts references and only deletes when none remain (or the user pinned it).
 6. **Layers are strict.** UI reads `note.attachments` — the data layer (`NoteAttachmentsEnricher`) put it there. The gateway parses `imeta` on inbound. Nobody crosses lanes.
+
+
+1. What is UserServerListRepository and why it exists
+
+  Plain words: it stores the answer to "which Blossom servers does this user use
+  for their media?"
+
+  Why it was needed:
+
+  - Nostr is decentralized. Your notes live on relays, but the bytes of your
+  photos/videos live on Blossom servers (Azure-backed HTTP blob stores). These
+  are two different machines.
+  - When someone else sees your note imeta tag, they only see the SHA-256 hash.
+  They need to know where to download the bytes from. That "where" is your
+  server list.
+  - The standard way to announce this is a Kind 10063 event (BUD-03 / NIP-B7).
+  It's just a list of ["server", "https://..."] tags signed by you.
+
+  Why a whole repository for one URL?
+
+  1. Cache locally — we don't want to re-fetch the Kind 10063 event every time
+  we upload a photo. The single-row UserServerListModel in Isar is that cache.
+  2. Single source of truth — the uploader, the downloader, and the Brahma
+  composer all ask the same place: "what's my Blossom server?"
+  3. Future-proof — today we hardcode our own backend, but the moment we add a
+  second server (BUD-03 fan-out), no code outside this repo needs to change.
+  4. Sync across devices — log in on device B, the Gateway receives your Kind
+  10063, Kind10063UserServerListHandler calls reconcileFromEvent(), and device B
+  now knows the same servers without re-uploading anything.
+
+  The Last-Write-Wins check on lastSyncedCreatedAt is so that an old event
+  arriving late doesn't overwrite a newer one.
+
+  ---
+  2. Media system — end-to-end flow
+
+  A. UPLOAD (Brahma composer → published note with image)
+
+  User taps "Attach Image" in Brahma
+          │
+          ▼
+  image_picker → File on disk
+          │
+          ▼
+  compose_media_sheet.dart
+     - checks size, compresses if needed (ImageCompressor / VideoCompressor)
+     - Windows skips compression (no native backend)
+          │
+          ▼
+  BrahmaCreateBloc.AttachImageEvent
+          │
+          ▼
+  UploadMediaUseCase
+          │
+          ▼
+  MediaRepositoryImpl.uploadFromFile()
+     1. crypto.sha256 → compute hash of the bytes
+     2. ask UserServerListRepository.getServers()  ◄── 1st use of Kind 10063
+          → returns ["https://dev.uniun.in:8080"]
+     3. BlossomClient.head(server, sha256)
+          → if already there: skip upload (deduped)
+     4. flutter_blurhash.encode (in compute() isolate)
+     5. BlossomClient.upload(server, bytes, mime, keys)
+          ├── signs Kind 24242 auth event  ◄── Blossom auth kind
+          │     tags: [["t","upload"],["x",sha256],["expiration",now+5min]]
+          ├── PUT  https://server/upload
+          │     Header: Authorization: Nostr <base64(eventJson)>
+          │     Body : raw bytes
+          └── relay's Khatru + blossom plugin stores it in Azure
+     6. MediaCacheDataSource.write(sha256, ext, bytes)
+          → writes to <appSupport>/media/<sha256>.<ext>
+     7. isar.writeTxn → upsert MediaBlobModel (localPath set, blurhash set)
+     8. First-ever upload → also publishes Kind 10063  ◄── 2nd use
+          (so other devices learn your server)
+          │
+          ▼
+  Brahma builds the Note event with an imeta tag:
+     ["imeta",
+       "url https://dev.uniun.in:8080/<sha256>.jpg",
+       "m image/jpeg",
+       "x <sha256>",
+       "size 482133",
+       "dim 1920x1080",
+       "blurhash LKO2?U..."]
+          │
+          ▼
+  EventQueueModel (rawPassthrough = true because imeta order matters)
+          │
+          ▼
+  Gateway WebSocket → relay → other subscribers
+
+  B. RECEIVE on another device (no download yet)
+
+  Relay sends ["EVENT", {...kind:1, tags:[...,imeta...]}]
+          │
+          ▼
+  kind1_note_handler.dart
+     - parses the event into NoteModel
+     - imeta_parser.dart walks imeta tags
+          │
+          ▼
+  For each imeta:
+     - upsert MediaBlobModel (sha256, mime, dim, blurhash, serverUrls)
+     - localPath stays NULL  ← bytes not pulled yet
+     - write NoteMediaRefModel(noteEventId, sha256)
+          │
+          ▼
+  NoteCard renders
+     - MediaAttachmentView sees blob with localPath==null
+     - shows flutter_blurhash placeholder + "Download" button
+     - Gallery does NOT show it (just-fixed rule: localPath==null hidden)
+
+  C. DOWNLOAD (user taps the download button)
+
+  User taps Download
+          │
+          ▼
+  DownloadMediaUseCase
+          │
+          ▼
+  MediaRepositoryImpl.downloadBySha(sha256)
+     1. Read MediaBlobModel → pick serverUrls.first
+          (note: _serverBase coerces wss:// → https://)
+     2. BlossomClient.download(server, sha256)
+          ├── signs Kind 24242 auth ["t","get"]  ◄── 3rd use of Blossom kind
+          └── GET https://server/<sha256>
+     3. verify sha256 of returned bytes (security)
+     4. MediaCacheDataSource.write → file on disk
+     5. isar.writeTxn → MediaBlobModel.localPath = path, downloadedAt = now
+          │
+          ▼
+  NoteCard auto-rebuilds → shows real Image.file(...)
+  Gallery now shows it (localPath != null)
+
+  D. CROSS-DEVICE Kind 10063 sync
+
+  Device A first upload → publishes Kind 10063 {["server", "..."]}
+          │
+          ▼ relay broadcasts
+  Device B Gateway subscription picks it up
+          │
+          ▼
+  kind10063_user_server_list_handler.dart
+          │
+          ▼
+  UserServerListRepository.reconcileFromEvent()
+     - LWW check on createdAt
+     - writes server URLs to local UserServerListModel
+          │
+          ▼
+  Device B can now upload to / download from the same servers
+
+  ---
+  Summary of the two special kinds
+
+  Kind: 24242 (Blossom auth)
+  Where signed: Inside BlossomClient per HTTP call
+  Where used: Sent in Authorization: Nostr ... header for upload / get / delete
+  /
+    list
+  Why: Proves to the Blossom server that you own this pubkey before it accepts
+    the byte op. Expires in 5 min so a leaked header can't be reused.
+  ────────────────────────────────────────
+  Kind: 10063 (User server list)
+  Where signed: UserServerListRepositoryImpl._publishServerList
+  Where used: Published once on first upload + when server list changes;
+  consumed
+    by Kind10063UserServerListHandler on remote devices
+  Why: So clients downloading your media know which Blossom server to hit.
+    Without it, the imeta url is still there, but having the Kind 10063 makes a
+    client robust to URL-mangling (it can fall back to <knownServer>/<sha256>).
+

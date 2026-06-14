@@ -258,10 +258,11 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                     ),
                     ComposerHost(
                       hintText: AppLocalizations.of(context)!.chatMessageHint,
-                      onSend: (text, refs) =>
+                      onSend: (text, refs, attachments) =>
                           context.read<PrivateChannelDetailBloc>().add(
                                 SendPrivateChannelMessageEvent(text,
-                                    mentionRefs: refs),
+                                    mentionRefs: refs,
+                                    attachments: attachments),
                               ),
                     ),
                   ],

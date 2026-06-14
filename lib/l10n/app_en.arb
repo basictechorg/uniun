@@ -1391,8 +1391,8 @@
   "mediaActionCopySha": "Copy sha256",
   "@mediaActionCopySha": { "description": "Action that copies the blob's sha256 hash to the clipboard" },
 
-  "mediaActionCopyUrl": "Copy URL",
-  "@mediaActionCopyUrl": { "description": "Action that copies the blob's server URL to the clipboard" },
+  "mediaActionSaveToDevice": "Save to device",
+  "@mediaActionSaveToDevice": { "description": "Action that hands the cached blob to the OS share sheet so the user can save it to Photos / Files / Drive" },
 
   "mediaEmptyState": "No media yet. Notes you receive with attachments will appear here.",
   "@mediaEmptyState": { "description": "Empty state shown in the media gallery when there are no known blobs" },

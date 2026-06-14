@@ -86,6 +86,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
               created: n.created,
               tTags: n.tTags,
               pTagRefs: n.pTagRefs,
+              attachments: n.attachments,
             ));
           }
         }

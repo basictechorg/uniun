@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
@@ -160,7 +161,10 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
 
   Future<void> _onPost(PostReplyEvent event, Emitter<ThreadState> emit) async {
     final root = state.root;
-    if (root == null || event.content.trim().isEmpty) return;
+    if (root == null ||
+        (event.content.trim().isEmpty && event.attachments.isEmpty)) {
+      return;
+    }
 
     emit(state.copyWith(postStatus: ThreadPostStatus.posting));
 
@@ -168,6 +172,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       root: root,
       content: event.content.trim(),
       mentionRefs: event.mentionRefs,
+      attachments: event.attachments,
       // Saved-only threads always reply as feed notes (parity with prior
       // behavior — the saved root may be from a channel/group the user can't post to).
       sourceOverride: state.savedOnly ? NoteSource.feed : null,

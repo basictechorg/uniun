@@ -2824,11 +2824,11 @@ abstract class AppLocalizations {
   /// **'Copy sha256'**
   String get mediaActionCopySha;
 
-  /// Action that copies the blob's server URL to the clipboard
+  /// Action that hands the cached blob to the OS share sheet so the user can save it to Photos / Files / Drive
   ///
   /// In en, this message translates to:
-  /// **'Copy URL'**
-  String get mediaActionCopyUrl;
+  /// **'Save to device'**
+  String get mediaActionSaveToDevice;
 
   /// Empty state shown in the media gallery when there are no known blobs
   ///

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/features/media/cubit/media_detail_cubit.dart';
@@ -94,19 +95,23 @@ class _DetailBody extends StatelessWidget {
                   l10n.mediaActionDownload,
                   cubit.download,
                 ),
-              // Non-image cached blobs: hand off to the OS so the user can
-              // actually view the PDF / play the video / read the file.
               if (_cached && !_isImage)
                 _action(
                   Icons.open_in_new_rounded,
                   l10n.mediaActionOpen,
                   () => OpenFilex.open(blob.localPath!),
                 ),
-              _action(
-                blob.pinned ? Icons.star : Icons.star_outline,
-                blob.pinned ? l10n.mediaActionUnpin : l10n.mediaActionPin,
-                cubit.togglePin,
-              ),
+              // Cross-platform "Save to gallery / Files" — hands the bytes to
+              // the OS share sheet so the user picks Photos / Files / Drive
+              // themselves. WhatsApp-style.
+              if (_cached)
+                _action(
+                  Icons.save_alt_rounded,
+                  l10n.mediaActionSaveToDevice,
+                  () => Share.shareXFiles(
+                    [XFile(blob.localPath!, name: blob.filename)],
+                  ),
+                ),
               if (_cached)
                 _action(
                   Icons.delete_outline,
@@ -121,15 +126,6 @@ class _DetailBody extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: blob.sha256));
                 },
               ),
-              if (blob.serverUrls.isNotEmpty)
-                _action(
-                  Icons.link,
-                  l10n.mediaActionCopyUrl,
-                  () {
-                    Clipboard.setData(
-                        ClipboardData(text: blob.serverUrls.first));
-                  },
-                ),
             ],
           ),
           const SizedBox(height: 24),
@@ -144,8 +140,6 @@ class _DetailBody extends StatelessWidget {
           if (blob.downloadedAt != null)
             _metaRow(l10n.mediaDetailLabelCached, _fmtDate(blob.downloadedAt!)),
           _metaRow(l10n.mediaDetailReferencedBy, refIds.length.toString()),
-          for (final url in blob.serverUrls)
-            _metaRow(l10n.mediaDetailLabelServer, url),
         ],
       ),
     );
