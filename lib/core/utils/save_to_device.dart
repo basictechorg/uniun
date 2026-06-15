@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:gal/gal.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -47,20 +47,16 @@ Future<SaveResult> saveMediaToDevice({
 
     if (isMedia &&
         (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
-      final hasAccess = await Gal.hasAccess(toAlbum: true);
-      if (!hasAccess) {
-        final granted = await Gal.requestAccess(toAlbum: true);
-        if (!granted) {
-          return const SaveResult(
-            success: false,
-            error: 'Photos permission denied',
-          );
-        }
-      }
-      if (isImage) {
-        await Gal.putImage(localPath, album: 'UNIUN');
-      } else {
-        await Gal.putVideo(localPath, album: 'UNIUN');
+      final result = await ImageGallerySaverPlus.saveFile(
+        localPath,
+        name: filename ?? p.basenameWithoutExtension(localPath),
+      );
+      final saved = result['isSuccess'] == true;
+      if (!saved) {
+        return SaveResult(
+          success: false,
+          error: result['errorMessage']?.toString() ?? 'Save failed',
+        );
       }
       return const SaveResult(success: true, destination: 'Photos');
     }
