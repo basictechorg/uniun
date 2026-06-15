@@ -181,6 +181,9 @@ class DraftRepositoryImpl extends DraftRepository {
     final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final expireSec =
         DateTime.now().add(_draftExpiry).millisecondsSinceEpoch ~/ 1000;
+
+    // Canonical tag order — must match
+    // [EventQueueModel.toSerializedRelayMessage]: d → k → expiration.
     final tags = <List<String>>[
       ['d', draftId],
       ['k', kNoteKind.toString()],
@@ -195,20 +198,6 @@ class DraftRepositoryImpl extends DraftRepository {
       createdAt: nowSec,
     );
 
-    // Full signed JSON goes into EventQueueModel.content because the shaped
-    // serializer in event_queue_model.dart can't emit d/k/expiration tags.
-    // Kind 31234 is in _rawPassthroughKinds so the outbound pump uses
-    // toRawRelayMessage() instead of toSerializedRelayMessage().
-    final fullJson = jsonEncode({
-      'id': event.id,
-      'pubkey': event.pubkey,
-      'created_at': event.createdAt,
-      'kind': event.kind,
-      'tags': tags,
-      'content': event.content,
-      'sig': event.sig,
-    });
-
     await _eventQueue.enqueueSignedEvent(
       eventId: event.id,
       authorPubkey: event.pubkey,
@@ -217,8 +206,11 @@ class DraftRepositoryImpl extends DraftRepository {
       eTagRefs: const [],
       pTagRefs: const [],
       tTags: const [],
-      content: fullJson,
+      content: event.content,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
+      dTag: draftId,
+      quoteKind: kNoteKind,
+      expirationSec: expireSec,
     );
   }
 }

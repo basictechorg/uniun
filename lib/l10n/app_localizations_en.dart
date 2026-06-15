@@ -1499,6 +1499,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaActionSaveToDevice => 'Save to device';
 
   @override
+  String mediaSavedTo(String destination) {
+    return 'Saved to $destination';
+  }
+
+  @override
+  String get mediaSaveSuccess => 'Saved';
+
+  @override
+  String get mediaSaveFailed => 'Couldn\'t save the file';
+
+  @override
   String get mediaEmptyState =>
       'No media yet. Notes you receive with attachments will appear here.';
 
@@ -1584,6 +1595,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageMedia => 'Media';
+
+  @override
+  String get storageRetentionTitle => 'Auto-delete old notes';
+
+  @override
+  String get storageRetentionSubtitle =>
+      'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.';
+
+  @override
+  String get storageRetentionOff => 'Off';
+
+  @override
+  String storageRetentionDays(int days) {
+    return '$days days';
+  }
 
   @override
   String get noteCardMediaDownloading => 'Downloading…';

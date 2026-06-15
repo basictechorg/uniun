@@ -45,6 +45,10 @@ dependencies:
   flutter_native_splash: ^2.3.10
   qr_flutter: ^4.1.0
   share_plus: ^10.1.4
+  # Direct save to Photos / Files (Android / iOS / macOS). On Windows we
+  # fall back to copying the file to the user's Downloads directory via
+  # path_provider.
+  gal: ^2.3.1
   mobile_scanner: ^7.2.0
   flutter_gemma: ^0.16.5
   system_info_plus: ^0.0.6

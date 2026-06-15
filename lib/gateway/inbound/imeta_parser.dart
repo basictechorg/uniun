@@ -1,6 +1,4 @@
-import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/media/media_blob_model.dart';
-import 'package:uniun/data/models/media/note_media_ref_model.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 
 /// One parsed `imeta` tag (NIP-92).
 ///
@@ -32,16 +30,6 @@ class ImetaTag {
 class ImetaParser {
   ImetaParser._();
 
-  /// Fast pre-check used by inbound handlers to set [NoteModel.hasMedia]
-  /// without fully parsing every tag. Stops at the first `imeta` tag.
-  static bool hasImeta(Map<String, dynamic> event) {
-    final rawTags = (event['tags'] as List<dynamic>? ?? const []);
-    for (final raw in rawTags) {
-      if (raw is List && raw.isNotEmpty && raw[0] == 'imeta') return true;
-    }
-    return false;
-  }
-
   /// Walks an event's `tags` array and returns every well-formed `imeta`.
   /// Drops malformed tags silently — a partial blob can't be rendered
   /// anyway, and noisy logging on the inbound hot path is worse than the
@@ -56,6 +44,25 @@ class ImetaParser {
       if (tag != null) out.add(tag);
     }
     return out;
+  }
+
+  /// Inbound convenience — `parse` followed by mapping each tag to the
+  /// embedded [MediaAttachment] that lives on [NoteModel.attachments].
+  /// Called once per event by the inbound handlers.
+  static List<MediaAttachment> parseAsAttachments(Map<String, dynamic> event) {
+    final tags = parse(event);
+    return [
+      for (final t in tags)
+        MediaAttachment()
+          ..sha256 = t.sha256
+          ..mime = t.mime
+          ..sizeBytes = t.sizeBytes ?? 0
+          ..url = t.url
+          ..width = t.width
+          ..height = t.height
+          ..blurhash = t.blurhash
+          ..filename = t.filename,
+    ];
   }
 
   static ImetaTag? _parseOne(List rawTag) {
@@ -109,52 +116,5 @@ class ImetaParser {
       blurhash: blurhash,
       filename: filename,
     );
-  }
-
-  /// Persists every imeta tag on [event] into [MediaBlobModel] (upsert by
-  /// sha256) and writes a [NoteMediaRefModel] row linking the note. Must run
-  /// inside the caller's `writeTxn`. Inbound rows leave `localPath` null —
-  /// the user explicitly downloads from the gallery / note card.
-  static Future<void> persistInTxn({
-    required Isar isar,
-    required String noteEventId,
-    required Map<String, dynamic> event,
-  }) async {
-    final imetas = parse(event);
-    if (imetas.isEmpty) return;
-    final now = DateTime.now();
-    for (final m in imetas) {
-      final existing = await isar.mediaBlobModels
-          .filter()
-          .sha256EqualTo(m.sha256)
-          .findFirst();
-      final row = existing ?? MediaBlobModel();
-      row.sha256 = m.sha256;
-      row.mime = m.mime;
-      row.sizeBytes = m.sizeBytes ?? existing?.sizeBytes ?? 0;
-      row.width = m.width ?? existing?.width;
-      row.height = m.height ?? existing?.height;
-      row.blurhash = m.blurhash ?? existing?.blurhash;
-      row.filename = m.filename ?? existing?.filename;
-      final urls = <String>{...(existing?.serverUrls ?? const []), m.url};
-      row.serverUrls = urls.toList();
-      // localPath / downloadedAt left untouched — bytes are user-fetched.
-      row.lastSeenAt = now;
-      row.pinned = existing?.pinned ?? false;
-      await isar.mediaBlobModels.put(row);
-
-      final refExists = await isar.noteMediaRefModels
-          .filter()
-          .noteEventIdEqualTo(noteEventId)
-          .mediaSha256EqualTo(m.sha256)
-          .findFirst();
-      if (refExists == null) {
-        await isar.noteMediaRefModels.put(
-          NoteMediaRefModel()
-            ..noteEventId = noteEventId
-            ..mediaSha256 = m.sha256,
-        );
-      }
-    }
   }
 }

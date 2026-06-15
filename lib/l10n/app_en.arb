@@ -1392,7 +1392,16 @@
   "@mediaActionCopySha": { "description": "Action that copies the blob's sha256 hash to the clipboard" },
 
   "mediaActionSaveToDevice": "Save to device",
-  "@mediaActionSaveToDevice": { "description": "Action that hands the cached blob to the OS share sheet so the user can save it to Photos / Files / Drive" },
+  "@mediaActionSaveToDevice": { "description": "Action that saves the cached blob to the device's gallery (images / videos via `gal`) or Downloads folder (files on desktop) or share sheet (non-media on mobile)." },
+
+  "mediaSavedTo": "Saved to {destination}",
+  "@mediaSavedTo": { "description": "Snackbar shown after a successful Save to device; placeholder is the destination (e.g. 'Photos', '/Users/...').", "placeholders": { "destination": { "type": "String" } } },
+
+  "mediaSaveSuccess": "Saved",
+  "@mediaSaveSuccess": { "description": "Generic success snackbar when the destination isn't a known string (mobile share-sheet path)." },
+
+  "mediaSaveFailed": "Couldn't save the file",
+  "@mediaSaveFailed": { "description": "Snackbar shown when the Save to device action fails (permission denied / disk error)." },
 
   "mediaEmptyState": "No media yet. Notes you receive with attachments will appear here.",
   "@mediaEmptyState": { "description": "Empty state shown in the media gallery when there are no known blobs" },
@@ -1483,6 +1492,18 @@
 
   "storageMedia": "Media",
   "@storageMedia": { "description": "Legend label in the Settings → Storage chart for the cached media bucket (photos / videos / files under getApplicationSupportDirectory()/media/)." },
+
+  "storageRetentionTitle": "Auto-delete old notes",
+  "@storageRetentionTitle": { "description": "Row title for the auto-cleanup retention dropdown in Settings → Storage. Affects only public feed / channel notes the user hasn't saved or followed." },
+
+  "storageRetentionSubtitle": "Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.",
+  "@storageRetentionSubtitle": { "description": "Subtitle/explanation under the auto-delete retention row — clarifies which notes are affected." },
+
+  "storageRetentionOff": "Off",
+  "@storageRetentionOff": { "description": "Dropdown value for disabling auto-deletion (the default — nothing is removed)." },
+
+  "storageRetentionDays": "{days} days",
+  "@storageRetentionDays": { "description": "Dropdown value for the auto-delete retention window in days.", "placeholders": { "days": { "type": "int" } } },
 
   "noteCardMediaDownloading": "Downloading…",
   "@noteCardMediaDownloading": { "description": "Status text shown on a note-card media tile while bytes are downloading" },

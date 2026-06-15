@@ -91,6 +91,11 @@ The text note (`kind: 1`) or channel message (`kind: 42`) is what actually goes 
 
 ## 3. Big picture
 
+Imeta metadata lives **on the note**. The only side table is a small cache
+that tracks which blobs are on this device. No ref counts, no automatic GC,
+no `MediaBlobModel`, no `NoteMediaRefModel`. Removal is user-driven via the
+gallery.
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                            UNIUN CLIENT (Flutter)                        │
@@ -106,18 +111,22 @@ The text note (`kind: 1`) or channel message (`kind: 42`) is what actually goes 
 │                              │                                           │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │ Data                                                              │   │
-│  │   ┌────────────┐  ┌─────────────┐  ┌──────────────────────┐     │   │
-│  │   │ Isar       │  │ BlossomClient│ │ MediaCacheDataSource │     │   │
-│  │   │ MediaBlob  │  │  (HTTP)      │ │  (path_provider)     │     │   │
-│  │   │ NoteMedia… │  │              │ │                      │     │   │
-│  │   │ UserServer…│  │              │ │ media/<sha>.<ext>    │     │   │
-│  │   └────────────┘  └─────────────┘  └──────────────────────┘     │   │
+│  │   ┌──────────────────────┐  ┌──────────────┐  ┌──────────────┐  │   │
+│  │   │ Isar                 │  │ BlossomClient│  │ MediaCacheDS │  │   │
+│  │   │  NoteModel           │  │   (HTTP)     │  │   (path_     │  │   │
+│  │   │   ├ attachments      │  │              │  │   provider)  │  │   │
+│  │   │   │  (embedded list  │  │              │  │              │  │   │
+│  │   │   │   of imeta)      │  │              │  │  media/      │  │   │
+│  │   │   └ hasMedia (bool)  │  │              │  │   <sha>.<ext>│  │   │
+│  │   │  MediaCacheModel     │  │              │  │              │  │   │
+│  │   │   sha→localPath      │  │              │  │              │  │   │
+│  │   └──────────────────────┘  └──────────────┘  └──────────────┘  │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 │                              ↑ writes Isar                               │
 │  ┌──────────────────────────────────────────────────────────────────┐   │
 │  │ Gateway isolate                                                   │   │
 │  │   inbound handlers (Kind1/Kind42/Kind10063)  ·  EventQueue        │   │
-│  │   CleanupManager (every 6h)                                       │   │
+│  │   CleanupManager (note retention only — no media GC)              │   │
 │  └──────────────────────────────────────────────────────────────────┘   │
 └────────────────────┬─────────────────────┬──────────────────────────────┘
                      │ WSS                 │ HTTPS
@@ -194,11 +203,11 @@ The text note (`kind: 1`) or channel message (`kind: 42`) is what actually goes 
 │   │       We build publicUrl from `kUniunBlossom` ourselves.     │    │
 │   │                                                              │    │
 │   │   write local cache: media/<sha>.jpg                         │    │
-│   │   upsert MediaBlobModel (sha, mime, dim, localPath, …)       │    │
+│   │   upsert MediaCacheModel(sha, localPath, downloadedAt)       │    │
 │   │   first upload only: setServers([primary]) → Kind 10063      │    │
 │   └──────────────────────────────────────────────────────────────┘    │
 │                                                                        │
-│   state.attachedMedia += blob                                          │
+│   state.attachedMedia += MediaBlobEntity (sha + imeta fields)          │
 │   emit(isAttachingMedia=false)   ─►   thumbnail shows, send unlocks    │
 └────────────────────────────────────────────────────────────────────────┘
 
@@ -213,22 +222,21 @@ User types text · taps Send
 │                                                                        │
 │   signed = Event.from(kind:1, tags:tags, content, privkey)             │
 │                                                                        │
-│   NoteEntity built with hasMedia=true                                  │
+│   NoteEntity built with attachments=[…] (hasMedia derived)             │
 │                                                                        │
 │   ┌──────────────────────────────────────────────────────────────┐    │
 │   │ PublishMediaNoteUseCase                                      │    │
-│   │   noteRepo.saveNote(entity) → NoteModel(hasMedia:true)       │    │
-│   │   for each sha:                                              │    │
-│   │     mediaRepo.linkNoteRef(sha, noteId) → NoteMediaRefModel   │    │
+│   │   noteRepo.saveNote(entity) → NoteModel with embedded        │    │
+│   │                                attachments list              │    │
 │   │   eventQueue.enqueueSignedEvent(                             │    │
-│   │       content = full signed JSON,                            │    │
-│   │       rawPassthrough: true)                                  │    │
+│   │       content = note content (text only),                    │    │
+│   │       imeta   = input.attachments)                           │    │
 │   └──────────────────────────────────────────────────────────────┘    │
 └────────────────────────────────────────────────────────────────────────┘
 
 Gateway isolate · OutboundPump
-   row.isRawPassthroughEvent == true → toRawRelayMessage()
-   WebSocketService.send(["EVENT", { …signed JSON with imeta… }])
+   row.toSerializedRelayMessage()           ← single path, every kind
+   WebSocketService.send(["EVENT", { …reconstructed with imeta… }])
    relay: ["OK", id, true]  ✓
 ```
 
@@ -240,22 +248,18 @@ Relay pushes ["EVENT", "feed_notes", { kind:1, tags:[imeta,…], … }]
        ▼
 InboundBus → Kind1NoteHandler
        │
-       ├─► _parseNoteModel(event)                       — text, e-tags, q-tag
-       ├─► model.hasMedia = ImetaParser.hasImeta(event) — fast O(tags) scan
+       ├─► _parseNoteModel(event):
+       │     - walks tags (e/p/t/q/subject)
+       │     - calls ImetaParser.parseAsAttachments(event)
+       │       → List<MediaAttachment> embedded directly on the note
+       │     - NoteModel constructor derives hasMedia = attachments.isNotEmpty
        │
-       ├─► writeTxn:
-       │     noteModels.put(model)
-       │     ImetaParser.persistInTxn(noteEventId, event):
-       │       for each imeta:
-       │         upsert MediaBlobModel(sha, mime, dim, blurhash,
-       │                                serverUrls, localPath=null,
-       │                                lastSeenAt=now)
-       │         insert NoteMediaRefModel(noteId, sha) [idempotent]
+       ├─► writeTxn: noteModels.put(model)  ← one write, one row
        │
        └─► unread row, reply edges (existing logic)
 ```
 
-At this point the receiver's Isar has **metadata only** — no bytes were transferred. The note appears in the feed; the photo shows as a **blurhash placeholder + Download button**.
+At this point the receiver's Isar has **metadata only** — no bytes were transferred, no separate blob table, no join table. The note appears in the feed; the photo shows as a **blurhash placeholder + Download button**.
 
 ### 4.3 Read — viewer scrolls past the note
 
@@ -265,17 +269,18 @@ Vishnu feed loads page
        ▼
 FeedRepository.getUnseenQueue / getSeen
        │ rows from NoteModel (kind 1/42, author allow-list)
+       │ each row already carries its embedded attachments
        ▼
 NoteResolverRepository.enrichWithQuotes
        │
        ├─► quote-target NoteEntity lookup (single bulk query)
        ├─► NoteAttachmentsEnricher.enrichAll([page, quoteTargets])
-       │     • one query into NoteMediaRefModel filtered to media noteIds
-       │     • one query into MediaBlobModel for unique sha256s
-       │     • assemble in memory
+       │     ONE query into MediaCacheModel for the unique sha256s
+       │     mentioned by the page. Patches localPath/downloadedAt onto
+       │     each MediaBlobEntity already on the NoteEntity.
        │
        ▼
-List<NoteEntity> arrives at BLoC, each entity has note.attachments populated
+List<NoteEntity> arrives at BLoC, attachments fully resolved.
 
 NoteCard.build
        │
@@ -289,12 +294,12 @@ NoteCard.build
                   ▼                                      ▼
             Image.file(...)                  blurhash + Download button
             BoxFit.cover                     tap → DownloadMediaUseCase
-            height ≤ 280px (compact)
+            height ≤ 280px (compact)              (sha, url, mime)
                                                        │
                                                        ▼
-                                BlossomClient.download(server, sha)
+                                BlossomClient.download(url)
                                       cache.write(sha, ext, bytes)
-                                      upsert MediaBlobModel(localPath set)
+                                      upsert MediaCacheModel(localPath set)
                                       setState in tile → image shows
 ```
 
@@ -307,38 +312,39 @@ MediaGalleryCubit.load
               ▼
        MediaRepository.watchAll(filter)
               ▼
-       isar.mediaBlobModels.where().sortByLastSeenAtDesc()
+       isar.mediaCacheModels.where().sortByDownloadedAtDesc()
               .watch(fireImmediately: true)
-              .map(filter)
+              .asyncMap: join each row to the first NoteModel that
+                         carries the matching sha (recovers imeta
+                         metadata for rendering) → MediaBlobEntity
+
+Gallery only ever lists files actually on disk — `MediaCacheModel`
+is the source of truth.
 
 Each tile = MediaTile widget
-  status badges: ⭐ pinned · ✅ on-device · ⬇️ remote-only
-  long-press   : Download / Pin / Remove from device
+  status badge : ✅ cached (the only state the tile has now)
+  long-press   : toggles multi-select for bulk Remove from device
 
 Tap → MediaDetailPage(sha256)
-       loads MediaBlobModel + getReferencingNoteIds
-       shows full preview + metadata + action row
+       loads cached entity (no network), shows preview + metadata
+       + actions: Open / Save to device / Copy sha / Remove
 ```
 
-### 4.5 GC — every 6 hours in the gateway isolate
+### 4.5 Cleanup — note retention only
 
 ```
-CleanupManager.runOnce
-   ├─► Phase A: note eviction
-   │     for each Kind 1 older than 7d:
-   │       skip if authorPubkey == ownPubkey      (own forever)
-   │       skip if in SavedNoteModel              (saved forever)
-   │       else delete from NoteModel
-   │     same logic for Kind 42 / >3d
-   │
-   └─► Phase B: media GC
-         for each MediaBlobModel where pinned == false:
-           count = NoteMediaRefModel.where(sha).count
-           if count == 0:
-             delete local file (media/<sha>.ext)
-             delete MediaBlobModel row
-   (Backend keeps the bytes on Azure forever — nothing here calls DELETE /sha)
+CleanupManager.runOnce  (every 6h)
+   └─► Note eviction
+         for each Kind 1 older than 7d:
+           skip if authorPubkey == ownPubkey      (own forever)
+           skip if in SavedNoteModel              (saved forever)
+           else delete from NoteModel
+         same logic for Kind 42 / >3d
 ```
+
+**No media GC.** Files stay on disk until the user removes them via
+Settings → Storage → Media (`MediaRepository.removeLocal`). Manual
+control by design — the user decides when to free space.
 
 ---
 
@@ -347,33 +353,37 @@ CleanupManager.runOnce
 ### 5.1 Isar collections
 
 ```
-NoteModel                  (existing)
+NoteModel                  (existing — gained two media fields)
 ├── eventId   (unique)
 ├── content, sig, authorPubkey, …
-├── hasMedia  (bool, default false) — NEW: fast gate for UI
+├── attachments  List<MediaAttachment>   — embedded, one per imeta tag
+├── hasMedia     (bool, indexed)         — derived = attachments.isNotEmpty
 └── … (kind, threading, etc.)
 
-MediaBlobModel             (new — one row per content-addressed blob)
-├── id        (auto)
-├── sha256    (unique)
-├── mime                       default 'application/octet-stream'
-├── sizeBytes                  default 0
-├── width / height / blurhash  nullable
-├── serverUrls                 default []
-├── localPath                  null until downloaded
-├── downloadedAt               null until downloaded
-├── lastSeenAt                 indexed — gallery sort
-└── pinned                     indexed — GC skip flag
+MediaAttachment            (@embedded — lives inside NoteModel.attachments)
+├── sha256
+├── mime
+├── sizeBytes
+├── url
+├── width / height
+├── blurhash
+└── filename
 
-NoteMediaRefModel          (new — join table)
-├── noteEventId   indexed
-└── mediaSha256   indexed
-                  (composite uniqueness enforced in code)
+MediaCacheModel            (only media side table — "what's on this device")
+├── id           (auto)
+├── sha256       (unique)
+├── localPath
+└── downloadedAt
 
-UserServerListModel        (new — single-row, id=0)
+UserServerListModel        (single-row, id=0 — deferred SharedPreferences migration)
 ├── serverUrls                 default []
 └── lastSyncedCreatedAt        nullable — LWW for inbound Kind 10063
 ```
+
+There is **no** `MediaBlobModel` and **no** `NoteMediaRefModel`. Same SHA
+appearing in three notes = three embedded entries (small — ~120 bytes
+each) and one cache row. Cross-note rendering is consistent because the
+cache lookup is keyed by SHA, not by note.
 
 ### 5.2 Domain entity enrichment
 
@@ -403,9 +413,7 @@ UI widgets read `note.attachments` directly; nobody hits Isar from a card.
 | Kind 1 (regular) | 7 days |
 | Kind 42 (channel) | 3 days |
 | DM / private channel content | Forever |
-| MediaBlobModel — pinned | Forever |
-| MediaBlobModel — any note still references it | Forever (kept until last reference GCs) |
-| MediaBlobModel — zero references, not pinned | GC'd on next cleanup tick |
+| Media files (`MediaCacheModel` rows + disk bytes) | Forever (until user removes from device) |
 
 ---
 
@@ -446,9 +454,21 @@ Wide / panoramic images render at natural aspect. Portraits and squares get crop
 
 `Settings → Storage → Media` opens `MediaGalleryPage`.
 
-Filter chips: **All · Images · Videos · Audio · Files · Pinned**. (No "On device" chip — the Download button on each tile already conveys cached-ness.)
+Filter chips: **All · Images · Videos · Audio · Files**.
 
-Each tile shows pin / cache badges; long-press opens an action sheet (Download / Pin / Remove from device). Tap → `MediaDetailPage` for full preview + metadata + Copy sha / Copy URL.
+The gallery lists files actually on disk — `MediaCacheModel.findAll()`
+joined to the first NoteModel that referenced each sha (for imeta
+metadata). Inbound-only notes whose bytes haven't been downloaded yet
+do **not** appear here; their NoteCard's Download button is where the
+user pulls them.
+
+Each tile shows a single ✅ cached badge. Long-press toggles multi-select;
+the bulk action is "Remove from device" (deletes the file + cache row).
+
+Tap → `MediaDetailPage` for the full preview, Open (non-images),
+Save to device (OS share sheet → Photos/Files/Drive), Remove from
+device, Copy sha. No pin, no copy URL — the URL is in the note's
+imeta tag and anyone with the SHA can already derive it.
 
 ---
 
@@ -535,9 +555,30 @@ Authorization: Nostr <base64({
 }
 ```
 
-### Raw-passthrough enqueue
+### Single serialization path — no raw-passthrough
 
-`EventQueueModel` rows with `rawPassthrough = true` (set by `PublishMediaNoteUseCase` and by the Kind 10063 publish path) skip the shaped serializer. Their full signed JSON is stored verbatim in the `content` column and emitted via `toRawRelayMessage()`. Required because the shaped serializer rebuilds tags in a fixed order (e → p → t → q → k) and can't emit `imeta` or `server` without re-hashing the event id (which would break the signature).
+Every kind serializes through `EventQueueModel.toSerializedRelayMessage`.
+The model gained typed columns (`hTag`, `dTag`, `expirationSec`,
+`serverTags`, `imeta`) so the shaped rebuilder can emit every tag the
+publisher signed. Canonical order:
+
+```
+e root → e reply → e mention…
+p…
+t…
+h          (NIP-29 private channel)
+d          (NIP-37 draft id)
+k          (NIP-18 quoted kind; also "1" for drafts)
+q          (NIP-18 quote)
+expiration (NIP-37)
+server…    (BUD-03 / Kind 10063)
+imeta…     (NIP-92)
+```
+
+Publishers must sign in this exact order — otherwise the re-serialized
+event SHA-256 won't match the signed `eventId` and the relay rejects
+the signature. The order lives in `event_queue_model.dart`; that file
+is authoritative.
 
 ---
 
@@ -590,25 +631,26 @@ Core
 
 End-to-end smoke, run in order. Most need two devices signed into the same identity.
 
-1. **Schema migration** — `flutter pub run build_runner build --delete-conflicting-outputs` clean. App boots without Isar exceptions.
+1. **Schema migration** — `flutter pub run build_runner build --delete-conflicting-outputs` clean. App boots without Isar exceptions (collections `MediaBlob` + `NoteMediaRef` are gone; `MediaCache` is new; `NoteModel.attachments` is a new embedded list).
 2. **Upload + publish** — attach a photo in Brahma, publish. Check:
    - composer shows spinner tile, then real thumbnail
    - send button blocked during upload, unlocked after
-   - `EventQueueModel` row with `kind: 1`, `rawPassthrough: true`, JSON containing `imeta`
+   - `EventQueueModel` row with `kind: 1`, `imeta` column populated, **no** rawPassthrough flag
    - Backend Azure container has `<sha256>.jpg`
    - Local `media/<sha256>.jpg` exists
-   - Gallery shows the new blob with ✅ on-device badge
-3. **Render across surfaces** — same note in Vishnu (compact), in thread page (expanded), quoted by another note (compact in `EmbeddedNoteCard`).
+   - Gallery shows the new blob with ✅ cached badge
+3. **Render across surfaces** — same note in Vishnu (compact), in thread page (expanded), quoted by another note (compact in `EmbeddedNoteCard`), in Brahma's graph node panel.
 4. **Inbound on second device** — relay streams the note. Check:
-   - `NoteMediaRefModel` row written
-   - `MediaBlobModel` row with `localPath == null`
+   - `NoteModel.attachments` populated from inbound `imeta`
+   - No `MediaCacheModel` row yet (`localPath == null` semantics)
    - Note card renders blurhash placeholder + Download button (or mime icon if no blurhash)
-5. **Tap Download** — bytes arrive, tile flips to image. Second tap on a different note that references the same sha → no network, served from cache.
-6. **Kind 10063** — on the second device, sign in. After Gateway syncs, `UserServerListModel.serverUrls` populated. Future uploads against that server.
+5. **Tap Download** — bytes arrive; `MediaCacheModel` row appears; tile flips to image. A second note referencing the same SHA renders the cached file with no extra network call.
+6. **Kind 10063 round-trip** — first upload publishes Kind 10063; relay accepts (no `bad sig`).
 7. **Compression** — pick a 5 MB JPEG. Compressor walks the schedule, fits under 950 KB, uploads. No 413 from nginx.
-8. **Hard-reject paths** — pick a 4 MB video → snackbar "File too large (4096 KB). Max 950 KB."
-9. **GC** — fake-age a Kind 1 note past 7 days. Run `CleanupManager.runOnce()`. Blob with `pinned: false` and no other ref → file deleted + row deleted. Pin a blob → survives GC even with no refs.
-10. **Static checks** — `flutter analyze lib/` clean. No hardcoded English (all via `AppLocalizations`).
+8. **Hard-reject paths** — pick an oversized video → snackbar "File too large (… MB). Max … MB. Please compress it and try again."
+9. **Manual removal** — gallery → long-press tiles → bulk delete. Files gone from disk, cache rows gone. Note cards revert to download button; no auto re-download.
+10. **Sign-and-replay for every previously-rawPassthrough kind** — Kind 1 with imeta / Kind 42 with imeta / Kind 9023 (private channel send) / Kind 31234 (draft sync) / Kind 10063: relay accepts all. If any returns `["OK", id, false, "bad sig"]`, the canonical tag order is wrong somewhere.
+11. **Static checks** — `flutter analyze lib/` clean. No hardcoded English (all via `AppLocalizations`).
 
 ---
 
@@ -661,8 +703,10 @@ If you forget everything else, remember this:
 2. **Blossom is "elsewhere"** — an HTTP blob store keyed by sha256. Our backend runs one alongside the relay.
 3. **`imeta` is the bridge** — a Nostr tag that says "this event references the blob at URL X with sha Y of type Z".
 4. **Receivers see the metadata first, bytes only on demand.** Tap Download to fetch bytes. The blurhash or mime icon is the placeholder.
-5. **Sha256 is identity.** The same blob in 10 notes = 1 upload + 1 cache entry on each receiver. GC counts references and only deletes when none remain (or the user pinned it).
-6. **Layers are strict.** UI reads `note.attachments` — the data layer (`NoteAttachmentsEnricher`) put it there. The gateway parses `imeta` on inbound. Nobody crosses lanes.
+5. **Sha256 is identity.** The same blob in 10 notes = 1 upload + 1 cache entry on each receiver. The cache table dedups for free; the imeta metadata lives embedded on each note.
+6. **No automatic media GC.** Files stay until the user removes them via the gallery. The cache table is the single record of what's on disk.
+7. **Single serialization path.** Every kind (including imeta-bearing Kind 1 / 42, NIP-29 `h`-tag kinds, NIP-37 drafts, Kind 10063 server lists) flows through `EventQueueModel.toSerializedRelayMessage`. The canonical tag order lives there.
+8. **Layers are strict.** UI reads `note.attachments` — the data layer (`NoteAttachmentsEnricher`) patched the cache state in. The gateway parses `imeta` on inbound. Nobody crosses lanes.
 
 
 1. What is UserServerListRepository and why it exists
@@ -734,7 +778,7 @@ If you forget everything else, remember this:
           └── relay's Khatru + blossom plugin stores it in Azure
      6. MediaCacheDataSource.write(sha256, ext, bytes)
           → writes to <appSupport>/media/<sha256>.<ext>
-     7. isar.writeTxn → upsert MediaBlobModel (localPath set, blurhash set)
+     7. isar.writeTxn → upsert MediaCacheModel (sha → localPath, downloadedAt)
      8. First-ever upload → also publishes Kind 10063  ◄── 2nd use
           (so other devices learn your server)
           │
@@ -749,7 +793,8 @@ If you forget everything else, remember this:
        "blurhash LKO2?U..."]
           │
           ▼
-  EventQueueModel (rawPassthrough = true because imeta order matters)
+  EventQueueModel — imeta column carries the typed attachment list;
+                  toSerializedRelayMessage rebuilds imeta in canonical order
           │
           ▼
   Gateway WebSocket → relay → other subscribers
@@ -764,16 +809,15 @@ If you forget everything else, remember this:
      - imeta_parser.dart walks imeta tags
           │
           ▼
-  For each imeta:
-     - upsert MediaBlobModel (sha256, mime, dim, blurhash, serverUrls)
-     - localPath stays NULL  ← bytes not pulled yet
-     - write NoteMediaRefModel(noteEventId, sha256)
+  ImetaParser.parseAsAttachments → List<MediaAttachment>
+     attached directly to NoteModel.attachments
+     no MediaCacheModel row yet — bytes not pulled
           │
           ▼
   NoteCard renders
-     - MediaAttachmentView sees blob with localPath==null
+     - MediaAttachmentView sees attachment with no cache row
      - shows flutter_blurhash placeholder + "Download" button
-     - Gallery does NOT show it (just-fixed rule: localPath==null hidden)
+     - Gallery does NOT show it (lists only files on disk)
 
   C. DOWNLOAD (user taps the download button)
 
@@ -783,19 +827,17 @@ If you forget everything else, remember this:
   DownloadMediaUseCase
           │
           ▼
-  MediaRepositoryImpl.downloadBySha(sha256)
-     1. Read MediaBlobModel → pick serverUrls.first
-          (note: _serverBase coerces wss:// → https://)
-     2. BlossomClient.download(server, sha256)
+  MediaRepositoryImpl.downloadBySha(sha, url, mime)
+     1. caller passes url + mime from the note's imeta attachment
+     2. BlossomClient.download(url)
           ├── signs Kind 24242 auth ["t","get"]  ◄── 3rd use of Blossom kind
-          └── GET https://server/<sha256>
-     3. verify sha256 of returned bytes (security)
-     4. MediaCacheDataSource.write → file on disk
-     5. isar.writeTxn → MediaBlobModel.localPath = path, downloadedAt = now
+          └── GET <url>
+     3. MediaCacheDataSource.write → file on disk
+     4. isar.writeTxn → upsert MediaCacheModel(sha, localPath, downloadedAt)
           │
           ▼
   NoteCard auto-rebuilds → shows real Image.file(...)
-  Gallery now shows it (localPath != null)
+  Gallery now shows it (cache row exists)
 
   D. CROSS-DEVICE Kind 10063 sync
 

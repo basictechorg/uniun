@@ -2824,11 +2824,29 @@ abstract class AppLocalizations {
   /// **'Copy sha256'**
   String get mediaActionCopySha;
 
-  /// Action that hands the cached blob to the OS share sheet so the user can save it to Photos / Files / Drive
+  /// Action that saves the cached blob to the device's gallery (images / videos via `gal`) or Downloads folder (files on desktop) or share sheet (non-media on mobile).
   ///
   /// In en, this message translates to:
   /// **'Save to device'**
   String get mediaActionSaveToDevice;
+
+  /// Snackbar shown after a successful Save to device; placeholder is the destination (e.g. 'Photos', '/Users/...').
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {destination}'**
+  String mediaSavedTo(String destination);
+
+  /// Generic success snackbar when the destination isn't a known string (mobile share-sheet path).
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get mediaSaveSuccess;
+
+  /// Snackbar shown when the Save to device action fails (permission denied / disk error).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the file'**
+  String get mediaSaveFailed;
 
   /// Empty state shown in the media gallery when there are no known blobs
   ///
@@ -2985,6 +3003,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Media'**
   String get storageMedia;
+
+  /// Row title for the auto-cleanup retention dropdown in Settings → Storage. Affects only public feed / channel notes the user hasn't saved or followed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-delete old notes'**
+  String get storageRetentionTitle;
+
+  /// Subtitle/explanation under the auto-delete retention row — clarifies which notes are affected.
+  ///
+  /// In en, this message translates to:
+  /// **'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.'**
+  String get storageRetentionSubtitle;
+
+  /// Dropdown value for disabling auto-deletion (the default — nothing is removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get storageRetentionOff;
+
+  /// Dropdown value for the auto-delete retention window in days.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String storageRetentionDays(int days);
 
   /// Status text shown on a note-card media tile while bytes are downloading
   ///

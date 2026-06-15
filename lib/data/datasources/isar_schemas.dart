@@ -27,9 +27,7 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/blocked_user_model.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
-import 'package:uniun/data/models/media/media_blob_model.dart';
-import 'package:uniun/data/models/media/note_media_ref_model.dart';
-import 'package:uniun/data/models/user_server_list_model.dart';
+import 'package:uniun/data/models/media/media_cache_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -58,8 +56,6 @@ final List<CollectionSchema> isarSchemas = [
   UnreadNoteModelSchema,
   BlockedUserModelSchema,
   DeletedNoteModelSchema,
-  MediaBlobModelSchema,
-  NoteMediaRefModelSchema,
-  UserServerListModelSchema,
+  MediaCacheModelSchema,
 ];
 

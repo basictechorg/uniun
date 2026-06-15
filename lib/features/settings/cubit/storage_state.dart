@@ -21,6 +21,7 @@ class StorageState {
     this.deleteSuccess = false,
     this.deletedCount = 0,
     this.deleteChatHistorySuccess = false,
+    this.autoDeleteOldNotesDays,
   });
 
   final bool isLoading;
@@ -41,6 +42,11 @@ class StorageState {
   final bool deleteSuccess;
   final int deletedCount;
   final bool deleteChatHistorySuccess;
+
+  /// `null` = auto-cleanup off (default). Otherwise the configured
+  /// retention window applied to short-lived public traffic. Saved /
+  /// followed / own / DM / private-channel notes are never affected.
+  final int? autoDeleteOldNotesDays;
 
   int get totalBytes =>
       dbSizeBytes +
@@ -68,6 +74,7 @@ class StorageState {
     bool? deleteSuccess,
     int? deletedCount,
     bool? deleteChatHistorySuccess,
+    Object? autoDeleteOldNotesDays = _sentinel,
   }) {
     return StorageState(
       isLoading: isLoading ?? this.isLoading,
@@ -91,6 +98,11 @@ class StorageState {
       deletedCount: deletedCount ?? this.deletedCount,
       deleteChatHistorySuccess:
           deleteChatHistorySuccess ?? this.deleteChatHistorySuccess,
+      autoDeleteOldNotesDays: identical(autoDeleteOldNotesDays, _sentinel)
+          ? this.autoDeleteOldNotesDays
+          : autoDeleteOldNotesDays as int?,
     );
   }
 }
+
+const Object _sentinel = Object();

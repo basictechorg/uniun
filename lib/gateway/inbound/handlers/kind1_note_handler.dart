@@ -29,8 +29,7 @@ class Kind1NoteHandler implements KindHandler {
     final eventId = event['id'] as String?;
     if (eventId == null) return;
 
-    final model = _parseNoteModel(event)
-      ..hasMedia = ImetaParser.hasImeta(event);
+    final model = _parseNoteModel(event);
 
     try {
       await isar.writeTxn(() async {
@@ -40,14 +39,6 @@ class Kind1NoteHandler implements KindHandler {
             .findFirst();
         if (existing != null) return;
         await isar.noteModels.put(model);
-
-        // NIP-92 imeta — persist attached blob metadata + join rows. Bytes
-        // are not downloaded; the user fetches on demand from the card.
-        await ImetaParser.persistInTxn(
-          isar: isar,
-          noteEventId: eventId,
-          event: event,
-        );
 
         // Unread row for notes from other users (own notes are already "seen").
         if (model.authorPubkey != activePubkey) {
@@ -159,6 +150,7 @@ class Kind1NoteHandler implements KindHandler {
       tTags: tTags,
       created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
       quoteEventId: quoteEventId,
+      attachments: ImetaParser.parseAsAttachments(event),
     );
   }
 }

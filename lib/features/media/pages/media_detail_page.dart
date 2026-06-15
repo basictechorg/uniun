@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/utils/save_to_device.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/features/media/cubit/media_detail_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -47,7 +47,7 @@ class _MediaDetailView extends StatelessWidget {
               ? const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 )
-              : _DetailBody(blob: blob, refIds: state.referencingNoteIds),
+              : _DetailBody(blob: blob),
         );
       },
     );
@@ -55,10 +55,9 @@ class _MediaDetailView extends StatelessWidget {
 }
 
 class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.blob, required this.refIds});
+  const _DetailBody({required this.blob});
 
   final MediaBlobEntity blob;
-  final List<String> refIds;
 
   bool get _isImage => blob.mime.startsWith('image/');
   bool get _cached => blob.localPath != null;
@@ -89,28 +88,17 @@ class _DetailBody extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (!_cached)
-                _action(
-                  Icons.cloud_download_outlined,
-                  l10n.mediaActionDownload,
-                  cubit.download,
-                ),
               if (_cached && !_isImage)
                 _action(
                   Icons.open_in_new_rounded,
                   l10n.mediaActionOpen,
                   () => OpenFilex.open(blob.localPath!),
                 ),
-              // Cross-platform "Save to gallery / Files" — hands the bytes to
-              // the OS share sheet so the user picks Photos / Files / Drive
-              // themselves. WhatsApp-style.
               if (_cached)
                 _action(
                   Icons.save_alt_rounded,
                   l10n.mediaActionSaveToDevice,
-                  () => Share.shareXFiles(
-                    [XFile(blob.localPath!, name: blob.filename)],
-                  ),
+                  () => _saveToDevice(context, blob, l10n),
                 ),
               if (_cached)
                 _action(
@@ -139,7 +127,6 @@ class _DetailBody extends StatelessWidget {
                 '${blob.dim!.width} × ${blob.dim!.height}'),
           if (blob.downloadedAt != null)
             _metaRow(l10n.mediaDetailLabelCached, _fmtDate(blob.downloadedAt!)),
-          _metaRow(l10n.mediaDetailReferencedBy, refIds.length.toString()),
         ],
       ),
     );
@@ -248,4 +235,30 @@ class _DetailBody extends StatelessWidget {
 
   String _fmtDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _saveToDevice(
+    BuildContext context,
+    MediaBlobEntity blob,
+    AppLocalizations l10n,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await saveMediaToDevice(
+      localPath: blob.localPath!,
+      mime: blob.mime,
+      filename: blob.filename,
+    );
+    if (!context.mounted) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(
+        result.success
+            ? (result.destination != null
+                ? l10n.mediaSavedTo(result.destination!)
+                : l10n.mediaSaveSuccess)
+            : (result.error ?? l10n.mediaSaveFailed),
+      ),
+      backgroundColor:
+          result.success ? AppColors.primary : AppColors.error,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
 }

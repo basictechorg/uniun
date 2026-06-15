@@ -83,7 +83,7 @@ class Kind42Handler implements KindHandler {
       tTags: const [],
       created: EventParser.dateTimeFromSec(createdAtSec),
       quoteEventId: quoteEventId,
-      hasMedia: ImetaParser.hasImeta(event),
+      attachments: ImetaParser.parseAsAttachments(event),
     );
 
     try {
@@ -94,13 +94,6 @@ class Kind42Handler implements KindHandler {
             .findFirst();
         if (existing != null) return;
         await isar.noteModels.put(model);
-
-        // NIP-92 imeta — persist attached blob metadata + join rows.
-        await ImetaParser.persistInTxn(
-          isar: isar,
-          noteEventId: eventId,
-          event: event,
-        );
 
         // Unread row for messages from other users (own sends are pre-seen).
         if (pubkey != activePubkey) {

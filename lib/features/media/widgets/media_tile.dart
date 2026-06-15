@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
-/// Grid tile rendering a [MediaBlobEntity]. When the blob is not yet cached
-/// locally, falls back to blurhash → mime icon. A badge shows cache state.
+/// Grid tile for the Media gallery. Renders the cached image directly, or
+/// a mime-icon placeholder for non-image files. The gallery only lists
+/// blobs that are already on disk, so there is no "remote-only" state to
+/// signal — no cache badge.
 class MediaTile extends StatelessWidget {
   const MediaTile({
     super.key,
@@ -24,7 +25,6 @@ class MediaTile extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   bool get _isImage => blob.mime.startsWith('image/');
-  bool get _cached => blob.localPath != null;
 
   @override
   Widget build(BuildContext context) {
@@ -66,34 +66,18 @@ class MediaTile extends StatelessWidget {
               child: const Icon(Icons.check_circle,
                   color: AppColors.primary, size: 22),
             ),
-          Positioned(
-            left: 6,
-            bottom: 6,
-            child: _cached
-                ? const _Badge(
-                    icon: Icons.download_done_rounded,
-                    color: AppColors.primary,
-                  )
-                : _Badge(
-                    icon: Icons.cloud_download_outlined,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildBackground() {
-    if (_cached && _isImage) {
+    if (_isImage && blob.localPath != null) {
       return Image.file(
         File(blob.localPath!),
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _placeholder(),
       );
-    }
-    if (!_cached && _isImage && blob.blurhash != null) {
-      return BlurHash(hash: blob.blurhash!);
     }
     return _placeholder();
   }
@@ -113,25 +97,6 @@ class MediaTile extends StatelessWidget {
       color: AppColors.surfaceContainerHigh,
       alignment: Alignment.center,
       child: Icon(icon, color: AppColors.onSurfaceVariant, size: 36),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.icon, required this.color});
-
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: color, size: 14),
     );
   }
 }

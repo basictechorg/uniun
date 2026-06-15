@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
@@ -179,7 +180,18 @@ class NoteRepositoryImpl extends NoteRepository {
         tTags: note.tTags,
         created: note.created,
         quoteEventId: note.quoteEventId,
-        hasMedia: note.hasMedia,
+        attachments: [
+          for (final a in note.attachments)
+            MediaAttachment()
+              ..sha256 = a.sha256
+              ..mime = a.mime
+              ..sizeBytes = a.sizeBytes
+              ..url = a.serverUrls.isNotEmpty ? a.serverUrls.first : null
+              ..width = a.dim?.width
+              ..height = a.dim?.height
+              ..blurhash = a.blurhash
+              ..filename = a.filename,
+        ],
       );
 
       final parents = replyEdgeParentIds(

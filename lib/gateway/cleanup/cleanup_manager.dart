@@ -4,43 +4,50 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
-import 'package:uniun/data/models/media/media_blob_model.dart';
-import 'package:uniun/data/models/media/note_media_ref_model.dart';
+import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/media/media_cache_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 
-/// Periodic retention sweep — gateway-side, runs every [_interval]. Two
-/// phases each tick:
+/// Periodic retention sweep — gateway-side, runs every [_interval].
+///
+/// Opt-in via `AppSettingsStore.autoDeleteOldNotesDays`. When `retention`
+/// is null (the default), neither phase runs and nothing is deleted.
+///
+/// When enabled, two phases each tick:
 ///
 /// 1. **Note eviction** — short-lived public traffic (Kind 1 / Kind 42)
-///    older than its kind's retention is deleted, unless the note is own
-///    (matches the active user's pubkey) or saved (row in [SavedNoteModel]).
-///    DMs (14/15), private-channel messages (9023), AI conversations, and
-///    profile / channel metadata are untouched here.
+///    older than [retention] is deleted, unless the note is own (matches
+///    the active user's pubkey), saved (row in [SavedNoteModel]), or
+///    followed (row in [FollowedNoteModel]). DMs (14/15), private-channel
+///    messages (9023), AI conversations, and profile / channel metadata
+///    are untouched.
 ///
-/// 2. **Media GC** — for every [MediaBlobModel] row that is not pinned and
-///    has zero remaining [NoteMediaRefModel] rows, the local file is
-///    deleted from `getApplicationSupportDirectory()/media/` and the
-///    manifest row is removed. Backend keeps the blob; the next reference
-///    can re-download.
-///
-/// Kept intentionally narrow — better to leave a few extra rows behind
-/// than to delete saved content. Future iterations can widen the kind set.
+/// 2. **Media GC** — after note eviction, any [MediaCacheModel] row whose
+///    SHA is no longer referenced by any surviving note loses its file +
+///    cache row. Media on saved / own / followed / DM / private-channel
+///    notes stays because those notes survive eviction.
 class CleanupManager {
-  CleanupManager({required this.isar, required this.activePubkey});
+  CleanupManager({
+    required this.isar,
+    required this.activePubkey,
+    this.retention,
+  });
 
   final Isar isar;
   final String? activePubkey;
 
+  /// User-configured retention. `null` = auto-cleanup disabled.
+  final Duration? retention;
+
   static const Duration _interval = Duration(hours: 6);
-  static const Duration _kind1Retention = Duration(days: 7);
-  static const Duration _kind42Retention = Duration(days: 3);
 
   Timer? _timer;
   bool _running = false;
 
   void start() {
     if (_timer != null) return;
+    if (retention == null) return; // Auto-cleanup disabled — never tick.
     _timer = Timer.periodic(_interval, (_) => unawaited(runOnce()));
     // First sweep on a short delay so we don't fight app launch.
     Future<void>.delayed(const Duration(minutes: 5), runOnce);
@@ -67,12 +74,15 @@ class CleanupManager {
   // ── Phase 1: note eviction ──────────────────────────────────────────────
 
   Future<void> _evictNotes() async {
-    final now = DateTime.now();
-    final kind1Cutoff = now.subtract(_kind1Retention);
-    final kind42Cutoff = now.subtract(_kind42Retention);
+    final r = retention;
+    if (r == null) return;
+    final cutoff = DateTime.now().subtract(r);
 
     final savedIds = (await isar.savedNoteModels.where().findAll())
         .map((s) => s.eventId)
+        .toSet();
+    final followedIds = (await isar.followedNoteModels.where().findAll())
+        .map((f) => f.eventId)
         .toSet();
 
     final ownPubkey = activePubkey;
@@ -80,12 +90,12 @@ class CleanupManager {
     final staleKind1 = await isar.noteModels
         .filter()
         .kindEqualTo(kNoteKind)
-        .createdLessThan(kind1Cutoff)
+        .createdLessThan(cutoff)
         .findAll();
     final staleKind42 = await isar.noteModels
         .filter()
         .kindEqualTo(kChannelMessageKind)
-        .createdLessThan(kind42Cutoff)
+        .createdLessThan(cutoff)
         .findAll();
     final stale = [...staleKind1, ...staleKind42];
     if (stale.isEmpty) return;
@@ -94,6 +104,7 @@ class CleanupManager {
     for (final n in stale) {
       if (ownPubkey != null && n.authorPubkey == ownPubkey) continue;
       if (savedIds.contains(n.eventId)) continue;
+      if (followedIds.contains(n.eventId)) continue;
       toDelete.add(n.id);
     }
     if (toDelete.isEmpty) return;
@@ -105,40 +116,48 @@ class CleanupManager {
 
   // ── Phase 2: media GC ───────────────────────────────────────────────────
 
+  /// Drops cache rows + on-disk files for SHAs no surviving note references.
+  ///
+  /// A "surviving note" is any row left in [NoteModel] with `hasMedia == true`
+  /// — that includes own notes, saved notes, followed-note references, DMs
+  /// (14/15), and private-channel messages (9023). Cleanup never deletes
+  /// media a user might still want to scroll back to.
   Future<void> _gcMedia() async {
-    final blobs = await isar.mediaBlobModels
-        .filter()
-        .pinnedEqualTo(false)
-        .findAll();
-    if (blobs.isEmpty) return;
+    if (retention == null) return;
+    final caches = await isar.mediaCacheModels.where().findAll();
+    if (caches.isEmpty) return;
+
+    final referenced = <String>{};
+    final survivors =
+        await isar.noteModels.filter().hasMediaEqualTo(true).findAll();
+    for (final n in survivors) {
+      for (final a in n.attachments) {
+        referenced.add(a.sha256);
+      }
+    }
 
     final orphanIds = <int>[];
     final orphanPaths = <String>[];
-    for (final b in blobs) {
-      final refCount = await isar.noteMediaRefModels
-          .filter()
-          .mediaSha256EqualTo(b.sha256)
-          .count();
-      if (refCount > 0) continue;
-      orphanIds.add(b.id);
-      if (b.localPath != null) orphanPaths.add(b.localPath!);
+    for (final c in caches) {
+      if (referenced.contains(c.sha256)) continue;
+      orphanIds.add(c.id);
+      orphanPaths.add(c.localPath);
     }
     if (orphanIds.isEmpty) return;
 
-    // Delete files first; if the txn fails we'd otherwise leak rows pointing
-    // at deleted files. Errors deleting a file (e.g. permission) shouldn't
-    // block the row delete.
+    // Files first — a row pointing at a missing file is fine, the reverse
+    // (file with no row) would slowly leak disk.
     for (final path in orphanPaths) {
       try {
         final f = File(path);
         if (await f.exists()) await f.delete();
       } catch (_) {
-        // best-effort
+        // Best-effort; permissions / detached storage shouldn't block GC.
       }
     }
 
     await isar.writeTxn(() async {
-      await isar.mediaBlobModels.deleteAll(orphanIds);
+      await isar.mediaCacheModels.deleteAll(orphanIds);
     });
   }
 }

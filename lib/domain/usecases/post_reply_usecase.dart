@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
@@ -31,8 +30,9 @@ class PostReplyParams {
   final List<String> mentionRefs;
 
   /// Uploaded Blossom blobs. Emitted as NIP-92 `imeta` tags on the outbound
-  /// event (feed/channel) or carried inside the encrypted envelope (DM and
-  /// private channel — receiver-side rendering of those is pending).
+  /// event (feed/channel). DM (kind 14) and private channel (kind 9023)
+  /// carry the attachments via the encrypted envelope — receiver-side
+  /// rendering is a follow-up; the sender side renders from local state.
   final List<MediaBlobEntity> attachments;
 
   /// Forces a specific reply transport instead of deriving it from [root].
@@ -95,10 +95,6 @@ class PostReplyUseCase {
             return r.fold((f) => Left(f), (_) => const Right(unit));
 
           case NoteSource.privateChannel:
-            // TODO: encrypted-envelope imeta for receiver-side render. The
-            // attachments upload + own-side render works (NoteMediaRefModel
-            // is written by the composer flow) but the encrypted body has
-            // no imeta field yet.
             await _sendPrivate.execute(
               groupId: root.sourcePrivateGroupId ?? '',
               content: params.content,
@@ -107,22 +103,24 @@ class PostReplyUseCase {
               mentionRefs: params.mentionRefs,
               rootEventId: threadRoot,
               replyToEventId: replyToId,
+              attachments: params.attachments,
             );
             return const Right(unit);
 
           case NoteSource.dm:
-            // TODO: imeta inside the NIP-17 rumor before encryption + receiver
-            // decrypt path to populate MediaBlobModel. Same status as
-            // privateChannel above.
             final counterparty = root.authorPubkey == keys.pubkeyHex
                 ? (root.dmReceiverPubkey ?? root.authorPubkey)
                 : root.authorPubkey;
             return _sendDm.call(SendDmParams(
               otherPubkey: counterparty,
               content: params.content,
+              type: params.attachments.any((a) => a.mime.startsWith('image/'))
+                  ? NoteType.image
+                  : NoteType.text,
               rootEventId: threadRoot,
               replyToEventId: replyToId,
               mentionRefs: params.mentionRefs,
+              attachments: params.attachments,
             ));
         }
       } catch (e) {
@@ -138,6 +136,9 @@ class PostReplyUseCase {
     required String threadRoot,
     required PostReplyParams params,
   }) async {
+    // Canonical tag order — matches
+    // [EventQueueModel.toSerializedRelayMessage]:
+    //   e root → e reply → e mention → imeta
     final imetaTags = buildImetaTags(params.attachments);
     final tags = <List<String>>[
       ['e', threadRoot, '', 'root'],
@@ -163,7 +164,7 @@ class PostReplyUseCase {
       sig: signed.sig,
       authorPubkey: pubkeyHex,
       content: signed.content,
-      type: imetaTags.isEmpty ? NoteType.text : NoteType.image,
+      type: params.attachments.isEmpty ? NoteType.text : NoteType.image,
       eTagRefs: [
         threadRoot,
         if (replyToId != threadRoot) replyToId,
@@ -174,30 +175,16 @@ class PostReplyUseCase {
       created: DateTime.fromMillisecondsSinceEpoch(signed.createdAt * 1000),
       rootEventId: threadRoot,
       replyToEventId: replyToId,
+      hasMedia: params.attachments.isNotEmpty,
+      attachments: params.attachments,
     );
 
-    // Media replies need the rawPassthrough path so the imeta tag order
-    // survives serialization and the broadcast event re-hashes back to id.
-    final Either<Failure, NoteEntity> result;
-    if (imetaTags.isEmpty) {
-      result = await _publishNote.call(note);
-    } else {
-      final fullSignedJson = jsonEncode({
-        'id': signed.id,
-        'pubkey': pubkeyHex,
-        'created_at': signed.createdAt,
-        'kind': 1,
-        'tags': tags,
-        'content': signed.content,
-        'sig': signed.sig,
-      });
-      result = await _publishMediaNote.call(PublishMediaNoteInput(
-        note: note,
-        fullSignedJson: fullSignedJson,
-        attachedShas:
-            params.attachments.map((b) => b.sha256).toList(growable: false),
-      ));
-    }
+    final result = params.attachments.isEmpty
+        ? await _publishNote.call(note)
+        : await _publishMediaNote.call(PublishMediaNoteInput(
+            note: note,
+            attachments: params.attachments,
+          ));
     return result.fold((f) => Left(f), (published) {
       unawaited(_embedAndStore.call((published.id, published.content)));
       return const Right(unit);

@@ -244,6 +244,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
         authorPubkey: keys.pubkeyHex,
         privkeyHex: keys.privkeyHex,
         mentionRefs: event.mentionRefs,
+        attachments: event.attachments,
       );
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to send message: $e'));

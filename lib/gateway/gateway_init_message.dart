@@ -20,9 +20,17 @@ class GatewayInitMessage {
   /// May be null before the user has logged in.
   final String? pubkeyHex;
 
+  /// User-configured retention for short-lived public traffic (Kind 1 /
+  /// Kind 42), in days. `null` = disabled (the default — CleanupManager
+  /// skips eviction entirely). Read from `AppSettingsStore` at spawn time
+  /// because SharedPreferences is unavailable in background isolates.
+  /// Settings changes take effect on next app launch.
+  final int? autoDeleteOldNotesDays;
+
   const GatewayInitMessage({
     required this.isarDirectory,
     this.privkeyHex,
     this.pubkeyHex,
+    this.autoDeleteOldNotesDays,
   });
 }

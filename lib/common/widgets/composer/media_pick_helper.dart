@@ -34,19 +34,26 @@ class PickedMedia {
   final int? height;
 }
 
+enum _PickKind { photo, video, file }
+
 /// Shows the Photo / Video / File picker bottom sheet. Returns the picked
 /// (and where applicable, compressed) file, or null when the user dismissed
 /// the sheet or the chosen file exceeded the upload cap after compression.
 ///
-/// Surface-agnostic — does not know about any bloc. The caller decides what
-/// to do with the result. Windows skips compression because neither
-/// flutter_image_compress nor video_compress have a Windows backend.
+/// Two-stage: the bottom sheet only selects *which kind* of picker to open
+/// (popping the sheet with a `_PickKind` value). The actual picker runs
+/// **after** the sheet has fully dismissed — otherwise the modal's `await`
+/// would resolve as soon as `Navigator.pop` runs and the async picker work
+/// would race with the caller continuing on, returning null too early.
+///
+/// Surface-agnostic — does not know about any bloc. Windows skips
+/// compression because neither flutter_image_compress nor video_compress
+/// have a Windows backend.
 Future<PickedMedia?> showMediaPickSheet(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
-  final completer = Completer<PickedMedia?>();
 
-  await showModalBottomSheet<void>(
+  final kind = await showModalBottomSheet<_PickKind>(
     context: context,
     backgroundColor: AppColors.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
@@ -59,26 +66,17 @@ Future<PickedMedia?> showMediaPickSheet(BuildContext context) async {
           _PickTile(
             icon: Icons.image_outlined,
             label: l10n.composerAttachPhoto,
-            onTap: () async {
-              Navigator.pop(sheetCtx);
-              completer.complete(await _pickPhoto(messenger, l10n));
-            },
+            onTap: () => Navigator.pop(sheetCtx, _PickKind.photo),
           ),
           _PickTile(
             icon: Icons.movie_outlined,
             label: l10n.composerAttachVideo,
-            onTap: () async {
-              Navigator.pop(sheetCtx);
-              completer.complete(await _pickVideo(messenger, l10n));
-            },
+            onTap: () => Navigator.pop(sheetCtx, _PickKind.video),
           ),
           _PickTile(
             icon: Icons.attach_file_rounded,
             label: l10n.composerAttachFile,
-            onTap: () async {
-              Navigator.pop(sheetCtx);
-              completer.complete(await _pickFile(messenger, l10n));
-            },
+            onTap: () => Navigator.pop(sheetCtx, _PickKind.file),
           ),
           const SizedBox(height: 8),
         ],
@@ -86,8 +84,16 @@ Future<PickedMedia?> showMediaPickSheet(BuildContext context) async {
     ),
   );
 
-  if (!completer.isCompleted) completer.complete(null);
-  return completer.future;
+  if (kind == null) return null; // user dismissed the sheet
+
+  switch (kind) {
+    case _PickKind.photo:
+      return _pickPhoto(messenger, l10n);
+    case _PickKind.video:
+      return _pickVideo(messenger, l10n);
+    case _PickKind.file:
+      return _pickFile(messenger, l10n);
+  }
 }
 
 class _PickTile extends StatelessWidget {

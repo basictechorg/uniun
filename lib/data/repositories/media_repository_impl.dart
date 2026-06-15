@@ -8,10 +8,12 @@ import 'package:path/path.dart' as p;
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/blossom_client.dart';
 import 'package:uniun/data/datasources/media_cache_data_source.dart';
-import 'package:uniun/data/models/media/media_blob_model.dart';
-import 'package:uniun/data/models/media/note_media_ref_model.dart';
-import 'package:uniun/data/models/user_server_list_model.dart';
+import 'package:uniun/data/models/media/media_cache_model.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/domain/entities/media/media_dim.dart';
 import 'package:uniun/domain/entities/media/media_filter.dart';
 import 'package:uniun/domain/repositories/media_repository.dart';
 import 'package:uniun/domain/repositories/user_server_list_repository.dart';
@@ -84,109 +86,150 @@ class MediaRepositoryImpl extends MediaRepository {
       }
 
       await _cache.write(sha256, ext, bytes);
+      final localFile = await _cache.fileFor(sha256, ext);
 
-      final existingRow = await isar.userServerListModels.get(0);
-      if (existingRow == null || existingRow.serverUrls.isEmpty) {
+      // Persist Kind 10063 default once. `getServers` returns the
+      // hardcoded default when nothing is stored — only publish when the
+      // user has no explicit configuration yet.
+      final stored = await _serverList.getServers();
+      final shouldPublish = stored.fold(
+        (_) => true,
+        (urls) => urls.isEmpty ||
+            (urls.length == 1 && urls.first == AppConstants.kUniunBlossom),
+      );
+      if (shouldPublish) {
         await _serverList.setServers([primary]);
       }
 
-      final localFile = await _cache.fileFor(sha256, ext);
-      final entity = await _upsertManifest(
+      final downloadedAt = DateTime.now();
+      await _upsertCache(
+        sha256: sha256,
+        localPath: localFile.path,
+        downloadedAt: downloadedAt,
+        mime: mime,
+        sizeBytes: bytes.length,
+      );
+
+      return Right(MediaBlobEntity(
         sha256: sha256,
         mime: mime,
         sizeBytes: bytes.length,
-        width: width,
-        height: height,
+        dim: (width != null && height != null)
+            ? MediaDim(width: width, height: height)
+            : null,
         blurhash: blurhash,
         filename: filename,
-        addServerUrl: publicUrl,
+        serverUrls: [publicUrl],
         localPath: localFile.path,
-        downloadedAt: DateTime.now(),
-      );
-      return Right(entity);
+        downloadedAt: downloadedAt,
+      ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, MediaBlobEntity>> downloadBySha(String sha256) async {
+  Future<Either<Failure, MediaBlobEntity>> downloadBySha({
+    required String sha256,
+    required String url,
+    required String mime,
+  }) async {
     try {
-      final row = await isar.mediaBlobModels
-          .filter()
-          .sha256EqualTo(sha256)
-          .findFirst();
-      if (row == null) {
-        return const Left(Failure.notFoundFailure('Blob not in manifest'));
-      }
+      final ext = _extFromMime(mime, null);
 
-      final ext = _extFromMime(row.mime, null);
-
-      // Already cached — short-circuit.
+      // Cached already → just upsert the cache row (e.g. after manual removal
+      // followed by re-tap on a still-present file).
       if (await _cache.exists(sha256, ext)) {
         final f = await _cache.read(sha256, ext);
         if (f != null) {
-          await isar.writeTxn(() async {
-            row.localPath = f.path;
-            row.downloadedAt ??= DateTime.now();
-            await isar.mediaBlobModels.put(row);
-          });
-          return Right(row.toDomain());
+          final downloadedAt = DateTime.now();
+          final size = await f.length();
+          await _upsertCache(
+            sha256: sha256,
+            localPath: f.path,
+            downloadedAt: downloadedAt,
+            mime: mime,
+            sizeBytes: size,
+          );
+          return Right(MediaBlobEntity(
+            sha256: sha256,
+            mime: mime,
+            sizeBytes: size,
+            serverUrls: [url],
+            localPath: f.path,
+            downloadedAt: downloadedAt,
+          ));
         }
       }
 
-      final servers = row.serverUrls.isNotEmpty
-          ? row.serverUrls
-          : (await _serverList.getServers()).fold((_) => <String>[], (s) => s);
-
-      Uint8List? bytes;
-      String? successUrl;
-      for (final base in servers) {
-        try {
-          // Use the full stored URL directly — it already has the correct
-          // extension for any file type (png, mp4, pdf, etc.).
-          bytes = await _blossom.downloadFromUrl(base);
-          successUrl = base;
-          break;
-        } catch (_) {
-          // Try the next server.
-        }
-      }
-      if (bytes == null) {
-        return const Left(Failure.failure('All servers failed'));
-      }
-
+      final bytes = await _blossom.downloadFromUrl(url);
       await _cache.write(sha256, ext, bytes);
       final localFile = await _cache.fileFor(sha256, ext);
-
-      final entity = await _upsertManifest(
+      final downloadedAt = DateTime.now();
+      await _upsertCache(
         sha256: sha256,
-        mime: row.mime,
-        sizeBytes: bytes.length,
-        width: row.width,
-        height: row.height,
-        blurhash: row.blurhash,
-        addServerUrl: successUrl,
         localPath: localFile.path,
-        downloadedAt: DateTime.now(),
+        downloadedAt: downloadedAt,
+        mime: mime,
+        sizeBytes: bytes.length,
       );
-      return Right(entity);
+
+      return Right(MediaBlobEntity(
+        sha256: sha256,
+        mime: mime,
+        sizeBytes: bytes.length,
+        serverUrls: [url],
+        localPath: localFile.path,
+        downloadedAt: downloadedAt,
+      ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, MediaBlobEntity>> getBySha(String sha256) async {
+  Future<Either<Failure, MediaBlobEntity?>> getCachedBySha(String sha256) async {
     try {
-      final row = await isar.mediaBlobModels
+      final row = await isar.mediaCacheModels
           .filter()
           .sha256EqualTo(sha256)
           .findFirst();
-      if (row == null) {
-        return const Left(Failure.notFoundFailure('Blob not found'));
+      if (row == null) return const Right(null);
+
+      // Look up the first NoteModel carrying this sha to recover dim /
+      // blurhash / filename / url for the detail page. The mime + size
+      // come straight from the cache row so they're correct even before
+      // any note exists (e.g. mid-compose after upload).
+      MediaAttachment? attachment;
+      final notes =
+          await isar.noteModels.filter().hasMediaEqualTo(true).findAll();
+      for (final n in notes) {
+        for (final a in n.attachments) {
+          if (a.sha256 == sha256) {
+            attachment = a;
+            break;
+          }
+        }
+        if (attachment != null) break;
       }
-      return Right(row.toDomain());
+
+      return Right(MediaBlobEntity(
+        sha256: row.sha256,
+        mime: row.mime,
+        sizeBytes: row.sizeBytes,
+        dim: (attachment?.width != null && attachment?.height != null)
+            ? MediaDim(
+                width: attachment!.width!,
+                height: attachment.height!,
+              )
+            : null,
+        blurhash: attachment?.blurhash,
+        filename: attachment?.filename,
+        serverUrls:
+            attachment?.url != null ? [attachment!.url!] : const [],
+        localPath: row.localPath,
+        downloadedAt: row.downloadedAt,
+      ));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -195,115 +238,47 @@ class MediaRepositoryImpl extends MediaRepository {
   @override
   Stream<List<MediaBlobEntity>> watchAll({MediaFilter? filter}) {
     final f = filter ?? const MediaFilter();
-    return isar.mediaBlobModels
+    // The cache row carries every field the gallery tile actually renders
+    // (mime, sizeBytes, localPath, downloadedAt). The rich attachment
+    // fields (dim / blurhash / filename / serverUrls) aren't read by the
+    // gallery — they only matter on the detail page, which fetches them
+    // via `getCachedBySha`. So this stream skips the NoteModel scan.
+    return isar.mediaCacheModels
         .where()
-        .sortByLastSeenAtDesc()
+        .sortByDownloadedAtDesc()
         .watch(fireImmediately: true)
-        .map((rows) => rows
-            .where((r) => _matches(r, f))
-            .map((r) => r.toDomain())
-            .toList());
-  }
-
-  @override
-  Future<Either<Failure, Unit>> pin(String sha256) => _setPinned(sha256, true);
-
-  @override
-  Future<Either<Failure, Unit>> unpin(String sha256) =>
-      _setPinned(sha256, false);
-
-  Future<Either<Failure, Unit>> _setPinned(String sha256, bool value) async {
-    try {
-      await isar.writeTxn(() async {
-        final row = await isar.mediaBlobModels
-            .filter()
-            .sha256EqualTo(sha256)
-            .findFirst();
-        if (row == null) return;
-        row.pinned = value;
-        await isar.mediaBlobModels.put(row);
-      });
-      return const Right(unit);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
+        .map((rows) {
+      final out = <MediaBlobEntity>[];
+      for (final r in rows) {
+        final entity = MediaBlobEntity(
+          sha256: r.sha256,
+          mime: r.mime,
+          sizeBytes: r.sizeBytes,
+          serverUrls: const [],
+          localPath: r.localPath,
+          downloadedAt: r.downloadedAt,
+        );
+        if (!_matches(entity, f)) continue;
+        out.add(entity);
+      }
+      return out;
+    });
   }
 
   @override
   Future<Either<Failure, Unit>> removeLocal(String sha256) async {
     try {
-      final row = await isar.mediaBlobModels
+      final row = await isar.mediaCacheModels
           .filter()
           .sha256EqualTo(sha256)
           .findFirst();
       if (row == null) return const Right(unit);
-      await _cache.delete(sha256, _extFromMime(row.mime, null));
+      final ext = p.extension(row.localPath).replaceFirst('.', '');
+      await _cache.delete(sha256, ext.isEmpty ? null : ext);
       await isar.writeTxn(() async {
-        row.localPath = null;
-        row.downloadedAt = null;
-        await isar.mediaBlobModels.put(row);
+        await isar.mediaCacheModels.delete(row.id);
       });
       return const Right(unit);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Unit>> linkNoteRef({
-    required String sha256,
-    required String noteEventId,
-  }) async {
-    try {
-      await isar.writeTxn(() async {
-        final existing = await isar.noteMediaRefModels
-            .filter()
-            .noteEventIdEqualTo(noteEventId)
-            .mediaSha256EqualTo(sha256)
-            .findFirst();
-        if (existing != null) return;
-        final row = NoteMediaRefModel()
-          ..noteEventId = noteEventId
-          ..mediaSha256 = sha256;
-        await isar.noteMediaRefModels.put(row);
-      });
-      return const Right(unit);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<String>>> getReferencingNoteIds(
-    String sha256,
-  ) async {
-    try {
-      final rows = await isar.noteMediaRefModels
-          .filter()
-          .mediaSha256EqualTo(sha256)
-          .findAll();
-      return Right(rows.map((r) => r.noteEventId).toList());
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<Failure, List<MediaBlobEntity>>> getBlobsForNote(
-    String noteEventId,
-  ) async {
-    try {
-      final refs = await isar.noteMediaRefModels
-          .filter()
-          .noteEventIdEqualTo(noteEventId)
-          .findAll();
-      if (refs.isEmpty) return const Right([]);
-      final shas = refs.map((r) => r.mediaSha256).toSet().toList();
-      final blobs = await isar.mediaBlobModels
-          .filter()
-          .anyOf(shas, (q, sha) => q.sha256EqualTo(sha))
-          .findAll();
-      return Right(blobs.map((b) => b.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -311,80 +286,45 @@ class MediaRepositoryImpl extends MediaRepository {
 
   // ── helpers ────────────────────────────────────────────────────────────
 
-  /// Upsert by sha256. Merges incoming server URL into [serverUrls] without
-  /// duplicates. Preserves [pinned] across writes.
-  Future<MediaBlobEntity> _upsertManifest({
+  Future<void> _upsertCache({
     required String sha256,
+    required String localPath,
+    required DateTime downloadedAt,
     required String mime,
     required int sizeBytes,
-    int? width,
-    int? height,
-    String? blurhash,
-    String? filename,
-    String? addServerUrl,
-    String? localPath,
-    DateTime? downloadedAt,
   }) async {
-    late MediaBlobModel saved;
     await isar.writeTxn(() async {
-      final existing = await isar.mediaBlobModels
+      final existing = await isar.mediaCacheModels
           .filter()
           .sha256EqualTo(sha256)
           .findFirst();
-      final row = existing ?? MediaBlobModel();
+      final row = existing ?? MediaCacheModel();
       row.sha256 = sha256;
+      row.localPath = localPath;
+      row.downloadedAt = downloadedAt;
       row.mime = mime;
       row.sizeBytes = sizeBytes;
-      row.width = width ?? row.width;
-      row.height = height ?? row.height;
-      row.blurhash = blurhash ?? row.blurhash;
-      row.filename = filename ?? row.filename;
-      final urls = <String>{...row.serverUrls};
-      if (addServerUrl != null) urls.add(addServerUrl);
-      row.serverUrls = urls.toList();
-      if (localPath != null) row.localPath = localPath;
-      if (downloadedAt != null) row.downloadedAt = downloadedAt;
-      row.lastSeenAt = DateTime.now();
-      row.pinned = existing?.pinned ?? false;
-      await isar.mediaBlobModels.put(row);
-      saved = row;
+      await isar.mediaCacheModels.put(row);
     });
-    return saved.toDomain();
   }
 
-  bool _matches(MediaBlobModel r, MediaFilter f) {
-    // Gallery only surfaces blobs the user actually has on-device — either
-    // uploaded by them or explicitly downloaded. Inbound-only manifest rows
-    // (localPath == null) stay hidden until the user pulls the bytes.
-    if (r.localPath == null) return false;
-    if (f.pinnedOnly && !r.pinned) return false;
-    switch (f.cache) {
-      case MediaCacheFilter.cached:
-        if (r.localPath == null) return false;
-        break;
-      case MediaCacheFilter.notCached:
-        if (r.localPath != null) return false;
-        break;
-      case MediaCacheFilter.any:
-        break;
-    }
+  bool _matches(MediaBlobEntity e, MediaFilter f) {
     switch (f.kind) {
       case MediaKindFilter.all:
         return true;
       case MediaKindFilter.image:
-        return r.mime.startsWith('image/');
+        return e.mime.startsWith('image/');
       case MediaKindFilter.video:
-        return r.mime.startsWith('video/');
+        return e.mime.startsWith('video/');
       case MediaKindFilter.audio:
-        return r.mime.startsWith('audio/');
+        return e.mime.startsWith('audio/');
       case MediaKindFilter.file:
-        return !r.mime.startsWith('image/') &&
-            !r.mime.startsWith('video/') &&
-            !r.mime.startsWith('audio/');
+        return !e.mime.startsWith('image/') &&
+            !e.mime.startsWith('video/') &&
+            !e.mime.startsWith('audio/');
     }
   }
 
-  /// Best-effort extension from mime; falls back to filename suffix.
   String? _extFromMime(String mime, String? filename) {
     final fromMime = _mimeToExt[mime.toLowerCase()];
     if (fromMime != null) return fromMime;

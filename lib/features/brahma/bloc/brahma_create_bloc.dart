@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:uuid/uuid.dart';
@@ -129,20 +128,16 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
           ? NoteType.image
           : NoteType.text,
       hasMedia: attached.isNotEmpty,
+      attachments: attached,
     );
 
-    // 5. Publish: text-only uses the shaped serializer; attachments use the
-    //    raw-passthrough path so imeta tag order survives.
+    // 5. Publish — both paths now use the same shaped serializer; the
+    //    typed imeta column makes raw-passthrough unnecessary.
     final result = attached.isEmpty
         ? await _publishUseCase.call(note)
         : await _publishMediaUseCase.call(PublishMediaNoteInput(
             note: note,
-            fullSignedJson: _encodeSignedEvent(
-              event: signedEvent,
-              tags: tags,
-              pubkeyHex: pubkeyHex,
-            ),
-            attachedShas: attached.map((b) => b.sha256).toList(),
+            attachments: attached,
           ));
     result.fold(
       (f) => emit(state.copyWith(
@@ -163,22 +158,6 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
 
   // Imeta tag construction lives in lib/core/notes/imeta_builder.dart so
   // every surface emits the same NIP-92 layout.
-
-  String _encodeSignedEvent({
-    required Event event,
-    required List<List<String>> tags,
-    required String pubkeyHex,
-  }) {
-    return jsonEncode({
-      'id': event.id,
-      'pubkey': pubkeyHex,
-      'created_at': event.createdAt,
-      'kind': event.kind,
-      'tags': tags,
-      'content': event.content,
-      'sig': event.sig,
-    });
-  }
 
   Future<void> _onUploadAndAttachMedia(
     UploadAndAttachMediaEvent event,

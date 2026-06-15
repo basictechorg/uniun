@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/domain/usecases/storage_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
@@ -13,12 +14,14 @@ class StorageCubit extends Cubit<StorageState> {
   final DeleteFeedNotesUseCase _deleteNotes;
   final DeleteAllChatHistoryUseCase _deleteChatHistory;
   final GetActiveUserUseCase _getUser;
+  final AppSettingsStore _settings;
 
   StorageCubit(
     this._getStats,
     this._deleteNotes,
     this._deleteChatHistory,
     this._getUser,
+    this._settings,
   ) : super(const StorageState()) {
     // Defer until after the current frame so the Settings page open animation
     // is not competing with the filesystem scan on the main thread.
@@ -48,8 +51,17 @@ class StorageCubit extends Cubit<StorageState> {
         deletableFeedNoteCount: stats.deletableFeedNoteCount,
         conversationCount: stats.conversationCount,
         ownPubkey: pubkey,
+        autoDeleteOldNotesDays: _settings.autoDeleteOldNotesDays,
       )),
     );
+  }
+
+  /// Persist the user's retention choice. `null` = off. Takes effect on
+  /// next app launch (CleanupManager reads it at Gateway boot time and
+  /// SharedPreferences is unavailable in the Gateway isolate).
+  Future<void> setAutoDeleteOldNotesDays(int? days) async {
+    await _settings.setAutoDeleteOldNotesDays(days);
+    emit(state.copyWith(autoDeleteOldNotesDays: days));
   }
 
   Future<void> deleteFeedNotes() async {

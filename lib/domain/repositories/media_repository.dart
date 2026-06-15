@@ -7,13 +7,15 @@ import 'package:uniun/domain/entities/media/media_filter.dart';
 
 abstract class MediaRepository {
   /// Upload raw bytes. Computes sha256, HEAD-dedupes against the server,
-  /// PUTs only if missing, caches bytes locally, upserts the manifest row.
-  /// Callers in the data/presentation layer read [File] bytes themselves
-  /// before calling — dart:io stays out of the domain.
+  /// PUTs only if missing, caches bytes locally, and writes a
+  /// [MediaCacheModel] row. The returned [MediaBlobEntity] carries the
+  /// imeta metadata + the local path the caller can render immediately.
+  ///
+  /// dart:io stays out of the domain — the picker reads bytes before
+  /// invoking the use case.
   ///
   /// [blurhash], [width], [height] are caller-provided (computed in a
-  /// presentation-layer isolate via `compute()` to avoid jank). Repository
-  /// does not decode the image itself.
+  /// presentation-layer isolate via `compute()` to avoid jank).
   Future<Either<Failure, MediaBlobEntity>> uploadBytes({
     required Uint8List bytes,
     required String mime,
@@ -23,36 +25,25 @@ abstract class MediaRepository {
     int? height,
   });
 
-  /// User-initiated download. Fetches bytes from the first reachable server
-  /// in [MediaBlobEntity.serverUrls], writes to the local cache, populates
-  /// [MediaBlobEntity.localPath].
-  Future<Either<Failure, MediaBlobEntity>> downloadBySha(String sha256);
-
-  Future<Either<Failure, MediaBlobEntity>> getBySha(String sha256);
-
-  Stream<List<MediaBlobEntity>> watchAll({MediaFilter? filter});
-
-  Future<Either<Failure, Unit>> pin(String sha256);
-  Future<Either<Failure, Unit>> unpin(String sha256);
-
-  /// Delete the local file only. Manifest row stays so the user can
-  /// re-download later from the server.
-  Future<Either<Failure, Unit>> removeLocal(String sha256);
-
-  /// Link a note's eventId to a blob sha. Called from inbound handlers and
-  /// the outbound publish path. Idempotent.
-  Future<Either<Failure, Unit>> linkNoteRef({
+  /// User-initiated download. Fetches bytes from a known URL (passed in by
+  /// the caller — looked up from the note's `imeta` attachments), writes to
+  /// the local cache, populates [MediaCacheModel].
+  Future<Either<Failure, MediaBlobEntity>> downloadBySha({
     required String sha256,
-    required String noteEventId,
+    required String url,
+    required String mime,
   });
 
-  /// Notes that reference a given blob — used by the detail page and the GC
-  /// pass.
-  Future<Either<Failure, List<String>>> getReferencingNoteIds(String sha256);
+  /// Look up the cache entry for a single sha. Returns `null` inside the
+  /// Right when the blob isn't on disk.
+  Future<Either<Failure, MediaBlobEntity?>> getCachedBySha(String sha256);
 
-  /// Blobs referenced by a given note — used by NoteCard to render
-  /// attachments inline.
-  Future<Either<Failure, List<MediaBlobEntity>>> getBlobsForNote(
-    String noteEventId,
-  );
+  /// Watches the union of (notes that have attachments) and
+  /// (MediaCacheModel rows). Output is deduped by sha256; rows with no
+  /// local cache are hidden by default — gallery shows files on disk only.
+  Stream<List<MediaBlobEntity>> watchAll({MediaFilter? filter});
+
+  /// Delete the local file + the cache row. The note's `imeta` is
+  /// untouched, so the card reverts to "download" the next time it renders.
+  Future<Either<Failure, Unit>> removeLocal(String sha256);
 }

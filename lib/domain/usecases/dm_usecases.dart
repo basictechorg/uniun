@@ -7,9 +7,11 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/usecases/usecase.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/domain/repositories/dm_message_repository.dart';
@@ -81,6 +83,10 @@ class SendDmParams {
   final String? quoteAuthorPubkey;
   final int? quoteKind;
 
+  /// NIP-92 imeta attachments. Carried inside the encrypted rumor so the
+  /// receiver renders the file without the relay seeing the metadata.
+  final List<MediaBlobEntity> attachments;
+
   SendDmParams({
     required this.otherPubkey,
     required this.content,
@@ -91,6 +97,7 @@ class SendDmParams {
     this.quoteEventId,
     this.quoteAuthorPubkey,
     this.quoteKind,
+    this.attachments = const [],
   });
 }
 
@@ -184,6 +191,18 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
               ...params.mentionRefs,
             ],
             quoteEventId: params.quoteEventId,
+            attachments: [
+              for (final b in params.attachments)
+                MediaAttachment()
+                  ..sha256 = b.sha256
+                  ..mime = b.mime
+                  ..sizeBytes = b.sizeBytes
+                  ..url = b.serverUrls.isNotEmpty ? b.serverUrls.first : null
+                  ..width = b.dim?.width
+                  ..height = b.dim?.height
+                  ..blurhash = b.blurhash
+                  ..filename = b.filename,
+            ],
           );
 
           await service.sendDm(dm, receiverPubkey: resolvedOtherPubkey);

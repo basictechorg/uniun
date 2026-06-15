@@ -28,60 +28,74 @@ const EventQueueModelSchema = CollectionSchema(
       name: r'created',
       type: IsarType.dateTime,
     ),
+    r'dTag': PropertySchema(id: 3, name: r'dTag', type: IsarType.string),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
     r'enqueuedAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'enqueuedAt',
       type: IsarType.dateTime,
     ),
-    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
-    r'kind': PropertySchema(id: 6, name: r'kind', type: IsarType.long),
-    r'pTagRefs': PropertySchema(
+    r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
+    r'expirationSec': PropertySchema(
       id: 7,
+      name: r'expirationSec',
+      type: IsarType.long,
+    ),
+    r'hTag': PropertySchema(id: 8, name: r'hTag', type: IsarType.string),
+    r'imeta': PropertySchema(
+      id: 9,
+      name: r'imeta',
+      type: IsarType.objectList,
+
+      target: r'MediaAttachment',
+    ),
+    r'kind': PropertySchema(id: 10, name: r'kind', type: IsarType.long),
+    r'pTagRefs': PropertySchema(
+      id: 11,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'quoteAuthorPubkey': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'quoteAuthorPubkey',
       type: IsarType.string,
     ),
     r'quoteEventId': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'quoteEventId',
       type: IsarType.string,
     ),
     r'quoteKind': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'quoteKind',
       type: IsarType.long,
     ),
-    r'rawPassthrough': PropertySchema(
-      id: 11,
-      name: r'rawPassthrough',
-      type: IsarType.bool,
-    ),
     r'replyToEventId': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'sentCount': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'sentCount',
       type: IsarType.long,
     ),
-    r'sig': PropertySchema(id: 15, name: r'sig', type: IsarType.string),
-    r'tTags': PropertySchema(id: 16, name: r'tTags', type: IsarType.stringList),
+    r'serverTags': PropertySchema(
+      id: 18,
+      name: r'serverTags',
+      type: IsarType.stringList,
+    ),
+    r'sig': PropertySchema(id: 19, name: r'sig', type: IsarType.string),
+    r'tTags': PropertySchema(id: 20, name: r'tTags', type: IsarType.stringList),
   },
 
   estimateSize: _eventQueueModelEstimateSize,
@@ -105,7 +119,7 @@ const EventQueueModelSchema = CollectionSchema(
     ),
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'MediaAttachment': MediaAttachmentSchema},
 
   getId: _eventQueueModelGetId,
   getLinks: _eventQueueModelGetLinks,
@@ -121,6 +135,12 @@ int _eventQueueModelEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.authorPubkey.length * 3;
   bytesCount += 3 + object.content.length * 3;
+  {
+    final value = object.dTag;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.eTagRefs.length * 3;
   {
     for (var i = 0; i < object.eTagRefs.length; i++) {
@@ -129,6 +149,24 @@ int _eventQueueModelEstimateSize(
     }
   }
   bytesCount += 3 + object.eventId.length * 3;
+  {
+    final value = object.hTag;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.imeta.length * 3;
+  {
+    final offsets = allOffsets[MediaAttachment]!;
+    for (var i = 0; i < object.imeta.length; i++) {
+      final value = object.imeta[i];
+      bytesCount += MediaAttachmentSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.pTagRefs.length * 3;
   {
     for (var i = 0; i < object.pTagRefs.length; i++) {
@@ -160,6 +198,13 @@ int _eventQueueModelEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.serverTags.length * 3;
+  {
+    for (var i = 0; i < object.serverTags.length; i++) {
+      final value = object.serverTags[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.sig.length * 3;
   bytesCount += 3 + object.tTags.length * 3;
   {
@@ -180,20 +225,29 @@ void _eventQueueModelSerialize(
   writer.writeString(offsets[0], object.authorPubkey);
   writer.writeString(offsets[1], object.content);
   writer.writeDateTime(offsets[2], object.created);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeDateTime(offsets[4], object.enqueuedAt);
-  writer.writeString(offsets[5], object.eventId);
-  writer.writeLong(offsets[6], object.kind);
-  writer.writeStringList(offsets[7], object.pTagRefs);
-  writer.writeString(offsets[8], object.quoteAuthorPubkey);
-  writer.writeString(offsets[9], object.quoteEventId);
-  writer.writeLong(offsets[10], object.quoteKind);
-  writer.writeBool(offsets[11], object.rawPassthrough);
-  writer.writeString(offsets[12], object.replyToEventId);
-  writer.writeString(offsets[13], object.rootEventId);
-  writer.writeLong(offsets[14], object.sentCount);
-  writer.writeString(offsets[15], object.sig);
-  writer.writeStringList(offsets[16], object.tTags);
+  writer.writeString(offsets[3], object.dTag);
+  writer.writeStringList(offsets[4], object.eTagRefs);
+  writer.writeDateTime(offsets[5], object.enqueuedAt);
+  writer.writeString(offsets[6], object.eventId);
+  writer.writeLong(offsets[7], object.expirationSec);
+  writer.writeString(offsets[8], object.hTag);
+  writer.writeObjectList<MediaAttachment>(
+    offsets[9],
+    allOffsets,
+    MediaAttachmentSchema.serialize,
+    object.imeta,
+  );
+  writer.writeLong(offsets[10], object.kind);
+  writer.writeStringList(offsets[11], object.pTagRefs);
+  writer.writeString(offsets[12], object.quoteAuthorPubkey);
+  writer.writeString(offsets[13], object.quoteEventId);
+  writer.writeLong(offsets[14], object.quoteKind);
+  writer.writeString(offsets[15], object.replyToEventId);
+  writer.writeString(offsets[16], object.rootEventId);
+  writer.writeLong(offsets[17], object.sentCount);
+  writer.writeStringList(offsets[18], object.serverTags);
+  writer.writeString(offsets[19], object.sig);
+  writer.writeStringList(offsets[20], object.tTags);
 }
 
 EventQueueModel _eventQueueModelDeserialize(
@@ -206,21 +260,32 @@ EventQueueModel _eventQueueModelDeserialize(
   object.authorPubkey = reader.readString(offsets[0]);
   object.content = reader.readString(offsets[1]);
   object.created = reader.readDateTime(offsets[2]);
-  object.eTagRefs = reader.readStringList(offsets[3]) ?? [];
-  object.enqueuedAt = reader.readDateTime(offsets[4]);
-  object.eventId = reader.readString(offsets[5]);
+  object.dTag = reader.readStringOrNull(offsets[3]);
+  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
+  object.enqueuedAt = reader.readDateTime(offsets[5]);
+  object.eventId = reader.readString(offsets[6]);
+  object.expirationSec = reader.readLongOrNull(offsets[7]);
+  object.hTag = reader.readStringOrNull(offsets[8]);
   object.id = id;
-  object.kind = reader.readLong(offsets[6]);
-  object.pTagRefs = reader.readStringList(offsets[7]) ?? [];
-  object.quoteAuthorPubkey = reader.readStringOrNull(offsets[8]);
-  object.quoteEventId = reader.readStringOrNull(offsets[9]);
-  object.quoteKind = reader.readLongOrNull(offsets[10]);
-  object.rawPassthrough = reader.readBool(offsets[11]);
-  object.replyToEventId = reader.readStringOrNull(offsets[12]);
-  object.rootEventId = reader.readStringOrNull(offsets[13]);
-  object.sentCount = reader.readLong(offsets[14]);
-  object.sig = reader.readString(offsets[15]);
-  object.tTags = reader.readStringList(offsets[16]) ?? [];
+  object.imeta =
+      reader.readObjectList<MediaAttachment>(
+        offsets[9],
+        MediaAttachmentSchema.deserialize,
+        allOffsets,
+        MediaAttachment(),
+      ) ??
+      [];
+  object.kind = reader.readLong(offsets[10]);
+  object.pTagRefs = reader.readStringList(offsets[11]) ?? [];
+  object.quoteAuthorPubkey = reader.readStringOrNull(offsets[12]);
+  object.quoteEventId = reader.readStringOrNull(offsets[13]);
+  object.quoteKind = reader.readLongOrNull(offsets[14]);
+  object.replyToEventId = reader.readStringOrNull(offsets[15]);
+  object.rootEventId = reader.readStringOrNull(offsets[16]);
+  object.sentCount = reader.readLong(offsets[17]);
+  object.serverTags = reader.readStringList(offsets[18]) ?? [];
+  object.sig = reader.readString(offsets[19]);
+  object.tTags = reader.readStringList(offsets[20]) ?? [];
   return object;
 }
 
@@ -238,32 +303,47 @@ P _eventQueueModelDeserializeProp<P>(
     case 2:
       return (reader.readDateTime(offset)) as P;
     case 3:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
-    case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
-      return (reader.readLong(offset)) as P;
-    case 7:
       return (reader.readStringList(offset) ?? []) as P;
+    case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readObjectList<MediaAttachment>(
+                offset,
+                MediaAttachmentSchema.deserialize,
+                allOffsets,
+                MediaAttachment(),
+              ) ??
+              [])
+          as P;
     case 10:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 15:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
+      return (reader.readStringOrNull(offset)) as P;
+    case 17:
+      return (reader.readLong(offset)) as P;
+    case 18:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 19:
+      return (reader.readString(offset)) as P;
+    case 20:
       return (reader.readStringList(offset) ?? []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -816,6 +896,165 @@ extension EventQueueModelQueryFilter
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'dTag'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'dTag'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'dTag',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'dTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'dTag',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'dTag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  dTagIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'dTag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
   eTagRefsElementEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1206,6 +1445,238 @@ extension EventQueueModelQueryFilter
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'expirationSec'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'expirationSec'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'expirationSec', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecGreaterThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'expirationSec',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecLessThan(int? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'expirationSec',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  expirationSecBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'expirationSec',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'hTag'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'hTag'),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'hTag',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'hTag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'hTag',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hTag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  hTagIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'hTag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
   idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1256,6 +1727,59 @@ extension EventQueueModelQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imeta', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imeta', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imeta', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imeta', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'imeta', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'imeta',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
       );
     });
   }
@@ -1901,15 +2425,6 @@ extension EventQueueModelQueryFilter
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
-  rawPassthroughEqualTo(bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'rawPassthrough', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2283,6 +2798,200 @@ extension EventQueueModelQueryFilter
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'serverTags',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'serverTags',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'serverTags',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'serverTags', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'serverTags', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'serverTags', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'serverTags', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'serverTags', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'serverTags', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'serverTags', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  serverTagsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'serverTags',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
   sigEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2615,7 +3324,14 @@ extension EventQueueModelQueryFilter
 }
 
 extension EventQueueModelQueryObject
-    on QueryBuilder<EventQueueModel, EventQueueModel, QFilterCondition> {}
+    on QueryBuilder<EventQueueModel, EventQueueModel, QFilterCondition> {
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterFilterCondition>
+  imetaElement(FilterQuery<MediaAttachment> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'imeta');
+    });
+  }
+}
 
 extension EventQueueModelQueryLinks
     on QueryBuilder<EventQueueModel, EventQueueModel, QFilterCondition> {}
@@ -2662,6 +3378,19 @@ extension EventQueueModelQuerySortBy
     });
   }
 
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy> sortByDTag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dTag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByDTagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dTag', Sort.desc);
+    });
+  }
+
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
   sortByEnqueuedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -2686,6 +3415,33 @@ extension EventQueueModelQuerySortBy
   sortByEventIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'eventId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByExpirationSec() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expirationSec', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByExpirationSecDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expirationSec', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy> sortByHTag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hTag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  sortByHTagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hTag', Sort.desc);
     });
   }
 
@@ -2741,20 +3497,6 @@ extension EventQueueModelQuerySortBy
   sortByQuoteKindDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'quoteKind', Sort.desc);
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
-  sortByRawPassthrough() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'rawPassthrough', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
-  sortByRawPassthroughDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'rawPassthrough', Sort.desc);
     });
   }
 
@@ -2855,6 +3597,19 @@ extension EventQueueModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy> thenByDTag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dTag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByDTagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'dTag', Sort.desc);
+    });
+  }
+
   QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
   thenByEnqueuedAt() {
     return QueryBuilder.apply(this, (query) {
@@ -2879,6 +3634,33 @@ extension EventQueueModelQuerySortThenBy
   thenByEventIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'eventId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByExpirationSec() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expirationSec', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByExpirationSecDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'expirationSec', Sort.desc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy> thenByHTag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hTag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
+  thenByHTagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hTag', Sort.desc);
     });
   }
 
@@ -2946,20 +3728,6 @@ extension EventQueueModelQuerySortThenBy
   thenByQuoteKindDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'quoteKind', Sort.desc);
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
-  thenByRawPassthrough() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'rawPassthrough', Sort.asc);
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QAfterSortBy>
-  thenByRawPassthroughDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'rawPassthrough', Sort.desc);
     });
   }
 
@@ -3042,6 +3810,14 @@ extension EventQueueModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct> distinctByDTag({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'dTag', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
   distinctByETagRefs() {
     return QueryBuilder.apply(this, (query) {
@@ -3061,6 +3837,21 @@ extension EventQueueModelQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'eventId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
+  distinctByExpirationSec() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'expirationSec');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct> distinctByHTag({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hTag', caseSensitive: caseSensitive);
     });
   }
 
@@ -3102,13 +3893,6 @@ extension EventQueueModelQueryWhereDistinct
   }
 
   QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
-  distinctByRawPassthrough() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'rawPassthrough');
-    });
-  }
-
-  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
   distinctByReplyToEventId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
@@ -3129,6 +3913,13 @@ extension EventQueueModelQueryWhereDistinct
   distinctBySentCount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sentCount');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, EventQueueModel, QDistinct>
+  distinctByServerTags() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serverTags');
     });
   }
 
@@ -3174,6 +3965,12 @@ extension EventQueueModelQueryProperty
     });
   }
 
+  QueryBuilder<EventQueueModel, String?, QQueryOperations> dTagProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'dTag');
+    });
+  }
+
   QueryBuilder<EventQueueModel, List<String>, QQueryOperations>
   eTagRefsProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3191,6 +3988,26 @@ extension EventQueueModelQueryProperty
   QueryBuilder<EventQueueModel, String, QQueryOperations> eventIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'eventId');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, int?, QQueryOperations>
+  expirationSecProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'expirationSec');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, String?, QQueryOperations> hTagProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hTag');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, List<MediaAttachment>, QQueryOperations>
+  imetaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'imeta');
     });
   }
 
@@ -3227,13 +4044,6 @@ extension EventQueueModelQueryProperty
     });
   }
 
-  QueryBuilder<EventQueueModel, bool, QQueryOperations>
-  rawPassthroughProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'rawPassthrough');
-    });
-  }
-
   QueryBuilder<EventQueueModel, String?, QQueryOperations>
   replyToEventIdProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3251,6 +4061,13 @@ extension EventQueueModelQueryProperty
   QueryBuilder<EventQueueModel, int, QQueryOperations> sentCountProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sentCount');
+    });
+  }
+
+  QueryBuilder<EventQueueModel, List<String>, QQueryOperations>
+  serverTagsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serverTags');
     });
   }
 

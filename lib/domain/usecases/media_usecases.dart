@@ -29,10 +29,16 @@ class UploadMediaInput {
   final int? height;
 }
 
-class LinkNoteMediaRefInput {
-  const LinkNoteMediaRefInput({required this.sha256, required this.noteEventId});
+class DownloadMediaInput {
+  const DownloadMediaInput({
+    required this.sha256,
+    required this.url,
+    required this.mime,
+  });
+
   final String sha256;
-  final String noteEventId;
+  final String url;
+  final String mime;
 }
 
 @lazySingleton
@@ -58,30 +64,20 @@ class UploadMediaUseCase
 
 @lazySingleton
 class DownloadMediaUseCase
-    extends UseCase<Either<Failure, MediaBlobEntity>, String> {
+    extends UseCase<Either<Failure, MediaBlobEntity>, DownloadMediaInput> {
   const DownloadMediaUseCase(this._repo);
   final MediaRepository _repo;
 
   @override
   Future<Either<Failure, MediaBlobEntity>> call(
-    String sha256, {
+    DownloadMediaInput input, {
     bool cached = false,
   }) =>
-      _repo.downloadBySha(sha256);
-}
-
-@lazySingleton
-class GetMediaUseCase
-    extends UseCase<Either<Failure, MediaBlobEntity>, String> {
-  const GetMediaUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, MediaBlobEntity>> call(
-    String sha256, {
-    bool cached = false,
-  }) =>
-      _repo.getBySha(sha256);
+      _repo.downloadBySha(
+        sha256: input.sha256,
+        url: input.url,
+        mime: input.mime,
+      );
 }
 
 @lazySingleton
@@ -96,26 +92,6 @@ class WatchMediaUseCase
 }
 
 @lazySingleton
-class PinMediaUseCase extends UseCase<Either<Failure, Unit>, String> {
-  const PinMediaUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, Unit>> call(String sha256, {bool cached = false}) =>
-      _repo.pin(sha256);
-}
-
-@lazySingleton
-class UnpinMediaUseCase extends UseCase<Either<Failure, Unit>, String> {
-  const UnpinMediaUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, Unit>> call(String sha256, {bool cached = false}) =>
-      _repo.unpin(sha256);
-}
-
-@lazySingleton
 class RemoveLocalMediaUseCase
     extends UseCase<Either<Failure, Unit>, String> {
   const RemoveLocalMediaUseCase(this._repo);
@@ -126,89 +102,36 @@ class RemoveLocalMediaUseCase
       _repo.removeLocal(sha256);
 }
 
-@lazySingleton
-class LinkNoteMediaRefUseCase
-    extends UseCase<Either<Failure, Unit>, LinkNoteMediaRefInput> {
-  const LinkNoteMediaRefUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, Unit>> call(
-    LinkNoteMediaRefInput input, {
-    bool cached = false,
-  }) =>
-      _repo.linkNoteRef(
-        sha256: input.sha256,
-        noteEventId: input.noteEventId,
-      );
-}
-
-@lazySingleton
-class GetBlobsForNoteUseCase
-    extends UseCase<Either<Failure, List<MediaBlobEntity>>, String> {
-  const GetBlobsForNoteUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, List<MediaBlobEntity>>> call(
-    String noteEventId, {
-    bool cached = false,
-  }) =>
-      _repo.getBlobsForNote(noteEventId);
-}
-
-@lazySingleton
-class GetReferencingNoteIdsUseCase
-    extends UseCase<Either<Failure, List<String>>, String> {
-  const GetReferencingNoteIdsUseCase(this._repo);
-  final MediaRepository _repo;
-
-  @override
-  Future<Either<Failure, List<String>>> call(
-    String sha256, {
-    bool cached = false,
-  }) =>
-      _repo.getReferencingNoteIds(sha256);
-}
-
 // ── PublishMediaNoteUseCase ───────────────────────────────────────────────────
 
 class PublishMediaNoteInput {
   const PublishMediaNoteInput({
     required this.note,
-    required this.fullSignedJson,
-    required this.attachedShas,
+    required this.attachments,
   });
 
+  /// Pre-signed note. `note.id`/`note.sig` are the result of signing the
+  /// canonical tag layout — which includes the `imeta` tags for these
+  /// attachments. See `EventQueueModel.toSerializedRelayMessage` for the
+  /// authoritative order.
   final NoteEntity note;
 
-  /// Full signed event JSON as the relay should receive it — caller built
-  /// the tag array (including imeta) and called `Event.from(...)` to sign.
-  /// We store this in [EventQueueModel.content] and use the rawPassthrough
-  /// path so the wire bytes hash back to the signed id.
-  final String fullSignedJson;
-
-  /// sha256s referenced by this note. Each gets a [NoteMediaRefModel] row
-  /// so the gallery + GC see the linkage from day one (the gateway inbound
-  /// handler would do this too on receive, but we are the sender).
-  final List<String> attachedShas;
+  /// One [MediaBlobEntity] per `imeta` tag on the note. Carries the imeta
+  /// fields the queue's serializer needs to reproduce the tag list.
+  final List<MediaBlobEntity> attachments;
 }
 
-/// Outbound publish path for notes that carry NIP-92 `imeta` tags. Mirrors
-/// [PublishNoteUseCase] but signals raw-passthrough to the outbound pump so
-/// the imeta tag order survives serialization.
+/// Outbound publish path for notes carrying NIP-92 `imeta` tags. Identical
+/// flow to a plain `PublishNoteUseCase`, but passes the typed `imeta:` list
+/// to the queue so the serializer can emit `imeta` tags in the canonical
+/// order. No raw-passthrough.
 @lazySingleton
 class PublishMediaNoteUseCase
     extends UseCase<Either<Failure, NoteEntity>, PublishMediaNoteInput> {
-  const PublishMediaNoteUseCase(
-    this._noteRepo,
-    this._eventQueue,
-    this._mediaRepo,
-  );
+  const PublishMediaNoteUseCase(this._noteRepo, this._eventQueue);
 
   final NoteRepository _noteRepo;
   final EventQueueRepository _eventQueue;
-  final MediaRepository _mediaRepo;
 
   @override
   Future<Either<Failure, NoteEntity>> call(
@@ -217,10 +140,6 @@ class PublishMediaNoteUseCase
   }) async {
     final saveResult = await _noteRepo.saveNote(input.note);
     if (saveResult.isLeft()) return saveResult;
-
-    for (final sha in input.attachedShas) {
-      await _mediaRepo.linkNoteRef(sha256: sha, noteEventId: input.note.id);
-    }
 
     final enqueueResult = await _eventQueue.enqueueSignedEvent(
       eventId: input.note.id,
@@ -232,10 +151,10 @@ class PublishMediaNoteUseCase
       replyToEventId: input.note.replyToEventId,
       pTagRefs: input.note.pTagRefs,
       tTags: input.note.tTags,
-      content: input.fullSignedJson,
+      content: input.note.content,
       created: input.note.created,
       quoteEventId: input.note.quoteEventId,
-      rawPassthrough: true,
+      imeta: input.attachments,
     );
     if (enqueueResult.isLeft()) {
       return Left(enqueueResult.fold(

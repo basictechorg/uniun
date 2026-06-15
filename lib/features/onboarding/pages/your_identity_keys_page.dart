@@ -186,10 +186,16 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: topGap),
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight - 16),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: topGap),
 
                         Text(
                           l10n.keysTitle,
@@ -339,8 +345,11 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                           ],
                         ),
 
-                        const SizedBox(height: 8),
-                      ],
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

@@ -96,8 +96,13 @@ class _AttachmentTileState extends State<_AttachmentTile> {
   bool get _isImage => _blob.mime.startsWith('image/');
 
   Future<void> _download() async {
+    if (_blob.serverUrls.isEmpty) return;
     setState(() => _downloading = true);
-    final res = await getIt<DownloadMediaUseCase>().call(_blob.sha256);
+    final res = await getIt<DownloadMediaUseCase>().call(DownloadMediaInput(
+      sha256: _blob.sha256,
+      url: _blob.serverUrls.first,
+      mime: _blob.mime,
+    ));
     if (!mounted) return;
     setState(() {
       _downloading = false;

@@ -35,16 +35,6 @@ class MediaGalleryCubit extends Cubit<MediaGalleryState> {
 
   void changeFilter(MediaFilter filter) => load(filter: filter);
 
-  Future<void> download(String sha256) async {
-    _markBusy(sha256, true);
-    final res = await getIt<DownloadMediaUseCase>().call(sha256);
-    _markBusy(sha256, false);
-    res.fold(
-      (f) => emit(state.copyWith(errorMessage: f.toMessage())),
-      (_) {},
-    );
-  }
-
   Future<void> removeLocal(String sha256) async {
     _markBusy(sha256, true);
     final res = await getIt<RemoveLocalMediaUseCase>().call(sha256);
