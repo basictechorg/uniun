@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get actionCancel;
 
+  /// Tooltip for the shared back-arrow atom
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get actionBack;
+
   /// Done button
   ///
   /// In en, this message translates to:

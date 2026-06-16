@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Shared top bar used across all onboarding screens.
@@ -14,11 +15,7 @@ class OnboardingAppBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: AppColors.primary),
-            onPressed: onBack,
-          ),
+          UniunBackButton(onPressed: onBack),
           Expanded(
             child: Center(
               child: Row(

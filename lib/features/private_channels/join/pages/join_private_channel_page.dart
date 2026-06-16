@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
@@ -104,11 +105,7 @@ class _JoinPrivateChannelViewState extends State<_JoinPrivateChannelView> {
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.primary,
-              ),
+            leading: UniunBackButton(
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(

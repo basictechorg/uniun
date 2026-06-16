@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
@@ -111,8 +112,7 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
           backgroundColor: AppColors.surface,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.primary),
+          leading: UniunBackButton(
             onPressed: () => Navigator.pop(context, _selected),
           ),
           title: Text(

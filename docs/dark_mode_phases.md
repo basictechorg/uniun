@@ -1,4 +1,40 @@
-# Dark Mode — Phased Rollout Plan
+# Dark Mode — Approach Decision
+
+> **Read this section before touching anything else.** It compares the two approaches we considered and explains why the phased migration is the only one that actually works.
+
+## TL;DR
+
+Use the **phased ColorScheme migration** below. There is **no one-file shortcut** — every alternative breaks `const` constructors or fails to react to runtime theme toggling.
+
+---
+
+## Why the "one-file palette swap" doesn't work
+
+The temptation is to make `AppColors` mutable so flipping a flag swaps the palette without touching the ~250 widget files that already reference `AppColors.primary` directly.
+
+```dart
+// Tempting but broken:
+abstract class AppColors {
+  static Color primary = const Color(0xFF0075f2); // not const anymore
+  // …
+}
+void main() {
+  if (isDark) AppColors.primary = const Color(0xFF319BED);
+  runApp(...);
+}
+```
+
+It looks like a 1-file change. In reality it breaks the app in three ways:
+
+1. **`const` constructors stop compiling.** The codebase is full of `const Icon(..., color: AppColors.primary)` and `const TextStyle(color: AppColors.onSurface)`. Drop `const` from `AppColors` and every one of those becomes a compile error — you have to remove `const` from hundreds of widget call sites anyway. The "one file" promise is gone.
+2. **Not reactive.** A static palette set in `main()` cannot react to `ThemeCubit.setMode(dark)` mid-session. Toggling the theme would require `runApp(...)` again — the user loses scroll position, draft text, BLoC state, isar streams reconnect.
+3. **System brightness changes are dropped.** When the OS switches to dark at sunset, Flutter rebuilds with `Theme.of(context)`. Static fields are oblivious to that signal.
+
+A "partial" middle-ground — keep `AppColors` static but also pass `darkTheme: ThemeData.dark()` to `MaterialApp` — gives you a half-dark app: framework widgets (default `Scaffold`, `AppBar`, ripples) go dark, but every widget reading `AppColors.surface` stays white. Worse than no dark mode because the mismatch looks broken.
+
+**The right path is `Theme.of(context).colorScheme`.** That's reactive, it's how Flutter is meant to be themed, and `const` widgets simply read the color at build time. Migration is mechanical, not creative.
+
+---
 
 ## The Goal
 

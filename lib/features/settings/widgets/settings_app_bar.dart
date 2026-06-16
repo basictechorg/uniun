@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -28,11 +29,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: AppColors.primary,
-                    ),
+                  UniunBackButton(
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 4),

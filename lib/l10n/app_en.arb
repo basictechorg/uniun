@@ -37,6 +37,9 @@
   "actionCancel": "Cancel",
   "@actionCancel": { "description": "Cancel button" },
 
+  "actionBack": "Back",
+  "@actionBack": { "description": "Tooltip for the shared back-arrow atom" },
+
   "actionDone": "Done",
   "@actionDone": { "description": "Done button" },
 

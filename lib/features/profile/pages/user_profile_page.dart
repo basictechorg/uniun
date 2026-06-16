@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -132,12 +133,7 @@ class _Header extends StatelessWidget {
       children: [
         Row(
           children: [
-            IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
+            UniunBackButton(
               onPressed: () => context.popOrHome(),
             ),
             const SizedBox(width: 4),
