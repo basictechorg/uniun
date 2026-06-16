@@ -48,7 +48,7 @@ dependencies:
   # Direct save to Photos / Files (Android / iOS / macOS). On Windows we
   # fall back to copying the file to the user's Downloads directory via
   # path_provider.
-  image_gallery_saver_plus: ^3.0.3
+  image_gallery_saver_plus: ^5.0.0
   mobile_scanner: ^7.2.0
   flutter_gemma: ^0.16.5
   system_info_plus: ^0.0.6
