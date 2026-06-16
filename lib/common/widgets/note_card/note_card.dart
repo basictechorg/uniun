@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
+import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/widgets/note_card/expandable_note_text.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
@@ -163,6 +164,9 @@ class _NoteCardView extends StatelessWidget {
                     if (note.content.isNotEmpty) const SizedBox(height: 8),
                     EmbeddedNoteCard(note: note.quotedNote),
                   ],
+
+                  // ── Media attachments (NIP-92 imeta) ────────────────────
+                  if (note.hasMedia) MediaAttachmentView(note: note),
 
                   // Hashtag chips
                   if (note.tTags.isNotEmpty) ...[

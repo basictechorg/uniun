@@ -1,14 +1,20 @@
 import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:uuid/uuid.dart';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
+import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
@@ -20,6 +26,8 @@ part 'brahma_create_state.dart';
 class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetActiveUserKeysUseCase _getActiveUserKeys;
   final PublishNoteUseCase _publishUseCase;
+  final PublishMediaNoteUseCase _publishMediaUseCase;
+  final UploadMediaUseCase _uploadMedia;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final SaveDraftUseCase _saveDraft;
   final GetDraftsUseCase _getDrafts;
@@ -30,6 +38,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   BrahmaCreateBloc(
     this._getActiveUserKeys,
     this._publishUseCase,
+    this._publishMediaUseCase,
+    this._uploadMedia,
     this._embedAndStore,
     this._saveDraft,
     this._getDrafts,
@@ -48,6 +58,9 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<RemoveMentionEvent>(_onRemoveMention);
     on<ClearMentionSearchEvent>(_onClearMentionSearch);
     on<RestoreDraftMentionsEvent>(_onRestoreDraftMentions);
+    on<UploadAndAttachMediaEvent>(_onUploadAndAttachMedia,
+        transformer: sequential());
+    on<RemoveAttachedMediaEvent>(_onRemoveAttachedMedia);
   }
 
   Future<void> _onSubmitNote(
@@ -74,12 +87,16 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     // 2. Build tags
     final hashtags = extractHashtags(content);
     final mentionIds = state.selectedMentions.map((m) => m.id).toList();
+    final attached = state.attachedMedia;
     final tags = buildNoteTags(
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
       mentionIds: mentionIds,
       hashtags: hashtags,
     );
+    if (attached.isNotEmpty) {
+      tags.addAll(buildImetaTags(attached));
+    }
 
     // 3. Sign
     late final Event signedEvent;
@@ -106,10 +123,22 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       tTags: hashtags,
       rootEventId: event.rootEventId,
       replyToEventId: event.replyToEventId,
+    ).copyWith(
+      type: attached.any((b) => b.mime.startsWith('image/'))
+          ? NoteType.image
+          : NoteType.text,
+      hasMedia: attached.isNotEmpty,
+      attachments: attached,
     );
 
-    // 5. Publish: save locally + enqueue for relay
-    final result = await _publishUseCase.call(note);
+    // 5. Publish — both paths now use the same shaped serializer; the
+    //    typed imeta column makes raw-passthrough unnecessary.
+    final result = attached.isEmpty
+        ? await _publishUseCase.call(note)
+        : await _publishMediaUseCase.call(PublishMediaNoteInput(
+            note: note,
+            attachments: attached,
+          ));
     result.fold(
       (f) => emit(state.copyWith(
         status: BrahmaCreateStatus.error,
@@ -119,11 +148,57 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         emit(state.copyWith(
           status: BrahmaCreateStatus.success,
           selectedMentions: [],
+          attachedMedia: [],
         ));
         // Fire-and-forget: embed this note for RAG (no-op if model not ready yet).
         unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
       },
     );
+  }
+
+  // Imeta tag construction lives in lib/core/notes/imeta_builder.dart so
+  // every surface emits the same NIP-92 layout.
+
+  Future<void> _onUploadAndAttachMedia(
+    UploadAndAttachMediaEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    emit(state.copyWith(isAttachingMedia: true));
+    final res = await _uploadMedia.call(UploadMediaInput(
+      bytes: event.bytes,
+      mime: event.mime,
+      filename: event.filename,
+      width: event.width,
+      height: event.height,
+    ));
+    res.fold(
+      (f) => emit(state.copyWith(
+        isAttachingMedia: false,
+        status: BrahmaCreateStatus.error,
+        errorMessage: f.toMessage(),
+      )),
+      (blob) {
+        if (state.attachedMedia.any((b) => b.sha256 == blob.sha256)) {
+          emit(state.copyWith(isAttachingMedia: false));
+          return;
+        }
+        emit(state.copyWith(
+          isAttachingMedia: false,
+          attachedMedia: [...state.attachedMedia, blob],
+        ));
+      },
+    );
+  }
+
+  void _onRemoveAttachedMedia(
+    RemoveAttachedMediaEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) {
+    emit(state.copyWith(
+      attachedMedia: state.attachedMedia
+          .where((b) => b.sha256 != event.sha256)
+          .toList(),
+    ));
   }
 
   Future<void> _onSaveDraft(

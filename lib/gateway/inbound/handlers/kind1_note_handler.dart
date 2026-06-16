@@ -6,6 +6,7 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
+import 'package:uniun/gateway/inbound/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
 /// Kind 1 — short text note.
@@ -149,6 +150,7 @@ class Kind1NoteHandler implements KindHandler {
       tTags: tTags,
       created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
       quoteEventId: quoteEventId,
+      attachments: ImetaParser.parseAsAttachments(event),
     );
   }
 }

@@ -290,7 +290,7 @@ class AIModelRunner {
 
 /// Strips per-model stop tokens from a streaming token feed.
 ///
-/// flutter_gemma 0.16.4's [StopTokenFilter] only matches `<end_of_turn>` (Gemma).
+/// flutter_gemma 0.16.5's [StopTokenFilter] only matches `<end_of_turn>` (Gemma).
 /// On iOS the MediaPipe `.litertlm` backend does not honour stop tokens itself,
 /// so non-Gemma models (Qwen, DeepSeek, Llama) leak their terminator plus BPE
 /// byte-level junk after it. We catch the rest here. Safe on Android too —

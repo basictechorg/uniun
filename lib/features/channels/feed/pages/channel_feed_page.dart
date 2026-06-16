@@ -228,11 +228,12 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
               ComposerHost(
                 hintText: l10n.channelMessageHint,
                 isSending: state.isSending,
-                onSend: (text, refs) =>
+                onSend: (text, refs, attachments) =>
                     context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
                           channelId: widget.channelId,
                           content: text,
                           mentionRefs: refs,
+                          attachments: attachments,
                         )),
               ),
             ],

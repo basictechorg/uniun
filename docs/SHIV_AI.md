@@ -2,7 +2,7 @@
 
 Shiv is UNIUN's AI assistant. It reasons over the user's saved notes via vector + graph RAG, and runs against **two interchangeable backends** behind one repository:
 
-- **Local** — `flutter_gemma 0.16.3` on-device inference (default, fully offline).
+- **Local** — `flutter_gemma 0.16.5` on-device inference (default, fully offline).
 - **Cloud** — OpenRouter via `openrouter_api 1.0.2` (one key, every major frontier model).
 
 The user picks the backend in Settings. The chat code, RAG pipeline, knowledge extractor and BLoC have **no idea which backend is active** — they call the same `LlmRepository` interface.
@@ -51,7 +51,7 @@ LocalLlmDataSource                            RemoteLlmDataSource
 AIModelRunner ▶ openChat(modelType…)         OpenRouterInference
         │  ModelTaskQueue (high / low lanes)           │  Dio + SSE stream
         ▼                                              ▼
-flutter_gemma 0.16.3 (LiteRT-LM / MediaPipe)  openrouter.ai REST API
+flutter_gemma 0.16.5 (LiteRT-LM / MediaPipe)  openrouter.ai REST API
 ```
 
 Two things to notice:
@@ -392,7 +392,7 @@ SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
 | Trigger | Default; user has a model downloaded | User pastes API key + flips toggle |
 | Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | OpenRouter REST `streamCompletion` (SSE) |
 | Session model | Per-turn `openChat` with `modelType` from `LocalModelParams` | Stateless — full prompt every call |
-| Cancellation | per-session `stopGeneration()` (safe since 0.16) | cancel the Dio `StreamSubscription` |
+| Cancellation | per-session `stopGeneration()` (safe since 0.16; KV-cache bleed between sequential `openChat`s fixed in 0.16.5) | cancel the Dio `StreamSubscription` |
 | Concurrency | accelerator-mutexed → `ModelTaskQueue` high/low lanes | network-concurrent — no queue |
 | Preemption of extraction | `_activeExtraction.stopGeneration()` before chat enters high lane | cancel `_extractionSub` |
 | Models exposed | downloaded local files (via `AIModelRepository`) | live `OpenRouter.listModels()` |
@@ -412,6 +412,23 @@ gemma4E4b    →  ModelType.gemma4   isThinking=false
 ```
 
 The same mapping exists in `AIModelRepositoryImpl._gemmaParams` for the *install* path. Both must stay in sync — runtime template and install spec must agree.
+
+### Logging in release (privacy)
+
+`flutter_gemma` 0.16.5 gates every internal log on `kDebugMode`. Release builds are silent regardless of level — no prompt, output, or conversation history can reach `logcat` / `syslog` even if a user (or attacker) tries to enable verbose mode.
+
+`lib/main.dart` still sets the level explicitly so the *intent* is on the page:
+
+```dart
+FlutterGemma.logLevel =
+    kReleaseMode ? GemmaLogLevel.none : GemmaLogLevel.info;
+```
+
+Use `GemmaLogLevel.verbose` only when actively debugging a model bug locally — it prints prompts and generated tokens.
+
+### KV-cache hygiene
+
+Before 0.16.5, opening a new chat after closing one could see residual KV-cache state from the previous native session (issue #308). Fixed upstream: each `createSession` now opens a fresh native session + conversation handle. We get this for free with the version bump — no code change needed.
 
 ---
 

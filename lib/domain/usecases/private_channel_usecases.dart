@@ -1,4 +1,5 @@
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
@@ -97,6 +98,7 @@ class SendPrivateChannelMessageUsecase {
     String? rootEventId,
     String? replyToEventId,
     String? quoteEventId,
+    List<MediaBlobEntity> attachments = const [],
   }) async {
     await transportService.sendChannelMessage(
       groupId: groupId,
@@ -107,6 +109,7 @@ class SendPrivateChannelMessageUsecase {
       rootEventId: rootEventId,
       replyToEventId: replyToEventId,
       quoteEventId: quoteEventId,
+      attachments: attachments,
     );
   }
 }

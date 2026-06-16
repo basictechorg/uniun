@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
@@ -103,14 +105,19 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
   }
 
   Future<void> _onSend(DmChatSendEvent event, Emitter<DmChatState> emit) async {
-    if (state.otherPubkey == null || event.content.trim().isEmpty) return;
+    if (state.otherPubkey == null ||
+        (event.content.trim().isEmpty && event.attachments.isEmpty)) return;
 
     emit(state.copyWith(isSending: true));
     try {
       final params = SendDmParams(
         otherPubkey: state.otherPubkey!,
         content: event.content.trim(),
+        type: event.attachments.any((a) => a.mime.startsWith('image/'))
+            ? NoteType.image
+            : NoteType.text,
         mentionRefs: event.mentionRefs,
+        attachments: event.attachments,
       );
 
       final result = await _sendDmUseCase.call(params);

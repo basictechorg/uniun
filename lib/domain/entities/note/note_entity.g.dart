@@ -34,6 +34,7 @@ _NoteEntity _$NoteEntityFromJson(Map<String, dynamic> json) => _NoteEntity(
   quotedNote: json['quotedNote'] == null
       ? null
       : NoteEntity.fromJson(json['quotedNote'] as Map<String, dynamic>),
+  hasMedia: json['hasMedia'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
@@ -59,6 +60,7 @@ Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
       'sourceLabel': instance.sourceLabel,
       'quoteEventId': instance.quoteEventId,
       'quotedNote': instance.quotedNote,
+      'hasMedia': instance.hasMedia,
     };
 
 const _$NoteTypeEnumMap = {

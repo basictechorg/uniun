@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/note_card/expandable_note_text.dart';
+import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -124,6 +125,7 @@ class _DmNoteCardView extends StatelessWidget {
                     if (note.content.isNotEmpty) const SizedBox(height: 8),
                     EmbeddedNoteCard(note: note.quotedNote),
                   ],
+                  if (note.hasMedia) MediaAttachmentView(note: note),
                   if (note.tTags.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Wrap(

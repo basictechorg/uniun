@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
@@ -16,9 +17,6 @@ part 'event_queue_model.g.dart';
 /// An entry is eligible for dequeue when:
 ///   sentCount >= number of currently connected write relays
 ///   AND enqueuedAt < now - 30 minutes
-/// Kinds used by the Marmot private channel protocol.
-const _privateChannelKinds = {9002, 9021, 9022, 9023, 9024, 9025};
-
 @Collection(ignore: {'copyWith'})
 @Name('EventQueue')
 class EventQueueModel {
@@ -28,8 +26,6 @@ class EventQueueModel {
   @Index(unique: true)
   late String eventId;
 
-  /// Signed event payload stored in structured form.
-  /// WebSocketService serializes this to the relay wire format at send time.
   late String authorPubkey;
   late String sig;
   late String content;
@@ -47,6 +43,21 @@ class EventQueueModel {
   String? quoteAuthorPubkey;
   int? quoteKind;
 
+  /// NIP-29 private channel group id → `["h", hTag]`.
+  String? hTag;
+
+  /// NIP-37 draft id → `["d", dTag]`.
+  String? dTag;
+
+  /// NIP-37 draft expiration timestamp (seconds) → `["expiration", ...]`.
+  int? expirationSec;
+
+  /// BUD-03 user server list → one `["server", url]` per entry.
+  List<String> serverTags = const [];
+
+  /// NIP-92 media attachments → one `["imeta", ...]` per entry.
+  List<MediaAttachment> imeta = const [];
+
   /// Number of write-relay connections that have received ["OK", id, true].
   /// Incremented atomically by each WebSocketService on successful ACK.
   late int sentCount = 0;
@@ -55,15 +66,22 @@ class EventQueueModel {
   late DateTime enqueuedAt;
 }
 
-/// Tag reconstruction order (must match the order callers use when signing,
-/// otherwise the re-serialized event hash will not match [eventId]):
-///   1. root e-tag (NIP-10)
-///   2. reply e-tag (NIP-10)
-///   3. mention e-tags (remaining eTagRefs)
-///   4. p-tags
-///   5. t-tags
-///   6. q-tag (NIP-18 share/quote, optional)
-///   7. k-tag (kind of the quoted event, optional)
+/// Tag reconstruction order — every publisher MUST sign in this order, or
+/// the broadcast event will re-serialize to a different SHA-256 than the
+/// signed [eventId] and the relay will reject the signature.
+///
+///   1. e root  (NIP-10)
+///   2. e reply (NIP-10)
+///   3. e mention… (remaining [eTagRefs])
+///   4. p…
+///   5. t…
+///   6. h          (NIP-29 private channel)
+///   7. d          (NIP-37 draft id)
+///   8. k          (NIP-18 quoted kind; drafts use ["k","1"])
+///   9. q          (NIP-18 quote)
+///  10. expiration (NIP-37 expiry)
+///  11. server…    (BUD-03)
+///  12. imeta…     (NIP-92)
 extension EventQueueModelExtension on EventQueueModel {
   /// Populates this queue row from a data-layer [NoteModel].
   EventQueueModel populateFromNoteModel(NoteModel note) {
@@ -78,6 +96,7 @@ extension EventQueueModelExtension on EventQueueModel {
     pTagRefs = List<String>.from(note.pTagRefs);
     tTags = List<String>.from(note.tTags);
     created = note.created;
+    imeta = List<MediaAttachment>.from(note.attachments);
     sentCount = 0;
     enqueuedAt = DateTime.now();
     return this;
@@ -99,12 +118,25 @@ extension EventQueueModelExtension on EventQueueModel {
     pTagRefs = List<String>.from(note.pTagRefs);
     tTags = List<String>.from(note.tTags);
     created = note.created;
+    imeta = note.attachments
+        .map((b) => MediaAttachment()
+          ..sha256 = b.sha256
+          ..mime = b.mime
+          ..sizeBytes = b.sizeBytes
+          ..url = b.serverUrls.isNotEmpty ? b.serverUrls.first : null
+          ..width = b.dim?.width
+          ..height = b.dim?.height
+          ..blurhash = b.blurhash
+          ..filename = b.filename)
+        .toList();
     sentCount = 0;
     enqueuedAt = DateTime.now();
     return this;
   }
 
-  /// Relay wire message: ["EVENT", {signed-event-json}]
+  /// Relay wire message: `["EVENT", {signed-event-json}]`.
+  /// Tag order MUST match the canonical order documented above; signing
+  /// publishers must follow the same order.
   String toSerializedRelayMessage() {
     final tags = <List<String>>[
       if (rootEventId != null) ['e', rootEventId!, '', 'root'],
@@ -114,9 +146,14 @@ extension EventQueueModelExtension on EventQueueModel {
           ['e', ref, '', 'mention'],
       for (final p in pTagRefs) ['p', p],
       for (final t in tTags) ['t', t],
+      if (hTag != null) ['h', hTag!],
+      if (dTag != null) ['d', dTag!],
+      if (quoteKind != null) ['k', quoteKind!.toString()],
       if (quoteEventId != null)
         ['q', quoteEventId!, '', quoteAuthorPubkey ?? ''],
-      if (quoteKind != null) ['k', quoteKind!.toString()],
+      if (expirationSec != null) ['expiration', expirationSec!.toString()],
+      for (final url in serverTags) ['server', url],
+      for (final a in imeta) _imetaTag(a),
     ];
 
     return jsonEncode([
@@ -132,21 +169,17 @@ extension EventQueueModelExtension on EventQueueModel {
       },
     ]);
   }
-}
 
-extension EventQueuePrivateChannelExt on EventQueueModel {
-  /// Returns true when this queue entry carries a Marmot private-channel event.
-  ///
-  /// For these events the full signed Nostr event JSON is stored in [content]
-  /// (rather than just the event's content string) so we can preserve the
-  /// `["h", groupId]` tag that [toSerializedRelayMessage] cannot produce.
-  bool get isPrivateChannelEvent => _privateChannelKinds.contains(kind);
-
-  /// Converts this entry to the relay wire format `["EVENT", {signed-event}]`.
-  ///
-  /// Requires that [content] holds the full signed event JSON, as produced by
-  /// `jsonEncode(event.toJson())` from nostr_core_dart.
-  String toRawRelayMessage() {
-    return jsonEncode(['EVENT', jsonDecode(content)]);
+  static List<String> _imetaTag(MediaAttachment a) {
+    return [
+      'imeta',
+      if (a.url != null) 'url ${a.url}',
+      'm ${a.mime}',
+      'x ${a.sha256}',
+      if (a.sizeBytes > 0) 'size ${a.sizeBytes}',
+      if (a.width != null && a.height != null) 'dim ${a.width}x${a.height}',
+      if (a.blurhash != null) 'blurhash ${a.blurhash}',
+      if (a.filename != null && a.filename!.isNotEmpty) 'name ${a.filename}',
+    ];
   }
 }

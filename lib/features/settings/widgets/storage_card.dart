@@ -4,9 +4,12 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 
-const _kColorAiModels = Color(0xFF4CAF50);
-const _kColorChatHistory = Color(0xFFFF9800);
-const _kColorOther = Color(0xFF9E9E9E);
+// Five distinguishable hues for the stacked bar. Sourced from AppColors
+// so the chart re-themes with the rest of the app.
+const _kColorAiModels = AppColors.graphOwn;       // green
+const _kColorChatHistory = AppColors.graphDraft;  // orange
+const _kColorMedia = AppColors.secondary;         // muted blue (≠ primary)
+const _kColorOther = AppColors.outline;           // gray
 
 class StorageCard extends StatelessWidget {
   const StorageCard({super.key});
@@ -52,6 +55,7 @@ class StorageCard extends StatelessWidget {
         final dbLabel = fmtBytes(state.dbSizeBytes);
         final modelLabel = fmtBytes(state.modelSizeBytes);
         final chatLabel = fmtBytes(state.chatHistorySizeBytes);
+        final mediaLabel = fmtBytes(state.mediaSizeBytes);
         final otherLabel = fmtBytes(state.otherSizeBytes);
 
         return Container(
@@ -140,6 +144,11 @@ class StorageCard extends StatelessWidget {
                                   child:
                                       Container(color: _kColorChatHistory),
                                 ),
+                              if (state.mediaSizeBytes > 0)
+                                Expanded(
+                                  flex: state.mediaSizeBytes,
+                                  child: Container(color: _kColorMedia),
+                                ),
                               if (state.otherSizeBytes > 0)
                                 Expanded(
                                   flex: state.otherSizeBytes,
@@ -170,6 +179,12 @@ class StorageCard extends StatelessWidget {
                       color: _kColorChatHistory,
                       label: l10n.storageChatHistory,
                       value: chatLabel,
+                    ),
+                    const SizedBox(height: 8),
+                    _LegendRow(
+                      color: _kColorMedia,
+                      label: l10n.storageMedia,
+                      value: mediaLabel,
                     ),
                     const SizedBox(height: 8),
                     _LegendRow(

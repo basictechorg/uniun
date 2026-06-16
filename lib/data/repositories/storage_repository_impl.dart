@@ -16,14 +16,19 @@ import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/domain/entities/storage/storage_stats.dart';
 import 'package:uniun/domain/repositories/storage_repository.dart';
 
-// Top-level so compute() can send it to a background isolate.
-(int model, int db, int other) _scanDir(String dirPath) {
+// Top-level so compute() can send it to a background isolate. Returns
+// (model, db, media, other). Files under `<dirPath>/media/*` go to the
+// media bucket; everything else routes by filename.
+(int model, int db, int media, int other) _scanDir(String dirPath) {
   const modelExtensions = {'.task', '.litertlm', '.bin', '.tflite'};
   const isarFilenames = {'default.isar', 'default.isar.lock'};
 
-  int model = 0, db = 0, other = 0;
+  int model = 0, db = 0, media = 0, other = 0;
   final dir = Directory(dirPath);
-  if (!dir.existsSync()) return (0, 0, 0);
+  if (!dir.existsSync()) return (0, 0, 0, 0);
+
+  // Uses Platform.pathSeparator so Windows backslash paths also match.
+  final mediaPrefix = '${dir.path}${Platform.pathSeparator}media${Platform.pathSeparator}';
 
   for (final entity in dir.listSync(recursive: true, followLinks: false)) {
     if (entity is! File) continue;
@@ -33,7 +38,11 @@ import 'package:uniun/domain/repositories/storage_repository.dart';
     } catch (_) {
       continue;
     }
-    final name = entity.path.split('/').last.toLowerCase();
+    if (entity.path.startsWith(mediaPrefix)) {
+      media += len;
+      continue;
+    }
+    final name = entity.path.split(Platform.pathSeparator).last.toLowerCase();
     if (isarFilenames.contains(name)) {
       db += len;
     } else if (modelExtensions.any((e) => name.endsWith(e))) {
@@ -42,7 +51,7 @@ import 'package:uniun/domain/repositories/storage_repository.dart';
       other += len;
     }
   }
-  return (model, db, other);
+  return (model, db, media, other);
 }
 
 @Injectable(as: StorageRepository)
@@ -65,7 +74,8 @@ class StorageRepositoryImpl implements StorageRepository {
 
       final modelSize = results[0].$1 + results[1].$1;
       final dbSize = results[0].$2 + results[1].$2;
-      final otherSize = results[0].$3 + results[1].$3;
+      final mediaSize = results[0].$3 + results[1].$3;
+      final otherSize = results[0].$4 + results[1].$4;
 
       // These Isar queries must stay on the main isolate (Isar thread-affinity).
       final messages = await isar.shivMessageModels.where().findAll();
@@ -99,6 +109,7 @@ class StorageRepositoryImpl implements StorageRepository {
         dbSizeBytes: dbSize,
         modelSizeBytes: modelSize,
         chatHistorySizeBytes: chatHistorySize,
+        mediaSizeBytes: mediaSize,
         otherSizeBytes: otherSize,
         totalNoteCount: totalNotes,
         deletableFeedNoteCount: deletableCount,

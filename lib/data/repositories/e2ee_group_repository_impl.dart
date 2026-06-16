@@ -3,6 +3,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
@@ -11,8 +12,9 @@ import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 @LazySingleton(as: E2EEGroupRepository)
 class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   final Isar isar;
+  final NoteAttachmentsEnricher _attachments;
 
-  E2EEGroupRepositoryImpl(this.isar);
+  E2EEGroupRepositoryImpl(this.isar, this._attachments);
 
   @override
   Future<List<PrivateChannelEntity>> getChannels() async {
@@ -34,7 +36,8 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
         .groupIdEqualTo(groupId)
         .sortByCreated()
         .findAll();
-    return models.map((m) => m.toDomain()).toList();
+    return _attachments
+        .enrichAll([for (final m in models) m.toDomain()]);
   }
 
   @override
@@ -44,9 +47,8 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
         .groupIdEqualTo(groupId)
         .sortByCreated()
         .watch(fireImmediately: true)
-        .map((models) {
-      return models.map((m) => m.toDomain()).toList();
-    });
+        .asyncMap((models) =>
+            _attachments.enrichAll([for (final m in models) m.toDomain()]));
   }
 
   @override

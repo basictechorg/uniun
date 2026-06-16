@@ -196,7 +196,7 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
     SendChannelMessageEvent event,
     Emitter<ChannelFeedState> emit,
   ) async {
-    if (event.content.trim().isEmpty) return;
+    if (event.content.trim().isEmpty && event.attachments.isEmpty) return;
     emit(state.copyWith(isSending: true, errorMessage: null));
 
     final keysResult = await getIt<GetActiveUserKeysUseCase>().call();
@@ -213,6 +213,7 @@ class ChannelFeedBloc extends Bloc<ChannelFeedEvent, ChannelFeedState> {
         privateKey: keys.privkeyHex,
         replyToEventId: event.replyToEventId,
         mentionRefs: event.mentionRefs,
+        attachments: event.attachments,
       ),
     );
 

@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 /// A lightweight reference shown as a chip above the composer text.
 /// [id] is the referenced event id; [label] is a human preview of it.
@@ -48,6 +51,10 @@ class UniunComposer extends StatefulWidget {
     this.maxLines = 6,
     this.applyBottomInset = true,
     this.markdownEnabled = false,
+    this.onAttachMedia,
+    this.attachments = const [],
+    this.onRemoveAttachment,
+    this.isAttachingMedia = false,
   });
 
   final TextEditingController controller;
@@ -94,6 +101,21 @@ class UniunComposer extends StatefulWidget {
   /// tight chat replies compact; turn on for chat composers and Brahma.
   final bool markdownEnabled;
 
+  /// Opens a Photo / Video / File picker. When null, the attach button is
+  /// hidden. Caller owns the picker → upload pipeline; this widget only
+  /// renders the button and the resulting thumbnail row.
+  final VoidCallback? onAttachMedia;
+
+  /// Blobs the user has already attached to this draft. Rendered as a
+  /// thumbnail strip above the text field with a × on each.
+  final List<MediaBlobEntity> attachments;
+  final void Function(String sha256)? onRemoveAttachment;
+
+  /// True while a freshly-picked file is being uploaded. Renders a spinner
+  /// placeholder in the attachment strip and disables the attach button so
+  /// double-picks don't queue a second upload behind the first.
+  final bool isAttachingMedia;
+
   @override
   State<UniunComposer> createState() => _UniunComposerState();
 }
@@ -132,6 +154,14 @@ class _UniunComposerState extends State<UniunComposer> {
               _ReferenceRow(
                 references: widget.references,
                 onRemove: widget.onRemoveReference,
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (widget.attachments.isNotEmpty || widget.isAttachingMedia) ...[
+              _AttachmentRow(
+                attachments: widget.attachments,
+                onRemove: widget.onRemoveAttachment,
+                isAttaching: widget.isAttachingMedia,
               ),
               const SizedBox(height: 8),
             ],
@@ -206,6 +236,17 @@ class _UniunComposerState extends State<UniunComposer> {
                       active: widget.references.isNotEmpty,
                     ),
                   ],
+                  if (widget.onAttachMedia != null) ...[
+                    const SizedBox(width: 8),
+                    _CircleButton(
+                      icon: Icons.add_photo_alternate_rounded,
+                      onTap: widget.isAttachingMedia
+                          ? () {}
+                          : widget.onAttachMedia!,
+                      active: widget.attachments.isNotEmpty,
+                      busy: widget.isAttachingMedia,
+                    ),
+                  ],
                   if (widget.markdownEnabled) ...[
                     const SizedBox(width: 8),
                     _CircleButton(
@@ -274,11 +315,13 @@ class _CircleButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.active = false,
+    this.busy = false,
   });
 
   final IconData icon;
   final VoidCallback onTap;
   final bool active;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -293,11 +336,19 @@ class _CircleButton extends StatelessWidget {
               : AppColors.surfaceContainerHigh,
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-        ),
+        child: busy
+            ? const Padding(
+                padding: EdgeInsets.all(9),
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(
+                icon,
+                size: 18,
+                color: active ? AppColors.primary : AppColors.onSurfaceVariant,
+              ),
       ),
     );
   }
@@ -336,6 +387,128 @@ class _ReplyPill extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Horizontal thumbnail strip showing media the user has attached to the
+/// current draft. Each tile shows the local image (if cached) or a mime icon
+/// with a × overlay to remove.
+class _AttachmentRow extends StatelessWidget {
+  const _AttachmentRow({
+    required this.attachments,
+    this.onRemove,
+    this.isAttaching = false,
+  });
+
+  final List<MediaBlobEntity> attachments;
+  final void Function(String sha256)? onRemove;
+  final bool isAttaching;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalCount = attachments.length + (isAttaching ? 1 : 0);
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: totalCount,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          if (i < attachments.length) {
+            return _AttachmentTile(blob: attachments[i], onRemove: onRemove);
+          }
+          return const _UploadingTile();
+        },
+      ),
+    );
+  }
+}
+
+class _UploadingTile extends StatelessWidget {
+  const _UploadingTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 72,
+        height: 72,
+        color: AppColors.surfaceContainerHigh,
+        alignment: Alignment.center,
+        child: const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            color: AppColors.primary,
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentTile extends StatelessWidget {
+  const _AttachmentTile({required this.blob, this.onRemove});
+
+  final MediaBlobEntity blob;
+  final void Function(String sha256)? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final isImage = blob.mime.startsWith('image/');
+    final cached = blob.localPath != null;
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 72,
+            height: 72,
+            child: (isImage && cached)
+                ? Image.file(
+                    File(blob.localPath!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _icon(),
+                  )
+                : _icon(),
+          ),
+        ),
+        if (onRemove != null)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: GestureDetector(
+              onTap: () => onRemove!(blob.sha256),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close_rounded,
+                    size: 14, color: Colors.white),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _icon() {
+    final IconData icon = blob.mime.startsWith('video/')
+        ? Icons.movie_outlined
+        : blob.mime.startsWith('audio/')
+            ? Icons.audiotrack_outlined
+            : blob.mime.startsWith('image/')
+                ? Icons.image_outlined
+                : Icons.insert_drive_file_outlined;
+    return Container(
+      color: AppColors.surfaceContainerHigh,
+      alignment: Alignment.center,
+      child: Icon(icon, color: AppColors.onSurfaceVariant, size: 28),
     );
   }
 }

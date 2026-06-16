@@ -7,7 +7,9 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/private_channel_join_request_model.dart';
 import 'package:uniun/data/models/private_channel_model.dart';
@@ -107,7 +109,9 @@ class MarmotTransportService {
           content: envelope.content,
           kind: kPrivateChannelKind,
           groupId: encrypted.groupId,
-          type: NoteType.text,
+          type: envelope.attachments.any((a) => a.mime.startsWith('image/'))
+              ? NoteType.image
+              : NoteType.text,
           eTagRefs: envelope.eTagRefs,
           rootEventId: envelope.rootEventId,
           replyToEventId: envelope.replyToEventId,
@@ -115,6 +119,7 @@ class MarmotTransportService {
           tTags: const [],
           created: encrypted.timestamp,
           quoteEventId: envelope.quoteEventId,
+          attachments: envelope.attachments,
         );
 
         await _isar.writeTxn(() async {
@@ -157,21 +162,26 @@ class MarmotTransportService {
   // Helpers
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Encodes a message body + its reference ids + NIP-10 threading markers into
-  /// the encrypted MLS payload. Plain text is sent verbatim when there is no
-  /// metadata (backward compatible); otherwise a small JSON envelope carries the
-  /// e-tag ids (`e`), the root marker (`r`) and the reply marker (`y`).
+  /// Encodes a message body + its reference ids + NIP-10 threading markers +
+  /// NIP-92 imeta attachments into the encrypted MLS payload. Plain text is
+  /// sent verbatim when there is no metadata (backward compatible); otherwise
+  /// a small JSON envelope carries the e-tag ids (`e`), the root marker
+  /// (`r`), the reply marker (`y`), the quote id (`q`), and the imeta list
+  /// (`i`). Receiver-side decryption rebuilds `NoteModel.attachments` from
+  /// `i`.
   String _encodeMessageEnvelope(
     String content,
     List<String> eTagRefs, {
     String? rootEventId,
     String? replyToEventId,
     String? quoteEventId,
+    List<MediaAttachment> attachments = const [],
   }) {
     if (eTagRefs.isEmpty &&
         rootEventId == null &&
         replyToEventId == null &&
-        quoteEventId == null) {
+        quoteEventId == null &&
+        attachments.isEmpty) {
       return content;
     }
     return jsonEncode({
@@ -180,29 +190,64 @@ class MarmotTransportService {
       if (rootEventId != null) 'r': rootEventId,
       if (replyToEventId != null) 'y': replyToEventId,
       if (quoteEventId != null) 'q': quoteEventId,
+      if (attachments.isNotEmpty)
+        'i': [
+          for (final a in attachments)
+            {
+              'x': a.sha256,
+              'm': a.mime,
+              if (a.sizeBytes > 0) 's': a.sizeBytes,
+              if (a.url != null) 'u': a.url,
+              if (a.width != null) 'w': a.width,
+              if (a.height != null) 'h': a.height,
+              if (a.blurhash != null) 'b': a.blurhash,
+              if (a.filename != null) 'n': a.filename,
+            },
+        ],
     });
   }
 
   /// Inverse of [_encodeMessageEnvelope]. Legacy/plain payloads decode to the
-  /// raw text with no references or markers.
+  /// raw text with no references / markers / attachments.
   ({
     String content,
     List<String> eTagRefs,
     String? rootEventId,
     String? replyToEventId,
     String? quoteEventId,
+    List<MediaAttachment> attachments,
   }) _decodeMessageEnvelope(String raw) {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map &&
           decoded['c'] is String &&
           decoded['e'] is List) {
+        final rawImeta = decoded['i'];
+        final attachments = <MediaAttachment>[];
+        if (rawImeta is List) {
+          for (final m in rawImeta) {
+            if (m is! Map) continue;
+            final sha = m['x'];
+            final mime = m['m'];
+            if (sha is! String || mime is! String) continue;
+            attachments.add(MediaAttachment()
+              ..sha256 = sha
+              ..mime = mime
+              ..sizeBytes = (m['s'] as int?) ?? 0
+              ..url = m['u'] as String?
+              ..width = m['w'] as int?
+              ..height = m['h'] as int?
+              ..blurhash = m['b'] as String?
+              ..filename = m['n'] as String?);
+          }
+        }
         return (
           content: decoded['c'] as String,
           eTagRefs: (decoded['e'] as List).cast<String>(),
           rootEventId: decoded['r'] as String?,
           replyToEventId: decoded['y'] as String?,
           quoteEventId: decoded['q'] as String?,
+          attachments: attachments,
         );
       }
     } catch (_) {
@@ -214,24 +259,32 @@ class MarmotTransportService {
       rootEventId: null,
       replyToEventId: null,
       quoteEventId: null,
+      attachments: const [],
     );
   }
 
-  /// Builds an [EventQueueModel] from a fully-signed [Event].
-  ///
-  /// For private channel events, the full signed event JSON is stored in
-  /// [content] so [WebSocketService] can send it verbatim (preserving the
-  /// `["h", groupId]` tag via `toRawRelayMessage()`).
+  /// Builds an [EventQueueModel] from a fully-signed Marmot [Event]. The
+  /// `["h", groupId]` tag is extracted into [EventQueueModel.hTag] so the
+  /// queue's serializer can reproduce the tag at send time.
   EventQueueModel _buildQueueEntry(Event event) {
+    String? hTag;
+    for (final t in event.tags) {
+      if (t.isEmpty) continue;
+      if (t[0] == 'h' && t.length > 1) {
+        hTag = t[1];
+        break;
+      }
+    }
     return EventQueueModel()
       ..eventId = event.id
       ..kind = event.kind
-      ..content = jsonEncode(event.toJson()) // full signed event JSON
+      ..content = event.content
       ..authorPubkey = event.pubkey
       ..sig = event.sig
       ..eTagRefs = []
       ..pTagRefs = []
       ..tTags = []
+      ..hTag = hTag
       ..sentCount = 0
       ..created = DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000)
       ..enqueuedAt = DateTime.now();
@@ -387,6 +440,7 @@ class MarmotTransportService {
     String? rootEventId,
     String? replyToEventId,
     String? quoteEventId,
+    List<MediaBlobEntity> attachments = const [],
   }) async {
     final channel = await _findChannel(groupId);
     if (channel == null) {
@@ -396,6 +450,19 @@ class MarmotTransportService {
       throw Exception('MLS group is not initialized for groupId: $groupId');
     }
 
+    final imeta = [
+      for (final b in attachments)
+        MediaAttachment()
+          ..sha256 = b.sha256
+          ..mime = b.mime
+          ..sizeBytes = b.sizeBytes
+          ..url = b.serverUrls.isNotEmpty ? b.serverUrls.first : null
+          ..width = b.dim?.width
+          ..height = b.dim?.height
+          ..blurhash = b.blurhash
+          ..filename = b.filename,
+    ];
+
     final encryptedPayload = await _mlsService.encryptMessage(
       groupId: channel.mlsGroupId,
       content: _encodeMessageEnvelope(
@@ -404,6 +471,7 @@ class MarmotTransportService {
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
         quoteEventId: quoteEventId,
+        attachments: imeta,
       ),
       groupIdIsBase64: true,
     );
@@ -426,7 +494,9 @@ class MarmotTransportService {
       content: content,
       kind: kPrivateChannelKind,
       groupId: groupId,
-      type: NoteType.text,
+      type: imeta.any((a) => a.mime.startsWith('image/'))
+          ? NoteType.image
+          : NoteType.text,
       eTagRefs: mentionRefs,
       rootEventId: rootEventId,
       replyToEventId: replyToEventId,
@@ -434,6 +504,7 @@ class MarmotTransportService {
       tTags: const [],
       created: now,
       quoteEventId: quoteEventId,
+      attachments: imeta,
     );
 
     await _isar.writeTxn(() async {

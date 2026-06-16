@@ -17,60 +17,68 @@ const NoteModelSchema = CollectionSchema(
   name: r'Note',
   id: 6284318083599466921,
   properties: {
-    r'authorPubkey': PropertySchema(
+    r'attachments': PropertySchema(
       id: 0,
+      name: r'attachments',
+      type: IsarType.objectList,
+
+      target: r'MediaAttachment',
+    ),
+    r'authorPubkey': PropertySchema(
+      id: 1,
       name: r'authorPubkey',
       type: IsarType.string,
     ),
     r'channelId': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'channelId',
       type: IsarType.string,
     ),
-    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
+    r'content': PropertySchema(id: 3, name: r'content', type: IsarType.string),
     r'conversationId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'conversationId',
       type: IsarType.long,
     ),
     r'created': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 6, name: r'eventId', type: IsarType.string),
-    r'groupId': PropertySchema(id: 7, name: r'groupId', type: IsarType.string),
-    r'kind': PropertySchema(id: 8, name: r'kind', type: IsarType.long),
+    r'eventId': PropertySchema(id: 7, name: r'eventId', type: IsarType.string),
+    r'groupId': PropertySchema(id: 8, name: r'groupId', type: IsarType.string),
+    r'hasMedia': PropertySchema(id: 9, name: r'hasMedia', type: IsarType.bool),
+    r'kind': PropertySchema(id: 10, name: r'kind', type: IsarType.long),
     r'pTagRefs': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'quoteEventId': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'quoteEventId',
       type: IsarType.string,
     ),
     r'replyToEventId': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 13, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 14, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 15, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 15, name: r'sig', type: IsarType.string),
+    r'subject': PropertySchema(id: 16, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 17, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -213,9 +221,22 @@ const NoteModelSchema = CollectionSchema(
         ),
       ],
     ),
+    r'hasMedia': IndexSchema(
+      id: 1924470543478053751,
+      name: r'hasMedia',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'hasMedia',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+      ],
+    ),
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'MediaAttachment': MediaAttachmentSchema},
 
   getId: _noteModelGetId,
   getLinks: _noteModelGetLinks,
@@ -229,6 +250,18 @@ int _noteModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.attachments.length * 3;
+  {
+    final offsets = allOffsets[MediaAttachment]!;
+    for (var i = 0; i < object.attachments.length; i++) {
+      final value = object.attachments[i];
+      bytesCount += MediaAttachmentSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.authorPubkey.length * 3;
   {
     final value = object.channelId;
@@ -300,23 +333,30 @@ void _noteModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeString(offsets[1], object.channelId);
-  writer.writeString(offsets[2], object.content);
-  writer.writeLong(offsets[3], object.conversationId);
-  writer.writeDateTime(offsets[4], object.created);
-  writer.writeStringList(offsets[5], object.eTagRefs);
-  writer.writeString(offsets[6], object.eventId);
-  writer.writeString(offsets[7], object.groupId);
-  writer.writeLong(offsets[8], object.kind);
-  writer.writeStringList(offsets[9], object.pTagRefs);
-  writer.writeString(offsets[10], object.quoteEventId);
-  writer.writeString(offsets[11], object.replyToEventId);
-  writer.writeString(offsets[12], object.rootEventId);
-  writer.writeString(offsets[13], object.sig);
-  writer.writeString(offsets[14], object.subject);
-  writer.writeStringList(offsets[15], object.tTags);
-  writer.writeString(offsets[16], object.type.name);
+  writer.writeObjectList<MediaAttachment>(
+    offsets[0],
+    allOffsets,
+    MediaAttachmentSchema.serialize,
+    object.attachments,
+  );
+  writer.writeString(offsets[1], object.authorPubkey);
+  writer.writeString(offsets[2], object.channelId);
+  writer.writeString(offsets[3], object.content);
+  writer.writeLong(offsets[4], object.conversationId);
+  writer.writeDateTime(offsets[5], object.created);
+  writer.writeStringList(offsets[6], object.eTagRefs);
+  writer.writeString(offsets[7], object.eventId);
+  writer.writeString(offsets[8], object.groupId);
+  writer.writeBool(offsets[9], object.hasMedia);
+  writer.writeLong(offsets[10], object.kind);
+  writer.writeStringList(offsets[11], object.pTagRefs);
+  writer.writeString(offsets[12], object.quoteEventId);
+  writer.writeString(offsets[13], object.replyToEventId);
+  writer.writeString(offsets[14], object.rootEventId);
+  writer.writeString(offsets[15], object.sig);
+  writer.writeString(offsets[16], object.subject);
+  writer.writeStringList(offsets[17], object.tTags);
+  writer.writeString(offsets[18], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -326,26 +366,35 @@ NoteModel _noteModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = NoteModel(
-    authorPubkey: reader.readString(offsets[0]),
-    channelId: reader.readStringOrNull(offsets[1]),
-    content: reader.readString(offsets[2]),
-    conversationId: reader.readLongOrNull(offsets[3]),
-    created: reader.readDateTime(offsets[4]),
-    eTagRefs: reader.readStringList(offsets[5]) ?? [],
-    eventId: reader.readString(offsets[6]),
-    groupId: reader.readStringOrNull(offsets[7]),
-    kind: reader.readLongOrNull(offsets[8]) ?? kNoteKind,
-    pTagRefs: reader.readStringList(offsets[9]) ?? [],
-    quoteEventId: reader.readStringOrNull(offsets[10]),
-    replyToEventId: reader.readStringOrNull(offsets[11]),
-    rootEventId: reader.readStringOrNull(offsets[12]),
-    sig: reader.readString(offsets[13]),
-    subject: reader.readStringOrNull(offsets[14]),
-    tTags: reader.readStringList(offsets[15]) ?? [],
+    attachments:
+        reader.readObjectList<MediaAttachment>(
+          offsets[0],
+          MediaAttachmentSchema.deserialize,
+          allOffsets,
+          MediaAttachment(),
+        ) ??
+        const [],
+    authorPubkey: reader.readString(offsets[1]),
+    channelId: reader.readStringOrNull(offsets[2]),
+    content: reader.readString(offsets[3]),
+    conversationId: reader.readLongOrNull(offsets[4]),
+    created: reader.readDateTime(offsets[5]),
+    eTagRefs: reader.readStringList(offsets[6]) ?? [],
+    eventId: reader.readString(offsets[7]),
+    groupId: reader.readStringOrNull(offsets[8]),
+    kind: reader.readLongOrNull(offsets[10]) ?? kNoteKind,
+    pTagRefs: reader.readStringList(offsets[11]) ?? [],
+    quoteEventId: reader.readStringOrNull(offsets[12]),
+    replyToEventId: reader.readStringOrNull(offsets[13]),
+    rootEventId: reader.readStringOrNull(offsets[14]),
+    sig: reader.readString(offsets[15]),
+    subject: reader.readStringOrNull(offsets[16]),
+    tTags: reader.readStringList(offsets[17]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[16])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[18])] ??
         NoteType.text,
   );
+  object.hasMedia = reader.readBool(offsets[9]);
   object.id = id;
   return object;
 }
@@ -358,38 +407,49 @@ P _noteModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectList<MediaAttachment>(
+                offset,
+                MediaAttachmentSchema.deserialize,
+                allOffsets,
+                MediaAttachment(),
+              ) ??
+              const [])
+          as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readLongOrNull(offset)) as P;
-    case 4:
-      return (reader.readDateTime(offset)) as P;
-    case 5:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 6:
       return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readStringOrNull(offset)) as P;
-    case 8:
-      return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
-    case 9:
+    case 4:
+      return (reader.readLongOrNull(offset)) as P;
+    case 5:
+      return (reader.readDateTime(offset)) as P;
+    case 6:
       return (reader.readStringList(offset) ?? []) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
+    case 9:
+      return (reader.readBool(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset) ?? kNoteKind) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 16:
+      return (reader.readStringOrNull(offset)) as P;
+    case 17:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 18:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -508,6 +568,14 @@ extension NoteModelQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'created'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhere> anyHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'hasMedia'),
       );
     });
   }
@@ -1413,10 +1481,117 @@ extension NoteModelQueryWhere
       }
     });
   }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> hasMediaEqualTo(
+    bool hasMedia,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'hasMedia', value: [hasMedia]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> hasMediaNotEqualTo(
+    bool hasMedia,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [],
+                upper: [hasMedia],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [hasMedia],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [hasMedia],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'hasMedia',
+                lower: [],
+                upper: [hasMedia],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
 }
 
 extension NoteModelQueryFilter
     on QueryBuilder<NoteModel, NoteModel, QFilterCondition> {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  attachmentsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'attachments',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> authorPubkeyEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2504,6 +2679,16 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'groupId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> hasMediaEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'hasMedia', value: value),
       );
     });
   }
@@ -3959,7 +4144,15 @@ extension NoteModelQueryFilter
 }
 
 extension NoteModelQueryObject
-    on QueryBuilder<NoteModel, NoteModel, QFilterCondition> {}
+    on QueryBuilder<NoteModel, NoteModel, QFilterCondition> {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> attachmentsElement(
+    FilterQuery<MediaAttachment> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'attachments');
+    });
+  }
+}
 
 extension NoteModelQueryLinks
     on QueryBuilder<NoteModel, NoteModel, QFilterCondition> {}
@@ -4046,6 +4239,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByHasMediaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.desc);
     });
   }
 
@@ -4220,6 +4425,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByHasMediaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasMedia', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -4377,6 +4594,12 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByHasMedia() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasMedia');
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'kind');
@@ -4455,6 +4678,13 @@ extension NoteModelQueryProperty
     });
   }
 
+  QueryBuilder<NoteModel, List<MediaAttachment>, QQueryOperations>
+  attachmentsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attachments');
+    });
+  }
+
   QueryBuilder<NoteModel, String, QQueryOperations> authorPubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'authorPubkey');
@@ -4500,6 +4730,12 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupId');
+    });
+  }
+
+  QueryBuilder<NoteModel, bool, QQueryOperations> hasMediaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasMedia');
     });
   }
 

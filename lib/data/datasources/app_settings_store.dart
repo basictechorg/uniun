@@ -13,6 +13,8 @@ abstract class SharedPreferencesModule {
 @singleton
 class AppSettingsStore {
   static const _kActiveModelId = 'app_settings.active_model_id';
+  static const _kAutoDeleteOldNotesDays =
+      'app_settings.auto_delete_old_notes_days';
 
   final SharedPreferences _prefs;
 
@@ -32,6 +34,24 @@ class AppSettingsStore {
       await _prefs.remove(_kActiveModelId);
     } else {
       await _prefs.setString(_kActiveModelId, id.name);
+    }
+  }
+
+  /// Days after which short-lived public notes (Kind 1 / Kind 42) get
+  /// evicted by `CleanupManager`. `null` = disabled (the default — nothing
+  /// auto-deletes). Saved / own / followed / DM / private-channel notes
+  /// are never affected by this setting.
+  int? get autoDeleteOldNotesDays {
+    if (!_prefs.containsKey(_kAutoDeleteOldNotesDays)) return null;
+    final v = _prefs.getInt(_kAutoDeleteOldNotesDays);
+    return (v != null && v > 0) ? v : null;
+  }
+
+  Future<void> setAutoDeleteOldNotesDays(int? days) async {
+    if (days == null || days <= 0) {
+      await _prefs.remove(_kAutoDeleteOldNotesDays);
+    } else {
+      await _prefs.setInt(_kAutoDeleteOldNotesDays, days);
     }
   }
 }
@@ -72,5 +92,31 @@ class UserKeyStore {
     await _prefs.remove(_kPubkeyHex);
     await _prefs.remove(_kNpub);
     await _prefs.remove(_kCreatedAt);
+  }
+}
+
+/// User's preferred Blossom servers (BUD-03 / Kind 10063). Single value, per
+/// device. Stored in SharedPreferences instead of Isar — it's pure
+/// configuration, not Nostr data we need to query.
+///
+/// Cross-device sync via inbound Kind 10063 is intentionally not done: the
+/// Gateway isolate can't access SharedPreferences, and the value is
+/// low-stakes enough that "configure once per device" is fine.
+@singleton
+class UserServerListStore {
+  static const _kServers = 'user_server_list.urls';
+
+  final SharedPreferences _prefs;
+
+  UserServerListStore(this._prefs);
+
+  List<String> get servers => _prefs.getStringList(_kServers) ?? const [];
+
+  Future<void> setServers(List<String> urls) async {
+    await _prefs.setStringList(_kServers, urls);
+  }
+
+  Future<void> clear() async {
+    await _prefs.remove(_kServers);
   }
 }

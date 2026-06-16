@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/features/brahma/graph/widgets/compose_header.dart';
+import 'package:uniun/features/brahma/graph/widgets/compose_media_sheet.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
@@ -188,37 +189,58 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
         return Scaffold(
           backgroundColor: AppColors.surface,
           resizeToAvoidBottomInset: true,
+          // GestureDetector wraps SizedBox.expand so a tap anywhere on the
+          // body — including the blank area below the composer card —
+          // dismisses the keyboard. Without SizedBox.expand the detector
+          // only covers the column's natural size.
           body: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
-            behavior: HitTestBehavior.translucent,
-            child: Column(
-              children: [
-                ComposeHeader(l10n: l10n),
-                UniunComposer(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  autofocus: true,
-                  minLines: 8,
-                  maxLines: 14,
-                  applyBottomInset: false,
-                  markdownEnabled: true,
-                  avatarUrl: _avatarUrl,
-                  avatarSeed: _pubkeySeed,
-                  hintText: l10n.brahmaHintText,
-                  canSend: _hasText,
-                  isSending: state.isSubmitting,
-                  references: state.selectedMentions
-                      .map((n) => ComposerReference(id: n.id, label: n.content))
-                      .toList(),
-                  onRemoveReference: (id) => context
-                      .read<BrahmaCreateBloc>()
-                      .add(RemoveMentionEvent(id)),
-                  onAddReference: () => _openReferencePicker(state),
-                  onDraft: () => _saveDraft(state),
-                  draftLabel: l10n.brahmaDraft,
-                  onSend: () => _publish(state),
+            behavior: HitTestBehavior.opaque,
+            child: SizedBox.expand(
+              // ScrollView avoids landscape overflow when the composer
+              // grows taller than the keyboard-shrunk body. In portrait
+              // it just sits at the top, no scroll bar.
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    ComposeHeader(l10n: l10n),
+                    UniunComposer(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      autofocus: true,
+                      minLines: 8,
+                      maxLines: 14,
+                      applyBottomInset: false,
+                      markdownEnabled: true,
+                      avatarUrl: _avatarUrl,
+                      avatarSeed: _pubkeySeed,
+                      hintText: l10n.brahmaHintText,
+                      // Block publish while an upload is still in flight —
+                      // otherwise the submit captures an empty
+                      // attachedMedia and the note ships without imeta.
+                      canSend: _hasText && !state.isAttachingMedia,
+                      isSending: state.isSubmitting,
+                      references: state.selectedMentions
+                          .map((n) =>
+                              ComposerReference(id: n.id, label: n.content))
+                          .toList(),
+                      onRemoveReference: (id) => context
+                          .read<BrahmaCreateBloc>()
+                          .add(RemoveMentionEvent(id)),
+                      onAddReference: () => _openReferencePicker(state),
+                      onAttachMedia: () => showComposeMediaSheet(context),
+                      attachments: state.attachedMedia,
+                      isAttachingMedia: state.isAttachingMedia,
+                      onRemoveAttachment: (sha) => context
+                          .read<BrahmaCreateBloc>()
+                          .add(RemoveAttachedMediaEvent(sha)),
+                      onDraft: () => _saveDraft(state),
+                      draftLabel: l10n.brahmaDraft,
+                      onSend: () => _publish(state),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );

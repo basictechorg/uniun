@@ -6,6 +6,7 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
+import 'package:uniun/gateway/inbound/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
 /// Kind 42 — NIP-28 channel message.
@@ -82,6 +83,7 @@ class Kind42Handler implements KindHandler {
       tTags: const [],
       created: EventParser.dateTimeFromSec(createdAtSec),
       quoteEventId: quoteEventId,
+      attachments: ImetaParser.parseAsAttachments(event),
     );
 
     try {

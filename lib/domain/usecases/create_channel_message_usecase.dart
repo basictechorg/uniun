@@ -3,8 +3,10 @@ import 'package:injectable/injectable.dart';
 import 'package:nostr/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/usecases/usecase.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/repositories/channel_message_repository.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
@@ -15,11 +17,13 @@ class CreateChannelMessageInput {
   final String privateKey;
   final String? replyToEventId;
   final List<String> mentionRefs;
-  // NIP-18 quote info — emitted as `["q", id, "", author]` + `["k", kind]`
-  // + `["p", author]` tags when [quoteEventId] is set.
+  // NIP-18 quote — `["q", id, "", author]` + `["k", kind]` + `["p", author]`.
   final String? quoteEventId;
   final String? quoteAuthorPubkey;
   final int? quoteKind;
+
+  /// NIP-92 imeta — one tag per attached blob.
+  final List<MediaBlobEntity> attachments;
 
   const CreateChannelMessageInput({
     required this.channelId,
@@ -30,23 +34,32 @@ class CreateChannelMessageInput {
     this.quoteEventId,
     this.quoteAuthorPubkey,
     this.quoteKind,
+    this.attachments = const [],
   });
 }
 
 @lazySingleton
-class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, CreateChannelMessageInput> {
+class CreateChannelMessageUseCase
+    extends UseCase<Either<Failure, NoteEntity>, CreateChannelMessageInput> {
   final ChannelMessageRepository _channelMessageRepository;
   final EventQueueRepository _eventQueueRepository;
 
-  const CreateChannelMessageUseCase(this._channelMessageRepository, this._eventQueueRepository);
+  const CreateChannelMessageUseCase(
+    this._channelMessageRepository,
+    this._eventQueueRepository,
+  );
 
   @override
-  Future<Either<Failure, NoteEntity>> call(CreateChannelMessageInput input, {bool cached = false}) async {
+  Future<Either<Failure, NoteEntity>> call(
+    CreateChannelMessageInput input, {
+    bool cached = false,
+  }) async {
     try {
       final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      // Tag order MUST match [EventQueueModelExtension.toSerializedRelayMessage]
-      // so the re-serialized broadcast event hashes back to the signed id:
-      //   e root → e reply → e mention... → p... → t... → q → k
+
+      // Tag order MUST match
+      // [EventQueueModelExtension.toSerializedRelayMessage]:
+      //   e root → e reply → e mention → p → t → k → q → imeta
       final tags = <List<String>>[
         ['e', input.channelId, '', 'root'],
       ];
@@ -59,12 +72,13 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
       if (input.quoteEventId != null && input.quoteAuthorPubkey != null) {
         tags.add(['p', input.quoteAuthorPubkey!]);
       }
+      if (input.quoteKind != null) {
+        tags.add(['k', input.quoteKind!.toString()]);
+      }
       if (input.quoteEventId != null) {
         tags.add(['q', input.quoteEventId!, '', input.quoteAuthorPubkey ?? '']);
-        if (input.quoteKind != null) {
-          tags.add(['k', input.quoteKind!.toString()]);
-        }
       }
+      tags.addAll(buildImetaTags(input.attachments));
 
       final kind42 = Event.from(
         privkey: input.privateKey,
@@ -75,12 +89,11 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
       );
 
       final eTagRefs = <String>[input.channelId];
-      if (input.replyToEventId != null) {
-        eTagRefs.add(input.replyToEventId!);
-      }
+      if (input.replyToEventId != null) eTagRefs.add(input.replyToEventId!);
       eTagRefs.addAll(input.mentionRefs);
 
-      final created = DateTime.fromMillisecondsSinceEpoch(kind42.createdAt * 1000);
+      final created =
+          DateTime.fromMillisecondsSinceEpoch(kind42.createdAt * 1000);
 
       final message = NoteEntity(
         id: kind42.id,
@@ -97,6 +110,8 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
         replyToEventId: input.replyToEventId,
         created: created,
         quoteEventId: input.quoteEventId,
+        hasMedia: input.attachments.isNotEmpty,
+        attachments: input.attachments,
       );
 
       final saveResult = await _channelMessageRepository.saveMessage(message);
@@ -119,9 +134,11 @@ class CreateChannelMessageUseCase extends UseCase<Either<Failure, NoteEntity>, C
         quoteEventId: input.quoteEventId,
         quoteAuthorPubkey: input.quoteAuthorPubkey,
         quoteKind: input.quoteKind,
+        imeta: input.attachments,
       );
       if (enqueueResult.isLeft()) {
-        return Left(enqueueResult.fold((f) => f, (_) => const Failure.errorFailure('enqueue failed')));
+        return Left(enqueueResult.fold(
+            (f) => f, (_) => const Failure.errorFailure('enqueue failed')));
       }
 
       return saveResult;

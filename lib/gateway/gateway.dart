@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/gateway/cleanup/cleanup_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/gateway/orchestrator/gateway_orchestrator.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
@@ -33,6 +35,7 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
     final orchestrator = GatewayOrchestrator(
       isar: isar,
       activePubkey: init.pubkeyHex,
+      activePrivkey: init.privkeyHex,
     );
     final nip17Service = Nip17EncryptionService(
       isar,
@@ -42,6 +45,15 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
 
     await orchestrator.start();
     nip17Service.start();
+
+    final retention = init.autoDeleteOldNotesDays != null
+        ? Duration(days: init.autoDeleteOldNotesDays!)
+        : null;
+    CleanupManager(
+      isar: isar,
+      activePubkey: init.pubkeyHex,
+      retention: retention,
+    ).start();
 
     debugPrint("Gateway isolate fully started!");
   } catch (e, stackTrace) {
@@ -65,6 +77,7 @@ class GatewayBootstrap {
     // off the raw hex values via [GatewayInitMessage]. Returns null when no
     // user is logged in yet.
     final keys = await getIt<UserRepository>().getActiveKeysHex();
+    final autoDeleteDays = getIt<AppSettingsStore>().autoDeleteOldNotesDays;
 
     Isolate.spawn(
       gatewayEntryPoint,
@@ -72,6 +85,7 @@ class GatewayBootstrap {
         isarDirectory: dir.path,
         privkeyHex: keys?.privkeyHex,
         pubkeyHex: keys?.pubkeyHex,
+        autoDeleteOldNotesDays: autoDeleteDays,
       ),
     );
   }

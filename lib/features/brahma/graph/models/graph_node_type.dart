@@ -1,3 +1,5 @@
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+
 /// Discriminates the three kinds of nodes shown in the knowledge graph.
 enum GraphNodeType { saved, own, draft }
 
@@ -15,6 +17,7 @@ class GraphNodeData {
     this.created,
     this.tTags = const [],
     this.pTagRefs = const [],
+    this.attachments = const [],
   });
 
   /// Unique identifier:
@@ -32,4 +35,8 @@ class GraphNodeData {
   final DateTime? created;
   final List<String> tTags;
   final List<String> pTagRefs;
+
+  /// NIP-92 media attachments resolved by the data layer. Empty for draft
+  /// nodes that haven't been enriched.
+  final List<MediaBlobEntity> attachments;
 }

@@ -5,9 +5,12 @@ import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/imeta_builder.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
+import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -18,12 +21,19 @@ class PostReplyParams {
     required this.root,
     required this.content,
     this.mentionRefs = const [],
+    this.attachments = const [],
     this.sourceOverride,
   });
 
   final NoteEntity root;
   final String content;
   final List<String> mentionRefs;
+
+  /// Uploaded Blossom blobs. Emitted as NIP-92 `imeta` tags on the outbound
+  /// event (feed/channel). DM (kind 14) and private channel (kind 9023)
+  /// carry the attachments via the encrypted envelope — receiver-side
+  /// rendering is a follow-up; the sender side renders from local state.
+  final List<MediaBlobEntity> attachments;
 
   /// Forces a specific reply transport instead of deriving it from [root].
   /// Used by the saved-only thread, where replies always post as feed notes.
@@ -37,6 +47,7 @@ class PostReplyParams {
 @lazySingleton
 class PostReplyUseCase {
   final PublishNoteUseCase _publishNote;
+  final PublishMediaNoteUseCase _publishMediaNote;
   final CreateChannelMessageUseCase _createChannelMessage;
   final SendPrivateChannelMessageUsecase _sendPrivate;
   final SendDmUseCase _sendDm;
@@ -45,6 +56,7 @@ class PostReplyUseCase {
 
   PostReplyUseCase(
     this._publishNote,
+    this._publishMediaNote,
     this._createChannelMessage,
     this._sendPrivate,
     this._sendDm,
@@ -78,6 +90,7 @@ class PostReplyUseCase {
               privateKey: keys.privkeyHex,
               replyToEventId: replyToId,
               mentionRefs: params.mentionRefs,
+              attachments: params.attachments,
             ));
             return r.fold((f) => Left(f), (_) => const Right(unit));
 
@@ -90,21 +103,24 @@ class PostReplyUseCase {
               mentionRefs: params.mentionRefs,
               rootEventId: threadRoot,
               replyToEventId: replyToId,
+              attachments: params.attachments,
             );
             return const Right(unit);
 
           case NoteSource.dm:
-            // The reply goes to the conversation partner: if the root is my own
-            // message, that's its receiver; otherwise it's the root's author.
             final counterparty = root.authorPubkey == keys.pubkeyHex
                 ? (root.dmReceiverPubkey ?? root.authorPubkey)
                 : root.authorPubkey;
             return _sendDm.call(SendDmParams(
               otherPubkey: counterparty,
               content: params.content,
+              type: params.attachments.any((a) => a.mime.startsWith('image/'))
+                  ? NoteType.image
+                  : NoteType.text,
               rootEventId: threadRoot,
               replyToEventId: replyToId,
               mentionRefs: params.mentionRefs,
+              attachments: params.attachments,
             ));
         }
       } catch (e) {
@@ -120,10 +136,15 @@ class PostReplyUseCase {
     required String threadRoot,
     required PostReplyParams params,
   }) async {
+    // Canonical tag order — matches
+    // [EventQueueModel.toSerializedRelayMessage]:
+    //   e root → e reply → e mention → imeta
+    final imetaTags = buildImetaTags(params.attachments);
     final tags = <List<String>>[
       ['e', threadRoot, '', 'root'],
       if (replyToId != threadRoot) ['e', replyToId, '', 'reply'],
       for (final ref in params.mentionRefs) ['e', ref, '', 'mention'],
+      ...imetaTags,
     ];
 
     late final Event signed;
@@ -143,7 +164,7 @@ class PostReplyUseCase {
       sig: signed.sig,
       authorPubkey: pubkeyHex,
       content: signed.content,
-      type: NoteType.text,
+      type: params.attachments.isEmpty ? NoteType.text : NoteType.image,
       eTagRefs: [
         threadRoot,
         if (replyToId != threadRoot) replyToId,
@@ -154,11 +175,17 @@ class PostReplyUseCase {
       created: DateTime.fromMillisecondsSinceEpoch(signed.createdAt * 1000),
       rootEventId: threadRoot,
       replyToEventId: replyToId,
+      hasMedia: params.attachments.isNotEmpty,
+      attachments: params.attachments,
     );
 
-    final result = await _publishNote.call(note);
+    final result = params.attachments.isEmpty
+        ? await _publishNote.call(note)
+        : await _publishMediaNote.call(PublishMediaNoteInput(
+            note: note,
+            attachments: params.attachments,
+          ));
     return result.fold((f) => Left(f), (published) {
-      // Fire-and-forget: embed own authored reply for RAG.
       unawaited(_embedAndStore.call((published.id, published.content)));
       return const Right(unit);
     });

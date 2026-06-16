@@ -11,7 +11,12 @@ final class DmChatLoadEvent extends DmChatEvent {
 final class DmChatSendEvent extends DmChatEvent {
   final String content;
   final List<String> mentionRefs;
-  DmChatSendEvent({required this.content, this.mentionRefs = const []});
+  final List<MediaBlobEntity> attachments;
+  DmChatSendEvent({
+    required this.content,
+    this.mentionRefs = const [],
+    this.attachments = const [],
+  });
 }
 
 final class DmChatRefreshEvent extends DmChatEvent {}

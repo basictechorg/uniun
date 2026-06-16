@@ -3,6 +3,7 @@ class StorageStats {
     required this.dbSizeBytes,
     required this.modelSizeBytes,
     required this.chatHistorySizeBytes,
+    required this.mediaSizeBytes,
     required this.otherSizeBytes,
     required this.totalNoteCount,
     required this.deletableFeedNoteCount,
@@ -13,6 +14,12 @@ class StorageStats {
   final int dbSizeBytes;
   final int modelSizeBytes;
   final int chatHistorySizeBytes;
+
+  /// Bytes under `getApplicationSupportDirectory()/media/` — the
+  /// content-addressed blob cache. Tracked separately from
+  /// [otherSizeBytes] so the chart attributes media to its own bucket.
+  final int mediaSizeBytes;
+
   final int otherSizeBytes;
   final int totalNoteCount;
   final int deletableFeedNoteCount;
@@ -20,5 +27,9 @@ class StorageStats {
   final int freeDiskBytes;
 
   int get totalBytes =>
-      dbSizeBytes + modelSizeBytes + chatHistorySizeBytes + otherSizeBytes;
+      dbSizeBytes +
+      modelSizeBytes +
+      chatHistorySizeBytes +
+      mediaSizeBytes +
+      otherSizeBytes;
 }

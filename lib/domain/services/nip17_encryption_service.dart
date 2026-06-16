@@ -9,12 +9,14 @@ import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 // user_key_model not needed — privkey is injected via constructor
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/gateway/inbound/imeta_parser.dart';
 
 class Nip17EncryptionService {
   final Isar _isar;
@@ -149,6 +151,11 @@ class Nip17EncryptionService {
           final contentVal = chatEvent['content'] as String? ?? '';
           final type = _inferTypeFromUrl(contentVal); // simple fallback
 
+          // NIP-92 imeta — embedded inside the encrypted rumor by sendDm.
+          // Parser is the same one Kind 1/42 handlers use; it just walks
+          // the tag list looking for `imeta` entries.
+          final attachments = ImetaParser.parseAsAttachments(chatEvent);
+
           final dmModel = NoteModel(
             eventId: parsedEventId,
             sig: '', // Has no valid NIP-01 sig because it's deniable.
@@ -167,6 +174,7 @@ class Nip17EncryptionService {
               (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
             ),
             quoteEventId: quoteEventId,
+            attachments: attachments,
           );
 
           await _isar.noteModels.put(dmModel);
@@ -255,6 +263,10 @@ class Nip17EncryptionService {
           for (final id in mentionRefs) ['e', id, '', 'mention'],
           if (unsignedModel.quoteEventId != null)
             ['q', unsignedModel.quoteEventId!],
+          // NIP-92 imeta — one tag per attachment. The relay never sees this
+          // (it's inside the encrypted seal); the receiver decrypts, walks
+          // the tags, and rebuilds NoteModel.attachments.
+          for (final a in unsignedModel.attachments) _imetaTag(a),
         ],
         'content': unsignedModel.content,
       };
@@ -326,6 +338,22 @@ class Nip17EncryptionService {
        print('DEBUG sendDm: CRASH at step $step. Error: $e');
        rethrow;
     }
+  }
+
+  /// Builds one NIP-92 `imeta` tag from an embedded [MediaAttachment].
+  /// Shape matches what the relay-facing publishers emit so encrypted and
+  /// public surfaces stay byte-identical.
+  static List<String> _imetaTag(MediaAttachment a) {
+    return [
+      'imeta',
+      if (a.url != null) 'url ${a.url}',
+      'm ${a.mime}',
+      'x ${a.sha256}',
+      if (a.sizeBytes > 0) 'size ${a.sizeBytes}',
+      if (a.width != null && a.height != null) 'dim ${a.width}x${a.height}',
+      if (a.blurhash != null) 'blurhash ${a.blurhash}',
+      if (a.filename != null && a.filename!.isNotEmpty) 'name ${a.filename}',
+    ];
   }
 
   NoteType _inferTypeFromUrl(String content) {

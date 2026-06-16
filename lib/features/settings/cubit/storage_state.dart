@@ -9,6 +9,7 @@ class StorageState {
     this.dbSizeBytes = 0,
     this.modelSizeBytes = 0,
     this.chatHistorySizeBytes = 0,
+    this.mediaSizeBytes = 0,
     this.otherSizeBytes = 0,
     this.freeDiskBytes = 0,
     this.totalNoteCount = 0,
@@ -20,6 +21,7 @@ class StorageState {
     this.deleteSuccess = false,
     this.deletedCount = 0,
     this.deleteChatHistorySuccess = false,
+    this.autoDeleteOldNotesDays,
   });
 
   final bool isLoading;
@@ -28,6 +30,7 @@ class StorageState {
   final int dbSizeBytes;
   final int modelSizeBytes;
   final int chatHistorySizeBytes;
+  final int mediaSizeBytes;
   final int otherSizeBytes;
   final int freeDiskBytes;
   final int totalNoteCount;
@@ -40,8 +43,17 @@ class StorageState {
   final int deletedCount;
   final bool deleteChatHistorySuccess;
 
+  /// `null` = auto-cleanup off (default). Otherwise the configured
+  /// retention window applied to short-lived public traffic. Saved /
+  /// followed / own / DM / private-channel notes are never affected.
+  final int? autoDeleteOldNotesDays;
+
   int get totalBytes =>
-      dbSizeBytes + modelSizeBytes + chatHistorySizeBytes + otherSizeBytes;
+      dbSizeBytes +
+      modelSizeBytes +
+      chatHistorySizeBytes +
+      mediaSizeBytes +
+      otherSizeBytes;
 
   StorageState copyWith({
     bool? isLoading,
@@ -50,6 +62,7 @@ class StorageState {
     int? dbSizeBytes,
     int? modelSizeBytes,
     int? chatHistorySizeBytes,
+    int? mediaSizeBytes,
     int? otherSizeBytes,
     int? freeDiskBytes,
     int? totalNoteCount,
@@ -61,6 +74,7 @@ class StorageState {
     bool? deleteSuccess,
     int? deletedCount,
     bool? deleteChatHistorySuccess,
+    Object? autoDeleteOldNotesDays = _sentinel,
   }) {
     return StorageState(
       isLoading: isLoading ?? this.isLoading,
@@ -70,6 +84,7 @@ class StorageState {
       dbSizeBytes: dbSizeBytes ?? this.dbSizeBytes,
       modelSizeBytes: modelSizeBytes ?? this.modelSizeBytes,
       chatHistorySizeBytes: chatHistorySizeBytes ?? this.chatHistorySizeBytes,
+      mediaSizeBytes: mediaSizeBytes ?? this.mediaSizeBytes,
       otherSizeBytes: otherSizeBytes ?? this.otherSizeBytes,
       freeDiskBytes: freeDiskBytes ?? this.freeDiskBytes,
       totalNoteCount: totalNoteCount ?? this.totalNoteCount,
@@ -83,6 +98,11 @@ class StorageState {
       deletedCount: deletedCount ?? this.deletedCount,
       deleteChatHistorySuccess:
           deleteChatHistorySuccess ?? this.deleteChatHistorySuccess,
+      autoDeleteOldNotesDays: identical(autoDeleteOldNotesDays, _sentinel)
+          ? this.autoDeleteOldNotesDays
+          : autoDeleteOldNotesDays as int?,
     );
   }
 }
+
+const Object _sentinel = Object();

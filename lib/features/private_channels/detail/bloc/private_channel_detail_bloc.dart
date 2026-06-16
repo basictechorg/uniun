@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
@@ -30,7 +31,12 @@ class LoadPrivateChannelEvent extends PrivateChannelDetailEvent {
 class SendPrivateChannelMessageEvent extends PrivateChannelDetailEvent {
   final String content;
   final List<String> mentionRefs;
-  SendPrivateChannelMessageEvent(this.content, {this.mentionRefs = const []});
+  final List<MediaBlobEntity> attachments;
+  SendPrivateChannelMessageEvent(
+    this.content, {
+    this.mentionRefs = const [],
+    this.attachments = const [],
+  });
 }
 
 class ApproveJoinRequestEvent extends PrivateChannelDetailEvent {
@@ -238,6 +244,7 @@ class PrivateChannelDetailBloc extends Bloc<PrivateChannelDetailEvent, PrivateCh
         authorPubkey: keys.pubkeyHex,
         privkeyHex: keys.privkeyHex,
         mentionRefs: event.mentionRefs,
+        attachments: event.attachments,
       );
     } catch (e) {
       emit(state.copyWith(errorMessage: 'Failed to send message: $e'));

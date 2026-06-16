@@ -88,7 +88,7 @@ Nostr Relay Network
 - **On-device LLM via `flutter_gemma`.** Single backend, no Strategy pattern. `FlutterGemma.installModel().fromNetwork().withProgress().withCancelToken().install()` for downloads; `InferenceChat` manages history — never rebuild it in our prompt. System instruction is prepended to the first user turn (Qwen ignores `systemInstruction` in `createChat()`).
 - **Same scroll model for feed and chat.** Chronological only in v1. Pagination via `createdLessThan(before)`. No separate ranking.
 - **GraphRAG = the Nostr event graph.** Every `e` tag is a note→note edge (`eTagRefs`), every `t` tag a note→topic edge (`tTags`), every reply a directed subgraph. No LLM entity extraction — these are user-asserted edges. v1 retrieval: vector-seed → 1-hop BFS expand. See `docs/graphrag.md`.
-- **Share / quote via NIP-18 `q` tag.** Sharing a note into any destination (feed / channel / DM / private channel) publishes a new event in the target surface whose tags include `["q", id, relay, author]` + `["k", sourceKind]` + `["p", author]`. `content` carries only the user's optional caption — **never** an embedded `nostr:note1...` URI. The receiver's renderer reads `NoteEntity.quoteEventId` and renders `EmbeddedNoteCard`. Encrypted destinations carry the same `q` data inside the encrypted envelope. **Tag-order discipline:** publishers must sign in the same order that `EventQueueModel.toSerializedRelayMessage` rebuilds in, or the re-serialized event won't hash back to the signed id (relay rejects sig).
+- **Share / quote via NIP-18 `q` tag.** Sharing a note into any destination (feed / channel / DM / private channel) publishes a new event in the target surface whose tags include `["q", id, relay, author]` + `["k", sourceKind]` + `["p", author]`. `content` carries only the user's optional caption — **never** an embedded `nostr:note1...` URI. The receiver's renderer reads `NoteEntity.quoteEventId` and renders `EmbeddedNoteCard`. Encrypted destinations carry the same `q` data inside the encrypted envelope. **Tag-order discipline:** every publisher signs in the canonical order documented in `event_queue_model.dart` (single source of truth). No kind bypasses the shaped serializer.
 
 ---
 
@@ -133,6 +133,10 @@ NostrEvent {
 ["t", hashtag]                              → topic tag (graph node)
 ["a", kind:pubkey:d-tag, relay_url]         → reference to replaceable event
 ["imeta", "url ...", "m ...", "x ..."]      → inline media metadata (NIP-92)
+["h", group_id]                             → NIP-29 private channel routing
+["d", draft_id]                             → NIP-37 draft addressable id
+["server", url]                             → BUD-03 user server (Kind 10063)
+["expiration", unix_ts]                     → soft-expiry hint (NIP-37 drafts)
 ```
 
 **NIP-10 e-tag markers** (threading):
@@ -208,7 +212,10 @@ Key files — read these directly rather than relying on this doc:
 - `rootEventId` and `replyToEventId` are NIP-10 threading fields. Both null = top-level feed note.
 - `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately. For `kind == 42`, `toDomain()` strips `channelId`/`replyToEventId` from `eTagRefs` so NoteCard counts only genuine mentions.
 - `quoteEventId` (NIP-18) — indexed nullable. Non-null when this note shares/quotes another. The renderer reads this directly to decide whether to embed `EmbeddedNoteCard` below the content; never parses content for `nostr:note1...` URIs.
+- `attachments` is a `List<MediaAttachment>` embedded directly on the note (one entry per NIP-92 `imeta` tag). `hasMedia` is derived from `attachments.isNotEmpty` in the constructor — never set it manually.
 - `NoteType` enum (`text|image|link|reference`) stored as `EnumType.name` in Isar.
+
+**Media:** there is exactly one media-related side table — `MediaCacheModel { sha256, localPath, downloadedAt }`. It tracks which blobs are on this device. Imeta metadata lives on `NoteModel.attachments`; cache state lives on `MediaCacheModel`; the two are joined by SHA-256. There is no `MediaBlobModel`, no `NoteMediaRefModel`, no reference counter, no automatic media GC. Removing a file from device is user-driven via the gallery (`MediaRepository.removeLocal`).
 
 **Generated files — never edit manually.** Regenerate with:
 ```bash
@@ -335,7 +342,7 @@ Subscribing to a note's reference graph — distinct from saved notes (which are
 
 The share button on any NoteCard opens `ShareSheetPage` (modal bottom sheet) with destinations: Feed / Public channel / Private channel / DM, plus "Share via…" external link via `share_plus`. `ShareRepositoryImpl` dispatches each to the existing publish use case (`PublishNoteUseCase` / `CreateChannelMessageUseCase` / `SendDmUseCase` / `SendPrivateChannelMessageUsecase`) — no new publish path. Each carries `quoteEventId` (+ author + kind for non-encrypted destinations) which becomes a NIP-18 `q` tag on the wire. Renderer reads `note.quoteEventId` and shows `EmbeddedNoteCard` below the content. External URL: `https://www.uniun.in/note/<hex>` (App Links + Universal Links, see `lib/core/router/deep_link.dart`).
 
-**Tag-order discipline** (re-read this before reordering tags anywhere): publishers must emit tags in the same order `EventQueueModel.toSerializedRelayMessage` rebuilds (`e root → e reply → e mention... → p... → t... → q → k`), or the broadcast event re-serializes to a different hash and the relay rejects the signature. Inline docs in `event_queue_model.dart` are authoritative.
+**Tag-order discipline** (re-read this before reordering tags anywhere): publishers must emit tags in the same order `EventQueueModel.toSerializedRelayMessage` rebuilds, or the broadcast event re-serializes to a different hash and the relay rejects the signature. Canonical order: `e root → e reply → e mention… → p… → t… → h → d → k → q → expiration → server… → imeta…`. There is **no** raw-passthrough escape hatch — every kind serializes through the shaped path, including private channels (Kinds 9002–9025, via `h`), drafts (Kind 31234, via `d`/`expiration`), Blossom server lists (Kind 10063, via `server`), and notes with media (Kinds 1 / 42, via `imeta`). Inline docs in `event_queue_model.dart` are authoritative.
 
 ---
 
@@ -395,6 +402,8 @@ lib/gateway/
 | Kind 9023 (private channel message)| Forever                |
 | Kind 0 (profiles — own table)      | 30 days, refresh on view|
 | AI conversations/messages          | Forever                |
+
+**Media files have no automatic retention.** The user removes blobs from device manually via Settings → Storage → Media. Saved / followed / own / DM / private-channel media stay on disk as long as the user wants them; nothing else (gallery, GC) touches the files. The cache table (`MediaCacheModel`) is the only record of what's on disk — deleting a row from it deletes the file.
 
 On-demand fetch: if a note is referenced but not in Isar, `SyncEngine.fetchById(eventId)` queries the relay with `{"ids": [eventId]}`.
 
@@ -812,6 +821,8 @@ lib/
 │   │   └── tostore_module.dart    # ToStore vector DB module
 │   ├── models/                    # Isar @Collection models (mutable, no @freezed)
 │   │   ├── notes/note_model.dart       # Unified Note collection (all kinds: 1/42/14/15/9023)
+│   │   ├── notes/media_attachment.dart # @embedded — one NIP-92 imeta entry on Note.attachments
+│   │   ├── media/media_cache_model.dart # sha → localPath + downloadedAt (only media side table)
 │   │   ├── profile_model.dart
 │   │   ├── user_key_model.dart
 │   │   ├── channel_model.dart          # Channel metadata only (kind 40/41)

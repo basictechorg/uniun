@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
+import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -108,6 +109,7 @@ class _EmbeddedNoteView extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             _EmbeddedContentPreview(content: note.content),
+            if (note.hasMedia) MediaAttachmentView(note: note),
           ],
         ),
       ),

@@ -2745,6 +2745,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read less'**
   String get actionReadLess;
+
+  /// App bar title of the media gallery / file manager
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get mediaGalleryTitle;
+
+  /// Filter chip in the media gallery showing every blob
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get mediaTabAll;
+
+  /// Filter chip restricting the media gallery to image blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get mediaTabImages;
+
+  /// Filter chip restricting the media gallery to video blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get mediaTabVideos;
+
+  /// Filter chip restricting the media gallery to audio blobs
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get mediaTabAudio;
+
+  /// Filter chip showing non-media file blobs (PDFs, etc.)
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get mediaTabFiles;
+
+  /// Filter chip restricting the media gallery to blobs the user pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get mediaTabPinned;
+
+  /// Action in the media action sheet that downloads the blob bytes from the server
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get mediaActionDownload;
+
+  /// Action in the media detail page that hands the cached file to the OS for viewing (PDF reader, video player, etc.)
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get mediaActionOpen;
+
+  /// Action that pins the blob so cleanup never evicts it
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get mediaActionPin;
+
+  /// Action that unpins the blob, restoring normal retention
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get mediaActionUnpin;
+
+  /// Action that deletes the local copy of the blob (server copy stays)
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from device'**
+  String get mediaActionRemoveLocal;
+
+  /// Action that copies the blob's sha256 hash to the clipboard
+  ///
+  /// In en, this message translates to:
+  /// **'Copy sha256'**
+  String get mediaActionCopySha;
+
+  /// Action that saves the cached blob to the device's gallery (images / videos via `gal`) or Downloads folder (files on desktop) or share sheet (non-media on mobile).
+  ///
+  /// In en, this message translates to:
+  /// **'Save to device'**
+  String get mediaActionSaveToDevice;
+
+  /// Snackbar shown after a successful Save to device; placeholder is the destination (e.g. 'Photos', '/Users/...').
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {destination}'**
+  String mediaSavedTo(String destination);
+
+  /// Generic success snackbar when the destination isn't a known string (mobile share-sheet path).
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get mediaSaveSuccess;
+
+  /// Snackbar shown when the Save to device action fails (permission denied / disk error).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the file'**
+  String get mediaSaveFailed;
+
+  /// Empty state shown in the media gallery when there are no known blobs
+  ///
+  /// In en, this message translates to:
+  /// **'No media yet. Notes you receive with attachments will appear here.'**
+  String get mediaEmptyState;
+
+  /// Metadata row label showing how many notes reference this blob
+  ///
+  /// In en, this message translates to:
+  /// **'Referenced by'**
+  String get mediaDetailReferencedBy;
+
+  /// Metadata row label for the blob's sha256 hash on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'sha256'**
+  String get mediaDetailLabelSha;
+
+  /// Metadata row label for the blob's MIME type on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get mediaDetailLabelMime;
+
+  /// Metadata row label for the blob's byte size on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get mediaDetailLabelSize;
+
+  /// Metadata row label for the blob's width × height on the media detail page
+  ///
+  /// In en, this message translates to:
+  /// **'Dimensions'**
+  String get mediaDetailLabelDim;
+
+  /// Metadata row label for when the blob was downloaded locally
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get mediaDetailLabelCached;
+
+  /// Metadata row label for each Blossom server URL hosting the blob
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get mediaDetailLabelServer;
+
+  /// Title of the media picker bottom sheet shown from the composer
+  ///
+  /// In en, this message translates to:
+  /// **'Attach from library'**
+  String get mediaPickerTitle;
+
+  /// Empty state shown in the media picker when there are no known blobs
+  ///
+  /// In en, this message translates to:
+  /// **'No media available yet.'**
+  String get mediaPickerEmpty;
+
+  /// Bottom-sheet row that opens the device gallery to attach an image
+  ///
+  /// In en, this message translates to:
+  /// **'Photo'**
+  String get composerAttachPhoto;
+
+  /// Bottom-sheet row that opens the device gallery to attach a video
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get composerAttachVideo;
+
+  /// Bottom-sheet row that opens the device file picker to attach any file
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get composerAttachFile;
+
+  /// Snackbar shown when the user picks a binary (video / PDF / doc / archive) bigger than the upload cap, AND on-device compression — when applicable, e.g. video — couldn't shrink it enough. Both placeholders are pre-formatted human strings (e.g. '72.4 MB', '50 MB').
+  ///
+  /// In en, this message translates to:
+  /// **'File too large ({size}). Max {cap}. Please compress it and try again.'**
+  String mediaTooLarge(String size, String cap);
+
+  /// Snackbar shown when even maximum compression can't get the picked image under the relay's body-size limit
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t compress image small enough to upload. Try a different photo.'**
+  String get mediaTooLargeAfterCompress;
+
+  /// Settings row that opens the media gallery / file manager
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get storageMediaRow;
+
+  /// Subtitle under the Storage→Media settings row
+  ///
+  /// In en, this message translates to:
+  /// **'Photos, videos and files from your notes'**
+  String get storageMediaRowSubtitle;
+
+  /// Label on the download button overlay on an attached-media tile in a note card
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get noteCardDownloadMedia;
+
+  /// Filename label shown on a file attachment tile when the publisher did not include an imeta `name` field.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment'**
+  String get noteCardFileFallbackName;
+
+  /// Subtitle hint shown on a cached file attachment tile telling the user the tap action hands the file to the OS.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open'**
+  String get noteCardFileTapToOpen;
+
+  /// Subtitle hint shown on a not-yet-cached file attachment tile telling the user the tap action triggers a Blossom download.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to download'**
+  String get noteCardFileTapToDownload;
+
+  /// Media gallery contextual app-bar title when the user has long-pressed one or more tiles to multi-select. {count} is the number of selected blobs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String mediaSelectionCount(int count);
+
+  /// Tooltip on the close (X) button that clears multi-select mode in the media gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit selection'**
+  String get mediaSelectionExit;
+
+  /// Confirmation dialog title before bulk-removing local copies of the selected media.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from device?'**
+  String get mediaSelectionRemoveDialogTitle;
+
+  /// Confirmation dialog body. Explains that only the local cache is wiped; remote bytes survive.
+  ///
+  /// In en, this message translates to:
+  /// **'Free up space by deleting {count} cached file(s) from this device. The server copies remain — you can re-download anytime.'**
+  String mediaSelectionRemoveDialogBody(int count);
+
+  /// Legend label in the Settings → Storage chart for the cached media bucket (photos / videos / files under getApplicationSupportDirectory()/media/).
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get storageMedia;
+
+  /// Row title for the auto-cleanup retention dropdown in Settings → Storage. Affects only public feed / channel notes the user hasn't saved or followed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-delete old notes'**
+  String get storageRetentionTitle;
+
+  /// Subtitle/explanation under the auto-delete retention row — clarifies which notes are affected.
+  ///
+  /// In en, this message translates to:
+  /// **'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.'**
+  String get storageRetentionSubtitle;
+
+  /// Dropdown value for disabling auto-deletion (the default — nothing is removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get storageRetentionOff;
+
+  /// Dropdown value for the auto-delete retention window in days.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String storageRetentionDays(int days);
+
+  /// Status text shown on a note-card media tile while bytes are downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get noteCardMediaDownloading;
+
+  /// Status text shown on a note-card media tile when the download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get noteCardMediaFailed;
 }
 
 class _AppLocalizationsDelegate

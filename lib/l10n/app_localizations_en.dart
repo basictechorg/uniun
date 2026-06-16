@@ -1455,4 +1455,165 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionReadLess => 'Read less';
+
+  @override
+  String get mediaGalleryTitle => 'Media';
+
+  @override
+  String get mediaTabAll => 'All';
+
+  @override
+  String get mediaTabImages => 'Images';
+
+  @override
+  String get mediaTabVideos => 'Videos';
+
+  @override
+  String get mediaTabAudio => 'Audio';
+
+  @override
+  String get mediaTabFiles => 'Files';
+
+  @override
+  String get mediaTabPinned => 'Pinned';
+
+  @override
+  String get mediaActionDownload => 'Download';
+
+  @override
+  String get mediaActionOpen => 'Open';
+
+  @override
+  String get mediaActionPin => 'Pin';
+
+  @override
+  String get mediaActionUnpin => 'Unpin';
+
+  @override
+  String get mediaActionRemoveLocal => 'Remove from device';
+
+  @override
+  String get mediaActionCopySha => 'Copy sha256';
+
+  @override
+  String get mediaActionSaveToDevice => 'Save to device';
+
+  @override
+  String mediaSavedTo(String destination) {
+    return 'Saved to $destination';
+  }
+
+  @override
+  String get mediaSaveSuccess => 'Saved';
+
+  @override
+  String get mediaSaveFailed => 'Couldn\'t save the file';
+
+  @override
+  String get mediaEmptyState =>
+      'No media yet. Notes you receive with attachments will appear here.';
+
+  @override
+  String get mediaDetailReferencedBy => 'Referenced by';
+
+  @override
+  String get mediaDetailLabelSha => 'sha256';
+
+  @override
+  String get mediaDetailLabelMime => 'Type';
+
+  @override
+  String get mediaDetailLabelSize => 'Size';
+
+  @override
+  String get mediaDetailLabelDim => 'Dimensions';
+
+  @override
+  String get mediaDetailLabelCached => 'Cached';
+
+  @override
+  String get mediaDetailLabelServer => 'Server';
+
+  @override
+  String get mediaPickerTitle => 'Attach from library';
+
+  @override
+  String get mediaPickerEmpty => 'No media available yet.';
+
+  @override
+  String get composerAttachPhoto => 'Photo';
+
+  @override
+  String get composerAttachVideo => 'Video';
+
+  @override
+  String get composerAttachFile => 'File';
+
+  @override
+  String mediaTooLarge(String size, String cap) {
+    return 'File too large ($size). Max $cap. Please compress it and try again.';
+  }
+
+  @override
+  String get mediaTooLargeAfterCompress =>
+      'Couldn\'t compress image small enough to upload. Try a different photo.';
+
+  @override
+  String get storageMediaRow => 'Media';
+
+  @override
+  String get storageMediaRowSubtitle =>
+      'Photos, videos and files from your notes';
+
+  @override
+  String get noteCardDownloadMedia => 'Download';
+
+  @override
+  String get noteCardFileFallbackName => 'Attachment';
+
+  @override
+  String get noteCardFileTapToOpen => 'Tap to open';
+
+  @override
+  String get noteCardFileTapToDownload => 'Tap to download';
+
+  @override
+  String mediaSelectionCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get mediaSelectionExit => 'Exit selection';
+
+  @override
+  String get mediaSelectionRemoveDialogTitle => 'Remove from device?';
+
+  @override
+  String mediaSelectionRemoveDialogBody(int count) {
+    return 'Free up space by deleting $count cached file(s) from this device. The server copies remain — you can re-download anytime.';
+  }
+
+  @override
+  String get storageMedia => 'Media';
+
+  @override
+  String get storageRetentionTitle => 'Auto-delete old notes';
+
+  @override
+  String get storageRetentionSubtitle =>
+      'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.';
+
+  @override
+  String get storageRetentionOff => 'Off';
+
+  @override
+  String storageRetentionDays(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get noteCardMediaDownloading => 'Downloading…';
+
+  @override
+  String get noteCardMediaFailed => 'Download failed';
 }

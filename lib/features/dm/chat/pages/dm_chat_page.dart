@@ -241,9 +241,14 @@ class _DmChatViewState extends State<_DmChatView> {
               ComposerHost(
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
-                onSend: (text, refs) => context.read<DmChatBloc>().add(
-                      DmChatSendEvent(content: text, mentionRefs: refs),
-                    ),
+                onSend: (text, refs, attachments) =>
+                    context.read<DmChatBloc>().add(
+                          DmChatSendEvent(
+                            content: text,
+                            mentionRefs: refs,
+                            attachments: attachments,
+                          ),
+                        ),
               ),
             ],
           ),

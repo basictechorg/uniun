@@ -12,6 +12,8 @@ import 'package:uniun/features/settings/widgets/identity_card.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
+import 'package:uniun/features/settings/widgets/media_row.dart';
+import 'package:uniun/features/settings/widgets/retention_row.dart';
 import 'package:uniun/features/settings/widgets/storage_card.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -100,6 +102,12 @@ class _SettingsContent extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const StorageCard(),
+
+              const SizedBox(height: 12),
+              const MediaRow(),
+
+              const SizedBox(height: 12),
+              const RetentionRow(),
 
               const SizedBox(height: 36),
 

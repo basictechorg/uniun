@@ -1,8 +1,13 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 abstract class EventQueueRepository {
   /// Enqueue one signed event payload for relay publication.
+  ///
+  /// Caller must sign in the canonical tag order documented in
+  /// `EventQueueModel.toSerializedRelayMessage` — otherwise the relay's
+  /// signature check will reject the event when the queue re-serializes it.
   ///
   /// Returns the Isar row id on success.
   Future<Either<Failure, int>> enqueueSignedEvent({
@@ -20,5 +25,10 @@ abstract class EventQueueRepository {
     String? quoteEventId,
     String? quoteAuthorPubkey,
     int? quoteKind,
+    String? hTag,
+    String? dTag,
+    int? expirationSec,
+    List<String> serverTags,
+    List<MediaBlobEntity> imeta,
   });
 }

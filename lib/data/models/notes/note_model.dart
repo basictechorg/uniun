@@ -2,6 +2,9 @@ import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/domain/entities/media/media_dim.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'note_model.g.dart';
@@ -71,6 +74,17 @@ class NoteModel {
   @Index()
   String? quoteEventId;
 
+  /// True when [attachments] is non-empty. Stored (instead of derived) so
+  /// the index lets feed queries cheaply skip text-only notes when needed.
+  /// Set automatically by the constructor + the inbound parser.
+  @Index()
+  late bool hasMedia = false;
+
+  /// NIP-92 `imeta` attachments. One entry per attached blob. Bytes live on
+  /// disk only when [MediaCacheModel] has a row for the same SHA — this list
+  /// describes the files, not the cached state.
+  List<MediaAttachment> attachments = const [];
+
   NoteModel({
     required this.eventId,
     required this.sig,
@@ -89,7 +103,9 @@ class NoteModel {
     required this.tTags,
     required this.created,
     this.quoteEventId,
-  });
+    List<MediaAttachment> attachments = const [],
+  })  : attachments = attachments,
+        hasMedia = attachments.isNotEmpty;
 
   /// Parse a Kind 1 Nostr event (from the Dart Gateway / EmbeddedServer) into a NoteModel.
   ///
@@ -163,6 +179,10 @@ class NoteModel {
 }
 
 extension NoteModelExtension on NoteModel {
+  /// Builds the domain entity. `attachments` are converted to
+  /// [MediaBlobEntity] with `localPath` / `downloadedAt` left null —
+  /// `NoteAttachmentsEnricher` fills those by joining [MediaCacheModel] in a
+  /// bulk pass. Same shape the UI already expects.
   NoteEntity toDomain() => NoteEntity(
         id: eventId,
         sig: sig,
@@ -181,5 +201,25 @@ extension NoteModelExtension on NoteModel {
         sourceChannelId: channelId,
         sourcePrivateGroupId: groupId,
         quoteEventId: quoteEventId,
+        hasMedia: hasMedia,
+        attachments: [for (final a in attachments) a.toEntity()],
+      );
+}
+
+extension MediaAttachmentMapper on MediaAttachment {
+  /// Embedded row → domain entity. Cache state stays null here; the
+  /// enricher patches it in a single bulk read.
+  MediaBlobEntity toEntity() => MediaBlobEntity(
+        sha256: sha256,
+        mime: mime,
+        sizeBytes: sizeBytes,
+        dim: (width != null && height != null)
+            ? MediaDim(width: width!, height: height!)
+            : null,
+        blurhash: blurhash,
+        filename: filename,
+        serverUrls: url != null ? [url!] : const [],
+        localPath: null,
+        downloadedAt: null,
       );
 }

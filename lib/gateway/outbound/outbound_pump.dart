@@ -61,10 +61,7 @@ class OutboundPump {
     }
 
     session.pendingAck.arm(next.eventId, next.id);
-    final frame = next.isPrivateChannelEvent
-        ? next.toRawRelayMessage()
-        : next.toSerializedRelayMessage();
-    session.sendRaw(frame);
+    session.sendRaw(next.toSerializedRelayMessage());
   }
 
   Future<void> _onOk(dynamic msg) async {

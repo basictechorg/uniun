@@ -134,8 +134,10 @@ class _ThreadViewState extends State<_ThreadView> {
           replies: state.replies,
           replyCount: state.replies.length,
           isSending: state.postStatus == ThreadPostStatus.posting,
-          onSendReply: (text, refs) =>
-              bloc.add(PostReplyEvent(text, mentionRefs: refs)),
+          onSendReply: (text, refs, attachments) => bloc.add(
+            PostReplyEvent(text,
+                mentionRefs: refs, attachments: attachments),
+          ),
           onOpenThread: (id) => _openThread(context, id),
         );
       },
