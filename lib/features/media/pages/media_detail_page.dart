@@ -250,6 +250,8 @@ class _DetailBody extends StatelessWidget {
       filename: blob.filename,
     );
     if (!context.mounted) return;
+    // User dismissed the system save picker — no snackbar, no error noise.
+    if (result.cancelled) return;
     messenger.showSnackBar(SnackBar(
       content: Text(
         result.success
