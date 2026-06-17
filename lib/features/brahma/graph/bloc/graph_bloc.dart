@@ -150,6 +150,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     List<GraphNodeData> allNodes = fullNodes;
     String? scopeName = event.manasName;
     List<String> scopePalette = const <String>[];
+    String? scopeIcon;
     if (event.manasId != null) {
       final linkRes = await _getNoteIdsForManas.call(event.manasId!);
       final allowed = linkRes
@@ -159,6 +160,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
         (_) => const <String>[],
         (m) => m.colorHexes,
       );
+      scopeIcon = manasRes.fold((_) => null, (m) => m.iconName);
       scopeName ??= manasRes.fold((_) => null, (m) => m.name);
       allNodes = [
         for (final n in fullNodes)
@@ -175,6 +177,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
       adjacency: _buildAdjacency(allNodes),
       scopedManasId: event.manasId,
       scopedManasName: scopeName,
+      scopedManasIconName: scopeIcon,
       scopedManasColorHexes: scopePalette,
       clearScope: event.manasId == null,
     ));

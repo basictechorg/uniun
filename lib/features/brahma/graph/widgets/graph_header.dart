@@ -4,8 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/usecases/manas_usecases.dart';
-import 'package:uniun/common/locator.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
@@ -69,7 +67,8 @@ class GraphHeader extends StatelessWidget {
             child: BlocBuilder<GraphBloc, GraphState>(
               buildWhen: (prev, curr) =>
                   prev.scopedManasId != curr.scopedManasId ||
-                  prev.scopedManasName != curr.scopedManasName,
+                  prev.scopedManasName != curr.scopedManasName ||
+                  prev.scopedManasIconName != curr.scopedManasIconName,
               builder: (context, state) {
                 if (state.scopedManasId == null) {
                   return const SizedBox.shrink();
@@ -80,49 +79,39 @@ class GraphHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
-                      child: FutureBuilder<String?>(
-                        // Resolve the scoped Manas's iconName for the chip.
-                        // GraphState doesn't carry it (yet) so we look it up
-                        // — cheap one-row Isar query.
-                        future: _resolveIconName(state.scopedManasId!),
-                        builder: (context, snapshot) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary
-                                  .withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.primary
-                                    .withValues(alpha: 0.3),
-                              ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              ManasIcons.byName(state.scopedManasIconName),
+                              size: 14,
+                              color: AppColors.primary,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  ManasIcons.byName(snapshot.data),
-                                  size: 14,
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                   color: AppColors.primary,
                                 ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    label,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
                     IconButton(
@@ -192,11 +181,6 @@ class _ManasSwatchesRow extends StatelessWidget {
       ],
     );
   }
-}
-
-Future<String?> _resolveIconName(String manasId) async {
-  final res = await getIt<GetManasByIdUseCase>().call(manasId);
-  return res.fold((_) => null, (m) => m.iconName);
 }
 
 class _LegendRow extends StatelessWidget {

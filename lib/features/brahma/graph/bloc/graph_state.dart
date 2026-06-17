@@ -12,6 +12,7 @@ class GraphState {
     this.errorMessage,
     this.scopedManasId,
     this.scopedManasName,
+    this.scopedManasIconName,
     this.scopedManasColorHexes = const <String>[],
   });
 
@@ -39,6 +40,11 @@ class GraphState {
   /// when [scopedManasId] is set (loaded without a name hint).
   final String? scopedManasName;
 
+  /// Icon name (key into `ManasIcons.all`) for the scoped Manas. Null
+  /// when unscoped or when the Manas has no chosen icon — header falls
+  /// back to `ManasIcons.fallback`.
+  final String? scopedManasIconName;
+
   /// Palette chosen by the user for the scoped Manas (1–3 hex strings).
   /// Empty when unscoped, or when scoped to a Manas with no palette set
   /// (header falls back to the default legend in both cases).
@@ -54,6 +60,7 @@ class GraphState {
     String? errorMessage,
     String? scopedManasId,
     String? scopedManasName,
+    String? scopedManasIconName,
     List<String>? scopedManasColorHexes,
     bool clearScope = false,
   }) {
@@ -69,6 +76,9 @@ class GraphState {
           clearScope ? null : (scopedManasId ?? this.scopedManasId),
       scopedManasName:
           clearScope ? null : (scopedManasName ?? this.scopedManasName),
+      scopedManasIconName: clearScope
+          ? null
+          : (scopedManasIconName ?? this.scopedManasIconName),
       scopedManasColorHexes: clearScope
           ? const <String>[]
           : (scopedManasColorHexes ?? this.scopedManasColorHexes),
