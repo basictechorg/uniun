@@ -7,7 +7,7 @@ A decentralized, **offline-first** social and knowledge network built on the Nos
 - **Notes are forever.** No delete. No soft-delete. The Nostr event graph *is* the knowledge graph — every `e` tag an edge, every `t` tag a topic node.
 - **Content-addressed media.** Photos / videos / files attach via NIP-92 `imeta` + Blossom (NIP-B7). The same blob across many notes = one upload + one cache entry per device.
 
-For the deeper architecture and conventions, see `CLAUDE.md`. For the media subsystem, see `docs/media_subsystem.md`.
+For the deeper architecture and conventions, see `docs`.
 
 ---
 
@@ -76,6 +76,6 @@ docs/                 Architecture notes (media subsystem, GraphRAG, …)
 
 ## Contributing
 
-Read `CLAUDE.md` end-to-end before touching code. The behavioural guardrails there (no NIP-09, no Reddit-style models, `isar_community` only, Freezed 3.x `abstract class`, all UI strings via `AppLocalizations`) are enforced — they are not stylistic preferences.
+Read `docs` end-to-end before touching code. The behavioural guardrails there (no NIP-09, no Reddit-style models, `isar_community` only, Freezed 3.x `abstract class`, all UI strings via `AppLocalizations`) are enforced — they are not stylistic preferences.
 
 Bug reports and feature requests go through the issue tracker. Don't commit generated files (`*.g.dart`, `*.freezed.dart`, `lib/l10n/app_localizations*.dart`); they are reproduced by `build_runner` / `flutter gen-l10n`.
