@@ -10,8 +10,8 @@ import 'package:uniun/core/theme/app_theme.dart';
 /// No top app bar, no bottom nav — pure onboarding shell.
 ///
 /// Flow:
-///   "Create Your Avatar"  → YourIdentityKeysPage (generate a new keypair)
-///   "Reclaim Your Avatar" → ImportIdentityPage (import an existing nsec)
+///   "Create Your Avatar"  → AboutYouPage (generate a new keypair)
+///   "Restore Your Avatar" → ImportIdentityPage (import an existing nsec)
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -23,55 +23,21 @@ class WelcomePage extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // ── UNIUN brand ──────────────────────────────────────────
-                SvgPicture.asset(
-                  'assets/images/uniun-logo.svg',
-                  width: 72,
-                  height: 72,
-                ),
+                // ── UNIUN brand (glow + logo + wordmark + subtitle) ──────
+                const _BrandBlock(),
                 const SizedBox(height: 12),
-                const Text(
-                  'UNIUN',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.5,
-                  ),
-                ),
+                _Subtitle(l10n: l10n),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 28),
 
-                // ── Hero tagline ─────────────────────────────────────────
-                _taglineBlock(
-                  l10n.welcomeTagline,
-                  accent: AppColors.primary,
-                  muted: AppColors.onSurfaceVariant,
-                  base: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                    height: 1.25,
-                  ),
-                ),
+                // ── Trimurti pillars ─────────────────────────────────────
+                _TrimurtiPillars(l10n: l10n),
 
-                const SizedBox(height: 16),
-
-                // thin accent divider
-                Container(
-                  width: 64,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-
-                const SizedBox(height: 64),
+                const SizedBox(height: 44),
 
                 // ── Primary — Create Your Avatar ─────────────────────────
                 _PrimaryButton(
@@ -93,7 +59,7 @@ class WelcomePage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.add_circle_rounded,
+                      const Icon(Icons.add_rounded,
                           color: AppColors.onPrimary, size: 22),
                       const SizedBox(width: 10),
                       Text(
@@ -108,9 +74,9 @@ class WelcomePage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // ── Secondary — Import existing key ──────────────────────
+                // ── Secondary — Restore existing key ─────────────────────
                 _SecondaryButton(
                   onPressed: () =>
                       context.pushNamed(AppRoutes.importIdentity),
@@ -132,7 +98,7 @@ class WelcomePage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 28),
 
                 // ── Learn more ───────────────────────────────────────────
                 GestureDetector(
@@ -146,7 +112,7 @@ class WelcomePage extends StatelessWidget {
                         l10n.welcomeLearnHow,
                         style: const TextStyle(
                           color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
                       ),
@@ -165,9 +131,205 @@ class WelcomePage extends StatelessWidget {
   }
 }
 
+// ── Brand block ───────────────────────────────────────────────────────────────
+
+/// Logo over a soft radial brand glow, with the gradient UNIUN wordmark below.
+class _BrandBlock extends StatelessWidget {
+  const _BrandBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 132,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // soft radial glow
+              Container(
+                width: 240,
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.18),
+                      AppColors.primaryContainer.withValues(alpha: 0.06),
+                      AppColors.primary.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 0.45, 0.75],
+                  ),
+                ),
+              ),
+              SvgPicture.asset(
+                'assets/images/uniun-logo.svg',
+                width: 88,
+                height: 88,
+              ),
+            ],
+          ),
+        ),
+        // gradient wordmark
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.primary, AppColors.primaryContainer],
+          ).createShader(bounds),
+          child: const Text(
+            'UNIUN',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Your decentralized **second brain**" — muted lead, brand-blue emphasis.
+class _Subtitle extends StatelessWidget {
+  const _Subtitle({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: l10n.welcomeSubtitleLead,
+            style: const TextStyle(
+              color: AppColors.onSurfaceVariant,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(
+            text: l10n.welcomeSubtitleEmphasis,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Trimurti pillars ──────────────────────────────────────────────────────────
+
+/// Three equal-width pillars — Brahma · Vishnu · Shiv — inside one bordered,
+/// faint-blue-tinted card with thin dividers.
+class _TrimurtiPillars extends StatelessWidget {
+  const _TrimurtiPillars({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final divider = Container(
+      width: 1,
+      color: AppColors.primary.withValues(alpha: 0.12),
+    );
+    return IntrinsicHeight(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+          // soft brand glow radiating behind the pillar card
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.18),
+              blurRadius: 36,
+              spreadRadius: -6,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _Pillar(deity: l10n.welcomePillarBrahma, role: l10n.welcomeRoleCreate),
+            divider,
+            _Pillar(deity: l10n.welcomePillarVishnu, role: l10n.welcomeRoleReflect),
+            divider,
+            _Pillar(deity: l10n.welcomePillarShiv, role: l10n.welcomeRoleTransform),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Pillar extends StatelessWidget {
+  const _Pillar({required this.deity, required this.role});
+
+  final String deity;
+  final String role;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primary,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              deity,
+              style: const TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              role.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Button widgets ────────────────────────────────────────────────────────────
 
-/// Solid primary — primary action.
+/// Gradient primary — primary action.
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({required this.onPressed, required this.child});
 
@@ -180,9 +342,13 @@ class _PrimaryButton extends StatelessWidget {
       onTap: onPressed,
       child: Container(
         width: double.infinity,
-        height: 64,
+        height: 58,
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.primary, AppColors.primaryContainer],
+          ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -211,7 +377,7 @@ class _SecondaryButton extends StatelessWidget {
       onTap: onPressed,
       child: Container(
         width: double.infinity,
-        height: 64,
+        height: 58,
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
@@ -230,91 +396,4 @@ class _SecondaryButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Splits a tagline into colour-coded spans: substrings wrapped in `*asterisks*`
-/// render in [accent], everything else in [muted]. Keeps the full phrase in one
-/// l10n string while letting the brand verbs stand out.
-List<InlineSpan> _taglineSpans(
-  String text, {
-  required Color accent,
-  required Color muted,
-}) {
-  final spans = <InlineSpan>[];
-  final pattern = RegExp(r'\*(.+?)\*');
-  var cursor = 0;
-  for (final match in pattern.allMatches(text)) {
-    if (match.start > cursor) {
-      spans.add(TextSpan(
-        text: text.substring(cursor, match.start),
-        style: TextStyle(color: muted),
-      ));
-    }
-    spans.add(TextSpan(
-      text: match.group(1),
-      style: TextStyle(color: accent),
-    ));
-    cursor = match.end;
-  }
-  if (cursor < text.length) {
-    spans.add(
-      TextSpan(text: text.substring(cursor), style: TextStyle(color: muted)),
-    );
-  }
-  return spans;
-}
-
-/// Lays out a `left · right` tagline (one such pair per `\n` line) as a column
-/// of full-width rows. Each row splits into two equal-flex halves with the `·`
-/// between them, so every dot lands on the page's centre line and the dots
-/// align vertically. Left words hug the dot from the right, right words from
-/// the left. Words wrapped in *asterisks* render in [accent]; separators in
-/// [muted].
-Widget _taglineBlock(
-  String raw, {
-  required Color accent,
-  required Color muted,
-  required TextStyle base,
-}) {
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      for (final line in raw.split('\n'))
-        _taglineRow(line, accent: accent, muted: muted, base: base),
-    ],
-  );
-}
-
-Widget _taglineRow(
-  String line, {
-  required Color accent,
-  required Color muted,
-  required TextStyle base,
-}) {
-  final parts = line.split(' · ');
-  final left = parts.first;
-  final right = parts.length > 1 ? parts[1] : '';
-
-  Widget half(String text, Alignment alignment) => Expanded(
-        child: Align(
-          alignment: alignment,
-          child: Text.rich(
-            TextSpan(
-              children: _taglineSpans(text, accent: accent, muted: muted),
-            ),
-            style: base,
-          ),
-        ),
-      );
-
-  return Row(
-    children: [
-      half(left, Alignment.centerRight),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Text('·', style: base.copyWith(color: muted)),
-      ),
-      half(right, Alignment.centerLeft),
-    ],
-  );
 }
