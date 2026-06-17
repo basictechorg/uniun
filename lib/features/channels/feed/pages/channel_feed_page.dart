@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
@@ -178,12 +179,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
             backgroundColor: AppColors.surface,
             elevation: 0,
             surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
+            leading: UniunBackButton(
               onPressed: () => context.popOrHome(),
             ),
             title: Column(

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'saved_note_entity.freezed.dart';
@@ -29,6 +30,10 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     String? quoteEventId,
     /// Resolved at read time from the live `Note` collection. Null when missed.
     NoteEntity? quotedNote,
+    /// NIP-92 attachments copied at save time. `localPath` / `downloadedAt`
+    /// on each entry are joined from [MediaCacheModel] by the repository
+    /// before the entity reaches the UI.
+    @Default(<MediaBlobEntity>[]) List<MediaBlobEntity> attachments,
   }) = _SavedNoteEntity;
 }
 
@@ -61,5 +66,6 @@ extension SavedNoteToNote on SavedNoteEntity {
         sourceLabel: sourceLabel,
         quoteEventId: quoteEventId,
         quotedNote: quotedNote,
+        attachments: attachments,
       );
 }

@@ -45,17 +45,34 @@ class NoteAttachmentsEnricher {
 
   NoteEntity _patch(NoteEntity n, Map<String, MediaCacheModel> cache) {
     if (!n.hasMedia) return n;
-    final patched = <MediaBlobEntity>[
-      for (final a in n.attachments)
-        cache.containsKey(a.sha256)
-            ? a.copyWith(
-                localPath: cache[a.sha256]!.localPath,
-                downloadedAt: cache[a.sha256]!.downloadedAt,
-              )
-            : a,
-    ];
-    return n.copyWith(attachments: patched);
+    return n.copyWith(attachments: _patchBlobs(n.attachments, cache));
   }
+
+  /// Patches cache state onto a raw [MediaBlobEntity] list. Used by callers
+  /// that don't own a [NoteEntity] (e.g. saved notes, embedded quote
+  /// previews) — every imeta-bearing collection shares this single join.
+  Future<List<MediaBlobEntity>> enrichBlobs(
+    List<MediaBlobEntity> blobs,
+  ) async {
+    if (blobs.isEmpty) return blobs;
+    final shas = {for (final b in blobs) b.sha256};
+    final cache = await _cacheBySha(shas);
+    if (cache.isEmpty) return blobs;
+    return _patchBlobs(blobs, cache);
+  }
+
+  List<MediaBlobEntity> _patchBlobs(
+    List<MediaBlobEntity> blobs,
+    Map<String, MediaCacheModel> cache,
+  ) => [
+        for (final a in blobs)
+          cache.containsKey(a.sha256)
+              ? a.copyWith(
+                  localPath: cache[a.sha256]!.localPath,
+                  downloadedAt: cache[a.sha256]!.downloadedAt,
+                )
+              : a,
+      ];
 
   Future<Map<String, MediaCacheModel>> _cacheBySha(Set<String> shas) async {
     if (shas.isEmpty) return const {};

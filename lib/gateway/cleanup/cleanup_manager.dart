@@ -118,10 +118,16 @@ class CleanupManager {
 
   /// Drops cache rows + on-disk files for SHAs no surviving note references.
   ///
-  /// A "surviving note" is any row left in [NoteModel] with `hasMedia == true`
-  /// — that includes own notes, saved notes, followed-note references, DMs
-  /// (14/15), and private-channel messages (9023). Cleanup never deletes
-  /// media a user might still want to scroll back to.
+  /// A SHA is considered "referenced" if any of:
+  ///   • a live [NoteModel] row carries it (covers own / saved / followed /
+  ///     DM / private-channel notes — eviction skips those ids).
+  ///   • a [SavedNoteModel] row carries it. Belt+suspenders: the saved row
+  ///     owns its attachments independently of the live note, so future
+  ///     manual storage purges can't orphan saved media.
+  ///
+  /// Followed-note media falls under bullet 1: the underlying live
+  /// [NoteModel] is protected from eviction by the `followedIds` skip in
+  /// [_evictNotes], so its `attachments` keep its SHAs in the set.
   Future<void> _gcMedia() async {
     if (retention == null) return;
     final caches = await isar.mediaCacheModels.where().findAll();
@@ -132,6 +138,12 @@ class CleanupManager {
         await isar.noteModels.filter().hasMediaEqualTo(true).findAll();
     for (final n in survivors) {
       for (final a in n.attachments) {
+        referenced.add(a.sha256);
+      }
+    }
+    final saved = await isar.savedNoteModels.where().findAll();
+    for (final s in saved) {
+      for (final a in s.attachments) {
         referenced.add(a.sha256);
       }
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -28,9 +29,7 @@ class ComposeHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            color: AppColors.primary,
+          UniunBackButton(
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),

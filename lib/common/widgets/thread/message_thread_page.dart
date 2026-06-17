@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/thread/thread_conversation_body.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -80,9 +81,7 @@ class MessageThreadPage extends StatelessWidget {
       backgroundColor: AppColors.surface,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-            size: 20, color: AppColors.primary),
+      leading: UniunBackButton(
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(

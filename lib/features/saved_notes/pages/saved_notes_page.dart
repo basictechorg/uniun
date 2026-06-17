@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
@@ -60,6 +61,7 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
+        leading: const UniunBackButton(),
         title: Text(
           l10n.savedNotesTitle,
           style: const TextStyle(

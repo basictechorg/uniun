@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get actionCancel;
 
+  /// Tooltip for the shared back-arrow atom
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get actionBack;
+
   /// Done button
   ///
   /// In en, this message translates to:
@@ -1365,6 +1371,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Learn how UNIUN works'**
   String get welcomeLearnHow;
+
+  /// Muted lead-in of the welcome subtitle, immediately followed by welcomeSubtitleEmphasis. Trailing space is intentional.
+  ///
+  /// In en, this message translates to:
+  /// **'Your decentralized '**
+  String get welcomeSubtitleLead;
+
+  /// Emphasized (bold, brand-blue) tail of the welcome subtitle, follows welcomeSubtitleLead.
+  ///
+  /// In en, this message translates to:
+  /// **'second brain'**
+  String get welcomeSubtitleEmphasis;
+
+  /// First Trimurti pillar name on the welcome screen (the create surface).
+  ///
+  /// In en, this message translates to:
+  /// **'Brahma'**
+  String get welcomePillarBrahma;
+
+  /// Second Trimurti pillar name on the welcome screen (the reflect/feed surface).
+  ///
+  /// In en, this message translates to:
+  /// **'Vishnu'**
+  String get welcomePillarVishnu;
+
+  /// Third Trimurti pillar name on the welcome screen (the transform/AI surface).
+  ///
+  /// In en, this message translates to:
+  /// **'Shiv'**
+  String get welcomePillarShiv;
+
+  /// Role label under the Brahma pillar on the welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get welcomeRoleCreate;
+
+  /// Role label under the Vishnu pillar on the welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflect'**
+  String get welcomeRoleReflect;
+
+  /// Role label under the Shiv pillar on the welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Transform'**
+  String get welcomeRoleTransform;
 
   /// Heading on the about-you onboarding page
   ///

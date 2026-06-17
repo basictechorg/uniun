@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -145,6 +146,7 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        leading: const UniunBackButton(color: Colors.white),
         title: const Text('Scan QR'),
         actions: [
           IconButton(

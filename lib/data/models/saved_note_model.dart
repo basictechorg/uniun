@@ -1,5 +1,7 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 
 part 'saved_note_model.g.dart';
@@ -48,6 +50,13 @@ class SavedNoteModel {
   /// against the live `Note` collection; misses render as not-available.
   @Index()
   String? quoteEventId;
+
+  /// Saved-forever copy of the note's NIP-92 `imeta` attachments. The live
+  /// [NoteModel] could in principle be evicted via a future storage tool;
+  /// the saved row owns its media metadata so this view never loses
+  /// attachments. SHA-keyed cache state still lives in [MediaCacheModel]
+  /// and is joined per-render.
+  List<MediaAttachment> attachments = const [];
 }
 
 extension SavedNoteModelExtension on SavedNoteModel {
@@ -65,5 +74,6 @@ extension SavedNoteModelExtension on SavedNoteModel {
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         quoteEventId: quoteEventId,
+        attachments: [for (final a in attachments) a.toEntity()],
       );
 }

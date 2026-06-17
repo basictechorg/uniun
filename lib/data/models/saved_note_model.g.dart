@@ -17,62 +17,69 @@ const SavedNoteModelSchema = CollectionSchema(
   name: r'SavedNote',
   id: 4936521837079823218,
   properties: {
-    r'authorPubkey': PropertySchema(
+    r'attachments': PropertySchema(
       id: 0,
+      name: r'attachments',
+      type: IsarType.objectList,
+
+      target: r'MediaAttachment',
+    ),
+    r'authorPubkey': PropertySchema(
+      id: 1,
       name: r'authorPubkey',
       type: IsarType.string,
     ),
-    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
+    r'content': PropertySchema(id: 2, name: r'content', type: IsarType.string),
     r'created': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'created',
       type: IsarType.dateTime,
     ),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
-    r'eventId': PropertySchema(id: 4, name: r'eventId', type: IsarType.string),
+    r'eventId': PropertySchema(id: 5, name: r'eventId', type: IsarType.string),
     r'pTagRefs': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'quoteEventId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'quoteEventId',
       type: IsarType.string,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'savedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'savedAt',
       type: IsarType.dateTime,
     ),
-    r'sig': PropertySchema(id: 10, name: r'sig', type: IsarType.string),
+    r'sig': PropertySchema(id: 11, name: r'sig', type: IsarType.string),
     r'sourceChannelId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'sourceChannelId',
       type: IsarType.string,
     ),
     r'sourcePrivateGroupId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'sourcePrivateGroupId',
       type: IsarType.string,
     ),
-    r'tTags': PropertySchema(id: 13, name: r'tTags', type: IsarType.stringList),
+    r'tTags': PropertySchema(id: 14, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'type',
       type: IsarType.string,
       enumMap: _SavedNoteModeltypeEnumValueMap,
@@ -152,7 +159,7 @@ const SavedNoteModelSchema = CollectionSchema(
     ),
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'MediaAttachment': MediaAttachmentSchema},
 
   getId: _savedNoteModelGetId,
   getLinks: _savedNoteModelGetLinks,
@@ -166,6 +173,18 @@ int _savedNoteModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.attachments.length * 3;
+  {
+    final offsets = allOffsets[MediaAttachment]!;
+    for (var i = 0; i < object.attachments.length; i++) {
+      final value = object.attachments[i];
+      bytesCount += MediaAttachmentSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.authorPubkey.length * 3;
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.eTagRefs.length * 3;
@@ -231,21 +250,27 @@ void _savedNoteModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.authorPubkey);
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.created);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeString(offsets[4], object.eventId);
-  writer.writeStringList(offsets[5], object.pTagRefs);
-  writer.writeString(offsets[6], object.quoteEventId);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeDateTime(offsets[9], object.savedAt);
-  writer.writeString(offsets[10], object.sig);
-  writer.writeString(offsets[11], object.sourceChannelId);
-  writer.writeString(offsets[12], object.sourcePrivateGroupId);
-  writer.writeStringList(offsets[13], object.tTags);
-  writer.writeString(offsets[14], object.type.name);
+  writer.writeObjectList<MediaAttachment>(
+    offsets[0],
+    allOffsets,
+    MediaAttachmentSchema.serialize,
+    object.attachments,
+  );
+  writer.writeString(offsets[1], object.authorPubkey);
+  writer.writeString(offsets[2], object.content);
+  writer.writeDateTime(offsets[3], object.created);
+  writer.writeStringList(offsets[4], object.eTagRefs);
+  writer.writeString(offsets[5], object.eventId);
+  writer.writeStringList(offsets[6], object.pTagRefs);
+  writer.writeString(offsets[7], object.quoteEventId);
+  writer.writeString(offsets[8], object.replyToEventId);
+  writer.writeString(offsets[9], object.rootEventId);
+  writer.writeDateTime(offsets[10], object.savedAt);
+  writer.writeString(offsets[11], object.sig);
+  writer.writeString(offsets[12], object.sourceChannelId);
+  writer.writeString(offsets[13], object.sourcePrivateGroupId);
+  writer.writeStringList(offsets[14], object.tTags);
+  writer.writeString(offsets[15], object.type.name);
 }
 
 SavedNoteModel _savedNoteModelDeserialize(
@@ -255,23 +280,31 @@ SavedNoteModel _savedNoteModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = SavedNoteModel();
-  object.authorPubkey = reader.readString(offsets[0]);
-  object.content = reader.readString(offsets[1]);
-  object.created = reader.readDateTime(offsets[2]);
-  object.eTagRefs = reader.readStringList(offsets[3]) ?? [];
-  object.eventId = reader.readString(offsets[4]);
+  object.attachments =
+      reader.readObjectList<MediaAttachment>(
+        offsets[0],
+        MediaAttachmentSchema.deserialize,
+        allOffsets,
+        MediaAttachment(),
+      ) ??
+      [];
+  object.authorPubkey = reader.readString(offsets[1]);
+  object.content = reader.readString(offsets[2]);
+  object.created = reader.readDateTime(offsets[3]);
+  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
+  object.eventId = reader.readString(offsets[5]);
   object.id = id;
-  object.pTagRefs = reader.readStringList(offsets[5]) ?? [];
-  object.quoteEventId = reader.readStringOrNull(offsets[6]);
-  object.replyToEventId = reader.readStringOrNull(offsets[7]);
-  object.rootEventId = reader.readStringOrNull(offsets[8]);
-  object.savedAt = reader.readDateTime(offsets[9]);
-  object.sig = reader.readString(offsets[10]);
-  object.sourceChannelId = reader.readStringOrNull(offsets[11]);
-  object.sourcePrivateGroupId = reader.readStringOrNull(offsets[12]);
-  object.tTags = reader.readStringList(offsets[13]) ?? [];
+  object.pTagRefs = reader.readStringList(offsets[6]) ?? [];
+  object.quoteEventId = reader.readStringOrNull(offsets[7]);
+  object.replyToEventId = reader.readStringOrNull(offsets[8]);
+  object.rootEventId = reader.readStringOrNull(offsets[9]);
+  object.savedAt = reader.readDateTime(offsets[10]);
+  object.sig = reader.readString(offsets[11]);
+  object.sourceChannelId = reader.readStringOrNull(offsets[12]);
+  object.sourcePrivateGroupId = reader.readStringOrNull(offsets[13]);
+  object.tTags = reader.readStringList(offsets[14]) ?? [];
   object.type =
-      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[14])] ??
+      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[15])] ??
       NoteType.text;
   return object;
 }
@@ -284,34 +317,43 @@ P _savedNoteModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectList<MediaAttachment>(
+                offset,
+                MediaAttachmentSchema.deserialize,
+                allOffsets,
+                MediaAttachment(),
+              ) ??
+              [])
+          as P;
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 4:
       return (reader.readString(offset)) as P;
-    case 5:
+    case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
       return (reader.readStringList(offset) ?? []) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 7:
       return (reader.readStringOrNull(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
-    case 10:
-      return (reader.readString(offset)) as P;
-    case 11:
       return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readDateTime(offset)) as P;
+    case 11:
+      return (reader.readString(offset)) as P;
     case 12:
       return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 15:
       return (_SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(
                 offset,
               )] ??
@@ -888,6 +930,59 @@ extension SavedNoteModelQueryWhere
 
 extension SavedNoteModelQueryFilter
     on QueryBuilder<SavedNoteModel, SavedNoteModel, QFilterCondition> {
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'attachments',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
   authorPubkeyEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3136,7 +3231,14 @@ extension SavedNoteModelQueryFilter
 }
 
 extension SavedNoteModelQueryObject
-    on QueryBuilder<SavedNoteModel, SavedNoteModel, QFilterCondition> {}
+    on QueryBuilder<SavedNoteModel, SavedNoteModel, QFilterCondition> {
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  attachmentsElement(FilterQuery<MediaAttachment> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'attachments');
+    });
+  }
+}
 
 extension SavedNoteModelQueryLinks
     on QueryBuilder<SavedNoteModel, SavedNoteModel, QFilterCondition> {}
@@ -3600,6 +3702,13 @@ extension SavedNoteModelQueryProperty
   QueryBuilder<SavedNoteModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, List<MediaAttachment>, QQueryOperations>
+  attachmentsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attachments');
     });
   }
 

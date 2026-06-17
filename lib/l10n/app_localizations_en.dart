@@ -45,6 +45,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionCancel => 'Cancel';
 
   @override
+  String get actionBack => 'Back';
+
+  @override
   String get actionDone => 'Done';
 
   @override
@@ -699,6 +702,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeLearnHow => 'Learn how UNIUN works';
+
+  @override
+  String get welcomeSubtitleLead => 'Your decentralized ';
+
+  @override
+  String get welcomeSubtitleEmphasis => 'second brain';
+
+  @override
+  String get welcomePillarBrahma => 'Brahma';
+
+  @override
+  String get welcomePillarVishnu => 'Vishnu';
+
+  @override
+  String get welcomePillarShiv => 'Shiv';
+
+  @override
+  String get welcomeRoleCreate => 'Create';
+
+  @override
+  String get welcomeRoleReflect => 'Reflect';
+
+  @override
+  String get welcomeRoleTransform => 'Transform';
 
   @override
   String get aboutYouTitle => 'About You';

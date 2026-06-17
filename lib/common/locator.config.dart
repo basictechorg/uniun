@@ -296,12 +296,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1017.NoteRelationRepository>(),
       ),
     );
-    gh.factory<_i43.SavedNoteRepository>(
-      () => _i669.SavedNoteRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-      ),
-    );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -418,24 +412,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i391.RequestProfileFetchUseCase>(
       () => _i391.RequestProfileFetchUseCase(gh<_i967.ProfileRepository>()),
     );
-    gh.lazySingleton<_i858.SaveNoteUseCase>(
-      () => _i858.SaveNoteUseCase(gh<_i43.SavedNoteRepository>()),
-    );
-    gh.lazySingleton<_i858.IsSavedNoteUseCase>(
-      () => _i858.IsSavedNoteUseCase(gh<_i43.SavedNoteRepository>()),
-    );
-    gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
-      () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
-    );
-    gh.lazySingleton<_i858.GetSavedReplyCountUseCase>(
-      () => _i858.GetSavedReplyCountUseCase(gh<_i43.SavedNoteRepository>()),
-    );
-    gh.lazySingleton<_i858.GetSavedRepliesUseCase>(
-      () => _i858.GetSavedRepliesUseCase(gh<_i43.SavedNoteRepository>()),
-    );
-    gh.lazySingleton<_i858.GetSavedReferencesUseCase>(
-      () => _i858.GetSavedReferencesUseCase(gh<_i43.SavedNoteRepository>()),
-    );
     gh.factory<_i240.StorageRepository>(
       () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -516,12 +492,6 @@ extension GetItInjectableX on _i174.GetIt {
         attachments: gh<_i182.NoteAttachmentsEnricher>(),
       ),
     );
-    gh.lazySingleton<_i858.UnsaveNoteUseCase>(
-      () => _i858.UnsaveNoteUseCase(
-        gh<_i43.SavedNoteRepository>(),
-        gh<_i179.DeleteKnowledgeForNoteUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i232.DeleteNoteUseCase>(
       () => _i232.DeleteNoteUseCase(gh<_i775.DeletedNoteRepository>()),
     );
@@ -537,6 +507,13 @@ extension GetItInjectableX on _i174.GetIt {
         isar: gh<_i214.Isar>(),
         eventQueue: gh<_i1039.EventQueueRepository>(),
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
+    gh.factory<_i43.SavedNoteRepository>(
+      () => _i669.SavedNoteRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        attachments: gh<_i182.NoteAttachmentsEnricher>(),
       ),
     );
     gh.factory<_i646.AIModelRepository>(
@@ -721,6 +698,24 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i107.AppSettingsStore>(),
       ),
     );
+    gh.lazySingleton<_i858.SaveNoteUseCase>(
+      () => _i858.SaveNoteUseCase(gh<_i43.SavedNoteRepository>()),
+    );
+    gh.lazySingleton<_i858.IsSavedNoteUseCase>(
+      () => _i858.IsSavedNoteUseCase(gh<_i43.SavedNoteRepository>()),
+    );
+    gh.lazySingleton<_i858.GetAllSavedNotesUseCase>(
+      () => _i858.GetAllSavedNotesUseCase(gh<_i43.SavedNoteRepository>()),
+    );
+    gh.lazySingleton<_i858.GetSavedReplyCountUseCase>(
+      () => _i858.GetSavedReplyCountUseCase(gh<_i43.SavedNoteRepository>()),
+    );
+    gh.lazySingleton<_i858.GetSavedRepliesUseCase>(
+      () => _i858.GetSavedRepliesUseCase(gh<_i43.SavedNoteRepository>()),
+    );
+    gh.lazySingleton<_i858.GetSavedReferencesUseCase>(
+      () => _i858.GetSavedReferencesUseCase(gh<_i43.SavedNoteRepository>()),
+    );
     gh.factory<_i250.FeedRepository>(
       () => _i689.FeedRepositoryImpl(
         isar: gh<_i214.Isar>(),
@@ -846,6 +841,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.lazySingleton<_i858.UnsaveNoteUseCase>(
+      () => _i858.UnsaveNoteUseCase(
+        gh<_i43.SavedNoteRepository>(),
+        gh<_i179.DeleteKnowledgeForNoteUseCase>(),
+      ),
     );
     gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
       () => _i524.CreateChannelMessageUseCase(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/blocked_user/blocked_user_entity.dart';
@@ -30,7 +31,7 @@ class _BlockedUsersView extends StatelessWidget {
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.onSurface),
+        leading: const UniunBackButton(),
         title: Text(
           l10n.blockedUsersTitle,
           style: const TextStyle(

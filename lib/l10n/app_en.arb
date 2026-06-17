@@ -37,6 +37,9 @@
   "actionCancel": "Cancel",
   "@actionCancel": { "description": "Cancel button" },
 
+  "actionBack": "Back",
+  "@actionBack": { "description": "Tooltip for the shared back-arrow atom" },
+
   "actionDone": "Done",
   "@actionDone": { "description": "Done button" },
 
@@ -677,6 +680,30 @@
 
   "welcomeLearnHow": "Learn how UNIUN works",
   "@welcomeLearnHow": { "description": "Learn more link on welcome screen" },
+
+  "welcomeSubtitleLead": "Your decentralized ",
+  "@welcomeSubtitleLead": { "description": "Muted lead-in of the welcome subtitle, immediately followed by welcomeSubtitleEmphasis. Trailing space is intentional." },
+
+  "welcomeSubtitleEmphasis": "second brain",
+  "@welcomeSubtitleEmphasis": { "description": "Emphasized (bold, brand-blue) tail of the welcome subtitle, follows welcomeSubtitleLead." },
+
+  "welcomePillarBrahma": "Brahma",
+  "@welcomePillarBrahma": { "description": "First Trimurti pillar name on the welcome screen (the create surface)." },
+
+  "welcomePillarVishnu": "Vishnu",
+  "@welcomePillarVishnu": { "description": "Second Trimurti pillar name on the welcome screen (the reflect/feed surface)." },
+
+  "welcomePillarShiv": "Shiv",
+  "@welcomePillarShiv": { "description": "Third Trimurti pillar name on the welcome screen (the transform/AI surface)." },
+
+  "welcomeRoleCreate": "Create",
+  "@welcomeRoleCreate": { "description": "Role label under the Brahma pillar on the welcome screen." },
+
+  "welcomeRoleReflect": "Reflect",
+  "@welcomeRoleReflect": { "description": "Role label under the Vishnu pillar on the welcome screen." },
+
+  "welcomeRoleTransform": "Transform",
+  "@welcomeRoleTransform": { "description": "Role label under the Shiv pillar on the welcome screen." },
 
   "aboutYouTitle": "About You",
   "@aboutYouTitle": { "description": "Heading on the about-you onboarding page" },

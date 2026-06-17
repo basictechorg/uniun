@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -210,9 +211,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                 child: Row(
                   children: [
                     const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded,
-                          color: AppColors.primary),
+                    UniunBackButton(
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 4),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Centered "Join or Create" chooser — used by both public and private channel
@@ -30,9 +31,7 @@ class ChannelEntryChooser extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primary),
+        leading: UniunBackButton(
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

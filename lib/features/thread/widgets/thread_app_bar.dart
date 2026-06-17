@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/share/pages/share_sheet_page.dart';
@@ -29,9 +30,7 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
           height: kToolbarHeight,
           child: Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: AppColors.primary),
+              UniunBackButton(
                 onPressed: () => Navigator.pop(context),
               ),
               Expanded(

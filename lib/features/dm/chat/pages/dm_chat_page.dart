@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
@@ -71,6 +72,10 @@ class _DmChatViewState extends State<_DmChatView> {
     if (info.visibleFraction >= 0.5) {
       _everVisible.add(eventId);
     } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {
+      // visibility_detector fires its callbacks via a scheduler task that can
+      // run after the widget tree has been disposed (route pop). Touching
+      // `context` then throws — guard with `mounted`.
+      if (!mounted) return;
       context.read<DmChatBloc>().add(DmChatMarkSeenEvent(eventId));
     }
   }
@@ -161,12 +166,7 @@ class _DmChatViewState extends State<_DmChatView> {
             backgroundColor: AppColors.surface,
             elevation: 0,
             surfaceTintColor: Colors.transparent,
-            leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
+            leading: UniunBackButton(
               onPressed: () => Navigator.pop(context),
             ),
             titleSpacing: 0,

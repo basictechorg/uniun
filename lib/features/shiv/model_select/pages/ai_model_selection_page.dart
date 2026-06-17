@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -47,9 +48,7 @@ class _AIModelSelectionView extends StatelessWidget {
             backgroundColor: AppColors.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.primary),
+            leading: UniunBackButton(
               onPressed: () => Navigator.of(context).maybePop(),
             ),
             title: Text(

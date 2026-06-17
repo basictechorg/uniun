@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/save_to_device.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -40,6 +41,7 @@ class _MediaDetailView extends StatelessWidget {
             backgroundColor: AppColors.surfaceContainerLowest,
             elevation: 0,
             foregroundColor: AppColors.onSurface,
+            leading: const UniunBackButton(),
             title: Text(blob?.mime ?? l10n.mediaGalleryTitle,
                 style: const TextStyle(fontSize: 14)),
           ),
@@ -248,6 +250,8 @@ class _DetailBody extends StatelessWidget {
       filename: blob.filename,
     );
     if (!context.mounted) return;
+    // User dismissed the system save picker — no snackbar, no error noise.
+    if (result.cancelled) return;
     messenger.showSnackBar(SnackBar(
       content: Text(
         result.success

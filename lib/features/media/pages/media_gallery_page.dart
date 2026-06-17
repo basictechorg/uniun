@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_filter.dart';
@@ -67,6 +68,7 @@ class _GalleryAppBar extends StatelessWidget
           return AppBar(
             backgroundColor: AppColors.surfaceContainerLowest,
             elevation: 0,
+            leading: const UniunBackButton(),
             title: Text(l10n.mediaGalleryTitle),
             foregroundColor: AppColors.onSurface,
           );

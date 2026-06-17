@@ -2,8 +2,11 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
+import 'package:uniun/data/repositories/note_attachments_enricher.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
@@ -13,10 +16,13 @@ import 'package:uniun/domain/repositories/saved_note_repository.dart';
 class SavedNoteRepositoryImpl extends SavedNoteRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
+  final NoteAttachmentsEnricher _attachments;
   SavedNoteRepositoryImpl({
     required this.isar,
     required NoteRelationRepository relations,
-  }) : _relations = relations;
+    required NoteAttachmentsEnricher attachments,
+  })  : _relations = relations,
+        _attachments = attachments;
 
   @override
   Future<Either<Failure, SavedNoteEntity>> saveNote(NoteEntity note) async {
@@ -42,13 +48,16 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
         ..savedAt = DateTime.now()
         ..sourceChannelId = note.sourceChannelId
         ..sourcePrivateGroupId = note.sourcePrivateGroupId
-        ..quoteEventId = note.quoteEventId;
+        ..quoteEventId = note.quoteEventId
+        ..attachments = [
+          for (final a in note.attachments) _toEmbedded(a),
+        ];
 
       await isar.writeTxn(() async {
         await isar.savedNoteModels.put(model);
       });
 
-      return Right(model.toDomain());
+      return Right(await _enrichOne(model.toDomain()));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -93,14 +102,15 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
           .findAll();
       final savedIds = {for (final m in all) m.eventId};
       final quotes = await _resolveQuotes(all);
-      return Right(<SavedNoteEntity>[
+      final entities = <SavedNoteEntity>[
         for (final m in all)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
                 quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
-      ]);
+      ];
+      return Right(await _enrichMany(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -155,14 +165,15 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
       final savedIds = await _allSavedIds();
       final quotes = await _resolveQuotes(replies);
-      return Right(<SavedNoteEntity>[
+      final entities = <SavedNoteEntity>[
         for (final m in replies)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
                 quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
-      ]);
+      ];
+      return Right(await _enrichMany(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -185,14 +196,15 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
       final savedIds = await _allSavedIds();
       final quotes = await _resolveQuotes(refs);
-      return Right(<SavedNoteEntity>[
+      final entities = <SavedNoteEntity>[
         for (final m in refs)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
                 quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
-      ]);
+      ];
+      return Right(await _enrichMany(entities));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -220,5 +232,51 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
     final ids =
         await isar.savedNoteModels.where().eventIdProperty().findAll();
     return ids.toSet();
+  }
+
+  /// Maps a domain [MediaBlobEntity] back to the embedded Isar row for
+  /// persistence. Local-cache state (`localPath`, `downloadedAt`) is NOT
+  /// stored here — it's joined per-render from [MediaCacheModel] by
+  /// [NoteAttachmentsEnricher].
+  MediaAttachment _toEmbedded(MediaBlobEntity e) => MediaAttachment()
+    ..sha256 = e.sha256
+    ..mime = e.mime
+    ..sizeBytes = e.sizeBytes
+    ..url = e.serverUrls.isEmpty ? null : e.serverUrls.first
+    ..width = e.dim?.width
+    ..height = e.dim?.height
+    ..blurhash = e.blurhash
+    ..filename = e.filename;
+
+  /// One bulk cache lookup across every attachment in [notes]; result is
+  /// re-distributed per note via `copyWith`. Replaces the previous
+  /// per-note query loop.
+  Future<List<SavedNoteEntity>> _enrichMany(
+    List<SavedNoteEntity> notes,
+  ) async {
+    final pooled = <MediaBlobEntity>[
+      for (final n in notes) ...n.attachments,
+    ];
+    if (pooled.isEmpty) return notes;
+    final patched = await _attachments.enrichBlobs(pooled);
+    final out = <SavedNoteEntity>[];
+    var offset = 0;
+    for (final n in notes) {
+      if (n.attachments.isEmpty) {
+        out.add(n);
+        continue;
+      }
+      final slice = patched.sublist(offset, offset + n.attachments.length);
+      offset += n.attachments.length;
+      out.add(n.copyWith(attachments: slice));
+    }
+    return out;
+  }
+
+  Future<SavedNoteEntity> _enrichOne(SavedNoteEntity n) async {
+    if (n.attachments.isEmpty) return n;
+    return n.copyWith(
+      attachments: await _attachments.enrichBlobs(n.attachments),
+    );
   }
 }
