@@ -28,6 +28,8 @@ import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/models/blocked_user_model.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/data/models/media/media_cache_model.dart';
+import 'package:uniun/data/models/manas_model.dart';
+import 'package:uniun/data/models/manas_note_link_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -57,5 +59,7 @@ final List<CollectionSchema> isarSchemas = [
   BlockedUserModelSchema,
   DeletedNoteModelSchema,
   MediaCacheModelSchema,
+  ManasModelSchema,
+  ManasNoteLinkModelSchema,
 ];
 

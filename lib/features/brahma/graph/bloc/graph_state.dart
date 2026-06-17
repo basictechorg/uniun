@@ -10,6 +10,9 @@ class GraphState {
     this.profiles = const {},
     this.selectedNodeId,
     this.errorMessage,
+    this.scopedManasId,
+    this.scopedManasName,
+    this.scopedManasColorHexes = const <String>[],
   });
 
   final GraphStatus status;
@@ -28,6 +31,19 @@ class GraphState {
 
   final String? errorMessage;
 
+  /// When non-null, the graph is scoped to this Manas's membership.
+  /// Null = full Brahma graph (default).
+  final String? scopedManasId;
+
+  /// Display name of the scoped Manas (for the header). May be null even
+  /// when [scopedManasId] is set (loaded without a name hint).
+  final String? scopedManasName;
+
+  /// Palette chosen by the user for the scoped Manas (1–3 hex strings).
+  /// Empty when unscoped, or when scoped to a Manas with no palette set
+  /// (header falls back to the default legend in both cases).
+  final List<String> scopedManasColorHexes;
+
   GraphState copyWith({
     GraphStatus? status,
     List<GraphNodeData>? nodes,
@@ -36,6 +52,10 @@ class GraphState {
     String? selectedNodeId,
     bool clearSelection = false,
     String? errorMessage,
+    String? scopedManasId,
+    String? scopedManasName,
+    List<String>? scopedManasColorHexes,
+    bool clearScope = false,
   }) {
     return GraphState(
       status: status ?? this.status,
@@ -45,6 +65,13 @@ class GraphState {
       selectedNodeId:
           clearSelection ? null : (selectedNodeId ?? this.selectedNodeId),
       errorMessage: errorMessage ?? this.errorMessage,
+      scopedManasId:
+          clearScope ? null : (scopedManasId ?? this.scopedManasId),
+      scopedManasName:
+          clearScope ? null : (scopedManasName ?? this.scopedManasName),
+      scopedManasColorHexes: clearScope
+          ? const <String>[]
+          : (scopedManasColorHexes ?? this.scopedManasColorHexes),
     );
   }
 

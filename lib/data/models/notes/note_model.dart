@@ -216,7 +216,6 @@ extension NoteModelExtension on NoteModel {
         sourcePrivateGroupId: groupId,
         embeddedNoteJson: embeddedNoteJson,
         quotedNote: resolveQuote ? _buildQuotedNote() : null,
-        hasMedia: hasMedia,
         attachments: [for (final a in attachments) a.toEntity()],
       );
 

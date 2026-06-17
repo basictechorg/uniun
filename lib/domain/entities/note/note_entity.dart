@@ -8,6 +8,9 @@ part 'note_entity.g.dart';
 
 @freezed
 abstract class NoteEntity with _$NoteEntity {
+  // Private constructor enables getters on the freezed class.
+  const NoteEntity._();
+
   const factory NoteEntity({
     required String id,
     required String sig,
@@ -64,14 +67,10 @@ abstract class NoteEntity with _$NoteEntity {
     /// `sig` is empty when the embed is unverified — the renderer badges it.
     NoteEntity? quotedNote,
 
-    /// True when this note carries one or more NIP-92 `imeta` tags. Lets
-    /// note cards skip the attachment lookup entirely for text-only notes.
-    @Default(false) bool hasMedia,
-
     /// Pre-resolved attachments. Populated by the data layer when a note is
     /// projected from Isar (mirrors how [quotedNote] and [cachedReplyCount]
     /// are resolved at query time). UI cards read this directly — no per-
-    /// card DB lookup. Empty when [hasMedia] is false.
+    /// card DB lookup.
     ///
     /// Excluded from JSON: this is an in-memory enrichment, not part of the
     /// Nostr wire format — [MediaBlobEntity] isn't itself JSON-serializable.
@@ -81,6 +80,10 @@ abstract class NoteEntity with _$NoteEntity {
 
   factory NoteEntity.fromJson(Map<String, dynamic> json) =>
       _$NoteEntityFromJson(json);
+
+  /// Derived flag — true when the note carries any NIP-92 attachment.
+  /// Renderers read this; never set it manually.
+  bool get hasMedia => attachments.isNotEmpty;
 }
 
 /// The transport a reply to a note must be posted through. Derived from the

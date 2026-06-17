@@ -3111,6 +3111,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download failed'**
   String get noteCardMediaFailed;
+
+  /// Title of the Brahma side drawer
+  ///
+  /// In en, this message translates to:
+  /// **'BRAHMA'**
+  String get manasDrawerHeaderTitle;
+
+  /// Subtitle in the Brahma drawer header
+  ///
+  /// In en, this message translates to:
+  /// **'Your knowledge graphs'**
+  String get manasDrawerHeaderSubtitle;
+
+  /// Name of the full unscoped graph entry in the Brahma drawer
+  ///
+  /// In en, this message translates to:
+  /// **'Brahma'**
+  String get manasDrawerBrahmaEntryTitle;
+
+  /// Subtitle under the full Brahma entry in the drawer
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you\'ve saved, written, and drafted'**
+  String get manasDrawerBrahmaEntrySubtitle;
+
+  /// Section label for the list of Manases
+  ///
+  /// In en, this message translates to:
+  /// **'MANAS'**
+  String get manasDrawerSectionTitle;
+
+  /// Inline action that opens the new-Manas form
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get manasDrawerNewManasButton;
+
+  /// Headline when the Manas list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'No Manases yet'**
+  String get manasDrawerEmptyStateTitle;
+
+  /// Empty-state body copy in the Manas drawer
+  ///
+  /// In en, this message translates to:
+  /// **'Create a Manas to focus the graph on a topic — a sub-expert mind built from a subset of your notes.'**
+  String get manasDrawerEmptyStateBody;
+
+  /// CTA button for the empty Manas list
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first Manas'**
+  String get manasDrawerEmptyStateCta;
+
+  /// Note-count subtitle on a Manas tile
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String manasDrawerTileNoteCount(int count);
+
+  /// Subtitle of a Manas tile with no notes yet
+  ///
+  /// In en, this message translates to:
+  /// **'0 notes · Tap to open'**
+  String get manasTileEmptyHint;
+
+  /// Bottom-sheet action — edit the long-pressed Manas
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Manas'**
+  String get manasTileActionEdit;
+
+  /// Bottom-sheet action — delete the long-pressed Manas
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Manas'**
+  String get manasTileActionDelete;
+
+  /// Confirmation dialog title for deleting a Manas
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Manas?'**
+  String get manasDeleteConfirmTitle;
+
+  /// Body of the Manas delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be removed. The notes themselves are kept — only the Manas membership is deleted.'**
+  String manasDeleteConfirmBody(String name);
+
+  /// Destructive confirm button
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get manasDeleteConfirmConfirm;
+
+  /// Cancel button on the delete confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get manasDeleteConfirmCancel;
+
+  /// App-bar title in create mode
+  ///
+  /// In en, this message translates to:
+  /// **'New Manas'**
+  String get manasFormCreateTitle;
+
+  /// App-bar title in edit mode
+  ///
+  /// In en, this message translates to:
+  /// **'Edit · {name}'**
+  String manasFormEditTitle(String name);
+
+  /// App-bar title in edit mode when the name is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Manas'**
+  String get manasFormEditTitleFallback;
+
+  /// Save action on the Manas form app bar
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get manasFormSaveAction;
+
+  /// Delete button at the bottom of the Manas form (edit mode)
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Manas'**
+  String get manasFormDeleteAction;
+
+  /// Label for the Manas name field
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get manasFormNameLabel;
+
+  /// Placeholder for the Manas name field
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Rust Expert'**
+  String get manasFormNameHint;
+
+  /// Label for the description field
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get manasFormDescriptionLabel;
+
+  /// Placeholder for the description field
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. What is this Manas for?'**
+  String get manasFormDescriptionHint;
+
+  /// Section title listing the included notes
+  ///
+  /// In en, this message translates to:
+  /// **'NOTES IN THIS MANAS ({count})'**
+  String manasFormMembershipSectionTitle(int count);
+
+  /// Hint when the membership list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet. Search below to add some.'**
+  String get manasFormMembershipEmpty;
+
+  /// Section title for the search/add area
+  ///
+  /// In en, this message translates to:
+  /// **'ADD NOTES'**
+  String get manasFormAddNotesSectionTitle;
+
+  /// Placeholder in the note-search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search saved, own, or draft notes'**
+  String get manasFormSearchHint;
+
+  /// Hint when search returns no results
+  ///
+  /// In en, this message translates to:
+  /// **'No matches.'**
+  String get manasFormSearchEmpty;
+
+  /// Chip label when a referenced note is not in local cache
+  ///
+  /// In en, this message translates to:
+  /// **'(note unavailable)'**
+  String get manasFormNoteUnavailable;
+
+  /// Title of the form's delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this Manas?'**
+  String get manasFormDeleteConfirmTitle;
+
+  /// Body of the form's delete confirmation dialog
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the Manas and all its memberships. The notes themselves remain in Brahma.'**
+  String get manasFormDeleteConfirmBody;
+
+  /// Destructive confirm action in the form
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get manasFormDeleteConfirmConfirm;
+
+  /// Cancel action in the form's delete dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get manasFormDeleteConfirmCancel;
+
+  /// Tooltip for the edit-Manas pencil in the graph header
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Manas'**
+  String get graphHeaderManasEditTooltip;
+
+  /// Fallback label for the scoped Manas chip when the name is not loaded yet
+  ///
+  /// In en, this message translates to:
+  /// **'Manas'**
+  String get graphHeaderUnnamedManas;
+
+  /// Note-card overflow menu — open the Manas membership sheet for this note
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Manas'**
+  String get noteCardAddToManas;
+
+  /// Title of the bottom sheet that toggles a note's Manas memberships
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Manas'**
+  String get manasMembershipSheetTitle;
+
+  /// Trailing button in the membership sheet that opens the create form
+  ///
+  /// In en, this message translates to:
+  /// **'Create new Manas'**
+  String get manasMembershipSheetCreate;
+
+  /// Headline shown when the user has no Manases
+  ///
+  /// In en, this message translates to:
+  /// **'No Manases yet'**
+  String get manasMembershipSheetEmptyTitle;
+
+  /// Body copy in the empty-state of the membership sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first Manas to start grouping notes into focused sub-experts.'**
+  String get manasMembershipSheetEmptyBody;
+
+  /// Primary CTA in the empty-state of the membership sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Create Manas'**
+  String get manasMembershipSheetEmptyCta;
+
+  /// Title of the bottom sheet that picks a Manas icon
+  ///
+  /// In en, this message translates to:
+  /// **'Pick an icon'**
+  String get manasIconPickerTitle;
+
+  /// Title of the Manas colour-picker bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Pick node colours'**
+  String get manasColorPickerTitle;
+
+  /// Counter shown in the Manas colour picker
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Choose 1–3 colours} =1{1 of 3 picked} =2{2 of 3 picked} other{3 of 3 picked}}'**
+  String manasColorPickerSubtitle(int count);
+
+  /// Action that resets the Manas colour palette
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get manasColorPickerClear;
+
+  /// Primary action to confirm the picked Manas palette
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get manasColorPickerApply;
 }
 
 class _AppLocalizationsDelegate

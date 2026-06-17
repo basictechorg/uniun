@@ -59,6 +59,7 @@ import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
 import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
     as _i147;
 import 'package:uniun/data/repositories/llm_repository_impl.dart' as _i19;
+import 'package:uniun/data/repositories/manas_repository_impl.dart' as _i395;
 import 'package:uniun/data/repositories/media_repository_impl.dart' as _i980;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
 import 'package:uniun/data/repositories/note_attachments_enricher.dart'
@@ -110,6 +111,7 @@ import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
 import 'package:uniun/domain/repositories/llm_credentials_repository.dart'
     as _i819;
 import 'package:uniun/domain/repositories/llm_repository.dart' as _i205;
+import 'package:uniun/domain/repositories/manas_repository.dart' as _i699;
 import 'package:uniun/domain/repositories/media_repository.dart' as _i683;
 import 'package:uniun/domain/repositories/memory_repository.dart' as _i331;
 import 'package:uniun/domain/repositories/note_relation_repository.dart'
@@ -153,6 +155,7 @@ import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
 import 'package:uniun/domain/usecases/llm_usecases.dart' as _i918;
+import 'package:uniun/domain/usecases/manas_usecases.dart' as _i977;
 import 'package:uniun/domain/usecases/media_usecases.dart' as _i629;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
@@ -170,6 +173,8 @@ import 'package:uniun/domain/usecases/user_usecases.dart' as _i799;
 import 'package:uniun/domain/usecases/vector_usecases.dart' as _i756;
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart' as _i886;
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart' as _i830;
+import 'package:uniun/features/brahma/manas/bloc/manas_form_bloc.dart' as _i630;
+import 'package:uniun/features/brahma/manas/bloc/manas_list_bloc.dart' as _i437;
 import 'package:uniun/features/channels/create/bloc/create_channel_bloc.dart'
     as _i501;
 import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart'
@@ -282,6 +287,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.factory<_i699.ManasRepository>(
+      () => _i395.ManasRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i775.DeletedNoteRepository>(
       () => _i438.DeletedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -521,6 +529,30 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
         gh<_i107.AppSettingsStore>(),
       ),
+    );
+    gh.lazySingleton<_i977.UpsertManasUseCase>(
+      () => _i977.UpsertManasUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.GetManasListUseCase>(
+      () => _i977.GetManasListUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.GetManasByIdUseCase>(
+      () => _i977.GetManasByIdUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.DeleteManasUseCase>(
+      () => _i977.DeleteManasUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.AddNoteToManasUseCase>(
+      () => _i977.AddNoteToManasUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.RemoveNoteFromManasUseCase>(
+      () => _i977.RemoveNoteFromManasUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.GetNoteIdsForManasUseCase>(
+      () => _i977.GetNoteIdsForManasUseCase(gh<_i699.ManasRepository>()),
+    );
+    gh.lazySingleton<_i977.GetManasIdsForNoteUseCase>(
+      () => _i977.GetManasIdsForNoteUseCase(gh<_i699.ManasRepository>()),
     );
     gh.factory<_i636.CreatePrivateChannelBloc>(
       () => _i636.CreatePrivateChannelBloc(
@@ -842,6 +874,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
+    gh.factory<_i437.ManasListBloc>(
+      () => _i437.ManasListBloc(
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i977.DeleteManasUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i858.UnsaveNoteUseCase>(
       () => _i858.UnsaveNoteUseCase(
         gh<_i43.SavedNoteRepository>(),
@@ -966,6 +1004,30 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i850.EmbeddingModelDownloader>(),
       ),
     );
+    gh.factory<_i830.GraphBloc>(
+      () => _i830.GraphBloc(
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i977.GetNoteIdsForManasUseCase>(),
+        gh<_i977.GetManasByIdUseCase>(),
+        gh<_i214.Isar>(),
+      ),
+    );
+    gh.factory<_i630.ManasFormBloc>(
+      () => _i630.ManasFormBloc(
+        gh<_i977.UpsertManasUseCase>(),
+        gh<_i977.GetManasByIdUseCase>(),
+        gh<_i977.DeleteManasUseCase>(),
+        gh<_i977.AddNoteToManasUseCase>(),
+        gh<_i977.RemoveNoteFromManasUseCase>(),
+        gh<_i977.GetNoteIdsForManasUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
       () =>
           _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
@@ -1014,17 +1076,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i524.CreateChannelMessageUseCase>(),
         gh<_i1023.SendDmUseCase>(),
         gh<_i78.SendPrivateChannelMessageUsecase>(),
-      ),
-    );
-    gh.factory<_i830.GraphBloc>(
-      () => _i830.GraphBloc(
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i214.Isar>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(

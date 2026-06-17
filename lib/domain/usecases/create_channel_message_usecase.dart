@@ -103,7 +103,6 @@ class CreateChannelMessageUseCase
         replyToEventId: input.replyToEventId,
         created: created,
         embeddedNoteJson: input.embeddedNoteJson,
-        hasMedia: input.attachments.isNotEmpty,
         attachments: input.attachments,
       );
 

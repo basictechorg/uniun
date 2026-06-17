@@ -1545,5 +1545,167 @@
   "@noteCardMediaDownloading": { "description": "Status text shown on a note-card media tile while bytes are downloading" },
 
   "noteCardMediaFailed": "Download failed",
-  "@noteCardMediaFailed": { "description": "Status text shown on a note-card media tile when the download fails" }
+  "@noteCardMediaFailed": { "description": "Status text shown on a note-card media tile when the download fails" },
+
+  "manasDrawerHeaderTitle": "BRAHMA",
+  "@manasDrawerHeaderTitle": { "description": "Title of the Brahma side drawer" },
+
+  "manasDrawerHeaderSubtitle": "Your knowledge graphs",
+  "@manasDrawerHeaderSubtitle": { "description": "Subtitle in the Brahma drawer header" },
+
+  "manasDrawerBrahmaEntryTitle": "Brahma",
+  "@manasDrawerBrahmaEntryTitle": { "description": "Name of the full unscoped graph entry in the Brahma drawer" },
+
+  "manasDrawerBrahmaEntrySubtitle": "Everything you've saved, written, and drafted",
+  "@manasDrawerBrahmaEntrySubtitle": { "description": "Subtitle under the full Brahma entry in the drawer" },
+
+  "manasDrawerSectionTitle": "MANAS",
+  "@manasDrawerSectionTitle": { "description": "Section label for the list of Manases" },
+
+  "manasDrawerNewManasButton": "New",
+  "@manasDrawerNewManasButton": { "description": "Inline action that opens the new-Manas form" },
+
+  "manasDrawerEmptyStateTitle": "No Manases yet",
+  "@manasDrawerEmptyStateTitle": { "description": "Headline when the Manas list is empty" },
+
+  "manasDrawerEmptyStateBody": "Create a Manas to focus the graph on a topic — a sub-expert mind built from a subset of your notes.",
+  "@manasDrawerEmptyStateBody": { "description": "Empty-state body copy in the Manas drawer" },
+
+  "manasDrawerEmptyStateCta": "Create your first Manas",
+  "@manasDrawerEmptyStateCta": { "description": "CTA button for the empty Manas list" },
+
+  "manasDrawerTileNoteCount": "{count, plural, =1{1 note} other{{count} notes}}",
+  "@manasDrawerTileNoteCount": {
+    "description": "Note-count subtitle on a Manas tile",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "manasTileEmptyHint": "0 notes · Tap to open",
+  "@manasTileEmptyHint": { "description": "Subtitle of a Manas tile with no notes yet" },
+
+  "manasTileActionEdit": "Edit Manas",
+  "@manasTileActionEdit": { "description": "Bottom-sheet action — edit the long-pressed Manas" },
+
+  "manasTileActionDelete": "Delete Manas",
+  "@manasTileActionDelete": { "description": "Bottom-sheet action — delete the long-pressed Manas" },
+
+  "manasDeleteConfirmTitle": "Delete Manas?",
+  "@manasDeleteConfirmTitle": { "description": "Confirmation dialog title for deleting a Manas" },
+
+  "manasDeleteConfirmBody": "“{name}” will be removed. The notes themselves are kept — only the Manas membership is deleted.",
+  "@manasDeleteConfirmBody": {
+    "description": "Body of the Manas delete confirmation dialog",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "manasDeleteConfirmConfirm": "Delete",
+  "@manasDeleteConfirmConfirm": { "description": "Destructive confirm button" },
+
+  "manasDeleteConfirmCancel": "Cancel",
+  "@manasDeleteConfirmCancel": { "description": "Cancel button on the delete confirmation" },
+
+  "manasFormCreateTitle": "New Manas",
+  "@manasFormCreateTitle": { "description": "App-bar title in create mode" },
+
+  "manasFormEditTitle": "Edit · {name}",
+  "@manasFormEditTitle": {
+    "description": "App-bar title in edit mode",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "manasFormEditTitleFallback": "Edit Manas",
+  "@manasFormEditTitleFallback": { "description": "App-bar title in edit mode when the name is empty" },
+
+  "manasFormSaveAction": "Save",
+  "@manasFormSaveAction": { "description": "Save action on the Manas form app bar" },
+
+  "manasFormDeleteAction": "Delete Manas",
+  "@manasFormDeleteAction": { "description": "Delete button at the bottom of the Manas form (edit mode)" },
+
+  "manasFormNameLabel": "Name",
+  "@manasFormNameLabel": { "description": "Label for the Manas name field" },
+
+  "manasFormNameHint": "e.g. Rust Expert",
+  "@manasFormNameHint": { "description": "Placeholder for the Manas name field" },
+
+  "manasFormDescriptionLabel": "Description",
+  "@manasFormDescriptionLabel": { "description": "Label for the description field" },
+
+  "manasFormDescriptionHint": "Optional. What is this Manas for?",
+  "@manasFormDescriptionHint": { "description": "Placeholder for the description field" },
+
+  "manasFormMembershipSectionTitle": "NOTES IN THIS MANAS ({count})",
+  "@manasFormMembershipSectionTitle": {
+    "description": "Section title listing the included notes",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "manasFormMembershipEmpty": "No notes yet. Search below to add some.",
+  "@manasFormMembershipEmpty": { "description": "Hint when the membership list is empty" },
+
+  "manasFormAddNotesSectionTitle": "ADD NOTES",
+  "@manasFormAddNotesSectionTitle": { "description": "Section title for the search/add area" },
+
+  "manasFormSearchHint": "Search saved, own, or draft notes",
+  "@manasFormSearchHint": { "description": "Placeholder in the note-search field" },
+
+  "manasFormSearchEmpty": "No matches.",
+  "@manasFormSearchEmpty": { "description": "Hint when search returns no results" },
+
+  "manasFormNoteUnavailable": "(note unavailable)",
+  "@manasFormNoteUnavailable": { "description": "Chip label when a referenced note is not in local cache" },
+
+  "manasFormDeleteConfirmTitle": "Delete this Manas?",
+  "@manasFormDeleteConfirmTitle": { "description": "Title of the form's delete confirmation dialog" },
+
+  "manasFormDeleteConfirmBody": "This removes the Manas and all its memberships. The notes themselves remain in Brahma.",
+  "@manasFormDeleteConfirmBody": { "description": "Body of the form's delete confirmation dialog" },
+
+  "manasFormDeleteConfirmConfirm": "Delete",
+  "@manasFormDeleteConfirmConfirm": { "description": "Destructive confirm action in the form" },
+
+  "manasFormDeleteConfirmCancel": "Cancel",
+  "@manasFormDeleteConfirmCancel": { "description": "Cancel action in the form's delete dialog" },
+
+  "graphHeaderManasEditTooltip": "Edit Manas",
+  "@graphHeaderManasEditTooltip": { "description": "Tooltip for the edit-Manas pencil in the graph header" },
+
+  "graphHeaderUnnamedManas": "Manas",
+  "@graphHeaderUnnamedManas": { "description": "Fallback label for the scoped Manas chip when the name is not loaded yet" },
+
+  "noteCardAddToManas": "Add to Manas",
+  "@noteCardAddToManas": { "description": "Note-card overflow menu — open the Manas membership sheet for this note" },
+
+  "manasMembershipSheetTitle": "Add to Manas",
+  "@manasMembershipSheetTitle": { "description": "Title of the bottom sheet that toggles a note's Manas memberships" },
+
+  "manasMembershipSheetCreate": "Create new Manas",
+  "@manasMembershipSheetCreate": { "description": "Trailing button in the membership sheet that opens the create form" },
+
+  "manasMembershipSheetEmptyTitle": "No Manases yet",
+  "@manasMembershipSheetEmptyTitle": { "description": "Headline shown when the user has no Manases" },
+
+  "manasMembershipSheetEmptyBody": "Create your first Manas to start grouping notes into focused sub-experts.",
+  "@manasMembershipSheetEmptyBody": { "description": "Body copy in the empty-state of the membership sheet" },
+
+  "manasMembershipSheetEmptyCta": "Create Manas",
+  "@manasMembershipSheetEmptyCta": { "description": "Primary CTA in the empty-state of the membership sheet" },
+
+  "manasIconPickerTitle": "Pick an icon",
+  "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" },
+
+  "manasColorPickerTitle": "Pick node colours",
+  "@manasColorPickerTitle": { "description": "Title of the Manas colour-picker bottom sheet" },
+
+  "manasColorPickerSubtitle": "{count, plural, =0{Choose 1–3 colours} =1{1 of 3 picked} =2{2 of 3 picked} other{3 of 3 picked}}",
+  "@manasColorPickerSubtitle": {
+    "description": "Counter shown in the Manas colour picker",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "manasColorPickerClear": "Clear",
+  "@manasColorPickerClear": { "description": "Action that resets the Manas colour palette" },
+
+  "manasColorPickerApply": "Apply",
+  "@manasColorPickerApply": { "description": "Primary action to confirm the picked Manas palette" }
 }
