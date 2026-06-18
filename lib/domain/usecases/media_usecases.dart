@@ -153,7 +153,7 @@ class PublishMediaNoteUseCase
       tTags: input.note.tTags,
       content: input.note.content,
       created: input.note.created,
-      quoteEventId: input.note.quoteEventId,
+      embeddedNoteJson: input.note.embeddedNoteJson,
       imeta: input.attachments,
     );
     if (enqueueResult.isLeft()) {

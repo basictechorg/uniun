@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/models/notes/imeta_parser.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/media/media_dim.dart';
@@ -70,9 +74,11 @@ class NoteModel {
   @Index()
   late DateTime created;
 
-  /// NIP-18 `q` tag id. Null = no quote.
-  @Index()
-  String? quoteEventId;
+  /// Embed-by-value snapshot of the quoted original (the `embeddedNoteJson`
+  /// tag / MLS envelope key). Persisted already sig-verified — a blanked `sig`
+  /// inside means the embed failed verification. Source of truth for the
+  /// resolved `quotedNote`; null when this note quotes nothing.
+  String? embeddedNoteJson;
 
   /// True when [attachments] is non-empty. Stored (instead of derived) so
   /// the index lets feed queries cheaply skip text-only notes when needed.
@@ -102,7 +108,7 @@ class NoteModel {
     required this.pTagRefs,
     required this.tTags,
     required this.created,
-    this.quoteEventId,
+    this.embeddedNoteJson,
     List<MediaAttachment> attachments = const [],
   })  : attachments = attachments,
         hasMedia = attachments.isNotEmpty;
@@ -120,7 +126,7 @@ class NoteModel {
     String? subject;
     final pTagRefs = <String>[];
     final tTags = <String>[];
-    String? quoteEventId;
+    String? embeddedNoteJson;
 
     for (final tag in event.tags) {
       if (tag.isEmpty) continue;
@@ -133,8 +139,9 @@ class NoteModel {
           if (marker == 'root') rootEventId = eventId;
           if (marker == 'reply') replyToEventId = eventId;
         }
-      } else if (tagName == 'q' && tag.length >= 2) {
-        quoteEventId ??= tag[1]; // first q-tag wins; multi-quote not modelled.
+      } else if (tagName == EmbeddedNoteCodec.tagName && tag.length >= 2) {
+        // Embed-by-value share — verify the snapshot once, here at the edge.
+        embeddedNoteJson = EmbeddedNoteCodec.verifyAndSanitize(tag[1]);
       } else if (tagName == 'p' && tag.length >= 2) {
         pTagRefs.add(tag[1]);
       } else if (tagName == 't' && tag.length >= 2) {
@@ -173,7 +180,8 @@ class NoteModel {
       pTagRefs: pTagRefs,
       tTags: tTags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
-      quoteEventId: quoteEventId,
+      embeddedNoteJson: embeddedNoteJson,
+      attachments: ImetaParser.parseAsAttachments({'tags': event.tags}),
     );
   }
 }
@@ -183,7 +191,13 @@ extension NoteModelExtension on NoteModel {
   /// [MediaBlobEntity] with `localPath` / `downloadedAt` left null —
   /// `NoteAttachmentsEnricher` fills those by joining [MediaCacheModel] in a
   /// bulk pass. Same shape the UI already expects.
-  NoteEntity toDomain() => NoteEntity(
+  ///
+  /// When [embeddedNoteJson] is set, the embedded original is decoded straight
+  /// from the snapshot (no Isar lookup, retention-immune) and attached as
+  /// `quotedNote` — exactly one level deep (`quotedNote.quotedNote == null`).
+  NoteEntity toDomain() => _toDomain(resolveQuote: true);
+
+  NoteEntity _toDomain({required bool resolveQuote}) => NoteEntity(
         id: eventId,
         sig: sig,
         authorPubkey: authorPubkey,
@@ -200,10 +214,30 @@ extension NoteModelExtension on NoteModel {
         conversationId: conversationId,
         sourceChannelId: channelId,
         sourcePrivateGroupId: groupId,
-        quoteEventId: quoteEventId,
+        embeddedNoteJson: embeddedNoteJson,
+        quotedNote: resolveQuote ? _buildQuotedNote() : null,
         hasMedia: hasMedia,
         attachments: [for (final a in attachments) a.toEntity()],
       );
+
+  /// Decodes [embeddedNoteJson] into the quoted note (one level deep).
+  NoteEntity? _buildQuotedNote() => decodeEmbeddedNote(embeddedNoteJson);
+}
+
+/// Decodes an embed-by-value snapshot string into its quoted note entity,
+/// exactly one level deep (`quotedNote.quotedNote == null`). Returns null when
+/// [snapshot] is null or unparseable. Shared by [NoteModel] and
+/// [SavedNoteModel] `toDomain()`.
+NoteEntity? decodeEmbeddedNote(String? snapshot) {
+  if (snapshot == null) return null;
+  try {
+    final event = Event.fromJson(
+        jsonDecode(snapshot) as Map<String, dynamic>,
+        verify: false);
+    return NoteModel.fromEvent(event)._toDomain(resolveQuote: false);
+  } catch (_) {
+    return null;
+  }
 }
 
 extension MediaAttachmentMapper on MediaAttachment {

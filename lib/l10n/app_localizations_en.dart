@@ -1449,6 +1449,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareEmbedNotFound => 'Note not available';
 
   @override
+  String get shareEmbedUnverified => 'Unverified';
+
+  @override
+  String get shareComposeAddReference => 'Reference';
+
+  @override
+  String get shareComposeAddImage => 'Image';
+
+  @override
   String get shareNoDmConversations => 'Start a DM first to share notes here.';
 
   @override

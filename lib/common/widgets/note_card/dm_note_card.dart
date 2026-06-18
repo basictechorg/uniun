@@ -121,7 +121,7 @@ class _DmNoteCardView extends StatelessWidget {
                         height: 1.55,
                       ),
                     ),
-                  if (note.quoteEventId != null) ...[
+                  if (note.quotedNote != null) ...[
                     if (note.content.isNotEmpty) const SizedBox(height: 8),
                     EmbeddedNoteCard(note: note.quotedNote),
                   ],

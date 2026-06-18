@@ -27,8 +27,8 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     /// Source group id if the saved item was a NIP-29 private channel msg.
     String? sourcePrivateGroupId,
 
-    String? quoteEventId,
-    /// Resolved at read time from the live `Note` collection. Null when missed.
+    /// Resolved from the embedded-by-value snapshot at read time
+    /// (`SavedNoteModel.toDomain`). Null when this saved note quotes nothing.
     NoteEntity? quotedNote,
     /// NIP-92 attachments copied at save time. `localPath` / `downloadedAt`
     /// on each entry are joined from [MediaCacheModel] by the repository
@@ -64,7 +64,6 @@ extension SavedNoteToNote on SavedNoteEntity {
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         sourceLabel: sourceLabel,
-        quoteEventId: quoteEventId,
         quotedNote: quotedNote,
         attachments: attachments,
       );

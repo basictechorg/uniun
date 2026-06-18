@@ -1342,6 +1342,15 @@
   "shareEmbedNotFound": "Note not available",
   "@shareEmbedNotFound": { "description": "Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-channel note shared to a public surface)" },
 
+  "shareEmbedUnverified": "Unverified",
+  "@shareEmbedUnverified": { "description": "Badge shown over an embedded shared-note whose snapshot signature failed verification" },
+
+  "shareComposeAddReference": "Reference",
+  "@shareComposeAddReference": { "description": "Button in the share composer to attach a referenced note" },
+
+  "shareComposeAddImage": "Image",
+  "@shareComposeAddImage": { "description": "Button in the share composer to attach an image" },
+
   "shareNoDmConversations": "Start a DM first to share notes here.",
   "@shareNoDmConversations": { "description": "Hint shown in the share sheet's DM section when the user has no DM conversations yet" },
   "noteCardBlockUser": "Block user",

@@ -76,12 +76,10 @@ class SendDmParams {
   /// Event ids of messages referenced (NIP-10 "mention" e-tags).
   final List<String> mentionRefs;
 
-  /// NIP-18 quote info — set when the DM is sharing/quoting another note.
-  /// Emits `["q", id, "", author]` + `["k", kind]` + `["p", author]` tags
-  /// inside the inner Kind 14 rumor.
-  final String? quoteEventId;
-  final String? quoteAuthorPubkey;
-  final int? quoteKind;
+  /// Embed-by-value share snapshot — set when the DM is sharing/quoting another
+  /// note. Emitted as the `embeddedNoteJson` tag inside the encrypted Kind 14
+  /// rumor so the receiver renders the embed (no relay exposure).
+  final String? embeddedNoteJson;
 
   /// NIP-92 imeta attachments. Carried inside the encrypted rumor so the
   /// receiver renders the file without the relay seeing the metadata.
@@ -94,9 +92,7 @@ class SendDmParams {
     this.rootEventId,
     this.replyToEventId,
     this.mentionRefs = const [],
-    this.quoteEventId,
-    this.quoteAuthorPubkey,
-    this.quoteKind,
+    this.embeddedNoteJson,
     this.attachments = const [],
   });
 }
@@ -190,7 +186,7 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
               if (params.replyToEventId != null) params.replyToEventId!,
               ...params.mentionRefs,
             ],
-            quoteEventId: params.quoteEventId,
+            embeddedNoteJson: params.embeddedNoteJson,
             attachments: [
               for (final b in params.attachments)
                 MediaAttachment()

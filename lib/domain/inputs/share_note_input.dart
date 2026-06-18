@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 part 'share_note_input.freezed.dart';
 
@@ -30,13 +31,20 @@ sealed class ShareDestination with _$ShareDestination {
 @freezed
 abstract class ShareNoteInput with _$ShareNoteInput {
   const factory ShareNoteInput({
-    /// Event id of the note being shared. Resolved by the repository so it
-    /// can stamp the original author into the outgoing event's tags.
+    /// Event id of the note being shared. Resolved by the repository so it can
+    /// snapshot the original into the outgoing event's `embeddedNoteJson` tag.
     required String sourceEventId,
     required ShareDestination destination,
 
-    /// Optional caption typed by the user above the embedded note. The
-    /// `nostr:note1...` pointer is appended automatically by the repository.
-    @Default('') String comment,
+    /// The user's own composed note text published alongside the embed. May be
+    /// empty. `#hashtags` in it become `t` tags on the feed surface.
+    @Default('') String content,
+
+    /// Event ids of notes the user referenced in the composer → NIP-10 `e`
+    /// mention tags on the outgoing share.
+    @Default(<String>[]) List<String> referenceIds,
+
+    /// Images the user attached in the composer → NIP-92 `imeta` tags.
+    @Default(<MediaBlobEntity>[]) List<MediaBlobEntity> attachments,
   }) = _ShareNoteInput;
 }

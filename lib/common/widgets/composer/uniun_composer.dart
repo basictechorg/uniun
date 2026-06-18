@@ -32,8 +32,8 @@ class UniunComposer extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.avatarSeed,
-    required this.onSend,
-    required this.canSend,
+    this.onSend,
+    this.canSend = true,
     required this.hintText,
     this.avatarUrl,
     this.onAvatarTap,
@@ -61,7 +61,10 @@ class UniunComposer extends StatefulWidget {
   final FocusNode focusNode;
   final String avatarSeed;
   final String? avatarUrl;
-  final VoidCallback onSend;
+
+  /// Tap on the send button. When null, the send button is hidden — used by
+  /// surfaces (e.g. the share sheet) where sending is triggered elsewhere.
+  final VoidCallback? onSend;
   final bool canSend;
   final String hintText;
 
@@ -277,31 +280,32 @@ class _UniunComposerState extends State<UniunComposer> {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  GestureDetector(
-                    onTap: widget.canSend && !widget.isSending
-                        ? widget.onSend
-                        : null,
-                    child: AnimatedOpacity(
-                      opacity: widget.canSend ? 1.0 : 0.4,
-                      duration: const Duration(milliseconds: 150),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
+                  if (widget.onSend != null)
+                    GestureDetector(
+                      onTap: widget.canSend && !widget.isSending
+                          ? widget.onSend
+                          : null,
+                      child: AnimatedOpacity(
+                        opacity: widget.canSend ? 1.0 : 0.4,
+                        duration: const Duration(milliseconds: 150),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: widget.isSending
+                              ? const Padding(
+                                  padding: EdgeInsets.all(11),
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Icon(Icons.arrow_upward_rounded,
+                                  size: 20, color: Colors.white),
                         ),
-                        child: widget.isSending
-                            ? const Padding(
-                                padding: EdgeInsets.all(11),
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Icon(Icons.arrow_upward_rounded,
-                                size: 20, color: Colors.white),
                       ),
                     ),
-                  ),
                 ],
               ),
           ],

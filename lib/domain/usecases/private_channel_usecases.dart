@@ -97,7 +97,7 @@ class SendPrivateChannelMessageUsecase {
     List<String> mentionRefs = const [],
     String? rootEventId,
     String? replyToEventId,
-    String? quoteEventId,
+    String? embeddedNoteJson,
     List<MediaBlobEntity> attachments = const [],
   }) async {
     await transportService.sendChannelMessage(
@@ -108,7 +108,7 @@ class SendPrivateChannelMessageUsecase {
       mentionRefs: mentionRefs,
       rootEventId: rootEventId,
       replyToEventId: replyToEventId,
-      quoteEventId: quoteEventId,
+      embeddedNoteJson: embeddedNoteJson,
       attachments: attachments,
     );
   }

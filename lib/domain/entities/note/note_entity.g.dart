@@ -30,7 +30,7 @@ _NoteEntity _$NoteEntityFromJson(Map<String, dynamic> json) => _NoteEntity(
   sourceChannelId: json['sourceChannelId'] as String?,
   sourcePrivateGroupId: json['sourcePrivateGroupId'] as String?,
   sourceLabel: json['sourceLabel'] as String?,
-  quoteEventId: json['quoteEventId'] as String?,
+  embeddedNoteJson: json['embeddedNoteJson'] as String?,
   quotedNote: json['quotedNote'] == null
       ? null
       : NoteEntity.fromJson(json['quotedNote'] as Map<String, dynamic>),
@@ -58,7 +58,7 @@ Map<String, dynamic> _$NoteEntityToJson(_NoteEntity instance) =>
       'sourceChannelId': instance.sourceChannelId,
       'sourcePrivateGroupId': instance.sourcePrivateGroupId,
       'sourceLabel': instance.sourceLabel,
-      'quoteEventId': instance.quoteEventId,
+      'embeddedNoteJson': instance.embeddedNoteJson,
       'quotedNote': instance.quotedNote,
       'hasMedia': instance.hasMedia,
     };

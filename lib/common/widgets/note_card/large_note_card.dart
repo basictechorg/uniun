@@ -145,7 +145,7 @@ class _LargeNoteCardView extends StatelessWidget {
                 fontWeight: FontWeight.w400,
               ),
             ),
-          if (note.quoteEventId != null) ...[
+          if (note.quotedNote != null) ...[
             if (note.content.isNotEmpty) const SizedBox(height: 10),
             EmbeddedNoteCard(note: note.quotedNote),
           ],

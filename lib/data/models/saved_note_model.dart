@@ -46,10 +46,10 @@ class SavedNoteModel {
   /// Mutually exclusive with [sourceChannelId].
   String? sourcePrivateGroupId;
 
-  /// NIP-18 `q` tag. The quoted note is NOT saved-forever — read-time lookup
-  /// against the live `Note` collection; misses render as not-available.
-  @Index()
-  String? quoteEventId;
+  /// Saved-forever embed-by-value snapshot of the quoted original. Self-
+  /// contained (no live-collection lookup), so the embed survives even if the
+  /// original is evicted. Source of truth for the resolved `quotedNote`.
+  String? embeddedNoteJson;
 
   /// Saved-forever copy of the note's NIP-92 `imeta` attachments. The live
   /// [NoteModel] could in principle be evicted via a future storage tool;
@@ -73,7 +73,7 @@ extension SavedNoteModelExtension on SavedNoteModel {
         savedAt: savedAt,
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
-        quoteEventId: quoteEventId,
+        quotedNote: decodeEmbeddedNote(embeddedNoteJson),
         attachments: [for (final a in attachments) a.toEntity()],
       );
 }

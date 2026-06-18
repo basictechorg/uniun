@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:nostr/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/usecases/usecase.dart';
@@ -17,10 +18,10 @@ class CreateChannelMessageInput {
   final String privateKey;
   final String? replyToEventId;
   final List<String> mentionRefs;
-  // NIP-18 quote — `["q", id, "", author]` + `["k", kind]` + `["p", author]`.
-  final String? quoteEventId;
-  final String? quoteAuthorPubkey;
-  final int? quoteKind;
+
+  /// Embed-by-value share snapshot → the `embeddedNoteJson` tag. Null when this
+  /// message quotes nothing.
+  final String? embeddedNoteJson;
 
   /// NIP-92 imeta — one tag per attached blob.
   final List<MediaBlobEntity> attachments;
@@ -31,9 +32,7 @@ class CreateChannelMessageInput {
     required this.privateKey,
     this.replyToEventId,
     this.mentionRefs = const [],
-    this.quoteEventId,
-    this.quoteAuthorPubkey,
-    this.quoteKind,
+    this.embeddedNoteJson,
     this.attachments = const [],
   });
 }
@@ -59,7 +58,7 @@ class CreateChannelMessageUseCase
 
       // Tag order MUST match
       // [EventQueueModelExtension.toSerializedRelayMessage]:
-      //   e root → e reply → e mention → p → t → k → q → imeta
+      //   e root → e reply → e mention → embeddedNoteJson → imeta
       final tags = <List<String>>[
         ['e', input.channelId, '', 'root'],
       ];
@@ -69,14 +68,8 @@ class CreateChannelMessageUseCase
       for (final ref in input.mentionRefs) {
         tags.add(['e', ref, '', 'mention']);
       }
-      if (input.quoteEventId != null && input.quoteAuthorPubkey != null) {
-        tags.add(['p', input.quoteAuthorPubkey!]);
-      }
-      if (input.quoteKind != null) {
-        tags.add(['k', input.quoteKind!.toString()]);
-      }
-      if (input.quoteEventId != null) {
-        tags.add(['q', input.quoteEventId!, '', input.quoteAuthorPubkey ?? '']);
+      if (input.embeddedNoteJson != null) {
+        tags.add(EmbeddedNoteCodec.tag(input.embeddedNoteJson!));
       }
       tags.addAll(buildImetaTags(input.attachments));
 
@@ -109,7 +102,7 @@ class CreateChannelMessageUseCase
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         created: created,
-        quoteEventId: input.quoteEventId,
+        embeddedNoteJson: input.embeddedNoteJson,
         hasMedia: input.attachments.isNotEmpty,
         attachments: input.attachments,
       );
@@ -123,17 +116,13 @@ class CreateChannelMessageUseCase
         sig: kind42.sig,
         kind: 42,
         eTagRefs: eTagRefs,
-        pTagRefs: input.quoteAuthorPubkey != null && input.quoteEventId != null
-            ? [input.quoteAuthorPubkey!]
-            : const [],
+        pTagRefs: const [],
         tTags: const [],
         rootEventId: input.channelId,
         replyToEventId: input.replyToEventId,
         content: kind42.content,
         created: created,
-        quoteEventId: input.quoteEventId,
-        quoteAuthorPubkey: input.quoteAuthorPubkey,
-        quoteKind: input.quoteKind,
+        embeddedNoteJson: input.embeddedNoteJson,
         imeta: input.attachments,
       );
       if (enqueueResult.isLeft()) {

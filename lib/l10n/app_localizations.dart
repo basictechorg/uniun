@@ -2734,6 +2734,24 @@ abstract class AppLocalizations {
   /// **'Note not available'**
   String get shareEmbedNotFound;
 
+  /// Badge shown over an embedded shared-note whose snapshot signature failed verification
+  ///
+  /// In en, this message translates to:
+  /// **'Unverified'**
+  String get shareEmbedUnverified;
+
+  /// Button in the share composer to attach a referenced note
+  ///
+  /// In en, this message translates to:
+  /// **'Reference'**
+  String get shareComposeAddReference;
+
+  /// Button in the share composer to attach an image
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get shareComposeAddImage;
+
   /// Hint shown in the share sheet's DM section when the user has no DM conversations yet
   ///
   /// In en, this message translates to:

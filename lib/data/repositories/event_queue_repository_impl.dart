@@ -25,8 +25,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
     required List<String> tTags,
     required String content,
     required DateTime created,
-    String? quoteEventId,
-    String? quoteAuthorPubkey,
+    String? embeddedNoteJson,
     int? quoteKind,
     String? hTag,
     String? dTag,
@@ -55,8 +54,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
         ..tTags = List<String>.from(tTags)
         ..content = content
         ..created = created
-        ..quoteEventId = quoteEventId
-        ..quoteAuthorPubkey = quoteAuthorPubkey
+        ..embeddedNoteJson = embeddedNoteJson
         ..quoteKind = quoteKind
         ..hTag = hTag
         ..dTag = dTag

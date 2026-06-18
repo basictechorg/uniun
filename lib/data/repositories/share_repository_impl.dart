@@ -3,24 +3,30 @@ import 'package:injectable/injectable.dart';
 import 'package:nostr/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
+import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/repositories/share_repository.dart';
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
-import 'package:uniun/domain/usecases/note_usecases.dart';
+import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 /// Dispatcher only — every destination publishes through its existing kind-
-/// specific use case, carrying a NIP-18 `q` tag. No new publish path.
+/// specific use case. The shared note is carried by value as an
+/// `embeddedNoteJson` snapshot (see [EmbeddedNoteCodec]); the user's composed
+/// text / references / images ride alongside as a normal note. No new publish
+/// path.
 @Injectable(as: ShareRepository)
 class ShareRepositoryImpl implements ShareRepository {
   final NoteResolverRepository _resolver;
   final GetActiveUserKeysUseCase _getKeys;
-  final PublishNoteUseCase _publishFeed;
+  final PublishMediaNoteUseCase _publishFeed;
   final CreateChannelMessageUseCase _publishChannel;
   final SendDmUseCase _publishDm;
   final SendPrivateChannelMessageUsecase _publishPrivateChannel;
@@ -45,34 +51,47 @@ class ShareRepositoryImpl implements ShareRepository {
           return await keysResult.fold(
             (f) async => Left(f),
             (keys) async {
-              final comment = input.comment.trim();
+              // Double-nest guard: if the shared note is itself a share, embed
+              // the genuine inner original so quotedNote stays one level deep.
+              final snapshotSource = source.quotedNote ?? source;
+              final snapshotJson =
+                  EmbeddedNoteCodec.encodeFromEntity(snapshotSource);
+              final content = input.content.trim();
 
               switch (input.destination) {
                 case ShareToFeed():
                   return _dispatchFeed(
                     keys: keys,
-                    comment: comment,
-                    source: source,
+                    content: content,
+                    referenceIds: input.referenceIds,
+                    attachments: input.attachments,
+                    snapshotJson: snapshotJson,
                   );
                 case ShareToPublicChannel(channelId: final id):
                   return _dispatchChannel(
                     privkey: keys.privkeyHex,
                     channelId: id,
-                    comment: comment,
-                    source: source,
+                    content: content,
+                    referenceIds: input.referenceIds,
+                    attachments: input.attachments,
+                    snapshotJson: snapshotJson,
                   );
                 case ShareToPrivateChannel(groupId: final id):
                   return _dispatchPrivateChannel(
                     keys: keys,
                     groupId: id,
-                    comment: comment,
-                    source: source,
+                    content: content,
+                    referenceIds: input.referenceIds,
+                    attachments: input.attachments,
+                    snapshotJson: snapshotJson,
                   );
                 case ShareToDm(otherPubkeyHex: final pubkey):
                   return _dispatchDm(
                     otherPubkey: pubkey,
-                    comment: comment,
-                    source: source,
+                    content: content,
+                    referenceIds: input.referenceIds,
+                    attachments: input.attachments,
+                    snapshotJson: snapshotJson,
                   );
               }
             },
@@ -86,21 +105,25 @@ class ShareRepositoryImpl implements ShareRepository {
 
   Future<Either<Failure, Unit>> _dispatchFeed({
     required UserSigningKeys keys,
-    required String comment,
-    required NoteEntity source,
+    required String content,
+    required List<String> referenceIds,
+    required List<MediaBlobEntity> attachments,
+    required String snapshotJson,
   }) async {
-    // Tag order MUST match EventQueueModel.toSerializedRelayMessage:
-    //   e... → p... → t... → q → k
     final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final hashtags = _hashtags(content);
+    // Canonical order (see EventQueueModel.toSerializedRelayMessage):
+    //   e mention… → t… → embeddedNoteJson → imeta…
     final tags = <List<String>>[
-      ['p', source.authorPubkey],
-      ['q', source.id, '', source.authorPubkey],
-      ['k', source.kind.toString()],
+      for (final id in referenceIds) ['e', id, '', 'mention'],
+      for (final h in hashtags) ['t', h],
+      EmbeddedNoteCodec.tag(snapshotJson),
+      ...buildImetaTags(attachments),
     ];
     final event = Event.from(
       privkey: keys.privkeyHex,
       kind: 1,
-      content: comment,
+      content: content,
       tags: tags,
       createdAt: nowUnix,
     );
@@ -108,19 +131,19 @@ class ShareRepositoryImpl implements ShareRepository {
       id: event.id,
       sig: event.sig,
       authorPubkey: event.pubkey,
-      content: event.content,
+      content: content,
       kind: kNoteKind,
-      type: NoteType.text,
-      eTagRefs: const [],
-      pTagRefs: [source.authorPubkey],
-      tTags: const [],
+      type: _typeFor(attachments),
+      eTagRefs: List<String>.from(referenceIds),
+      pTagRefs: const [],
+      tTags: hashtags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
-      quoteEventId: source.id,
+      embeddedNoteJson: snapshotJson,
+      hasMedia: attachments.isNotEmpty,
+      attachments: attachments,
     );
     final result = await _publishFeed(
-      entity,
-      quoteAuthorPubkey: source.authorPubkey,
-      quoteKind: source.kind,
+      PublishMediaNoteInput(note: entity, attachments: attachments),
     );
     return result.fold((f) => Left(f), (_) => const Right(unit));
   }
@@ -128,17 +151,19 @@ class ShareRepositoryImpl implements ShareRepository {
   Future<Either<Failure, Unit>> _dispatchChannel({
     required String privkey,
     required String channelId,
-    required String comment,
-    required NoteEntity source,
+    required String content,
+    required List<String> referenceIds,
+    required List<MediaBlobEntity> attachments,
+    required String snapshotJson,
   }) async {
     final result = await _publishChannel(
       CreateChannelMessageInput(
         channelId: channelId,
-        content: comment,
+        content: content,
         privateKey: privkey,
-        quoteEventId: source.id,
-        quoteAuthorPubkey: source.authorPubkey,
-        quoteKind: source.kind,
+        mentionRefs: referenceIds,
+        embeddedNoteJson: snapshotJson,
+        attachments: attachments,
       ),
     );
     return result.fold((f) => Left(f), (_) => const Right(unit));
@@ -147,33 +172,52 @@ class ShareRepositoryImpl implements ShareRepository {
   Future<Either<Failure, Unit>> _dispatchPrivateChannel({
     required UserSigningKeys keys,
     required String groupId,
-    required String comment,
-    required NoteEntity source,
+    required String content,
+    required List<String> referenceIds,
+    required List<MediaBlobEntity> attachments,
+    required String snapshotJson,
   }) async {
     await _publishPrivateChannel.execute(
       groupId: groupId,
-      content: comment,
+      content: content,
       authorPubkey: keys.pubkeyHex,
       privkeyHex: keys.privkeyHex,
-      quoteEventId: source.id,
+      mentionRefs: referenceIds,
+      embeddedNoteJson: snapshotJson,
+      attachments: attachments,
     );
     return const Right(unit);
   }
 
   Future<Either<Failure, Unit>> _dispatchDm({
     required String otherPubkey,
-    required String comment,
-    required NoteEntity source,
+    required String content,
+    required List<String> referenceIds,
+    required List<MediaBlobEntity> attachments,
+    required String snapshotJson,
   }) async {
     final result = await _publishDm(
       SendDmParams(
         otherPubkey: otherPubkey,
-        content: comment,
-        quoteEventId: source.id,
-        quoteAuthorPubkey: source.authorPubkey,
-        quoteKind: source.kind,
+        content: content,
+        type: _typeFor(attachments),
+        mentionRefs: referenceIds,
+        embeddedNoteJson: snapshotJson,
+        attachments: attachments,
       ),
     );
     return result.fold((f) => Left(f), (_) => const Right(unit));
   }
+
+  NoteType _typeFor(List<MediaBlobEntity> attachments) =>
+      attachments.any((a) => a.mime.startsWith('image/'))
+          ? NoteType.image
+          : NoteType.text;
+
+  List<String> _hashtags(String content) => RegExp(r'#(\w+)')
+      .allMatches(content)
+      .map((m) => m.group(1)!)
+      .where((t) => t.isNotEmpty)
+      .toSet()
+      .toList();
 }

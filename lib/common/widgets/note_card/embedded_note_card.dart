@@ -57,10 +57,14 @@ class _EmbeddedNoteView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final cardState = context.watch<NoteCardCubit>().state;
     final profile = cardState.profile;
     final name =
         profile?.name ?? profile?.username ?? _shortPubkey(note.authorPubkey);
+    // Empty sig = the embedded snapshot failed signature verification at inbound
+    // (see EmbeddedNoteCodec.verifyAndSanitize) — flag it as unverified.
+    final unverified = note.sig.isEmpty;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -74,16 +78,38 @@ class _EmbeddedNoteView extends StatelessWidget {
           children: [
             Row(
               children: [
-                UserAvatar(
-                  seed: note.authorPubkey,
-                  photoUrl: profile?.avatarUrl,
-                  size: 24,
-                  borderRadius: 12,
-                  onTap: () => openUserProfile(
-                    context,
-                    note.authorPubkey,
-                    hintName: name,
-                  ),
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    UserAvatar(
+                      seed: note.authorPubkey,
+                      photoUrl: profile?.avatarUrl,
+                      size: 24,
+                      borderRadius: 12,
+                      onTap: () => openUserProfile(
+                        context,
+                        note.authorPubkey,
+                        hintName: name,
+                      ),
+                    ),
+                    if (unverified)
+                      Positioned(
+                        top: -3,
+                        right: -3,
+                        child: Container(
+                          padding: const EdgeInsets.all(1),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.gpp_maybe_rounded,
+                            size: 13,
+                            color: Color(0xFFB45309),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -97,6 +123,10 @@ class _EmbeddedNoteView extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (unverified) ...[
+                  const SizedBox(width: 6),
+                  _UnverifiedChip(label: l10n.shareEmbedUnverified),
+                ],
                 const SizedBox(width: 6),
                 Text(
                   formatTimeAgo(note.created),
@@ -169,6 +199,29 @@ class _EmbeddedContentPreview extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Small amber pill flagging an embed whose snapshot signature did not verify.
+class _UnverifiedChip extends StatelessWidget {
+  const _UnverifiedChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFFB45309),
+          ),
+        ),
+      );
 }
 
 class _Shell extends StatelessWidget {
