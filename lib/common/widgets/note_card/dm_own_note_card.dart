@@ -18,16 +18,21 @@ class DmOwnNoteCard extends StatelessWidget {
     super.key,
     required this.note,
     this.onTap,
+    this.onReply,
   });
 
   final NoteEntity note;
   final VoidCallback? onTap;
 
+  /// Starts a reply that embeds this message by value. When null, the reply
+  /// chip is hidden (so the card stays safe wherever it's reused).
+  final VoidCallback? onReply;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<NoteCardCubit>(param1: note),
-      child: _DmOwnNoteCardView(note: note, onTap: onTap),
+      child: _DmOwnNoteCardView(note: note, onTap: onTap, onReply: onReply),
     );
   }
 }
@@ -36,10 +41,12 @@ class _DmOwnNoteCardView extends StatelessWidget {
   const _DmOwnNoteCardView({
     required this.note,
     this.onTap,
+    this.onReply,
   });
 
   final NoteEntity note;
   final VoidCallback? onTap;
+  final VoidCallback? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +161,12 @@ class _DmOwnNoteCardView extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        if (onReply != null)
+                          _ActionChip(
+                            icon: Icons.reply_rounded,
+                            color: onBubbleMuted,
+                            onTap: onReply!,
+                          ),
                         _ActionChip(
                           icon: Icons.chat_bubble_outline_rounded,
                           label: '${note.cachedReplyCount}',

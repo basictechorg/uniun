@@ -11,6 +11,10 @@ class DmChatState {
   final Map<String, ProfileEntity> profiles;
   final String? errorMessage;
 
+  /// The message being replied to (embedded by value into the next send), or
+  /// null when not replying. Drives the composer reply strip.
+  final NoteEntity? replyingToNote;
+
   const DmChatState({
     this.isLoading = false,
     this.isSending = false,
@@ -18,6 +22,7 @@ class DmChatState {
     this.messages = const [],
     this.profiles = const {},
     this.errorMessage,
+    this.replyingToNote,
   });
 
   DmChatState copyWith({
@@ -27,6 +32,8 @@ class DmChatState {
     List<NoteEntity>? messages,
     Map<String, ProfileEntity>? profiles,
     String? errorMessage,
+    NoteEntity? replyingToNote,
+    bool clearReplyingTo = false,
   }) {
     return DmChatState(
       isLoading: isLoading ?? this.isLoading,
@@ -35,6 +42,8 @@ class DmChatState {
       messages: messages ?? this.messages,
       profiles: profiles ?? this.profiles,
       errorMessage: errorMessage,
+      replyingToNote:
+          clearReplyingTo ? null : (replyingToNote ?? this.replyingToNote),
     );
   }
 }
