@@ -15,6 +15,7 @@ class ExpandableNoteText extends StatefulWidget {
     required this.style,
     this.collapsedMaxChars = 280,
     this.actionColor,
+    this.onTap,
   });
 
   final String text;
@@ -24,6 +25,11 @@ class ExpandableNoteText extends StatefulWidget {
   /// Colour of the "Read more"/"Read less" action. Defaults to primary; pass
   /// an on-bubble colour when rendered on a coloured background.
   final Color? actionColor;
+
+  /// Forwarded to [NoteMarkdownBody.onTap]. Pass the card's tap handler inside
+  /// a tappable card so a simple tap on the (selectable) body still triggers it
+  /// — long-press keeps selecting text.
+  final VoidCallback? onTap;
 
   @override
   State<ExpandableNoteText> createState() => _ExpandableNoteTextState();
@@ -49,6 +55,7 @@ class _ExpandableNoteTextState extends State<ExpandableNoteText> {
           content: shown,
           style: widget.style,
           linkColor: actionColor,
+          onTap: widget.onTap,
         ),
         if (overflows)
           GestureDetector(

@@ -1652,4 +1652,174 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noteCardMediaFailed => 'Download failed';
+
+  @override
+  String get manasDrawerHeaderTitle => 'BRAHMA';
+
+  @override
+  String get manasDrawerHeaderSubtitle => 'Your knowledge graphs';
+
+  @override
+  String get manasDrawerBrahmaEntryTitle => 'Brahma';
+
+  @override
+  String get manasDrawerBrahmaEntrySubtitle =>
+      'Everything you\'ve saved, written, and drafted';
+
+  @override
+  String get manasDrawerSectionTitle => 'MANAS';
+
+  @override
+  String get manasDrawerNewManasButton => 'New';
+
+  @override
+  String get manasDrawerEmptyStateTitle => 'No Manases yet';
+
+  @override
+  String get manasDrawerEmptyStateBody =>
+      'Create a Manas to focus the graph on a topic — a sub-expert mind built from a subset of your notes.';
+
+  @override
+  String get manasDrawerEmptyStateCta => 'Create your first Manas';
+
+  @override
+  String manasDrawerTileNoteCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get manasTileEmptyHint => '0 notes · Tap to open';
+
+  @override
+  String get manasTileActionEdit => 'Edit Manas';
+
+  @override
+  String get manasTileActionDelete => 'Delete Manas';
+
+  @override
+  String get manasDeleteConfirmTitle => 'Delete Manas?';
+
+  @override
+  String manasDeleteConfirmBody(String name) {
+    return '“$name” will be removed. The notes themselves are kept — only the Manas membership is deleted.';
+  }
+
+  @override
+  String get manasDeleteConfirmConfirm => 'Delete';
+
+  @override
+  String get manasDeleteConfirmCancel => 'Cancel';
+
+  @override
+  String get manasFormCreateTitle => 'New Manas';
+
+  @override
+  String manasFormEditTitle(String name) {
+    return 'Edit · $name';
+  }
+
+  @override
+  String get manasFormEditTitleFallback => 'Edit Manas';
+
+  @override
+  String get manasFormSaveAction => 'Save';
+
+  @override
+  String get manasFormDeleteAction => 'Delete Manas';
+
+  @override
+  String get manasFormNameLabel => 'Name';
+
+  @override
+  String get manasFormNameHint => 'e.g. Rust Expert';
+
+  @override
+  String get manasFormDescriptionLabel => 'Description';
+
+  @override
+  String get manasFormDescriptionHint => 'Optional. What is this Manas for?';
+
+  @override
+  String manasFormMembershipSectionTitle(int count) {
+    return 'NOTES IN THIS MANAS ($count)';
+  }
+
+  @override
+  String get manasFormMembershipEmpty =>
+      'No notes yet. Search below to add some.';
+
+  @override
+  String get manasFormAddNotesSectionTitle => 'ADD NOTES';
+
+  @override
+  String get manasFormSearchHint => 'Search saved, own, or draft notes';
+
+  @override
+  String get manasFormSearchEmpty => 'No matches.';
+
+  @override
+  String get manasFormNoteUnavailable => '(note unavailable)';
+
+  @override
+  String get manasFormDeleteConfirmTitle => 'Delete this Manas?';
+
+  @override
+  String get manasFormDeleteConfirmBody =>
+      'This removes the Manas and all its memberships. The notes themselves remain in Brahma.';
+
+  @override
+  String get manasFormDeleteConfirmConfirm => 'Delete';
+
+  @override
+  String get manasFormDeleteConfirmCancel => 'Cancel';
+
+  @override
+  String get graphHeaderManasEditTooltip => 'Edit Manas';
+
+  @override
+  String get graphHeaderUnnamedManas => 'Manas';
+
+  @override
+  String get noteCardAddToManas => 'Add to Manas';
+
+  @override
+  String get noteCardManasSaveFailed => 'Couldn\'t save the note. Try again.';
+
+  @override
+  String get unsaveManasDialogTitle => 'Unsave note?';
+
+  @override
+  String get unsaveManasDialogBody =>
+      'Unsaving this note will also remove it from:';
+
+  @override
+  String get unsaveManasDialogConfirm => 'Unsave';
+
+  @override
+  String get unsaveManasDialogCancel => 'Cancel';
+
+  @override
+  String get manasMembershipSheetTitle => 'Add to Manas';
+
+  @override
+  String get manasMembershipSheetCreate => 'Create new Manas';
+
+  @override
+  String get manasMembershipSheetEmptyTitle => 'No Manases yet';
+
+  @override
+  String get manasMembershipSheetEmptyBody =>
+      'Create your first Manas to start grouping notes into focused sub-experts.';
+
+  @override
+  String get manasMembershipSheetEmptyCta => 'Create Manas';
+
+  @override
+  String get manasIconPickerTitle => 'Pick an icon';
 }

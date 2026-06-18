@@ -7,6 +7,7 @@ import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
+import 'package:uniun/common/widgets/note_card/save_toggle.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -192,15 +193,18 @@ class _LargeNoteCardView extends StatelessWidget {
                   color: AppColors.onSurfaceVariant,
                   onTap: () {},
                 ),
-                _LargeActionChip(
-                  icon: cardState.isSaved
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                  color: cardState.isSaved
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
-                  onTap: () => cubit.toggleSave(),
-                ),
+                // Save hidden on own notes (kept forever already; saving is
+                // for others' notes).
+                if (!cardState.isOwnNote)
+                  _LargeActionChip(
+                    icon: cardState.isSaved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: cardState.isSaved
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant,
+                    onTap: () => handleSaveToggle(context, cubit),
+                  ),
                 _LargeActionChip(
                   icon: isFollowed
                       ? Icons.notifications

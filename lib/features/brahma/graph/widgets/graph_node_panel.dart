@@ -45,7 +45,6 @@ class GraphNodePanel extends StatelessWidget {
             pTagRefs: node.pTagRefs,
             tTags: node.tTags,
             created: node.created!,
-            hasMedia: node.attachments.isNotEmpty,
             attachments: node.attachments,
           )
         : null;

@@ -139,7 +139,6 @@ class ShareRepositoryImpl implements ShareRepository {
       tTags: hashtags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       embeddedNoteJson: snapshotJson,
-      hasMedia: attachments.isNotEmpty,
       attachments: attachments,
     );
     final result = await _publishFeed(

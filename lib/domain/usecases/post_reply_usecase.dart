@@ -175,7 +175,6 @@ class PostReplyUseCase {
       created: DateTime.fromMillisecondsSinceEpoch(signed.createdAt * 1000),
       rootEventId: threadRoot,
       replyToEventId: replyToId,
-      hasMedia: params.attachments.isNotEmpty,
       attachments: params.attachments,
     );
 

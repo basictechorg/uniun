@@ -18,6 +18,7 @@ class NoteMarkdownBody extends StatelessWidget {
     required this.content,
     this.style,
     this.linkColor,
+    this.onTap,
   });
 
   final String content;
@@ -27,6 +28,14 @@ class NoteMarkdownBody extends StatelessWidget {
 
   /// Link colour override. Defaults to [AppColors.primary].
   final Color? linkColor;
+
+  /// Tap handler for the body text. The body is always selectable
+  /// (`SelectableText.rich`), whose own recognizer wins the gesture arena and
+  /// swallows an ancestor card's `InkWell.onTap`. Wiring this into
+  /// `SelectableText.onTap` keeps a simple tap working (e.g. open the thread)
+  /// while long-press still selects text. Leave null where the card doesn't
+  /// navigate.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +50,7 @@ class NoteMarkdownBody extends StatelessWidget {
     return MarkdownBody(
       data: _shortenBareUrls(content),
       selectable: true,
+      onTapText: onTap,
       softLineBreak: false,
       extensionSet: _extensions,
       onTapLink: (text, href, title) {

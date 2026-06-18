@@ -5,7 +5,15 @@ sealed class GraphEvent {
 }
 
 final class LoadGraphEvent extends GraphEvent {
-  const LoadGraphEvent();
+  const LoadGraphEvent({this.manasId, this.manasName});
+
+  /// When non-null, scopes the graph to the membership of this Manas.
+  /// Null = full Brahma graph (default).
+  final String? manasId;
+
+  /// Display name of the scoped Manas, used by the header. Optional —
+  /// when null the header falls back to a generic label.
+  final String? manasName;
 }
 
 /// Tap a node — if already selected, deselects it.

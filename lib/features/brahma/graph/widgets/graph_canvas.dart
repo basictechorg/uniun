@@ -405,6 +405,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       final nodeData = widget.nodes
                           .where((n) => n.eventId == nodeId)
                           .firstOrNull;
+                      // Nodes are coloured by type (saved / own / draft) —
+                      // the same fixed palette for the unscoped Brahma graph
+                      // and every Manas-scoped view.
                       final color = nodeData != null
                           ? graphNodeTypeColors[nodeData.type]!
                           : AppColors.primary;

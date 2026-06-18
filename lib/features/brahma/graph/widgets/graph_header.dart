@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
+import 'package:go_router/go_router.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
+import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
+import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
+import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 const graphNodeTypeColors = {
@@ -10,7 +16,8 @@ const graphNodeTypeColors = {
   GraphNodeType.draft: AppColors.graphDraft,
 };
 
-/// Top header: back arrow, title, colour legend.
+/// Top header: brahma logo + (when scoped to a Manas) the Manas name and
+/// an edit affordance, plus the colour legend.
 class GraphHeader extends StatelessWidget {
   const GraphHeader({super.key});
 
@@ -35,17 +42,95 @@ class GraphHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: SvgPicture.asset(
-              'assets/images/tabs/brahma.svg',
-              fit: BoxFit.contain,
-              semanticsLabel: l10n.navBrahma,
+          const SizedBox(width: 8),
+          // Tap the Brahma logo to open the side drawer — mirrors Vishnu's
+          // top-left avatar tap. Edge-swipe from the left also opens it.
+          InkWell(
+            onTap: () => brahmaScaffoldKey.currentState?.openDrawer(),
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: SvgPicture.asset(
+                  'assets/images/tabs/brahma.svg',
+                  fit: BoxFit.contain,
+                  semanticsLabel: l10n.navBrahma,
+                ),
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
+          Expanded(
+            child: BlocBuilder<GraphBloc, GraphState>(
+              buildWhen: (prev, curr) =>
+                  prev.scopedManasId != curr.scopedManasId ||
+                  prev.scopedManasName != curr.scopedManasName ||
+                  prev.scopedManasIconName != curr.scopedManasIconName,
+              builder: (context, state) {
+                if (state.scopedManasId == null) {
+                  return const SizedBox.shrink();
+                }
+                final label =
+                    state.scopedManasName ?? l10n.graphHeaderUnnamedManas;
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              ManasIcons.byName(state.scopedManasIconName),
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      color: AppColors.primary,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: l10n.graphHeaderManasEditTooltip,
+                      onPressed: () => context.pushNamed(
+                        AppRoutes.brahmaManasForm,
+                        extra: {'manasId': state.scopedManasId},
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          // Nodes are always coloured by type, so the legend is fixed
+          // regardless of Manas scope.
           _LegendRow(l10n: l10n),
         ],
       ),

@@ -127,7 +127,6 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       type: attached.any((b) => b.mime.startsWith('image/'))
           ? NoteType.image
           : NoteType.text,
-      hasMedia: attached.isNotEmpty,
       attachments: attached,
     );
 

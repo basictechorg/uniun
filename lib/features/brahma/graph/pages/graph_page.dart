@@ -11,6 +11,8 @@ import 'package:uniun/features/brahma/graph/widgets/graph_canvas.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_fab.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_header.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_node_panel.dart';
+import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
+import 'package:uniun/features/brahma/manas/widgets/brahma_drawer.dart';
 
 class GraphPage extends StatelessWidget {
   const GraphPage({super.key});
@@ -70,7 +72,13 @@ class _GraphViewState extends State<_GraphView> {
         ),
       ],
       child: Scaffold(
+        key: brahmaScaffoldKey,
         backgroundColor: AppColors.surface,
+        drawer: BlocBuilder<GraphBloc, GraphState>(
+          buildWhen: (prev, curr) => prev.scopedManasId != curr.scopedManasId,
+          builder: (context, state) =>
+              BrahmaDrawer(activeManasId: state.scopedManasId),
+        ),
         body: Stack(
           children: [
             // Positioned.fill gives _GraphBody tight constraints so GraphCanvas
@@ -98,7 +106,12 @@ class _GraphViewState extends State<_GraphView> {
                 child: FloatingNav(
                   currentIndex: 1,
                   onTap: (i) async {
-                    if (i == 1) return;
+                    // Tap on the Brahma icon while already on Brahma →
+                    // open the side drawer. Edge-swipe also works.
+                    if (i == 1) {
+                      brahmaScaffoldKey.currentState?.openDrawer();
+                      return;
+                    }
                     Navigator.pop(context, i);
                   },
                 ),
