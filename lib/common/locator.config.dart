@@ -1017,17 +1017,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
-    gh.factory<_i630.ManasFormBloc>(
-      () => _i630.ManasFormBloc(
-        gh<_i977.UpsertManasUseCase>(),
-        gh<_i977.GetManasByIdUseCase>(),
-        gh<_i977.DeleteManasUseCase>(),
-        gh<_i977.AddNoteToManasUseCase>(),
-        gh<_i977.RemoveNoteFromManasUseCase>(),
-        gh<_i977.GetNoteIdsForManasUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
       () =>
           _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
@@ -1076,6 +1065,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i524.CreateChannelMessageUseCase>(),
         gh<_i1023.SendDmUseCase>(),
         gh<_i78.SendPrivateChannelMessageUsecase>(),
+      ),
+    );
+    gh.factory<_i630.ManasFormBloc>(
+      () => _i630.ManasFormBloc(
+        gh<_i977.UpsertManasUseCase>(),
+        gh<_i977.GetManasByIdUseCase>(),
+        gh<_i977.DeleteManasUseCase>(),
+        gh<_i977.AddNoteToManasUseCase>(),
+        gh<_i977.RemoveNoteFromManasUseCase>(),
+        gh<_i977.GetNoteIdsForManasUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(

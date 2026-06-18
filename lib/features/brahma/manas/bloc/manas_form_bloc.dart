@@ -1,10 +1,15 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
+import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
+import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,9 +18,20 @@ part 'manas_form_state.dart';
 
 const int _maxPreviewChars = 80;
 
-/// Manas membership is **saved-only**. Drafts and own-but-unsaved notes are
-/// not eligible — the form's search pool is exactly the user's saved-notes
-/// table, loaded once on open and filtered in-memory on each keystroke.
+/// A single searchable note in the form's in-memory pool. Backed by either an
+/// own (authored) note or a saved note — deduped by [noteId] in [_onLoad].
+class _PoolNote {
+  const _PoolNote(this.noteId, this.content, this.kind);
+  final String noteId;
+  final String content;
+  final ManasNoteKind kind;
+}
+
+/// The form's "Add notes" search pool is every Brahma note: **every note the
+/// user authored** (own pubkey, any kind), the user's local **drafts**, and
+/// the user's **saved-notes** table — deduped by id, loaded once on open and
+/// filtered in-memory on each keystroke. Saved wins the display kind when a
+/// note is both authored and saved (draft ids never collide with event ids).
 @injectable
 class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
   final UpsertManasUseCase _upsert;
@@ -25,11 +41,14 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
   final RemoveNoteFromManasUseCase _removeLink;
   final GetNoteIdsForManasUseCase _getLinks;
   final GetAllSavedNotesUseCase _getAllSaved;
+  final GetOwnNotesUseCase _getOwnNotes;
+  final GetActiveUserUseCase _getActiveUser;
+  final GetDraftsUseCase _getDrafts;
 
-  // Cached saved-notes pool for search + preview resolution. Loaded once on
-  // form open; re-loaded only if the user adds notes outside the form
-  // lifetime — we accept that tradeoff for the typing-fast UX.
-  List<SavedNoteEntity> _savedPool = const [];
+  // Cached search + preview pool: own (authored) notes ∪ saved notes, deduped
+  // by id. Loaded once on form open; re-loaded only if the user adds notes
+  // outside the form lifetime — we accept that tradeoff for the typing-fast UX.
+  List<_PoolNote> _pool = const [];
 
   ManasFormBloc(
     this._upsert,
@@ -39,6 +58,9 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
     this._removeLink,
     this._getLinks,
     this._getAllSaved,
+    this._getOwnNotes,
+    this._getActiveUser,
+    this._getDrafts,
   ) : super(const ManasFormState()) {
     on<ManasFormLoadEvent>(_onLoad);
     on<ManasFormNameChangedEvent>(_onName);
@@ -55,10 +77,33 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
       ManasFormLoadEvent event, Emitter<ManasFormState> emit) async {
     emit(state.copyWith(status: ManasFormStatus.loading));
 
-    // Saved-notes pool — same data for create and edit modes.
-    final savedRes = await _getAllSaved.call();
-    _savedPool = savedRes
+    // Search pool = every Brahma note: own (authored) notes ∪ drafts ∪ saved
+    // notes — same data for create and edit modes. Own notes are loaded first,
+    // then drafts; saved entries override by id so a note that is both authored
+    // and saved shows the saved kind. Draft ids (local UUIDs) never collide
+    // with the 64-hex event ids of own/saved notes.
+    final ownPubkey = (await _getActiveUser.call())
+        .fold<String?>((_) => null, (u) => u.pubkeyHex);
+    final ownNotes = ownPubkey == null
+        ? const <NoteEntity>[]
+        : (await _getOwnNotes.call(ownPubkey))
+            .fold<List<NoteEntity>>((_) => const [], (l) => l);
+    final drafts = (await _getDrafts.call())
+        .fold<List<DraftEntity>>((_) => const [], (l) => l);
+    final savedNotes = (await _getAllSaved.call())
         .fold<List<SavedNoteEntity>>((_) => const [], (l) => l);
+
+    final byId = <String, _PoolNote>{};
+    for (final n in ownNotes) {
+      byId[n.id] = _PoolNote(n.id, n.content, ManasNoteKind.own);
+    }
+    for (final d in drafts) {
+      byId[d.draftId] = _PoolNote(d.draftId, d.content, ManasNoteKind.draft);
+    }
+    for (final s in savedNotes) {
+      byId[s.eventId] = _PoolNote(s.eventId, s.content, ManasNoteKind.saved);
+    }
+    _pool = byId.values.toList();
 
     if (event.manasId == null) {
       emit(state.copyWith(
@@ -157,12 +202,12 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
 
     final lower = q.toLowerCase();
     final results = <ManasNotePreview>[];
-    for (final s in _savedPool) {
-      if (!s.content.toLowerCase().contains(lower)) continue;
+    for (final n in _pool) {
+      if (!n.content.toLowerCase().contains(lower)) continue;
       results.add(ManasNotePreview(
-        noteId: s.eventId,
-        preview: _shortenPreview(s.content),
-        kind: ManasNoteKind.saved,
+        noteId: n.noteId,
+        preview: _shortenPreview(n.content),
+        kind: n.kind,
       ));
       if (results.length >= 30) break;
     }
@@ -247,12 +292,12 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
   }
 
   ManasNotePreview _previewFromPool(String noteId) {
-    for (final s in _savedPool) {
-      if (s.eventId == noteId) {
+    for (final n in _pool) {
+      if (n.noteId == noteId) {
         return ManasNotePreview(
           noteId: noteId,
-          preview: _shortenPreview(s.content),
-          kind: ManasNoteKind.saved,
+          preview: _shortenPreview(n.content),
+          kind: n.kind,
         );
       }
     }

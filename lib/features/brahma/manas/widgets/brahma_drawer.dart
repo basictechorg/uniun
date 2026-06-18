@@ -44,15 +44,11 @@ class _BrahmaDrawerView extends StatelessWidget {
   }
 
   Future<void> _openForm(BuildContext context, {String? manasId}) async {
-    final listBloc = context.read<ManasListBloc>();
     _close(context);
-    final saved = await context.pushNamed<bool>(
+    await context.pushNamed<bool>(
       AppRoutes.brahmaManasForm,
       extra: manasId == null ? null : {'manasId': manasId},
     );
-    if (saved == true) {
-      listBloc.add(const ManasListLoadEvent());
-    }
   }
 
   void _showTileActions(BuildContext context, ManasEntity manas) {
