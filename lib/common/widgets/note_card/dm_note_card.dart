@@ -17,16 +17,21 @@ class DmNoteCard extends StatelessWidget {
     super.key,
     required this.note,
     this.onTap,
+    this.onReply,
   });
 
   final NoteEntity note;
   final VoidCallback? onTap;
 
+  /// Starts a reply that embeds this message by value. When null, the reply
+  /// chip is hidden (so the card stays safe wherever it's reused).
+  final VoidCallback? onReply;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<NoteCardCubit>(param1: note),
-      child: _DmNoteCardView(note: note, onTap: onTap),
+      child: _DmNoteCardView(note: note, onTap: onTap, onReply: onReply),
     );
   }
 }
@@ -35,10 +40,12 @@ class _DmNoteCardView extends StatelessWidget {
   const _DmNoteCardView({
     required this.note,
     this.onTap,
+    this.onReply,
   });
 
   final NoteEntity note;
   final VoidCallback? onTap;
+  final VoidCallback? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +128,7 @@ class _DmNoteCardView extends StatelessWidget {
                         height: 1.55,
                       ),
                     ),
-                  if (note.quoteEventId != null) ...[
+                  if (note.quotedNote != null) ...[
                     if (note.content.isNotEmpty) const SizedBox(height: 8),
                     EmbeddedNoteCard(note: note.quotedNote),
                   ],
@@ -152,6 +159,12 @@ class _DmNoteCardView extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        if (onReply != null)
+                          _ActionChip(
+                            icon: Icons.reply_rounded,
+                            color: AppColors.onSurfaceVariant,
+                            onTap: onReply!,
+                          ),
                         _ActionChip(
                           icon: Icons.chat_bubble_outline_rounded,
                           label: '${note.cachedReplyCount}',

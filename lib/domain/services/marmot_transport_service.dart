@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
@@ -118,7 +119,7 @@ class MarmotTransportService {
           pTagRefs: const [],
           tTags: const [],
           created: encrypted.timestamp,
-          quoteEventId: envelope.quoteEventId,
+          embeddedNoteJson: envelope.embeddedNoteJson,
           attachments: envelope.attachments,
         );
 
@@ -166,21 +167,21 @@ class MarmotTransportService {
   /// NIP-92 imeta attachments into the encrypted MLS payload. Plain text is
   /// sent verbatim when there is no metadata (backward compatible); otherwise
   /// a small JSON envelope carries the e-tag ids (`e`), the root marker
-  /// (`r`), the reply marker (`y`), the quote id (`q`), and the imeta list
-  /// (`i`). Receiver-side decryption rebuilds `NoteModel.attachments` from
-  /// `i`.
+  /// (`r`), the reply marker (`y`), the embed-by-value snapshot (`em`), and the
+  /// imeta list (`i`). Receiver-side decryption rebuilds `NoteModel.attachments`
+  /// from `i` and the embed from `em`.
   String _encodeMessageEnvelope(
     String content,
     List<String> eTagRefs, {
     String? rootEventId,
     String? replyToEventId,
-    String? quoteEventId,
+    String? embeddedNoteJson,
     List<MediaAttachment> attachments = const [],
   }) {
     if (eTagRefs.isEmpty &&
         rootEventId == null &&
         replyToEventId == null &&
-        quoteEventId == null &&
+        embeddedNoteJson == null &&
         attachments.isEmpty) {
       return content;
     }
@@ -189,7 +190,7 @@ class MarmotTransportService {
       'e': eTagRefs,
       if (rootEventId != null) 'r': rootEventId,
       if (replyToEventId != null) 'y': replyToEventId,
-      if (quoteEventId != null) 'q': quoteEventId,
+      if (embeddedNoteJson != null) 'em': embeddedNoteJson,
       if (attachments.isNotEmpty)
         'i': [
           for (final a in attachments)
@@ -214,7 +215,7 @@ class MarmotTransportService {
     List<String> eTagRefs,
     String? rootEventId,
     String? replyToEventId,
-    String? quoteEventId,
+    String? embeddedNoteJson,
     List<MediaAttachment> attachments,
   }) _decodeMessageEnvelope(String raw) {
     try {
@@ -241,12 +242,15 @@ class MarmotTransportService {
               ..filename = m['n'] as String?);
           }
         }
+        final rawEmbed = decoded['em'] as String?;
         return (
           content: decoded['c'] as String,
           eTagRefs: (decoded['e'] as List).cast<String>(),
           rootEventId: decoded['r'] as String?,
           replyToEventId: decoded['y'] as String?,
-          quoteEventId: decoded['q'] as String?,
+          // Embed-by-value share — verify the snapshot once, here at the edge.
+          embeddedNoteJson:
+              rawEmbed == null ? null : EmbeddedNoteCodec.verifyAndSanitize(rawEmbed),
           attachments: attachments,
         );
       }
@@ -255,11 +259,11 @@ class MarmotTransportService {
     }
     return (
       content: raw,
-      eTagRefs: const [],
+      eTagRefs: const <String>[],
       rootEventId: null,
       replyToEventId: null,
-      quoteEventId: null,
-      attachments: const [],
+      embeddedNoteJson: null,
+      attachments: const <MediaAttachment>[],
     );
   }
 
@@ -430,7 +434,8 @@ class MarmotTransportService {
 
   /// Encrypts an application message (kind 9023) and queues it.
   ///
-  /// [quoteEventId] is a NIP-18 `q` tag carried inside the encrypted envelope.
+  /// [embeddedNoteJson] is the embed-by-value share snapshot, carried inside the
+  /// encrypted envelope (key `em`).
   Future<void> sendChannelMessage({
     required String groupId,
     required String content,
@@ -439,7 +444,7 @@ class MarmotTransportService {
     List<String> mentionRefs = const [],
     String? rootEventId,
     String? replyToEventId,
-    String? quoteEventId,
+    String? embeddedNoteJson,
     List<MediaBlobEntity> attachments = const [],
   }) async {
     final channel = await _findChannel(groupId);
@@ -470,7 +475,7 @@ class MarmotTransportService {
         mentionRefs,
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
-        quoteEventId: quoteEventId,
+        embeddedNoteJson: embeddedNoteJson,
         attachments: imeta,
       ),
       groupIdIsBase64: true,
@@ -503,7 +508,7 @@ class MarmotTransportService {
       pTagRefs: const [],
       tTags: const [],
       created: now,
-      quoteEventId: quoteEventId,
+      embeddedNoteJson: embeddedNoteJson,
       attachments: imeta,
     );
 

@@ -3,7 +3,6 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
-import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -48,7 +47,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
         ..savedAt = DateTime.now()
         ..sourceChannelId = note.sourceChannelId
         ..sourcePrivateGroupId = note.sourcePrivateGroupId
-        ..quoteEventId = note.quoteEventId
+        ..embeddedNoteJson = note.embeddedNoteJson
         ..attachments = [
           for (final a in note.attachments) _toEmbedded(a),
         ];
@@ -101,13 +100,11 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
           .sortBySavedAtDesc()
           .findAll();
       final savedIds = {for (final m in all) m.eventId};
-      final quotes = await _resolveQuotes(all);
       final entities = <SavedNoteEntity>[
         for (final m in all)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
-                quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
       ];
       return Right(await _enrichMany(entities));
@@ -164,13 +161,11 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
       if (replies.isEmpty) return const Right([]);
 
       final savedIds = await _allSavedIds();
-      final quotes = await _resolveQuotes(replies);
       final entities = <SavedNoteEntity>[
         for (final m in replies)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
-                quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
       ];
       return Right(await _enrichMany(entities));
@@ -195,13 +190,11 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
       if (refs.isEmpty) return const Right([]);
 
       final savedIds = await _allSavedIds();
-      final quotes = await _resolveQuotes(refs);
       final entities = <SavedNoteEntity>[
         for (final m in refs)
           m.toDomain().copyWith(
                 cachedReplyCount: await _savedReplyCount(m.eventId, savedIds),
                 referenceCount: await _savedReferenceCount(m.eventId, savedIds),
-                quotedNote: m.quoteEventId == null ? null : quotes[m.quoteEventId],
               ),
       ];
       return Right(await _enrichMany(entities));
@@ -210,23 +203,6 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
     }
   }
 
-  /// Batched lookup of every quoted note referenced in [rows]. Quoted notes
-  /// are read from the live `Note` collection; misses are absent from the
-  /// map (renderer shows "Note not available").
-  Future<Map<String, NoteEntity>> _resolveQuotes(
-    Iterable<SavedNoteModel> rows,
-  ) async {
-    final ids = <String>{
-      for (final m in rows)
-        if (m.quoteEventId != null) m.quoteEventId!,
-    };
-    if (ids.isEmpty) return const {};
-    final list = await isar.noteModels
-        .filter()
-        .anyOf(ids, (q, id) => q.eventIdEqualTo(id))
-        .findAll();
-    return {for (final r in list) r.eventId: r.toDomain()};
-  }
 
   Future<Set<String>> _allSavedIds() async {
     final ids =

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
+import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
+import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart';
@@ -39,9 +42,24 @@ class ShareSheetPage extends StatelessWidget {
   }
 }
 
-class _ShareSheetView extends StatelessWidget {
+class _ShareSheetView extends StatefulWidget {
   const _ShareSheetView({required this.sourceEventId});
   final String sourceEventId;
+
+  @override
+  State<_ShareSheetView> createState() => _ShareSheetViewState();
+}
+
+class _ShareSheetViewState extends State<_ShareSheetView> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,21 +109,29 @@ class _ShareSheetView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  // Reuse the canonical composer (no send button — destination
+                  // tiles below are the send action).
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      enabled: !state.submitting,
-                      maxLength: 280,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        hintText: l10n.shareSheetCommentHint,
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (v) =>
-                          bloc.add(ShareSheetEvent.commentChanged(v)),
+                    child: UniunComposer(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      avatarSeed: state.authorPubkey,
+                      hintText: l10n.shareSheetCommentHint,
+                      minLines: 1,
+                      maxLines: 4,
+                      applyBottomInset: false,
+                      onTextChanged: (v) =>
+                          bloc.add(ShareSheetEvent.contentChanged(v)),
+                      references: state.references,
+                      onRemoveReference: (id) =>
+                          bloc.add(ShareSheetEvent.removeReference(id)),
+                      onAddReference: () => _pickReferences(context, bloc, state),
+                      attachments: state.attachments,
+                      onRemoveAttachment: (sha) =>
+                          bloc.add(ShareSheetEvent.removeMedia(sha)),
+                      onAttachMedia: () => _pickMedia(context, bloc, state),
+                      isAttachingMedia: state.uploading,
                     ),
                   ),
                   const Divider(height: 24),
@@ -117,7 +143,7 @@ class _ShareSheetView extends StatelessWidget {
                             scrollController: scrollController,
                             onPick: (dest) => bloc.add(
                               ShareSheetEvent.submit(
-                                sourceEventId: sourceEventId,
+                                sourceEventId: widget.sourceEventId,
                                 destination: dest,
                               ),
                             ),
@@ -137,7 +163,38 @@ class _ShareSheetView extends StatelessWidget {
     );
   }
 
+  Future<void> _pickReferences(
+      BuildContext context, ShareSheetBloc bloc, ShareSheetState state) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await Navigator.of(context).push<List<ComposerReference>>(
+      MaterialPageRoute(
+        builder: (_) => ReferencePickerPage(
+          title: l10n.composerReferenceTitle,
+          searchHint: l10n.composerReferenceSearchHint,
+          emptyLabel: l10n.composerReferenceEmpty,
+          selectedLabel: l10n.composerReferenceSelected,
+          initialSelected: state.references,
+        ),
+      ),
+    );
+    if (result != null) bloc.add(ShareSheetEvent.setReferences(result));
+  }
+
+  Future<void> _pickMedia(
+      BuildContext context, ShareSheetBloc bloc, ShareSheetState state) async {
+    if (state.uploading) return;
+    final picked = await showMediaPickSheet(context);
+    if (picked == null) return;
+    bloc.add(ShareSheetEvent.attachMedia(
+      bytes: picked.bytes,
+      mime: picked.mime,
+      filename: picked.filename,
+      width: picked.width,
+      height: picked.height,
+    ));
+  }
 }
+
 
 class _DestinationList extends StatelessWidget {
   const _DestinationList({

@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nip44/nip44.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
@@ -16,7 +17,7 @@ import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 // user_key_model not needed — privkey is injected via constructor
 import 'package:uniun/core/enum/note_type.dart';
-import 'package:uniun/gateway/inbound/imeta_parser.dart';
+import 'package:uniun/data/models/notes/imeta_parser.dart';
 
 class Nip17EncryptionService {
   final Isar _isar;
@@ -97,7 +98,7 @@ class Nip17EncryptionService {
         final eTagRefs = <String>[];
         String? rootTo;
         String? replyTo;
-        String? quoteEventId;
+        String? embeddedNoteJson;
 
         final tagsList = chatEvent['tags'] as List<dynamic>? ?? [];
         for (final tagObj in tagsList) {
@@ -114,8 +115,10 @@ class Nip17EncryptionService {
               replyTo ??= tagObj[1] as String;
             }
           }
-          if (tagObj[0] == 'q' && tagObj.length >= 2) {
-            quoteEventId ??= tagObj[1] as String;
+          if (tagObj[0] == EmbeddedNoteCodec.tagName && tagObj.length >= 2) {
+            // Embed-by-value share — verify the snapshot once, here at the edge.
+            embeddedNoteJson =
+                EmbeddedNoteCodec.verifyAndSanitize(tagObj[1] as String);
           }
           if (tagObj[0] == 'subject' && tagObj.length >= 2) subject = tagObj[1] as String;
         }
@@ -173,7 +176,7 @@ class Nip17EncryptionService {
             created: DateTime.fromMillisecondsSinceEpoch(
               (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
             ),
-            quoteEventId: quoteEventId,
+            embeddedNoteJson: embeddedNoteJson,
             attachments: attachments,
           );
 
@@ -247,9 +250,9 @@ class Nip17EncryptionService {
               id != unsignedModel.rootEventId)
           .toList();
 
-      // Build the NIP-14 unsigned payload. When the model carries a
-      // [quoteEventId] (a share/quote), emit a NIP-18 `q` tag inside the
-      // encrypted rumor so the receiver can render the embed.
+      // Build the NIP-14 unsigned payload. When the model carries an
+      // [embeddedNoteJson] (a share/quote), emit the embed-by-value snapshot
+      // tag inside the encrypted rumor so the receiver renders the embed.
       final chatPayload = {
         'pubkey': myPubkey,
         'created_at': currentSec,
@@ -261,8 +264,8 @@ class Nip17EncryptionService {
           if (unsignedModel.replyToEventId != null)
             ['e', unsignedModel.replyToEventId, '', 'reply'],
           for (final id in mentionRefs) ['e', id, '', 'mention'],
-          if (unsignedModel.quoteEventId != null)
-            ['q', unsignedModel.quoteEventId!],
+          if (unsignedModel.embeddedNoteJson != null)
+            EmbeddedNoteCodec.tag(unsignedModel.embeddedNoteJson!),
           // NIP-92 imeta — one tag per attachment. The relay never sees this
           // (it's inside the encrypted seal); the receiver decrypts, walks
           // the tags, and rebuilds NoteModel.attachments.

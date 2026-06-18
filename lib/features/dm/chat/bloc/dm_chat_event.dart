@@ -21,6 +21,15 @@ final class DmChatSendEvent extends DmChatEvent {
 
 final class DmChatRefreshEvent extends DmChatEvent {}
 
+/// Start composing a reply that embeds [note] by value into the next DM.
+final class DmChatStartReplyEvent extends DmChatEvent {
+  final NoteEntity note;
+  DmChatStartReplyEvent(this.note);
+}
+
+/// Dismiss the active reply context (the composer strip ✕).
+final class DmChatCancelReplyEvent extends DmChatEvent {}
+
 /// A message scrolled past the viewport — delete its unread row.
 final class DmChatMarkSeenEvent extends DmChatEvent {
   final String eventId;

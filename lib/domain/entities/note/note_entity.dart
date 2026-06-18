@@ -53,12 +53,15 @@ abstract class NoteEntity with _$NoteEntity {
     /// Resolved by [FeedRepository] at query time from the channel/group rows.
     String? sourceLabel,
 
-    /// NIP-18 quote tag id.
-    String? quoteEventId,
+    /// Raw self-contained snapshot of the embedded original (the
+    /// `embeddedNoteJson` tag / MLS envelope key `"em"`). Source of truth for
+    /// [quotedNote]; null when this note quotes nothing. A blanked `sig` inside
+    /// it means the embed failed signature verification (see EmbeddedNoteCodec).
+    String? embeddedNoteJson,
 
     /// Pre-resolved one level deep ([quotedNote.quotedNote] is always null).
-    /// Null when [quoteEventId] is non-null but resolution missed (encrypted
-    /// or absent) — renderer shows "Note not available".
+    /// Built from [embeddedNoteJson] (self-contained, retention-immune). Its
+    /// `sig` is empty when the embed is unverified — the renderer badges it.
     NoteEntity? quotedNote,
 
     /// True when this note carries one or more NIP-92 `imeta` tags. Lets

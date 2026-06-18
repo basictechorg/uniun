@@ -28,24 +28,16 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
         referenceCount: await _relations.referenceCount(m.eventId),
       );
 
-  /// Resolves a single NIP-18 quoted note, if any. Cheap fall-through when
-  /// [note.quoteEventId] is null. Batched callers should use [enrichWithQuotes].
-  Future<NoteEntity> _enrichQuote(NoteEntity note) async {
-    final qid = note.quoteEventId;
-    if (qid == null) return note;
-    final row = await isar.noteModels.where().eventIdEqualTo(qid).findFirst();
-    if (row == null) return note;
-    return note.copyWith(quotedNote: row.toDomain());
-  }
-
   @override
   Future<Either<Failure, NoteEntity>> resolveById(String id) async {
     try {
       final note =
           await isar.noteModels.where().eventIdEqualTo(id).findFirst();
       if (note != null) {
-        final enriched = await _enrichQuote(await _withCounts(note));
-        return Right(await _attachments.enrichOne(enriched));
+        // quotedNote is built in NoteModel.toDomain() from the embeddedNoteJson
+        // snapshot (no Isar lookup, retention-immune); only attachments need
+        // local-cache enrichment.
+        return Right(await _attachments.enrichOne(await _withCounts(note)));
       }
 
       return Left(Failure.notFoundFailure('Note not found: $id'));
@@ -98,33 +90,9 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
   @override
   Future<List<NoteEntity>> enrichWithQuotes(List<NoteEntity> notes) async {
     if (notes.isEmpty) return notes;
-    final quoteIds = <String>{
-      for (final n in notes)
-        if (n.quoteEventId != null) n.quoteEventId!,
-    };
-
-    // Resolve quoted-note targets in one query (skip when nothing to quote).
-    Map<String, NoteEntity> quoteById = const {};
-    if (quoteIds.isNotEmpty) {
-      final rows = await isar.noteModels
-          .filter()
-          .anyOf(quoteIds, (q, id) => q.eventIdEqualTo(id))
-          .findAll();
-      // Pre-enrich attachments on quoted notes too so embedded media
-      // renders inline inside EmbeddedNoteCard.
-      final quoteEntities =
-          await _attachments.enrichAll([for (final m in rows) m.toDomain()]);
-      quoteById = {for (final n in quoteEntities) n.id: n};
-    }
-
-    final withQuotes = [
-      for (final n in notes)
-        n.quoteEventId == null
-            ? n
-            : n.copyWith(quotedNote: quoteById[n.quoteEventId]),
-    ];
-
-    // Top-level attachments. Cheap if nothing in the list has hasMedia.
-    return _attachments.enrichAll(withQuotes);
+    // quotedNote is built in NoteModel.toDomain() from the embeddedNoteJson
+    // snapshot (no Isar lookup, retention-immune). Only top-level attachments
+    // still need local-cache enrichment.
+    return _attachments.enrichAll(notes);
   }
 }

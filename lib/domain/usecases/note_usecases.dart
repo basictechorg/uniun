@@ -186,8 +186,6 @@ class PublishNoteUseCase
   Future<Either<Failure, NoteEntity>> call(
     NoteEntity note, {
     bool cached = false,
-    String? quoteAuthorPubkey,
-    int? quoteKind,
   }) async {
     // 1. Save locally first so the note appears in feed immediately.
     final saveResult = await _noteRepository.saveNote(note);
@@ -207,9 +205,7 @@ class PublishNoteUseCase
       tTags: note.tTags,
       content: note.content,
       created: note.created,
-      quoteEventId: note.quoteEventId,
-      quoteAuthorPubkey: quoteAuthorPubkey,
-      quoteKind: quoteKind,
+      embeddedNoteJson: note.embeddedNoteJson,
     );
 
     if (enqueueResult.isLeft()) {

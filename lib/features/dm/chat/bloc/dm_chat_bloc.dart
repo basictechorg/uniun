@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
@@ -46,6 +47,16 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
     on<DmChatRefreshEvent>(_onRefresh);
     on<DmChatMarkSeenEvent>(_onMarkSeen);
     on<DmChatMarkAllSeenEvent>(_onMarkAllSeen);
+    on<DmChatStartReplyEvent>(_onStartReply);
+    on<DmChatCancelReplyEvent>(_onCancelReply);
+  }
+
+  void _onStartReply(DmChatStartReplyEvent event, Emitter<DmChatState> emit) {
+    emit(state.copyWith(replyingToNote: event.note));
+  }
+
+  void _onCancelReply(DmChatCancelReplyEvent event, Emitter<DmChatState> emit) {
+    emit(state.copyWith(clearReplyingTo: true));
   }
 
   Future<void> _onMarkSeen(
@@ -110,6 +121,14 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
 
     emit(state.copyWith(isSending: true));
     try {
+      // When replying, embed the tapped message by value. The codec emits only
+      // e/p/t/imeta tags, so any nested quote is dropped automatically —
+      // quotedNote stays one level deep.
+      final replyTarget = state.replyingToNote;
+      final embeddedNoteJson = replyTarget == null
+          ? null
+          : EmbeddedNoteCodec.encodeFromEntity(replyTarget);
+
       final params = SendDmParams(
         otherPubkey: state.otherPubkey!,
         content: event.content.trim(),
@@ -117,6 +136,7 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
             ? NoteType.image
             : NoteType.text,
         mentionRefs: event.mentionRefs,
+        embeddedNoteJson: embeddedNoteJson,
         attachments: event.attachments,
       );
 
@@ -127,9 +147,14 @@ class DmChatBloc extends Bloc<DmChatEvent, DmChatState> {
           errorMessage: failure.toMessage(),
         )),
         (_) {
-          // Success. The Isar watcher will naturally pick up the newly written 
-          // unencrypted DmMessageModel and trigger a reload.
-          emit(state.copyWith(isSending: false, errorMessage: null));
+          // Success. The Isar watcher will naturally pick up the newly written
+          // unencrypted DmMessageModel and trigger a reload. Clear the reply
+          // context so the composer strip dismisses.
+          emit(state.copyWith(
+            isSending: false,
+            errorMessage: null,
+            clearReplyingTo: true,
+          ));
         }
       );
     } catch (e, st) {

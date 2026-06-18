@@ -125,6 +125,17 @@ class _DmChatViewState extends State<_DmChatView> {
     context.pushNamed(AppRoutes.thread, pathParameters: {'noteId': messageId});
   }
 
+  /// Display name for the reply strip — the replied-to message's author
+  /// (either participant), falling back to a shortened pubkey.
+  String? _replyName(DmChatState state) {
+    final note = state.replyingToNote;
+    if (note == null) return null;
+    final name = state.profiles[note.authorPubkey]?.name?.trim();
+    if (name != null && name.isNotEmpty) return name;
+    final pk = note.authorPubkey;
+    return pk.length > 12 ? '${pk.substring(0, 12)}...' : pk;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<DmChatBloc, DmChatState>(
@@ -223,11 +234,17 @@ class _DmChatViewState extends State<_DmChatView> {
                                   key: ValueKey(msg.id),
                                   note: msg,
                                   onTap: () => _openThread(context, msg.id),
+                                  onReply: () => context
+                                      .read<DmChatBloc>()
+                                      .add(DmChatStartReplyEvent(msg)),
                                 )
                               : DmNoteCard(
                                   key: ValueKey(msg.id),
                                   note: msg,
                                   onTap: () => _openThread(context, msg.id),
+                                  onReply: () => context
+                                      .read<DmChatBloc>()
+                                      .add(DmChatStartReplyEvent(msg)),
                                 );
                           return VisibilityDetector(
                             key: ValueKey('dm-${msg.id}'),
@@ -241,6 +258,10 @@ class _DmChatViewState extends State<_DmChatView> {
               ComposerHost(
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
+                replyingToName: _replyName(state),
+                replyingToPreview: state.replyingToNote?.content,
+                onClearReply: () =>
+                    context.read<DmChatBloc>().add(DmChatCancelReplyEvent()),
                 onSend: (text, refs, attachments) =>
                     context.read<DmChatBloc>().add(
                           DmChatSendEvent(

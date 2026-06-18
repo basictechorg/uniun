@@ -22,10 +22,20 @@ class ComposerHost extends StatefulWidget {
     required this.onSend,
     this.isSending = false,
     this.applyBottomInset = true,
+    this.replyingToName,
+    this.replyingToPreview,
+    this.onClearReply,
   });
 
   final String hintText;
   final bool isSending;
+
+  /// Reply context shown as a strip above the input. When [replyingToName] is
+  /// null the strip is hidden. [replyingToPreview] is an optional one-line
+  /// snippet of the message being replied to; [onClearReply] dismisses it.
+  final String? replyingToName;
+  final String? replyingToPreview;
+  final VoidCallback? onClearReply;
 
   /// Per-surface send action: post [content] with the picked [mentionRefs]
   /// and any [attachments] already uploaded to Blossom.
@@ -161,6 +171,9 @@ class _ComposerHostState extends State<ComposerHost> {
       hintText: widget.hintText,
       canSend: _hasText || _attachments.isNotEmpty,
       isSending: widget.isSending,
+      replyingToName: widget.replyingToName,
+      replyingToPreview: widget.replyingToPreview,
+      onClearReply: widget.onClearReply,
       references: _mentionRefs,
       markdownEnabled: true,
       applyBottomInset: widget.applyBottomInset,

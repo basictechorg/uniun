@@ -50,7 +50,7 @@ class ChannelMessageRepositoryImpl extends ChannelMessageRepository {
         replyToEventId: message.replyToEventId,
         tTags: const [],
         created: message.created,
-        quoteEventId: message.quoteEventId,
+        embeddedNoteJson: message.embeddedNoteJson,
         attachments: [
           for (final a in message.attachments)
             MediaAttachment()

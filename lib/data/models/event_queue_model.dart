@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
+import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -37,10 +38,13 @@ class EventQueueModel {
   late List<String> tTags;
   late DateTime created;
 
-  /// NIP-18 quote info — re-emitted on the wire so the broadcast event
-  /// hashes back to [eventId] (sig validation depends on it).
-  String? quoteEventId;
-  String? quoteAuthorPubkey;
+  /// Embed-by-value share snapshot — re-emitted as the `embeddedNoteJson` tag
+  /// so the broadcast event hashes back to [eventId] (sig validation depends on
+  /// it). See [EmbeddedNoteCodec].
+  String? embeddedNoteJson;
+
+  /// NIP-37 draft kind hint → `["k","1"]`. Drafts only; no quote pointer exists
+  /// anymore (kept the name to avoid churn across the enqueue interface).
   int? quoteKind;
 
   /// NIP-29 private channel group id → `["h", hTag]`.
@@ -77,8 +81,8 @@ class EventQueueModel {
 ///   5. t…
 ///   6. h          (NIP-29 private channel)
 ///   7. d          (NIP-37 draft id)
-///   8. k          (NIP-18 quoted kind; drafts use ["k","1"])
-///   9. q          (NIP-18 quote)
+///   8. k          (NIP-37 draft kind hint ["k","1"]; drafts only)
+///   9. embeddedNoteJson (UNIUN embed-by-value share snapshot)
 ///  10. expiration (NIP-37 expiry)
 ///  11. server…    (BUD-03)
 ///  12. imeta…     (NIP-92)
@@ -96,6 +100,7 @@ extension EventQueueModelExtension on EventQueueModel {
     pTagRefs = List<String>.from(note.pTagRefs);
     tTags = List<String>.from(note.tTags);
     created = note.created;
+    embeddedNoteJson = note.embeddedNoteJson;
     imeta = List<MediaAttachment>.from(note.attachments);
     sentCount = 0;
     enqueuedAt = DateTime.now();
@@ -118,6 +123,7 @@ extension EventQueueModelExtension on EventQueueModel {
     pTagRefs = List<String>.from(note.pTagRefs);
     tTags = List<String>.from(note.tTags);
     created = note.created;
+    embeddedNoteJson = note.embeddedNoteJson;
     imeta = note.attachments
         .map((b) => MediaAttachment()
           ..sha256 = b.sha256
@@ -149,8 +155,8 @@ extension EventQueueModelExtension on EventQueueModel {
       if (hTag != null) ['h', hTag!],
       if (dTag != null) ['d', dTag!],
       if (quoteKind != null) ['k', quoteKind!.toString()],
-      if (quoteEventId != null)
-        ['q', quoteEventId!, '', quoteAuthorPubkey ?? ''],
+      if (embeddedNoteJson != null)
+        [EmbeddedNoteCodec.tagName, embeddedNoteJson!],
       if (expirationSec != null) ['expiration', expirationSec!.toString()],
       for (final url in serverTags) ['server', url],
       for (final a in imeta) _imetaTag(a),

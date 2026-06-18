@@ -5,6 +5,7 @@ import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// A lightweight reference shown as a chip above the composer text.
 /// [id] is the referenced event id; [label] is a human preview of it.
@@ -32,8 +33,8 @@ class UniunComposer extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.avatarSeed,
-    required this.onSend,
-    required this.canSend,
+    this.onSend,
+    this.canSend = true,
     required this.hintText,
     this.avatarUrl,
     this.onAvatarTap,
@@ -41,6 +42,7 @@ class UniunComposer extends StatefulWidget {
     this.onRemoveReference,
     this.onAddReference,
     this.replyingToName,
+    this.replyingToPreview,
     this.onClearReply,
     this.onDraft,
     this.draftLabel,
@@ -61,7 +63,10 @@ class UniunComposer extends StatefulWidget {
   final FocusNode focusNode;
   final String avatarSeed;
   final String? avatarUrl;
-  final VoidCallback onSend;
+
+  /// Tap on the send button. When null, the send button is hidden — used by
+  /// surfaces (e.g. the share sheet) where sending is triggered elsewhere.
+  final VoidCallback? onSend;
   final bool canSend;
   final String hintText;
 
@@ -77,6 +82,10 @@ class UniunComposer extends StatefulWidget {
 
   /// Reply-target context pill (channel/thread replies).
   final String? replyingToName;
+
+  /// Optional one-line snippet of the message being replied to, shown beneath
+  /// the "Replying to …" header. When null the strip shows only the header.
+  final String? replyingToPreview;
   final VoidCallback? onClearReply;
 
   /// Optional draft action (Brahma). When null, the draft button is hidden.
@@ -146,8 +155,11 @@ class _UniunComposerState extends State<UniunComposer> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
             if (widget.replyingToName != null) ...[
-              _ReplyPill(
-                  name: widget.replyingToName!, onClear: widget.onClearReply),
+              _ReplyBanner(
+                name: widget.replyingToName!,
+                preview: widget.replyingToPreview,
+                onClear: widget.onClearReply,
+              ),
               const SizedBox(height: 8),
             ],
             if (widget.references.isNotEmpty) ...[
@@ -277,31 +289,32 @@ class _UniunComposerState extends State<UniunComposer> {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  GestureDetector(
-                    onTap: widget.canSend && !widget.isSending
-                        ? widget.onSend
-                        : null,
-                    child: AnimatedOpacity(
-                      opacity: widget.canSend ? 1.0 : 0.4,
-                      duration: const Duration(milliseconds: 150),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
+                  if (widget.onSend != null)
+                    GestureDetector(
+                      onTap: widget.canSend && !widget.isSending
+                          ? widget.onSend
+                          : null,
+                      child: AnimatedOpacity(
+                        opacity: widget.canSend ? 1.0 : 0.4,
+                        duration: const Duration(milliseconds: 150),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: widget.isSending
+                              ? const Padding(
+                                  padding: EdgeInsets.all(11),
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Icon(Icons.arrow_upward_rounded,
+                                  size: 20, color: Colors.white),
                         ),
-                        child: widget.isSending
-                            ? const Padding(
-                                padding: EdgeInsets.all(11),
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Icon(Icons.arrow_upward_rounded,
-                                size: 20, color: Colors.white),
                       ),
                     ),
-                  ),
                 ],
               ),
           ],
@@ -354,36 +367,73 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-class _ReplyPill extends StatelessWidget {
-  const _ReplyPill({required this.name, this.onClear});
+/// Compact reply-context strip shown above the input: an accent bar, a
+/// "Replying to @name" header, an optional one-line content [preview], and a ✕
+/// to dismiss. The preview row is omitted when no snippet is supplied.
+class _ReplyBanner extends StatelessWidget {
+  const _ReplyBanner({required this.name, this.preview, this.onClear});
 
   final String name;
+  final String? preview;
   final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final snippet = preview?.trim() ?? '';
+    final hasPreview = snippet.isNotEmpty;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '@$name',
-            style: const TextStyle(
-              fontSize: 12,
+          Container(
+            width: 3,
+            height: hasPreview ? 30 : 14,
+            decoration: BoxDecoration(
               color: AppColors.primary,
-              fontWeight: FontWeight.w600,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.threadReplyingTo(name),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (hasPreview) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    snippet,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 6),
           GestureDetector(
             onTap: onClear,
             child: const Icon(Icons.close_rounded,
-                size: 14, color: AppColors.primary),
+                size: 16, color: AppColors.primary),
           ),
         ],
       ),
