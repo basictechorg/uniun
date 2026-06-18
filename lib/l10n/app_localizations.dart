@@ -3304,6 +3304,24 @@ abstract class AppLocalizations {
   /// **'(note unavailable)'**
   String get manasFormNoteUnavailable;
 
+  /// Provenance badge on search-result rows for saved notes
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get manasFormKindSaved;
+
+  /// Provenance badge on search-result rows for own (authored) notes
+  ///
+  /// In en, this message translates to:
+  /// **'Own'**
+  String get manasFormKindOwn;
+
+  /// Provenance badge on search-result rows for local drafts
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get manasFormKindDraft;
+
   /// Title of the form's delete confirmation dialog
   ///
   /// In en, this message translates to:
@@ -3411,6 +3429,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick an icon'**
   String get manasIconPickerTitle;
+
+  /// Section header above the Ganas list in the Shiv drawer
+  ///
+  /// In en, this message translates to:
+  /// **'GANAS'**
+  String get ganaDrawerSectionTitle;
+
+  /// Empty-state title in the Ganas section
+  ///
+  /// In en, this message translates to:
+  /// **'No Ganas yet'**
+  String get ganaDrawerEmptyTitle;
+
+  /// Empty-state body in the Ganas section
+  ///
+  /// In en, this message translates to:
+  /// **'Create an AI worker that watches a surface and publishes for you.'**
+  String get ganaDrawerEmptyBody;
+
+  /// Add-new button in the Ganas section header
+  ///
+  /// In en, this message translates to:
+  /// **'+ New Gana'**
+  String get ganaDrawerNewButton;
+
+  /// Status pill on a Gana tile when it is disabled
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get ganaTileDisabled;
+
+  /// Subtitle fragment shown when a Gana fires on new input
+  ///
+  /// In en, this message translates to:
+  /// **'Reactive'**
+  String get ganaTileTriggerReactive;
+
+  /// Subtitle fragment for an interval Gana; {n} is the minute count
+  ///
+  /// In en, this message translates to:
+  /// **'Every {n}m'**
+  String ganaTileTriggerInterval(int n);
+
+  /// Subtitle when a Gana has both triggers
+  ///
+  /// In en, this message translates to:
+  /// **'Reactive + every {n}m'**
+  String ganaTileTriggerBoth(int n);
+
+  /// Last-run label when the Gana has never run
+  ///
+  /// In en, this message translates to:
+  /// **'No runs yet'**
+  String get ganaTileLastRunNever;
+
+  /// Last-run label on success; {when} is a relative time
+  ///
+  /// In en, this message translates to:
+  /// **'Last run · {when}'**
+  String ganaTileLastRunSucceeded(String when);
+
+  /// Last-run label when the most recent run was skipped
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped · {when}'**
+  String ganaTileLastRunSkipped(String when);
+
+  /// Last-run label when the most recent run failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed · {when}'**
+  String ganaTileLastRunFailed(String when);
+
+  /// AppBar title in create mode
+  ///
+  /// In en, this message translates to:
+  /// **'New Gana'**
+  String get ganaFormCreateTitle;
+
+  /// AppBar title in edit mode
+  ///
+  /// In en, this message translates to:
+  /// **'Edit · {name}'**
+  String ganaFormEditTitle(String name);
+
+  /// Edit-mode title when the name is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Gana'**
+  String get ganaFormEditTitleFallback;
+
+  /// AppBar action — save the Gana
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get ganaFormSaveAction;
+
+  /// Edit-mode delete button label
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Gana'**
+  String get ganaFormDeleteAction;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get ganaFormNameLabel;
+
+  /// Name field placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Life Lessons Replier'**
+  String get ganaFormNameHint;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get ganaFormDescriptionLabel;
+
+  /// Description placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. What is this Gana for?'**
+  String get ganaFormDescriptionHint;
+
+  /// Section title above the Manas multi-select
+  ///
+  /// In en, this message translates to:
+  /// **'MANASES'**
+  String get ganaFormManasSectionTitle;
+
+  /// Helper text under the section title
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one or more Manases the Gana will use as knowledge.'**
+  String get ganaFormManasSectionSubtitle;
+
+  /// Empty-state when the user has no Manases
+  ///
+  /// In en, this message translates to:
+  /// **'No Manases yet. Create one in Brahma first.'**
+  String get ganaFormManasEmpty;
+
+  /// Field label
+  ///
+  /// In en, this message translates to:
+  /// **'Task prompt'**
+  String get ganaFormTaskPromptLabel;
+
+  /// Placeholder for the task prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Tell the Gana what to do. e.g. \"When someone posts a question here, reply with the most relevant note from my Manas and add one line of commentary.\"'**
+  String get ganaFormTaskPromptHint;
+
+  /// Section title for the input source
+  ///
+  /// In en, this message translates to:
+  /// **'INPUT'**
+  String get ganaFormInputSectionTitle;
+
+  /// Input-type option meaning no input surface
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone (no input)'**
+  String get ganaFormInputStandalone;
+
+  /// Input-type option
+  ///
+  /// In en, this message translates to:
+  /// **'Public channel'**
+  String get ganaFormInputChannel;
+
+  /// Input-type option
+  ///
+  /// In en, this message translates to:
+  /// **'Private channel'**
+  String get ganaFormInputPrivateChannel;
+
+  /// Input-type option
+  ///
+  /// In en, this message translates to:
+  /// **'DM'**
+  String get ganaFormInputDm;
+
+  /// Input-type option
+  ///
+  /// In en, this message translates to:
+  /// **'A user\'s notes'**
+  String get ganaFormInputUser;
+
+  /// Input-type option
+  ///
+  /// In en, this message translates to:
+  /// **'Followed note thread'**
+  String get ganaFormInputFollowedNote;
+
+  /// Hint in the input-ref picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a source'**
+  String get ganaFormInputPickHint;
+
+  /// Hint when picking the user input ref
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a pubkey (hex or npub)'**
+  String get ganaFormInputUserHint;
+
+  /// Section title for the output destination
+  ///
+  /// In en, this message translates to:
+  /// **'OUTPUT'**
+  String get ganaFormOutputSectionTitle;
+
+  /// Output destination
+  ///
+  /// In en, this message translates to:
+  /// **'Main feed (Kind 1)'**
+  String get ganaFormOutputFeed;
+
+  /// Output destination
+  ///
+  /// In en, this message translates to:
+  /// **'Public channel'**
+  String get ganaFormOutputChannel;
+
+  /// Output destination
+  ///
+  /// In en, this message translates to:
+  /// **'Private channel'**
+  String get ganaFormOutputPrivateChannel;
+
+  /// Output destination
+  ///
+  /// In en, this message translates to:
+  /// **'DM'**
+  String get ganaFormOutputDm;
+
+  /// Hint in the output-ref picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a destination'**
+  String get ganaFormOutputPickHint;
+
+  /// Section title for model selection
+  ///
+  /// In en, this message translates to:
+  /// **'MODEL'**
+  String get ganaFormModelSectionTitle;
+
+  /// Default option when no specific model is pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Use whichever model is active'**
+  String get ganaFormModelUseActive;
+
+  /// Section title for trigger config
+  ///
+  /// In en, this message translates to:
+  /// **'TRIGGERS'**
+  String get ganaFormTriggersSectionTitle;
+
+  /// Reactive trigger toggle label
+  ///
+  /// In en, this message translates to:
+  /// **'React to new input'**
+  String get ganaFormReactiveLabel;
+
+  /// Reactive trigger helper text
+  ///
+  /// In en, this message translates to:
+  /// **'Fires within a few seconds of a new message on the input surface.'**
+  String get ganaFormReactiveHelp;
+
+  /// Interval trigger label
+  ///
+  /// In en, this message translates to:
+  /// **'Run every'**
+  String get ganaFormIntervalLabel;
+
+  /// Interval trigger unit hint
+  ///
+  /// In en, this message translates to:
+  /// **'minutes (min 5)'**
+  String get ganaFormIntervalUnit;
+
+  /// Master switch label
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get ganaFormEnabledLabel;
+
+  /// Master switch helper text
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. Turn on once you\'ve reviewed the config.'**
+  String get ganaFormEnabledHelp;
+
+  /// Section header for the run log in edit mode
+  ///
+  /// In en, this message translates to:
+  /// **'RECENT RUNS'**
+  String get ganaFormRunsSectionTitle;
+
+  /// Empty state for the run log
+  ///
+  /// In en, this message translates to:
+  /// **'This Gana hasn\'t run yet.'**
+  String get ganaFormRunsEmpty;
+
+  /// Delete confirmation title
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this Gana?'**
+  String get ganaFormDeleteConfirmTitle;
+
+  /// Delete confirmation body
+  ///
+  /// In en, this message translates to:
+  /// **'This stops the worker and removes its run log. The Manases and notes it referenced are not affected.'**
+  String get ganaFormDeleteConfirmBody;
+
+  /// Destructive confirm
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get ganaFormDeleteConfirmConfirm;
+
+  /// Cancel action
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get ganaFormDeleteConfirmCancel;
+
+  /// Run-status label
+  ///
+  /// In en, this message translates to:
+  /// **'Succeeded'**
+  String get ganaRunStatusSucceeded;
+
+  /// Run-status label
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get ganaRunStatusSkipped;
+
+  /// Run-status label
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get ganaRunStatusFailed;
+
+  /// Run-status label
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get ganaRunStatusRunning;
 }
 
 class _AppLocalizationsDelegate

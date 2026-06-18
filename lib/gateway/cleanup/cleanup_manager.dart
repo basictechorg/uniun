@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
+import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/media/media_cache_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
@@ -64,11 +65,60 @@ class CleanupManager {
     try {
       await _evictNotes();
       await _gcMedia();
+      await _pruneGanaRuns();
     } catch (e, st) {
       debugPrint('CleanupManager run failed: $e\n$st');
     } finally {
       _running = false;
     }
+  }
+
+  // ── Phase 3: Gana run-log retention ─────────────────────────────────────
+  //
+  // Per ganas.md §1.7, the run log is a per-Gana ring (last 10) with a
+  // hard global cap (1000). Cheap: a couple of indexed queries per Gana
+  // every 6 hours.
+  static const int _keepRunsPerGana = 10;
+  static const int _ganaRunsGlobalCap = 1000;
+
+  Future<void> _pruneGanaRuns() async {
+    final allGanaIds = (await isar.ganaRunModels.where().findAll())
+        .map((r) => r.ganaId)
+        .toSet();
+    if (allGanaIds.isEmpty) return;
+
+    await isar.writeTxn(() async {
+      for (final gid in allGanaIds) {
+        final keep = await isar.ganaRunModels
+            .filter()
+            .ganaIdEqualTo(gid)
+            .sortByStartedAtDesc()
+            .limit(_keepRunsPerGana)
+            .idProperty()
+            .findAll();
+        final keepSet = keep.toSet();
+        final allIds = await isar.ganaRunModels
+            .filter()
+            .ganaIdEqualTo(gid)
+            .idProperty()
+            .findAll();
+        final victims = allIds.where((i) => !keepSet.contains(i)).toList();
+        if (victims.isNotEmpty) {
+          await isar.ganaRunModels.deleteAll(victims);
+        }
+      }
+      // Global cap — defensive against pathologically many Ganas.
+      final total = await isar.ganaRunModels.count();
+      if (total > _ganaRunsGlobalCap) {
+        final overflow = await isar.ganaRunModels
+            .where()
+            .sortByStartedAt()
+            .limit(total - _ganaRunsGlobalCap)
+            .idProperty()
+            .findAll();
+        await isar.ganaRunModels.deleteAll(overflow);
+      }
+    });
   }
 
   // ── Phase 1: note eviction ──────────────────────────────────────────────

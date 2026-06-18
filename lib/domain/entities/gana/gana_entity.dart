@@ -1,0 +1,45 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:uniun/core/enum/gana_input_type.dart';
+import 'package:uniun/core/enum/gana_output_type.dart';
+
+part 'gana_entity.freezed.dart';
+
+@freezed
+abstract class GanaEntity with _$GanaEntity {
+  const factory GanaEntity({
+    required String ganaId,
+    required String name,
+    String? description,
+    @Default(<String>[]) List<String> manasIds,
+    required String taskPrompt,
+
+    // Input
+    GanaInputType? inputType,
+    String? inputRefId,
+
+    // Output
+    required GanaOutputType outputType,
+    String? outputChannelId,
+    String? outputGroupId,
+    int? outputDmConversationId,
+
+    // Model preference
+    String? desiredModelId,
+
+    // Triggers
+    @Default(false) bool triggerReactive,
+    int? triggerIntervalMinutes,
+
+    // Master switch
+    @Default(false) bool enabled,
+
+    // Cursor
+    String? lastProcessedEventId,
+    DateTime? lastProcessedCreated,
+    DateTime? lastRunAt,
+
+    // Metadata
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _GanaEntity;
+}

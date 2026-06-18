@@ -1,0 +1,80 @@
+part of 'gana_form_bloc.dart';
+
+sealed class GanaFormEvent {
+  const GanaFormEvent();
+}
+
+class GanaFormLoadEvent extends GanaFormEvent {
+  const GanaFormLoadEvent(this.ganaId);
+  final String? ganaId; // null ⇒ create mode
+}
+
+class GanaFormNameChangedEvent extends GanaFormEvent {
+  const GanaFormNameChangedEvent(this.value);
+  final String value;
+}
+
+class GanaFormDescriptionChangedEvent extends GanaFormEvent {
+  const GanaFormDescriptionChangedEvent(this.value);
+  final String value;
+}
+
+class GanaFormToggleManasEvent extends GanaFormEvent {
+  const GanaFormToggleManasEvent(this.manasId);
+  final String manasId;
+}
+
+class GanaFormTaskPromptChangedEvent extends GanaFormEvent {
+  const GanaFormTaskPromptChangedEvent(this.value);
+  final String value;
+}
+
+class GanaFormInputTypeChangedEvent extends GanaFormEvent {
+  const GanaFormInputTypeChangedEvent(this.value);
+  final GanaInputType? value;
+}
+
+class GanaFormInputRefChangedEvent extends GanaFormEvent {
+  const GanaFormInputRefChangedEvent(this.value);
+  final String? value;
+}
+
+class GanaFormOutputTypeChangedEvent extends GanaFormEvent {
+  const GanaFormOutputTypeChangedEvent(this.value);
+  final GanaOutputType value;
+}
+
+class GanaFormOutputRefChangedEvent extends GanaFormEvent {
+  const GanaFormOutputRefChangedEvent(this.value);
+  // Type depends on state.outputType: String? for channel/privateChannel,
+  // int? for dm, ignored for feed.
+  final Object? value;
+}
+
+class GanaFormModelChangedEvent extends GanaFormEvent {
+  const GanaFormModelChangedEvent(this.value);
+  final String? value; // null ⇒ "use active"
+}
+
+class GanaFormReactiveToggleEvent extends GanaFormEvent {
+  const GanaFormReactiveToggleEvent(this.value);
+  final bool value;
+}
+
+class GanaFormIntervalChangedEvent extends GanaFormEvent {
+  const GanaFormIntervalChangedEvent(this.value);
+  final int? value;
+}
+
+class GanaFormEnabledToggleEvent extends GanaFormEvent {
+  const GanaFormEnabledToggleEvent(this.value);
+  final bool value;
+}
+
+class GanaFormSubmitEvent extends GanaFormEvent {
+  const GanaFormSubmitEvent();
+}
+
+class GanaFormDeleteEvent extends GanaFormEvent {
+  const GanaFormDeleteEvent();
+}

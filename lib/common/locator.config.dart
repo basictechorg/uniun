@@ -55,6 +55,8 @@ import 'package:uniun/data/repositories/followed_note_repository_impl.dart'
     as _i107;
 import 'package:uniun/data/repositories/followed_user_repository_impl.dart'
     as _i791;
+import 'package:uniun/data/repositories/gana_repository_impl.dart' as _i899;
+import 'package:uniun/data/repositories/gana_run_repository_impl.dart' as _i678;
 import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
 import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
     as _i147;
@@ -107,6 +109,8 @@ import 'package:uniun/domain/repositories/followed_note_repository.dart'
     as _i836;
 import 'package:uniun/domain/repositories/followed_user_repository.dart'
     as _i849;
+import 'package:uniun/domain/repositories/gana_repository.dart' as _i160;
+import 'package:uniun/domain/repositories/gana_run_repository.dart' as _i534;
 import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
 import 'package:uniun/domain/repositories/llm_credentials_repository.dart'
     as _i819;
@@ -148,6 +152,7 @@ import 'package:uniun/domain/usecases/draft_usecases.dart' as _i537;
 import 'package:uniun/domain/usecases/feed_usecases.dart' as _i837;
 import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
 import 'package:uniun/domain/usecases/followed_user_usecases.dart' as _i63;
+import 'package:uniun/domain/usecases/gana_usecases.dart' as _i219;
 import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart' as _i263;
 import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart'
     as _i689;
@@ -193,6 +198,14 @@ import 'package:uniun/features/settings/cubit/settings_cubit.dart' as _i331;
 import 'package:uniun/features/settings/cubit/storage_cubit.dart' as _i13;
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart' as _i574;
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart' as _i190;
+import 'package:uniun/features/shiv/gana/form/bloc/gana_form_bloc.dart'
+    as _i942;
+import 'package:uniun/features/shiv/gana/inference/gana_inference_server.dart'
+    as _i1035;
+import 'package:uniun/features/shiv/gana/inference/gana_output_dispatcher.dart'
+    as _i836;
+import 'package:uniun/features/shiv/gana/list/bloc/gana_list_bloc.dart'
+    as _i174;
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart'
     as _i687;
 import 'package:uniun/features/shiv/rag/embedding/embedding_model_downloader.dart'
@@ -291,6 +304,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i699.ManasRepository>(
       () => _i395.ManasRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i534.GanaRunRepository>(
+      () => _i678.GanaRunRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i775.DeletedNoteRepository>(
       () => _i438.DeletedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -309,6 +325,18 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i103.UserRepository>(
       () => _i582.UserRepositoryImpl(gh<_i107.UserKeyStore>()),
+    );
+    gh.lazySingleton<_i219.LogGanaRunUseCase>(
+      () => _i219.LogGanaRunUseCase(gh<_i534.GanaRunRepository>()),
+    );
+    gh.lazySingleton<_i219.GetGanaRunsUseCase>(
+      () => _i219.GetGanaRunsUseCase(gh<_i534.GanaRunRepository>()),
+    );
+    gh.lazySingleton<_i219.GetGanaOutputEventIdsUseCase>(
+      () => _i219.GetGanaOutputEventIdsUseCase(gh<_i534.GanaRunRepository>()),
+    );
+    gh.lazySingleton<_i219.PruneGanaRunsUseCase>(
+      () => _i219.PruneGanaRunsUseCase(gh<_i534.GanaRunRepository>()),
     );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -355,6 +383,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i103.UserRepository>(),
         gh<_i967.ProfileRepository>(),
       ),
+    );
+    gh.factory<_i160.GanaRepository>(
+      () => _i899.GanaRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.lazySingleton<_i978.ResolveSourceLabelsUseCase>(
       () => _i978.ResolveSourceLabelsUseCase(gh<_i633.SourceLabelRepository>()),
@@ -671,6 +702,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1033.CreateChannelUseCase>(),
       ),
     );
+    gh.lazySingleton<_i1035.GanaInferenceServer>(
+      () => _i1035.GanaInferenceServer(
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+      ),
+    );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
       () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
     );
@@ -699,6 +736,27 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i107.AppSettingsStore>(),
         gh<_i646.AIModelRepository>(),
       ),
+    );
+    gh.lazySingleton<_i219.UpsertGanaUseCase>(
+      () => _i219.UpsertGanaUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.GetGanasUseCase>(
+      () => _i219.GetGanasUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.GetEnabledGanasUseCase>(
+      () => _i219.GetEnabledGanasUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.GetGanaByIdUseCase>(
+      () => _i219.GetGanaByIdUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.DeleteGanaUseCase>(
+      () => _i219.DeleteGanaUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.SetGanaEnabledUseCase>(
+      () => _i219.SetGanaEnabledUseCase(gh<_i160.GanaRepository>()),
+    );
+    gh.lazySingleton<_i219.AdvanceGanaCursorUseCase>(
+      () => _i219.AdvanceGanaCursorUseCase(gh<_i160.GanaRepository>()),
     );
     gh.lazySingleton<_i179.GetMemoriesByNoteIdsUseCase>(
       () => _i179.GetMemoriesByNoteIdsUseCase(gh<_i331.MemoryRepository>()),
@@ -1017,6 +1075,19 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
+    gh.factory<_i942.GanaFormBloc>(
+      () => _i942.GanaFormBloc(
+        gh<_i219.UpsertGanaUseCase>(),
+        gh<_i219.GetGanaByIdUseCase>(),
+        gh<_i219.DeleteGanaUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
       () =>
           _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
@@ -1027,6 +1098,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.HasOpenRouterKeyUseCase>(
       () => _i918.HasOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.factory<_i174.GanaListBloc>(
+      () => _i174.GanaListBloc(
+        gh<_i219.GetGanasUseCase>(),
+        gh<_i219.GetGanaRunsUseCase>(),
+        gh<_i219.SetGanaEnabledUseCase>(),
+        gh<_i219.DeleteGanaUseCase>(),
+        gh<_i214.Isar>(),
+      ),
     );
     gh.lazySingleton<_i837.GetOrInitFeedLoadedAtUseCase>(
       () => _i837.GetOrInitFeedLoadedAtUseCase(gh<_i250.FeedRepository>()),
@@ -1079,6 +1159,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetOwnNotesUseCase>(),
         gh<_i799.GetActiveUserUseCase>(),
         gh<_i537.GetDraftsUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i836.GanaOutputDispatcher>(
+      () => _i836.GanaOutputDispatcher(
+        gh<_i214.Isar>(),
+        gh<_i103.UserRepository>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(

@@ -1,0 +1,171 @@
+part of 'gana_form_bloc.dart';
+
+enum GanaFormStatus { initial, loading, ready, saving, saved, deleted, error }
+
+class GanaFormState {
+  const GanaFormState({
+    this.status = GanaFormStatus.initial,
+    this.isEditMode = false,
+    this.ganaId,
+    this.name = '',
+    this.description = '',
+    this.selectedManasIds = const <String>{},
+    this.taskPrompt = '',
+    this.inputType,
+    this.inputRefId,
+    this.outputType = GanaOutputType.feed,
+    this.outputChannelId,
+    this.outputGroupId,
+    this.outputDmConversationId,
+    this.desiredModelId,
+    this.triggerReactive = false,
+    this.triggerIntervalMinutes,
+    this.enabled = false,
+    this.createdAt,
+    this.manases = const [],
+    this.channels = const [],
+    this.privateChannels = const [],
+    this.dmConversations = const [],
+    this.followedNotes = const [],
+    this.availableModels = const [],
+    this.errorMessage,
+  });
+
+  final GanaFormStatus status;
+  final bool isEditMode;
+  final String? ganaId;
+
+  final String name;
+  final String description;
+  final Set<String> selectedManasIds;
+  final String taskPrompt;
+
+  final GanaInputType? inputType;
+  final String? inputRefId;
+
+  final GanaOutputType outputType;
+  final String? outputChannelId;
+  final String? outputGroupId;
+  final int? outputDmConversationId;
+
+  final String? desiredModelId;
+
+  final bool triggerReactive;
+  final int? triggerIntervalMinutes;
+
+  final bool enabled;
+
+  final DateTime? createdAt;
+
+  // Picker pools — loaded once on form open.
+  final List<ManasEntity> manases;
+  final List<ChannelEntity> channels;
+  final List<PrivateChannelEntity> privateChannels;
+  final List<DmConversationEntity> dmConversations;
+  final List<FollowedNoteEntity> followedNotes;
+  final List<String> availableModels;
+
+  final String? errorMessage;
+
+  /// Save gating — minimum config the engine needs to make sense of the Gana.
+  bool get canSave {
+    if (name.trim().isEmpty) return false;
+    if (taskPrompt.trim().isEmpty) return false;
+    if (selectedManasIds.isEmpty) return false;
+    if (inputType != null && (inputRefId == null || inputRefId!.isEmpty)) {
+      return false;
+    }
+    switch (outputType) {
+      case GanaOutputType.feed:
+        break;
+      case GanaOutputType.channel:
+        if (outputChannelId == null) return false;
+        break;
+      case GanaOutputType.privateChannel:
+        if (outputGroupId == null) return false;
+        break;
+      case GanaOutputType.dm:
+        if (outputDmConversationId == null) return false;
+        break;
+    }
+    // At least one trigger must be on (standalone Ganas without interval
+    // would never run).
+    if (!triggerReactive &&
+        (triggerIntervalMinutes == null || triggerIntervalMinutes! < 5)) {
+      return false;
+    }
+    return true;
+  }
+
+  GanaFormState copyWith({
+    GanaFormStatus? status,
+    bool? isEditMode,
+    String? ganaId,
+    String? name,
+    String? description,
+    Set<String>? selectedManasIds,
+    String? taskPrompt,
+    GanaInputType? inputType,
+    bool clearInputType = false,
+    String? inputRefId,
+    bool clearInputRefId = false,
+    GanaOutputType? outputType,
+    String? outputChannelId,
+    bool clearOutputChannelId = false,
+    String? outputGroupId,
+    bool clearOutputGroupId = false,
+    int? outputDmConversationId,
+    bool clearOutputDmConversationId = false,
+    String? desiredModelId,
+    bool clearModel = false,
+    bool? triggerReactive,
+    int? triggerIntervalMinutes,
+    bool clearInterval = false,
+    bool? enabled,
+    DateTime? createdAt,
+    List<ManasEntity>? manases,
+    List<ChannelEntity>? channels,
+    List<PrivateChannelEntity>? privateChannels,
+    List<DmConversationEntity>? dmConversations,
+    List<FollowedNoteEntity>? followedNotes,
+    List<String>? availableModels,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return GanaFormState(
+      status: status ?? this.status,
+      isEditMode: isEditMode ?? this.isEditMode,
+      ganaId: ganaId ?? this.ganaId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      selectedManasIds: selectedManasIds ?? this.selectedManasIds,
+      taskPrompt: taskPrompt ?? this.taskPrompt,
+      inputType: clearInputType ? null : (inputType ?? this.inputType),
+      inputRefId: clearInputRefId ? null : (inputRefId ?? this.inputRefId),
+      outputType: outputType ?? this.outputType,
+      outputChannelId: clearOutputChannelId
+          ? null
+          : (outputChannelId ?? this.outputChannelId),
+      outputGroupId:
+          clearOutputGroupId ? null : (outputGroupId ?? this.outputGroupId),
+      outputDmConversationId: clearOutputDmConversationId
+          ? null
+          : (outputDmConversationId ?? this.outputDmConversationId),
+      desiredModelId:
+          clearModel ? null : (desiredModelId ?? this.desiredModelId),
+      triggerReactive: triggerReactive ?? this.triggerReactive,
+      triggerIntervalMinutes: clearInterval
+          ? null
+          : (triggerIntervalMinutes ?? this.triggerIntervalMinutes),
+      enabled: enabled ?? this.enabled,
+      createdAt: createdAt ?? this.createdAt,
+      manases: manases ?? this.manases,
+      channels: channels ?? this.channels,
+      privateChannels: privateChannels ?? this.privateChannels,
+      dmConversations: dmConversations ?? this.dmConversations,
+      followedNotes: followedNotes ?? this.followedNotes,
+      availableModels: availableModels ?? this.availableModels,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
+}
