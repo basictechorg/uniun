@@ -1165,6 +1165,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i278.BlockUserUseCase>(),
         gh<_i232.DeleteNoteUseCase>(),
         gh<_i799.GetActiveUserUseCase>(),
+        gh<_i977.GetManasIdsForNoteUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i977.RemoveNoteFromManasUseCase>(),
         note,
       ),
     );

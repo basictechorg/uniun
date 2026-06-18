@@ -4,12 +4,14 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/usecases/blocked_user_usecases.dart';
 import 'package:uniun/domain/usecases/deleted_note_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/domain/usecases/manas_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -35,6 +37,9 @@ class NoteCardCubit extends Cubit<NoteCardState> {
   final BlockUserUseCase _blockUser;
   final DeleteNoteUseCase _deleteNote;
   final GetActiveUserUseCase _getActiveUser;
+  final GetManasIdsForNoteUseCase _getManasIdsForNote;
+  final GetManasListUseCase _getManasList;
+  final RemoveNoteFromManasUseCase _removeFromManas;
   final NoteEntity note;
 
   StreamSubscription<ProfileEntity?>? _profileSub;
@@ -53,6 +58,9 @@ class NoteCardCubit extends Cubit<NoteCardState> {
     this._blockUser,
     this._deleteNote,
     this._getActiveUser,
+    this._getManasIdsForNote,
+    this._getManasList,
+    this._removeFromManas,
     @factoryParam this.note,
   ) : super(const NoteCardState()) {
     _init();
@@ -109,6 +117,57 @@ class NoteCardCubit extends Cubit<NoteCardState> {
         (_) {},
       );
     }
+  }
+
+  /// Ensures the note is persisted before it's added to a Manas, then reports
+  /// whether the caller may open the membership sheet.
+  ///
+  /// Manas membership only surfaces a note in the Brahma graph if it survives
+  /// retention. Own notes are kept forever already, so they're added directly
+  /// (no save). Someone else's note is saved first (if not already) — otherwise
+  /// it would be cleaned up and the Manas would point at nothing. Embeds the
+  /// freshly-saved note for RAG/graph, mirroring [toggleSave].
+  Future<bool> ensureSavedForManas() async {
+    if (state.isOwnNote || state.isSaved) return true;
+    final result = await _saveNote.call(note);
+    return result.fold(
+      (_) => false,
+      (saved) {
+        if (!isClosed) emit(state.copyWith(isSaved: true));
+        _embed.call((saved.eventId, saved.content));
+        return true;
+      },
+    );
+  }
+
+  /// The Manases this note currently belongs to. Drives the unsave
+  /// confirmation: unsaving evicts the note from every Manas it's in (a Manas
+  /// can only surface a note that survives retention), so the user is warned
+  /// and the memberships are cleared first. Empty when the note is in no Manas.
+  Future<List<ManasEntity>> manasesContainingNote() async {
+    final idsRes = await _getManasIdsForNote.call(note.id);
+    final ids = idsRes.fold((_) => const <String>[], (l) => l).toSet();
+    if (ids.isEmpty) return const [];
+    final listRes = await _getManasList.call();
+    final all = listRes.fold((_) => const <ManasEntity>[], (l) => l);
+    return [for (final m in all) if (ids.contains(m.manasId)) m];
+  }
+
+  /// Removes this note from [manasIds] then unsaves it — the confirmed path when
+  /// the bookmark is toggled off on a note that's part of one or more Manases.
+  /// Optimistically flips `isSaved`; reverts only if the unsave write fails.
+  Future<void> unsaveWithManasRemoval(List<String> manasIds) async {
+    emit(state.copyWith(isSaved: false));
+    for (final id in manasIds) {
+      await _removeFromManas.call(ManasNoteLink(id, note.id));
+    }
+    final result = await _unsaveNote.call(note.id);
+    result.fold(
+      (_) {
+        if (!isClosed) emit(state.copyWith(isSaved: true));
+      },
+      (_) {},
+    );
   }
 
   /// Toggles follow state. The reactive `_watchIsFollowed` subscription drives

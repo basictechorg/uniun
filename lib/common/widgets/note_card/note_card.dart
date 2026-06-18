@@ -7,6 +7,7 @@ import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
 import 'package:uniun/common/widgets/note_card/expandable_note_text.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
+import 'package:uniun/common/widgets/note_card/save_toggle.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
@@ -154,6 +155,10 @@ class _NoteCardView extends StatelessWidget {
                   if (note.content.isNotEmpty)
                     ExpandableNoteText(
                       text: note.content,
+                      // Body text is selectable (long-press), but a simple tap
+                      // is forwarded to the card's onTap so it still opens the
+                      // thread — SelectableText would otherwise swallow it.
+                      onTap: onTap,
                       style: const TextStyle(
                         fontSize: 15,
                         color: Color(0xFF1E293B),
@@ -214,16 +219,18 @@ class _NoteCardView extends StatelessWidget {
                           onTap: onTap,
                         ),
 
-                        // Save toggle — owned by the cubit
-                        _ActionChip(
-                          icon: cardState.isSaved
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          color: cardState.isSaved
-                              ? AppColors.primary
-                              : AppColors.onSurfaceVariant,
-                          onTap: () => cubit.toggleSave(),
-                        ),
+                        // Save toggle — owned by the cubit. Hidden on own notes
+                        // (they're kept forever already; saving is for others').
+                        if (!cardState.isOwnNote)
+                          _ActionChip(
+                            icon: cardState.isSaved
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            color: cardState.isSaved
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                            onTap: () => handleSaveToggle(context, cubit),
+                          ),
 
                         // Follow / Following — owned by the cubit
                         _ActionChip(

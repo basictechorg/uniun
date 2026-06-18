@@ -1676,6 +1676,21 @@
   "noteCardAddToManas": "Add to Manas",
   "@noteCardAddToManas": { "description": "Note-card overflow menu — open the Manas membership sheet for this note" },
 
+  "noteCardManasSaveFailed": "Couldn't save the note. Try again.",
+  "@noteCardManasSaveFailed": { "description": "Snackbar shown when saving a note before adding it to a Manas fails" },
+
+  "unsaveManasDialogTitle": "Unsave note?",
+  "@unsaveManasDialogTitle": { "description": "Title of the confirmation dialog shown when unsaving a note that belongs to one or more Manases" },
+
+  "unsaveManasDialogBody": "Unsaving this note will also remove it from:",
+  "@unsaveManasDialogBody": { "description": "Lead-in line of the unsave confirmation dialog, above the list of Manas cards the note will be removed from" },
+
+  "unsaveManasDialogConfirm": "Unsave",
+  "@unsaveManasDialogConfirm": { "description": "Destructive confirm button on the unsave-from-Manas dialog" },
+
+  "unsaveManasDialogCancel": "Cancel",
+  "@unsaveManasDialogCancel": { "description": "Cancel button on the unsave-from-Manas dialog" },
+
   "manasMembershipSheetTitle": "Add to Manas",
   "@manasMembershipSheetTitle": { "description": "Title of the bottom sheet that toggles a note's Manas memberships" },
 

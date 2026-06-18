@@ -3346,6 +3346,36 @@ abstract class AppLocalizations {
   /// **'Add to Manas'**
   String get noteCardAddToManas;
 
+  /// Snackbar shown when saving a note before adding it to a Manas fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the note. Try again.'**
+  String get noteCardManasSaveFailed;
+
+  /// Title of the confirmation dialog shown when unsaving a note that belongs to one or more Manases
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave note?'**
+  String get unsaveManasDialogTitle;
+
+  /// Lead-in line of the unsave confirmation dialog, above the list of Manas cards the note will be removed from
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaving this note will also remove it from:'**
+  String get unsaveManasDialogBody;
+
+  /// Destructive confirm button on the unsave-from-Manas dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave'**
+  String get unsaveManasDialogConfirm;
+
+  /// Cancel button on the unsave-from-Manas dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get unsaveManasDialogCancel;
+
   /// Title of the bottom sheet that toggles a note's Manas memberships
   ///
   /// In en, this message translates to:

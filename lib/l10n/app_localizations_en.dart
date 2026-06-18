@@ -1789,6 +1789,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noteCardAddToManas => 'Add to Manas';
 
   @override
+  String get noteCardManasSaveFailed => 'Couldn\'t save the note. Try again.';
+
+  @override
+  String get unsaveManasDialogTitle => 'Unsave note?';
+
+  @override
+  String get unsaveManasDialogBody =>
+      'Unsaving this note will also remove it from:';
+
+  @override
+  String get unsaveManasDialogConfirm => 'Unsave';
+
+  @override
+  String get unsaveManasDialogCancel => 'Cancel';
+
+  @override
   String get manasMembershipSheetTitle => 'Add to Manas';
 
   @override
