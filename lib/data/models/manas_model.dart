@@ -18,13 +18,6 @@ class ManasModel {
   /// against the curated `ManasIcons` registry. Null = use the fallback.
   String? iconName;
 
-  /// 1–3 hex color strings (`"#RRGGBB"`) chosen by the user. Empty = use
-  /// the default saved-node colour. Distribution across this Manas's
-  /// nodes is by stable hash of eventId — never per-render random.
-  /// Only applies inside a Manas-scoped graph view; unscoped Brahma keeps
-  /// its fixed saved/own/draft palette.
-  List<String> colorHexes = const [];
-
   late DateTime createdAt;
   late DateTime updatedAt;
 }
@@ -35,7 +28,6 @@ extension ManasModelExtension on ManasModel {
         name: name,
         description: description,
         iconName: iconName,
-        colorHexes: colorHexes,
         createdAt: createdAt,
         updatedAt: updatedAt,
         noteCount: noteCount,

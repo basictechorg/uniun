@@ -405,12 +405,11 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       final nodeData = widget.nodes
                           .where((n) => n.eventId == nodeId)
                           .firstOrNull;
-                      // Per-Manas palette wins when set (only the scoped
-                      // graph populates `overrideColor`). Unscoped Brahma
-                      // always falls back to the fixed type colour.
+                      // Nodes are coloured by type (saved / own / draft) —
+                      // the same fixed palette for the unscoped Brahma graph
+                      // and every Manas-scoped view.
                       final color = nodeData != null
-                          ? (nodeData.overrideColor ??
-                              graphNodeTypeColors[nodeData.type]!)
+                          ? graphNodeTypeColors[nodeData.type]!
                           : AppColors.primary;
                       final nodeSize = _sizeFor(nodeId);
                       final isSelected = widget.selectedNodeId == nodeId;

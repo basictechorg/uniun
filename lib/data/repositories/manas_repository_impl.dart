@@ -26,7 +26,6 @@ class ManasRepositoryImpl extends ManasRepository {
         ..name = manas.name
         ..description = manas.description
         ..iconName = manas.iconName
-        ..colorHexes = manas.colorHexes
         ..createdAt = manas.createdAt
         ..updatedAt = manas.updatedAt;
 

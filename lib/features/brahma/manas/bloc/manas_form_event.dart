@@ -26,13 +26,6 @@ final class ManasFormIconPickedEvent extends ManasFormEvent {
   final String iconName;
 }
 
-/// Fired when the user picks 1–3 colours (or clears them) from the swatch
-/// grid. Empty list = collapse back to the default saved-blue.
-final class ManasFormColorsPickedEvent extends ManasFormEvent {
-  const ManasFormColorsPickedEvent(this.colorHexes);
-  final List<String> colorHexes;
-}
-
 final class ManasFormSearchEvent extends ManasFormEvent {
   const ManasFormSearchEvent(this.query);
   final String query;

@@ -9,7 +9,6 @@ abstract class ManasEntity with _$ManasEntity {
     required String name,
     String? description,
     String? iconName,
-    @Default(<String>[]) List<String> colorHexes,
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default(0) int noteCount,

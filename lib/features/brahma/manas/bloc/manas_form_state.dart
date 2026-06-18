@@ -25,7 +25,6 @@ class ManasFormState {
     this.description = '',
     this.iconName,
     this.iconUserPicked = false,
-    this.colorHexes = const <String>[],
     this.persistedMembership = const {},
     this.pendingMembership = const {},
     this.membershipPreviews = const {},
@@ -54,10 +53,6 @@ class ManasFormState {
   /// false, the form re-runs auto-suggest on every name keystroke. Form-
   /// local — not persisted; the DB only stores [iconName].
   final bool iconUserPicked;
-
-  /// User-chosen 1–3 hex colours for nodes when scoped to this Manas.
-  /// Empty = the graph keeps the default saved-blue.
-  final List<String> colorHexes;
 
   /// Note ids that are currently persisted as links for this Manas.
   final Set<String> persistedMembership;
@@ -90,7 +85,6 @@ class ManasFormState {
     String? description,
     String? iconName,
     bool? iconUserPicked,
-    List<String>? colorHexes,
     Set<String>? persistedMembership,
     Set<String>? pendingMembership,
     Map<String, ManasNotePreview>? membershipPreviews,
@@ -110,7 +104,6 @@ class ManasFormState {
       description: description ?? this.description,
       iconName: clearIcon ? null : (iconName ?? this.iconName),
       iconUserPicked: iconUserPicked ?? this.iconUserPicked,
-      colorHexes: colorHexes ?? this.colorHexes,
       persistedMembership: persistedMembership ?? this.persistedMembership,
       pendingMembership: pendingMembership ?? this.pendingMembership,
       membershipPreviews: membershipPreviews ?? this.membershipPreviews,

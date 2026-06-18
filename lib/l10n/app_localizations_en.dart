@@ -1806,26 +1806,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manasIconPickerTitle => 'Pick an icon';
-
-  @override
-  String get manasColorPickerTitle => 'Pick node colours';
-
-  @override
-  String manasColorPickerSubtitle(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '3 of 3 picked',
-      two: '2 of 3 picked',
-      one: '1 of 3 picked',
-      zero: 'Choose 1–3 colours',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get manasColorPickerClear => 'Clear';
-
-  @override
-  String get manasColorPickerApply => 'Apply';
 }

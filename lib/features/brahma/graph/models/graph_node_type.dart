@@ -1,4 +1,3 @@
-import 'package:flutter/painting.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 /// Discriminates the three kinds of nodes shown in the knowledge graph.
@@ -19,7 +18,6 @@ class GraphNodeData {
     this.tTags = const [],
     this.pTagRefs = const [],
     this.attachments = const [],
-    this.overrideColor,
   });
 
   /// Unique identifier:
@@ -41,9 +39,4 @@ class GraphNodeData {
   /// NIP-92 media attachments resolved by the data layer. Empty for draft
   /// nodes that haven't been enriched.
   final List<MediaBlobEntity> attachments;
-
-  /// Per-node tint override. Non-null only when the graph is scoped to a
-  /// Manas with a chosen palette — the canvas painter prefers this over
-  /// the type-derived default. Unscoped Brahma always leaves this null.
-  final Color? overrideColor;
 }

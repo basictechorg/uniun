@@ -7,7 +7,6 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
-import 'package:uniun/features/brahma/utils/manas_colors.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -130,55 +129,11 @@ class GraphHeader extends StatelessWidget {
               },
             ),
           ),
-          BlocBuilder<GraphBloc, GraphState>(
-            buildWhen: (prev, curr) =>
-                prev.scopedManasId != curr.scopedManasId ||
-                prev.scopedManasColorHexes != curr.scopedManasColorHexes,
-            builder: (context, state) {
-              // When scoped to a Manas with a chosen palette, swap the
-              // default 3-dot legend for the Manas swatches (saved/own/draft
-              // distinctions don't exist inside a saved-only Manas). When
-              // scoped without a palette, keep the unscoped legend so the
-              // user still has the colour key.
-              if (state.scopedManasId != null &&
-                  state.scopedManasColorHexes.isNotEmpty) {
-                return _ManasSwatchesRow(
-                  hexes: state.scopedManasColorHexes,
-                  label: state.scopedManasName ??
-                      l10n.graphHeaderUnnamedManas,
-                );
-              }
-              return _LegendRow(l10n: l10n);
-            },
-          ),
+          // Nodes are always coloured by type, so the legend is fixed
+          // regardless of Manas scope.
+          _LegendRow(l10n: l10n),
         ],
       ),
-    );
-  }
-}
-
-class _ManasSwatchesRow extends StatelessWidget {
-  const _ManasSwatchesRow({required this.hexes, required this.label});
-  final List<String> hexes;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < hexes.length; i++) ...[
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: ManasColors.parse(hexes[i]),
-              shape: BoxShape.circle,
-            ),
-          ),
-          if (i < hexes.length - 1) const SizedBox(width: 4),
-        ],
-      ],
     );
   }
 }

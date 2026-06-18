@@ -4,9 +4,7 @@ import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/manas/bloc/manas_form_bloc.dart';
-import 'package:uniun/features/brahma/utils/manas_colors.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
-import 'package:uniun/features/brahma/manas/widgets/manas_color_picker.dart';
 import 'package:uniun/features/brahma/manas/widgets/manas_icon_picker.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -171,10 +169,6 @@ class _Body extends StatelessWidget {
             // Icon picker tile — auto-suggested from the name, tappable to
             // override. Stays in sync with the bloc's iconName via context.watch.
             _IconPickerTile(),
-            const SizedBox(width: 10),
-            // Colour picker tile — tap to pick 1–3 swatches. Empty stack of
-            // dots = "default saved-blue."
-            _ColorPickerTile(),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -376,75 +370,6 @@ class _IconPickerTile extends StatelessWidget {
           ManasIcons.byName(iconName),
           color: AppColors.primary,
           size: 26,
-        ),
-      ),
-    );
-  }
-}
-
-class _ColorPickerTile extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colors =
-        context.select<ManasFormBloc, List<String>>((b) => b.state.colorHexes);
-    return GestureDetector(
-      onTap: () async {
-        final picked =
-            await ManasColorPicker.show(context, current: colors);
-        if (picked != null && context.mounted) {
-          context
-              .read<ManasFormBloc>()
-              .add(ManasFormColorsPickedEvent(picked));
-        }
-      },
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: colors.isEmpty
-            ? const Icon(Icons.palette_outlined,
-                color: AppColors.onSurfaceVariant, size: 22)
-            : _ColorStack(hexes: colors),
-      ),
-    );
-  }
-}
-
-class _ColorStack extends StatelessWidget {
-  const _ColorStack({required this.hexes});
-  final List<String> hexes;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 38,
-        height: 22,
-        child: Stack(
-          children: [
-            for (var i = 0; i < hexes.length; i++)
-              Positioned(
-                left: i * 12.0,
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: ManasColors.parse(hexes[i]),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.surface,
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-          ],
         ),
       ),
     );

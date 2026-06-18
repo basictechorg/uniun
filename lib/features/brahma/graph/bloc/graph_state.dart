@@ -13,7 +13,6 @@ class GraphState {
     this.scopedManasId,
     this.scopedManasName,
     this.scopedManasIconName,
-    this.scopedManasColorHexes = const <String>[],
   });
 
   final GraphStatus status;
@@ -45,11 +44,6 @@ class GraphState {
   /// back to `ManasIcons.fallback`.
   final String? scopedManasIconName;
 
-  /// Palette chosen by the user for the scoped Manas (1–3 hex strings).
-  /// Empty when unscoped, or when scoped to a Manas with no palette set
-  /// (header falls back to the default legend in both cases).
-  final List<String> scopedManasColorHexes;
-
   GraphState copyWith({
     GraphStatus? status,
     List<GraphNodeData>? nodes,
@@ -61,7 +55,6 @@ class GraphState {
     String? scopedManasId,
     String? scopedManasName,
     String? scopedManasIconName,
-    List<String>? scopedManasColorHexes,
     bool clearScope = false,
   }) {
     return GraphState(
@@ -79,9 +72,6 @@ class GraphState {
       scopedManasIconName: clearScope
           ? null
           : (scopedManasIconName ?? this.scopedManasIconName),
-      scopedManasColorHexes: clearScope
-          ? const <String>[]
-          : (scopedManasColorHexes ?? this.scopedManasColorHexes),
     );
   }
 

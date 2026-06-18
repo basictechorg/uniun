@@ -3381,30 +3381,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick an icon'**
   String get manasIconPickerTitle;
-
-  /// Title of the Manas colour-picker bottom sheet
-  ///
-  /// In en, this message translates to:
-  /// **'Pick node colours'**
-  String get manasColorPickerTitle;
-
-  /// Counter shown in the Manas colour picker
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =0{Choose 1–3 colours} =1{1 of 3 picked} =2{2 of 3 picked} other{3 of 3 picked}}'**
-  String manasColorPickerSubtitle(int count);
-
-  /// Action that resets the Manas colour palette
-  ///
-  /// In en, this message translates to:
-  /// **'Clear'**
-  String get manasColorPickerClear;
-
-  /// Primary action to confirm the picked Manas palette
-  ///
-  /// In en, this message translates to:
-  /// **'Apply'**
-  String get manasColorPickerApply;
 }
 
 class _AppLocalizationsDelegate

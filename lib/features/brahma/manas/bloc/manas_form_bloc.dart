@@ -66,7 +66,6 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
     on<ManasFormNameChangedEvent>(_onName);
     on<ManasFormDescriptionChangedEvent>(_onDescription);
     on<ManasFormIconPickedEvent>(_onIconPicked);
-    on<ManasFormColorsPickedEvent>(_onColorsPicked);
     on<ManasFormSearchEvent>(_onSearch, transformer: restartable());
     on<ManasFormToggleMembershipEvent>(_onToggle);
     on<ManasFormSubmitEvent>(_onSubmit, transformer: droppable());
@@ -142,7 +141,6 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
       // Existing Manas with a stored icon → treat it as pinned so name
       // edits don't silently overwrite the user's prior choice.
       iconUserPicked: manas.iconName != null,
-      colorHexes: manas.colorHexes,
       persistedMembership: noteIds.toSet(),
       pendingMembership: noteIds.toSet(),
       membershipPreviews: previews,
@@ -179,11 +177,6 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
       iconName: event.iconName,
       iconUserPicked: true,
     ));
-  }
-
-  void _onColorsPicked(
-      ManasFormColorsPickedEvent event, Emitter<ManasFormState> emit) {
-    emit(state.copyWith(colorHexes: event.colorHexes));
   }
 
   Future<void> _onSearch(
@@ -246,7 +239,6 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
           ? null
           : state.description.trim(),
       iconName: state.iconName,
-      colorHexes: state.colorHexes,
       createdAt: state.createdAt ?? now,
       updatedAt: now,
     );

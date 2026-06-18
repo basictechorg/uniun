@@ -1692,20 +1692,5 @@
   "@manasMembershipSheetEmptyCta": { "description": "Primary CTA in the empty-state of the membership sheet" },
 
   "manasIconPickerTitle": "Pick an icon",
-  "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" },
-
-  "manasColorPickerTitle": "Pick node colours",
-  "@manasColorPickerTitle": { "description": "Title of the Manas colour-picker bottom sheet" },
-
-  "manasColorPickerSubtitle": "{count, plural, =0{Choose 1–3 colours} =1{1 of 3 picked} =2{2 of 3 picked} other{3 of 3 picked}}",
-  "@manasColorPickerSubtitle": {
-    "description": "Counter shown in the Manas colour picker",
-    "placeholders": { "count": { "type": "int" } }
-  },
-
-  "manasColorPickerClear": "Clear",
-  "@manasColorPickerClear": { "description": "Action that resets the Manas colour palette" },
-
-  "manasColorPickerApply": "Apply",
-  "@manasColorPickerApply": { "description": "Primary action to confirm the picked Manas palette" }
+  "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" }
 }

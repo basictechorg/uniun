@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
@@ -14,7 +13,6 @@ import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
-import 'package:uniun/features/brahma/utils/manas_colors.dart';
 
 part 'graph_event.dart';
 part 'graph_state.dart';
@@ -142,32 +140,20 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     // When `event.manasId` is set, restrict the visible node set to that
     // Manas's membership. _buildAdjacency already drops refs that fall
     // outside the live id set, so cross-scope edges disappear naturally.
-    //
-    // When the Manas also has a chosen palette, paint each node with a
-    // stable-hash colour pulled from it via ManasColors.colorFor. This
-    // only happens in scoped mode — unscoped Brahma keeps its fixed
-    // saved/own/draft colours from app_theme.dart.
+    // Nodes keep their fixed saved/own/draft colours in every view.
     List<GraphNodeData> allNodes = fullNodes;
     String? scopeName = event.manasName;
-    List<String> scopePalette = const <String>[];
     String? scopeIcon;
     if (event.manasId != null) {
       final linkRes = await _getNoteIdsForManas.call(event.manasId!);
       final allowed = linkRes
           .fold<Set<String>>((_) => const <String>{}, (l) => l.toSet());
       final manasRes = await _getManasById.call(event.manasId!);
-      scopePalette = manasRes.fold(
-        (_) => const <String>[],
-        (m) => m.colorHexes,
-      );
       scopeIcon = manasRes.fold((_) => null, (m) => m.iconName);
       scopeName ??= manasRes.fold((_) => null, (m) => m.name);
       allNodes = [
         for (final n in fullNodes)
-          if (allowed.contains(n.eventId))
-            scopePalette.isEmpty
-                ? n
-                : _withColor(n, ManasColors.colorFor(n.eventId, scopePalette)),
+          if (allowed.contains(n.eventId)) n,
       ];
     }
 
@@ -178,27 +164,9 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
       scopedManasId: event.manasId,
       scopedManasName: scopeName,
       scopedManasIconName: scopeIcon,
-      scopedManasColorHexes: scopePalette,
       clearScope: event.manasId == null,
     ));
   }
-
-  /// Clones [n] with the given override colour. Cheap — only called on the
-  /// scoped (small) subset.
-  GraphNodeData _withColor(GraphNodeData n, Color? color) =>
-      GraphNodeData(
-        eventId: n.eventId,
-        content: n.content,
-        eTagRefs: n.eTagRefs,
-        type: n.type,
-        authorPubkey: n.authorPubkey,
-        sig: n.sig,
-        created: n.created,
-        tTags: n.tTags,
-        pTagRefs: n.pTagRefs,
-        attachments: n.attachments,
-        overrideColor: color,
-      );
 
   Future<void> _onSelect(
       SelectGraphNodeEvent event, Emitter<GraphState> emit) async {
