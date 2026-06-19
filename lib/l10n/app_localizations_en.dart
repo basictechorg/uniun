@@ -1076,6 +1076,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shivThinkingLabel => 'Reasoning';
 
   @override
+  String shivSourcesChip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Sources · $count',
+      one: 'Sources · 1',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shivSourcesSheetTitle => 'Sources';
+
+  @override
+  String get shivSourcesEmpty => 'No source notes for this reply';
+
+  @override
   String get shivInputHint => 'Ask Shiv anything…';
 
   @override

@@ -18,7 +18,11 @@ import 'package:uniun/features/shiv/rag/retrieval/vector_search_service.dart';
 
 /// Result returned by [RagPipeline.buildMessage].
 class RagMessage {
-  const RagMessage({required this.userMessage, required this.contextCount});
+  const RagMessage({
+    required this.userMessage,
+    required this.contextCount,
+    this.sourceNoteIds = const [],
+  });
 
   /// The per-turn message for [AIModelRunner.sendAndStream]:
   /// RAG context (if any) + current user question. No history, no system.
@@ -27,6 +31,12 @@ class RagMessage {
   /// Number of notes + graph edges + memories injected as context.
   /// 0 = model not loaded or no match.
   final int contextCount;
+
+  /// Event ids of the seed notes (vector hits) that informed this turn,
+  /// in score-desc order. Used by the UI to show the "Sources" sheet under
+  /// the last reply. Empty when no notes matched / model not loaded. Excludes
+  /// graph edges and memory summaries — these are the actual source notes.
+  final List<String> sourceNoteIds;
 }
 
 /// Orchestrates the full RAG + GraphRAG pipeline.
@@ -105,7 +115,11 @@ class RagPipeline {
     );
     final count =
         context.seedNotes.length + context.graphEdges.length + context.memories.length;
-    return RagMessage(userMessage: userMessage, contextCount: count);
+    return RagMessage(
+      userMessage: userMessage,
+      contextCount: count,
+      sourceNoteIds: context.seedNotes.map((s) => s.noteId).toList(),
+    );
   }
 
   /// Builds a compact summary of [branch] messages for system instruction

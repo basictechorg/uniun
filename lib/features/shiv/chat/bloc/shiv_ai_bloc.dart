@@ -111,6 +111,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
           conversations: [conv, ...state.conversations],
           messages: [],
           ragContextCount: 0,
+          lastTurnSourceNoteIds: const [],
           errorMessage: null,
         ));
       },
@@ -139,6 +140,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
           messages: msgs,
           allMessages: msgs,
           ragContextCount: 0,
+          lastTurnSourceNoteIds: const [],
           errorMessage: null,
         ));
       },
@@ -156,6 +158,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       streamingContent: null,
       streamingMessageId: null,
       ragContextCount: 0,
+      lastTurnSourceNoteIds: const [],
     ));
   }
 
@@ -229,7 +232,10 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
     // 3 — RAG: embed query → retrieve notes → build per-turn user message.
     final ragMsg = await _rag.buildMessage(userQuestion: text);
-    emit(state.copyWith(ragContextCount: ragMsg.contextCount));
+    emit(state.copyWith(
+      ragContextCount: ragMsg.contextCount,
+      lastTurnSourceNoteIds: ragMsg.sourceNoteIds,
+    ));
 
     // 4 — Pair up prior turns as clean (Q, A) tuples. We exclude the
     //     placeholder we just appended; cap to last 3 pairs so the prompt
@@ -296,9 +302,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         if (m.messageId == msgId) return m.copyWith(content: finalContent);
         return m;
       }).toList();
+      // Keep allMessages (the branch-tree source) in sync with the partial.
+      final updatedAllMessages = state.allMessages.map((m) {
+        if (m.messageId == msgId) return m.copyWith(content: finalContent);
+        return m;
+      }).toList();
       emit(state.copyWith(
         status: ShivChatStatus.chatIdle,
         messages: updatedMessages,
+        allMessages: updatedAllMessages,
         streamingContent: null,
         streamingMessageId: null,
       ));
@@ -334,10 +346,17 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         if (m.messageId == msgId) return m.copyWith(content: content);
         return m;
       }).toList();
+      // Keep allMessages (the branch-tree source) in sync — otherwise the
+      // tree keeps rendering the empty placeholder for this reply.
+      final updatedAllMessages = state.allMessages.map((m) {
+        if (m.messageId == msgId) return m.copyWith(content: content);
+        return m;
+      }).toList();
 
       emit(state.copyWith(
         status: ShivChatStatus.chatIdle,
         messages: updatedMessages,
+        allMessages: updatedAllMessages,
         streamingContent: null,
         streamingMessageId: null,
       ));
@@ -377,6 +396,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       messages: branch,
       activeConversation: conv.copyWith(activeLeafMessageId: event.leafMessageId),
       selectedNodeMessageId: null,
+      lastTurnSourceNoteIds: const [],
     ));
   }
 
@@ -394,6 +414,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       messages: branch,
       activeConversation: conv.copyWith(activeLeafMessageId: event.parentMessageId),
       selectedNodeMessageId: null,
+      lastTurnSourceNoteIds: const [],
     ));
   }
 

@@ -6,6 +6,7 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
+import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/repositories/saved_note_repository.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
 
@@ -112,4 +113,58 @@ class GetSavedReferencesUseCase
     bool cached = false,
   }) =>
       _repository.getSavedReferences(childId);
+}
+
+// ── ResolveNotesByIdsUseCase ──────────────────────────────────────────────────
+
+/// Resolves a list of note event ids into full [NoteEntity]s for display
+/// (used by Shiv's "Sources" sheet). Resolution order:
+///   1. The unified `Note` collection ([NoteResolverRepository.resolveMany]) —
+///      covers own notes (kept forever) and not-yet-evicted regular notes.
+///   2. Fallback to [SavedNoteRepository.getAll] for any id missing from (1):
+///      saved copies are retained forever even after the `Note` row is evicted.
+/// Output preserves the input order (score-desc from the RAG pipeline) and
+/// drops ids that resolve nowhere. Degrades to partial/empty, never fails the
+/// sheet. The `getAll()` scan runs only when something is missing.
+@lazySingleton
+class ResolveNotesByIdsUseCase
+    extends UseCase<Either<Failure, List<NoteEntity>>, List<String>> {
+  final NoteResolverRepository _resolver;
+  final SavedNoteRepository _saved;
+  const ResolveNotesByIdsUseCase(this._resolver, this._saved);
+
+  @override
+  Future<Either<Failure, List<NoteEntity>>> call(
+    List<String> ids, {
+    bool cached = false,
+  }) async {
+    if (ids.isEmpty) return const Right([]);
+
+    final resolved = await _resolver.resolveMany(ids);
+    final byId = <String, NoteEntity>{};
+    resolved.fold((_) {}, (notes) {
+      for (final n in notes) {
+        byId[n.id] = n;
+      }
+    });
+
+    final missing = ids.where((id) => !byId.containsKey(id)).toList();
+    if (missing.isNotEmpty) {
+      final allSaved = await _saved.getAll();
+      allSaved.fold((_) {}, (saved) {
+        final savedById = {for (final s in saved) s.eventId: s};
+        for (final id in missing) {
+          final s = savedById[id];
+          if (s != null) byId[id] = s.toNoteEntity();
+        }
+      });
+    }
+
+    // Preserve the input (score-desc) order; drop unresolved ids.
+    final ordered = [
+      for (final id in ids)
+        if (byId[id] != null) byId[id]!,
+    ];
+    return Right(ordered);
+  }
 }

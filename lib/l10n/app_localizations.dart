@@ -2038,6 +2038,24 @@ abstract class AppLocalizations {
   /// **'Reasoning'**
   String get shivThinkingLabel;
 
+  /// Chip below the last Shiv reply that opens the source-notes sheet
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sources · 1} other{Sources · {count}}}'**
+  String shivSourcesChip(int count);
+
+  /// Title of the Shiv RAG source-notes bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get shivSourcesSheetTitle;
+
+  /// Empty state when the source notes for a Shiv reply can't be resolved
+  ///
+  /// In en, this message translates to:
+  /// **'No source notes for this reply'**
+  String get shivSourcesEmpty;
+
   /// Hint text inside the Shiv chat input field
   ///
   /// In en, this message translates to:

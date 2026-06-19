@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
+import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 
@@ -119,7 +120,7 @@ class _BranchTreeGraphState extends State<BranchTreeGraph> {
               onTap: () => widget.onNodeTap(msgId),
               child: _TreeNode(
                 message: msg,
-                isUser: msg.role.name == 'user',
+                isUser: msg.role == MessageRole.user,
                 isOnActivePath: _activeBranchIds.contains(msgId),
                 isSelected: widget.selectedNodeMessageId == msgId,
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
 import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
 import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
@@ -88,7 +89,7 @@ class PromptBuilder {
       '\n[Previous conversation context on this branch]\n',
     );
     for (final m in recent) {
-      final isUser = m.role.name == 'user';
+      final isUser = m.role == MessageRole.user;
       final role = isUser ? 'User' : 'Shiv';
       final preview = isUser
           ? _summarizeUser(m.content)

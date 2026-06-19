@@ -36,6 +36,13 @@ abstract class ShivAIState with _$ShivAIState {
     /// Shown as a debug badge in the chat header.
     @Default(0) int ragContextCount,
 
+    /// Event ids of the source notes (vector hits) that seeded the RAG context
+    /// for the LAST assistant reply this turn, in score-desc order. Drives the
+    /// "Sources" chip + sheet under that reply. NEVER persisted — lives only in
+    /// transient state, so loaded/historical conversations have an empty list
+    /// and show no chip. Overwritten each turn; cleared on open/close/branch.
+    @Default([]) List<String> lastTurnSourceNoteIds,
+
     /// True while the embedding model is loading on first Shiv tab open.
     @Default(false) bool isRagInitializing,
 
