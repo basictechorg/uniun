@@ -3,6 +3,7 @@ import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
+import 'package:uniun/features/shiv/chat/widgets/shiv_sources_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// A single chat bubble — user on the right, Shiv on the left.
@@ -13,12 +14,21 @@ class ShivMessageBubble extends StatelessWidget {
     super.key,
     required this.message,
     this.streamingContent,
+    this.isLastAssistant = false,
+    this.sourceNoteIds = const [],
   });
 
   final ShivMessageEntity message;
 
   /// Non-null only while this is the live-streaming assistant bubble.
   final String? streamingContent;
+
+  /// True only for the latest assistant reply — gates the "Sources" chip.
+  final bool isLastAssistant;
+
+  /// Source-note ids that seeded the RAG context for this reply (last reply
+  /// only; empty otherwise). Drives the "Sources" chip + sheet.
+  final List<String> sourceNoteIds;
 
   bool get _isUser => message.role == MessageRole.user;
 
@@ -78,6 +88,8 @@ class ShivMessageBubble extends StatelessWidget {
         responseText: parsed.response,
         isStreaming: streamingContent != null,
         isInThinkBlock: parsed.isInThinkBlock,
+        isLastAssistant: isLastAssistant,
+        sourceNoteIds: sourceNoteIds,
       ),
     );
   }
@@ -152,12 +164,16 @@ class _ShivBubble extends StatelessWidget {
     required this.responseText,
     required this.isStreaming,
     required this.isInThinkBlock,
+    required this.isLastAssistant,
+    required this.sourceNoteIds,
   });
 
   final String thinkingText;
   final String responseText;
   final bool isStreaming;
   final bool isInThinkBlock;
+  final bool isLastAssistant;
+  final List<String> sourceNoteIds;
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +246,70 @@ class _ShivBubble extends StatelessWidget {
                 ? const _TypingIndicator()
                 : _MarkdownText(text: responseText),
           ),
+
+        // "Sources" chip — only under the latest reply, once it's complete,
+        // and only when real source notes seeded the answer.
+        if (!isInThinkBlock &&
+            isLastAssistant &&
+            !isStreaming &&
+            responseText.isNotEmpty &&
+            sourceNoteIds.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _SourcesChip(
+            count: sourceNoteIds.length,
+            onTap: () => ShivSourcesSheet.show(context, sourceNoteIds),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+// ── Sources chip ──────────────────────────────────────────────────────────────
+// Tappable pill under the last reply that opens the RAG source-notes sheet.
+
+class _SourcesChip extends StatelessWidget {
+  const _SourcesChip({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(99),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.menu_book_rounded,
+                size: 14,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                l10n.shivSourcesChip(count),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

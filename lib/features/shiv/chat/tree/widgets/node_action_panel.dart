@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
+import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
@@ -24,7 +25,7 @@ class NodeActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isUser = message.role.name == 'user';
+    final isUser = message.role == MessageRole.user;
 
     return Container(
       decoration: BoxDecoration(

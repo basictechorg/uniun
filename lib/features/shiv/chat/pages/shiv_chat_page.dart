@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
+import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
@@ -91,14 +92,21 @@ class _ShivChatPageState extends State<ShivChatPage> {
                           itemBuilder: (context, i) {
                             final msg = state.messages[i];
                             final isLast = i == state.messages.length - 1;
+                            final isAssistant =
+                                msg.role == MessageRole.assistant;
+                            final isLastAssistant = isLast && isAssistant;
                             final streamingContent =
-                                isStreaming && isLast && msg.role.name == 'assistant'
+                                isStreaming && isLastAssistant
                                     ? state.streamingContent
                                     : null;
                             return ShivMessageBubble(
                               key: ValueKey(msg.messageId),
                               message: msg,
                               streamingContent: streamingContent,
+                              isLastAssistant: isLastAssistant,
+                              sourceNoteIds: isLastAssistant
+                                  ? state.lastTurnSourceNoteIds
+                                  : const [],
                             );
                           },
                         ),

@@ -1015,6 +1015,18 @@
   "shivThinkingLabel": "Reasoning",
   "@shivThinkingLabel": { "description": "Collapsed section header for the model's internal thinking" },
 
+  "shivSourcesChip": "{count, plural, =1{Sources · 1} other{Sources · {count}}}",
+  "@shivSourcesChip": {
+    "description": "Chip below the last Shiv reply that opens the source-notes sheet",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "shivSourcesSheetTitle": "Sources",
+  "@shivSourcesSheetTitle": { "description": "Title of the Shiv RAG source-notes bottom sheet" },
+
+  "shivSourcesEmpty": "No source notes for this reply",
+  "@shivSourcesEmpty": { "description": "Empty state when the source notes for a Shiv reply can't be resolved" },
+
   "shivInputHint": "Ask Shiv anything…",
   "@shivInputHint": { "description": "Hint text inside the Shiv chat input field" },
 

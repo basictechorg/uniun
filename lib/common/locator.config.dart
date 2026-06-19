@@ -587,6 +587,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i433.SaveRelayUseCase>(
       () => _i433.SaveRelayUseCase(gh<_i993.RelayRepository>()),
     );
+    gh.lazySingleton<_i858.ResolveNotesByIdsUseCase>(
+      () => _i858.ResolveNotesByIdsUseCase(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i43.SavedNoteRepository>(),
+      ),
+    );
     gh.lazySingleton<_i719.MarkUnreadSeenUseCase>(
       () => _i719.MarkUnreadSeenUseCase(gh<_i497.UnreadRepository>()),
     );
