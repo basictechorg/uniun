@@ -1138,18 +1138,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i78.SendPrivateChannelMessageUsecase>(),
       ),
     );
-    gh.lazySingleton<_i426.GanaEngine>(
-      () => _i426.GanaEngine(
-        gh<_i214.Isar>(),
-        gh<_i937.AIModelRunner>(),
-        gh<_i107.AppSettingsStore>(),
-        gh<_i103.UserRepository>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-      ),
-    );
     gh.factory<_i630.ManasFormBloc>(
       () => _i630.ManasFormBloc(
         gh<_i977.UpsertManasUseCase>(),
@@ -1252,6 +1240,19 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i977.GetManasListUseCase>(),
         gh<_i977.RemoveNoteFromManasUseCase>(),
         note,
+      ),
+    );
+    gh.lazySingleton<_i426.GanaEngine>(
+      () => _i426.GanaEngine(
+        gh<_i214.Isar>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i103.UserRepository>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
       ),
     );
     gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(

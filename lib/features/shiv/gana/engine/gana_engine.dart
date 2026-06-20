@@ -20,6 +20,7 @@ import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_input_filter.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
@@ -61,6 +62,7 @@ class GanaEngine {
     this._channelMessage,
     this._dm,
     this._privateChannel,
+    this._embedAndStore,
   );
 
   final Isar _isar;
@@ -71,6 +73,7 @@ class GanaEngine {
   final CreateChannelMessageUseCase _channelMessage;
   final SendDmUseCase _dm;
   final SendPrivateChannelMessageUsecase _privateChannel;
+  final EmbedAndStoreNoteUseCase _embedAndStore;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -501,7 +504,14 @@ class GanaEngine {
     final res = await _publishNote.call(entity);
     return res.fold(
       (f) => throw Exception(f.toString()),
-      (note) => note.id,
+      (note) {
+        // Feed the Gana's own note into the RAG pipeline the same way
+        // Brahma feeds user-typed notes. Without this, the note shows up
+        // in Vishnu but is invisible to vector search — so future Ganas
+        // (and Shiv chat) can't surface it as context.
+        unawaited(_embedAndStore.call((note.id, note.content)));
+        return note.id;
+      },
     );
   }
 
