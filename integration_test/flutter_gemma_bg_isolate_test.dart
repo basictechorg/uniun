@@ -54,9 +54,10 @@ import 'package:flutter_gemma_embeddings/flutter_gemma_embeddings.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   test('flutter_gemma 1.0.0 runs inference in a background isolate',
       () async {
@@ -145,28 +146,34 @@ Future<void> _workerEntry(_WorkerMessage msg) async {
 
     // 4. Get a handle. Keep maxTokens tiny — we only need to confirm the
     //    chain works, not produce useful output.
+    //
+    //    DIAGNOSTIC: time the model open. If this returns in <1s, the
+    //    model wasn't actually loaded into THIS isolate's process space —
+    //    flutter_gemma is delegating to the main-isolate native handle
+    //    via the platform channel. That works for "app alive, bg isolate
+    //    speaking to main" (our current architecture) but does NOT prove
+    //    the WorkManager-killed-app case. Annotate the result so we can
+    //    tell which path the test actually exercised.
+    final openStart = DateTime.now();
     final model = await FlutterGemma.getActiveModel(maxTokens: 64);
-
-    // 5. Open a chat session. This is the same call the production
-    //    inference server makes — if it works here, it works under
-    //    workmanager.
     final chat = await model.openChat(
       temperature: 0.2,
       topK: 20,
       tokenBuffer: 64,
     );
+    final openDuration = DateTime.now().difference(openStart);
 
-    // 6. Feed a tiny prompt and stream the response. The first
-    //    TextResponse token is enough — we don't wait for completion.
+    // 5. Feed a tiny prompt and stream the response. Time the first
+    //    token too — fresh model + first token <2s is implausible.
+    final genStart = DateTime.now();
     await chat.addQueryChunk(Message.text(text: 'Reply with one word.'));
     String? firstToken;
-    final start = DateTime.now();
     await for (final response in chat.generateChatResponseAsync()) {
       if (response is TextResponse && response.token.isNotEmpty) {
         firstToken = response.token;
         break;
       }
-      if (DateTime.now().difference(start) > const Duration(seconds: 45)) {
+      if (DateTime.now().difference(genStart) > const Duration(seconds: 45)) {
         await chat.close();
         msg.reply.send(
           'FAIL: stream opened but produced no TextResponse within 45s',
@@ -174,6 +181,7 @@ Future<void> _workerEntry(_WorkerMessage msg) async {
         return;
       }
     }
+    final genDuration = DateTime.now().difference(genStart);
     await chat.close();
 
     if (firstToken == null) {
@@ -182,8 +190,18 @@ Future<void> _workerEntry(_WorkerMessage msg) async {
       );
       return;
     }
+
+    // Heuristic: a real fresh model load into a separate process should
+    // take ≥2s on Android. <500ms strongly suggests the native handle is
+    // shared with the main isolate.
+    final freshLoad = openDuration.inMilliseconds >= 2000;
+    final loadPathLabel =
+        freshLoad ? 'FRESH-LOAD' : 'SHARED-WITH-MAIN (suspect)';
     msg.reply.send(
-      'OK: bg isolate produced "${firstToken.replaceAll('\n', '\\n')}"',
+      'OK: bg isolate produced "${firstToken.replaceAll('\n', '\\n')}" '
+      '| openModel+openChat=${openDuration.inMilliseconds}ms '
+      '| firstToken=${genDuration.inMilliseconds}ms '
+      '| loadPath=$loadPathLabel',
     );
   } catch (e, st) {
     msg.reply.send('FAIL: $e\n$st');

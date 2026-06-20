@@ -21,7 +21,12 @@ Resources: <https://pub.dev/packages/flutter_gemma> · <https://pub.dev/document
 6. [Branching Chat](#branching-chat)
 7. [RAG Pipeline](#rag-pipeline)
 8. [Data Models](#data-models)
-9. [Out of Scope](#out-of-scope)
+9. [Ganas — autonomous AI workers](#ganas--autonomous-ai-workers)
+10. [Out of Scope](#out-of-scope)
+
+> **Companion docs**:
+> - `docs/SHIVA/Ganas.md` — Phase 2 AI agents (uses the same Shiv inference path via a SendPort bridge).
+> - `docs/BRAHMA/Manas.md` — knowledge bases that Ganas consume.
 
 ---
 
@@ -583,6 +588,81 @@ All four files come from the `litert-community` org on HuggingFace — the same 
 | `gemma4E4b` | Gemma 4 E4B | 4.3 GB | `.litertlm` | `gemma4` | false |
 
 > The `AIModelId` enum value `qwen25_05b` is legacy — kept to avoid an enum-rename migration in users' SharedPreferences. The actual file and label are Qwen3 0.6B.
+
+---
+
+## Ganas — autonomous AI workers
+
+Ganas are user-defined AI agents that share the **same inference path** as Shiv chat but run **autonomously** in a background isolate. The full design lives in `docs/SHIVA/Ganas.md`; this section is the integration summary for Shiv readers.
+
+### Integration in three diagrams
+
+**1. Sharing the model — no second load.**
+flutter_gemma's `model.openChat()` lets one loaded model serve multiple independent sessions. Chat opens its session per turn; Gana opens its session per run. Both flow through the same `LocalInferenceQueue` with chat on `runHigh` (preempts) and Gana on `runLow` (yields).
+
+```
+                  AIModelRunner (existing)
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+       chat.openChat            Gana.openChat
+       (per turn, runHigh)      (per run, runLow)
+              │                     │
+              └─────────┬───────────┘
+                        ▼
+              ONE loaded flutter_gemma model
+              (main isolate, native thread)
+```
+
+**2. Cross-isolate bridge.**
+The Gana engine isolate sends a serializable `GanaInferenceRequest` over a `SendPort`. The main-isolate `GanaInferenceServer` receives it, delegates to `AIModelRunner.generateOneShot`, and replies on the request's `replyPort`. No locks, no shared memory — just message passing.
+
+```
+Engine isolate                 Main isolate
+              ┌─── SendPort ──►┐
+              │ GanaInference  │
+              │ Request{       │
+              │  prompt,       │
+              │  replyPort,    │
+              │  expectedModelId}
+              │                │
+              │                ├─► GanaInferenceServer
+              │                │     ─► AIModelRunner.generateOneShot
+              │                │         ─► LocalInferenceQueue.runLow
+              │                │             ─► flutter_gemma (native thread)
+              │                ▼
+              │   GanaInference
+              │   Response{
+              │    kind: ok|skipped*|failed,
+              │    body, error}
+              ◄── replyPort ───┘
+```
+
+**3. Publish path — never engine-side.**
+DM (NIP-17 gift wrap) and private channel (NIP-29 / MLS) publishing touches native plugins that aren't safe to invoke from a background isolate. So the engine writes a `GanaPendingOutputModel` row and stops. The main-isolate `GanaOutputDispatcher` watches that table and calls the existing publish use cases.
+
+```
+Engine isolate                          Main isolate
+─────────────                            ────────────
+write GanaPendingOutputModel{
+  body, ganaId, runId, outputType, ref}
+                                       ─► GanaOutputDispatcher
+                                             ─► PublishNoteUseCase /
+                                                CreateChannelMessageUseCase /
+                                                SendPrivateChannelMessageUsecase /
+                                                SendDmUseCase
+                                             ─► stamps outputEventId back on
+                                                the matching GanaRun row
+                                             ─► deletes the pending row
+```
+
+### What this means for Shiv
+
+- **No new inference code.** Ganas reuse `AIModelRunner.generateOneShot` verbatim. If you change Shiv's inference behaviour, Gana behaviour changes the same way.
+- **Chat always wins.** `LocalInferenceQueue.runLow` for Gana means user-initiated chat preempts background Gana runs. A Gana inflight when you open Shiv → its `generateOneShot` returns null → the engine logs `skipped: modelSwapped` and retries next trigger.
+- **Same model state.** `FlutterGemma.hasActiveModel()` is process-wide — the server reads it directly, gates Gana runs on it. `SelectAIModelCubit` swapping models is observable to the server (it reads `AppSettingsStore.activeModelId` per request).
+
+See `docs/SHIVA/Ganas.md` §7 for the UI-blocking analysis ("does the bridge slow the UI?" — no, with caveats).
 
 ---
 

@@ -66,6 +66,11 @@ class GanaFormIntervalChangedEvent extends GanaFormEvent {
   final int? value;
 }
 
+class GanaFormTriggerModeChangedEvent extends GanaFormEvent {
+  const GanaFormTriggerModeChangedEvent(this.value);
+  final GanaTriggerMode value;
+}
+
 class GanaFormEnabledToggleEvent extends GanaFormEvent {
   const GanaFormEnabledToggleEvent(this.value);
   final bool value;

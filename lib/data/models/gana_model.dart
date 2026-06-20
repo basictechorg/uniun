@@ -1,6 +1,7 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 
 part 'gana_model.g.dart';
@@ -73,6 +74,12 @@ class GanaModel {
   /// execution further clamps to ≥30 minutes regardless of this value.
   int? triggerIntervalMinutes;
 
+  /// How the Gana fires. Recurring = cron-job behaviour (default).
+  /// One-shot = auto-disable after the first successful run.
+  /// Defaults to recurring on legacy rows.
+  @Enumerated(EnumType.name)
+  GanaTriggerMode triggerMode = GanaTriggerMode.recurring;
+
   // ── Master switch ────────────────────────────────────────────────────────
 
   /// Defaults to `false`. The user explicitly enables after reviewing the
@@ -114,6 +121,7 @@ extension GanaModelExtension on GanaModel {
         desiredModelId: desiredModelId,
         triggerReactive: triggerReactive,
         triggerIntervalMinutes: triggerIntervalMinutes,
+        triggerMode: triggerMode,
         enabled: enabled,
         lastProcessedEventId: lastProcessedEventId,
         lastProcessedCreated: lastProcessedCreated,

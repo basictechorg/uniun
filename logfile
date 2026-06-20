@@ -1,0 +1,470 @@
+A Dart VM Service on vivo 1933 is available at: http://127.0.0.1:38295/buwAZwH_rFw=/
+The Flutter DevTools debugger and profiler on vivo 1933 is available at: http://127.0.0.1:38295/buwAZwH_rFw=/devtools/?uri=ws://127.0.0.1:38295/buwAZwH_rFw=/ws
+I/flutter (17131): [ModelManager] restored active inference model: Qwen3-0.6B.litertlm
+I/flutter (17131): [ModelManager] restored active embedding model: gecko_1024_quant.tflite
+I/flutter (17131): UnifiedModelManager initialized successfully
+I/flutter (17131): IsarCore using libmdbx: v0.13.8-temp-upstream-fix
+I/flutter (17131): ╔══════════════════════════════════════════════════════════════╗
+I/flutter (17131): ║                     ISAR CONNECT STARTED                     ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║             Open the link to connect to the Isar             ║
+I/flutter (17131): ║            Inspector while this build is running.            ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║ https://inspect.isar-community.dev/3.3.2/#/38295/buwAZwH_rFw ║
+I/flutter (17131): ╚══════════════════════════════════════════════════════════════╝
+D/WM-WorkerWrapper(17131): Starting work for dev.fluttercommunity.workmanager.BackgroundWorker
+E/libc    (17131): Access denied finding property "ro.vendor.mediatek.platform"
+I/AdrenoVK-0(17131): QUALCOMM build          : 0123d33, I373ac6d836
+I/AdrenoVK-0(17131): Build Date              : 11/18/20
+I/AdrenoVK-0(17131): Shader Compiler Version : EV031.32.02.06
+I/AdrenoVK-0(17131): Local Branch            : mybrancheb29be2e-19cd-f15b-8ff9-5cb90179c3d8
+I/AdrenoVK-0(17131): Remote Branch           : quic/gfx-adreno.lnx.1.0.r114-rel
+I/AdrenoVK-0(17131): Remote Branch           : NONE
+I/AdrenoVK-0(17131): Reconstruct Branch      : NOTHING
+I/AdrenoVK-0(17131): Build Config            : S P 10.0.7 AArch64
+I/AdrenoVK-0(17131): Driver Path             : /vendor/lib64/hw/vulkan.adreno.so
+D/FlutterFileDialogPlugin(17131): onAttachedToEngine - IN
+D/FlutterFileDialogPlugin(17131): doOnAttachedToEngine - IN
+D/FlutterFileDialogPlugin(17131): doOnAttachedToEngine - OUT
+D/FlutterFileDialogPlugin(17131): onAttachedToEngine - OUT
+W/FlutterJNI(17131): FlutterJNI.loadLibrary called more than once
+D/FlutterJNI(17131): Beginning load of flutter...
+D/FlutterJNI(17131): flutter (null) was loaded normally!
+W/FlutterJNI(17131): FlutterJNI.prefetchDefaultFontManager called more than once
+I/flutter (17131): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+I/ResourceExtractor(17131): Found extracted resources res_timestamp-5-1781951157611
+W/FlutterJNI(17131): FlutterJNI.init called more than once
+W/FlutterJNI(17131): FlutterJNI.loadLibrary called more than once
+D/FlutterJNI(17131): Beginning load of flutter...
+D/FlutterJNI(17131): flutter (null) was loaded normally!
+W/FlutterJNI(17131): FlutterJNI.prefetchDefaultFontManager called more than once
+I/ResourceExtractor(17131): Found extracted resources res_timestamp-5-1781951157611
+I/flutter (17131): [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/WM-SystemJobService(17131): onStartJob for WorkGenerationalId(workSpecId=d97483da-62f8-467e-adc7-640288a33039, generation=0)
+W/FlutterJNI(17131): FlutterJNI.init called more than once
+D/WM-Processor(17131): Work WorkGenerationalId(workSpecId=d97483da-62f8-467e-adc7-640288a33039, generation=0) is already enqueued for processing
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/Choreographer(17131): Skipped 52 frames!  The application may be doing too much work on its main thread.
+I/flutter (17131): [gana] +     0ms ═══════════════════════════════════════════════════════════
+I/flutter (17131): [gana] +    15ms bg tick START (budget=90s)
+I/flutter (17131): [gana] +    21ms step 1: opening Isar at shared DB path
+I/flutter (17131): IsarCore using libmdbx: v0.13.8-temp-upstream-fix
+I/flutter (17131): ╔══════════════════════════════════════════════════════════════╗
+I/flutter (17131): ║                     ISAR CONNECT STARTED                     ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║             Open the link to connect to the Isar             ║
+I/flutter (17131): ║            Inspector while this build is running.            ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║ https://inspect.isar-community.dev/3.3.2/#/38295/buwAZwH_rFw ║
+I/flutter (17131): ╚══════════════════════════════════════════════════════════════╝
+I/flutter (17131): [gana] +   362ms step 1: Isar opened
+I/flutter (17131): [gana] +   362ms step 2: reading inputData (selfPubkeyHex + privkeyHex)
+I/flutter (17131): [gana] +   363ms step 2: selfPubkey=9b3f9196…8aa3 privkey=present
+I/flutter (17131): [gana] +   363ms step 3: scanning enabled Ganas
+I/flutter (17131): [gana] +   430ms step 3: 0 enabled Gana(s) found
+I/flutter (17131): [gana] +   433ms step 3: nothing due, exiting cleanly
+I/Choreographer(17131): Skipped 97 frames!  The application may be doing too much work on its main thread.
+D/FlutterFileDialogPlugin(17131): onDetachedFromEngine
+D/FlutterFileDialogPlugin(17131): doOnDetachedFromEngine - IN
+D/FlutterFileDialogPlugin(17131): doOnDetachedFromEngine - OUT
+I/WM-WorkerWrapper(17131): Worker result SUCCESS for Work [ id=d97483da-62f8-467e-adc7-640288a33039, tags={ dev.fluttercommunity.workmanager.BackgroundWorker } ]
+D/WM-PackageManagerHelper(17131): androidx.work.impl.background.systemalarm.RescheduleReceiver disabled
+I/Gralloc4(17131): mapper 4.x is not supported
+W/Gralloc3(17131): mapper 3.x is not supported
+I/FlutterSecureStorage(17131): Data already migrated, encryptedSharedPreferences ignored and can be safely removed.
+I/Choreographer(17131): Skipped 43 frames!  The application may be doing too much work on its main thread.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/OpenGLRenderer(17131): Davey! duration=737ms; Flags=1, IntendedVsync=49727592078768, Vsync=49728296996774, OldestInputEvent=9223372036854775807, NewestInputEvent=0, HandleInputStart=49728309498007, AnimationStart=49728309508789, PerformTraversalsStart=49728309513528, DrawStart=49728324113007, SyncQueued=49728325261080, SyncStart=49728325531497, IssueDrawCommandsStart=49728325738320, SwapBuffers=49728329287122, FrameCompleted=49728329889205, DequeueBufferDuration=2165417, QueueBufferDuration=211928, GpuCompleted=0, 
+D/WM-Processor(17131): Processor d97483da-62f8-467e-adc7-640288a33039 executed; reschedule = false
+D/WM-GreedyScheduler(17131): Stopping tracking for WorkGenerationalId(workSpecId=d97483da-62f8-467e-adc7-640288a33039, generation=0)
+D/WM-SystemJobService(17131): d97483da-62f8-467e-adc7-640288a33039 executed on JobScheduler
+D/ProfileInstaller(17131): Installing profile for in.uniun.app
+D/WM-GreedyScheduler(17131): Cancelling work ID d97483da-62f8-467e-adc7-640288a33039
+D/WM-BrdcstRcvrCnstrntTrc(17131): BatteryNotLowTracker: unregistering receiver
+D/WM-SystemJobService(17131): onStopJob for WorkGenerationalId(workSpecId=d97483da-62f8-467e-adc7-640288a33039, generation=0)
+D/WM-NetworkStateTracker(17131): Unregistering network callback
+I/flutter (17131): GanaOutputDispatcher started
+I/flutter (17131): unhandled element <style/>; Picture key: Svg loader
+I/flutter (17131): UnifiedModelManager: Model gecko_1024_quant.tflite installed: true
+I/flutter (17131): Using active embedding model: /data/user/0/in.uniun.app/app_flutter/gecko_1024_quant.tflite, tokenizer: /data/user/0/in.uniun.app/app_flutter/sentencepiece.model
+I/flutter (17131): UnifiedModelManager: Model gecko_1024_quant.tflite installed: true
+I/flutter (17131): IsarCore using libmdbx: v0.13.8-temp-upstream-fix
+I/flutter (17131): ╔══════════════════════════════════════════════════════════════╗
+I/flutter (17131): ║                     ISAR CONNECT STARTED                     ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║             Open the link to connect to the Isar             ║
+I/flutter (17131): ║            Inspector while this build is running.            ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║ https://inspect.isar-community.dev/3.3.2/#/38295/buwAZwH_rFw ║
+I/flutter (17131): ╚══════════════════════════════════════════════════════════════╝
+I/flutter (17131): GanaInferenceServer started
+I/flutter (17131): IsarCore using libmdbx: v0.13.8-temp-upstream-fix
+I/flutter (17131): ╔══════════════════════════════════════════════════════════════╗
+I/flutter (17131): ║                     ISAR CONNECT STARTED                     ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║             Open the link to connect to the Isar             ║
+I/flutter (17131): ║            Inspector while this build is running.            ║
+I/flutter (17131): ╟──────────────────────────────────────────────────────────────╢
+I/flutter (17131): ║ https://inspect.isar-community.dev/3.3.2/#/38295/buwAZwH_rFw ║
+I/flutter (17131): ╚══════════════════════════════════════════════════════════════╝
+I/flutter (17131): GanaEngine: schedule rebuilt with 0 enabled Gana(s)
+I/flutter (17131): Gana engine isolate fully started
+I/litert  (17131): [environment.cc:30] Creating LiteRT environment with options
+W/litert  (17131): [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
+I/litert  (17131): [gpu_registry.cc:114] Attempting to load GPU accelerator(libLiteRtGpuAccelerator.so).
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x74d30b36d0, name=LiteRT GPU
+I/litert  (17131): [gpu_registry.cc:122] Dynamically loaded GPU accelerator(libLiteRtGpuAccelerator.so) registered.
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x74d30b4210, name=CpuAccelerator
+I/litert  (17131): [cpu_registry.cc:42] CPU accelerator registered.
+I/litert  (17131): [compiled_model.cc:797] Flatbuffer model initialized directly from incoming litert model.
+I/tflite  (17131): Initialized TensorFlow Lite runtime.
+E/libc    (17131): Access denied finding property "ro.hardware.chipname"
+I/tflite  (17131): Created TensorFlow Lite XNNPACK delegate for CPU.
+I/tflite  (17131): Replacing 614 out of 633 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 2 partitions for subgraph 0.
+I/flutter (17131): Gateway isolate fully started!
+I/flutter (17131): [EmbeddingCore] loaded: seqLen=1024, dim=768, backend=EmbeddingBackend.cpu
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=1427586c2a2e8d79915d920981cc483b636759e3cd0e0bf88d11fedd90da4d17
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=7ed7a2913eedc1a653b805c87e201ab9098a022bf3267f13c45ecec87c85525b
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=909a204e2aec523528a28f30932eca4bfd4144dcb3169d650c5eb8591813c5ca
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=63f119e164e8c8b76d634e9e0a5a4c578337433d9e18a7c9fdb0822384ab928b
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=48d23e4355572371308e1494ecc86fdfc598d40a0e42555be4121c3ffc3a339b
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=ceded41a0abcdd0cbbde7d429746669348086ed486b8437df037c20f848f5d4b
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=a1a031c92de2048729753b3609ce6809780704d9c75af58ff0247f2fd4ad619d
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=dcab2d477dadad6c1e6d7d6e1aa5373a70702354a86a789d6431786ec8de49f9
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=1a1c871c6a3282d25b3fc563438f62a071f03b61342f864168f628069681fa9b
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=aa5e1962b354d388814346092ae060122824c19663147fb55d7c200326a4cabb
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=492694d2b1fe3ccf99441166892249955fe1d55be175484a5c963678ca9702a8
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=ca40f8770c9003efe84e7a1ebc65f19ee7eeae58c4c7724f4119bf1948e73813
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=9e49bc5e75b1c5bd6d89ab33d441a9eae0ffae12219b2725f2a074d9c7944393
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=5f14807583b451ec7bd0229feadaaa534407110a3357140f37ae568c0aba71de
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=e3bcd6b4fa5ee87116e829c6015e2926e249d4dec8d733eef65fd1678fab054e
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=a7fbb624a0d7f860dfa4d8affc089347fd14e95db99e1643990acede20ed03f0
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=b73bab461d6f186338027e38d8f572ac62877fe50ed40278984204073800e5c4
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=69bce76a09b11b1f600dc91ef0d353398cf9a200970a42fd3936e4643d7f8508
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=3b34d15d7486f727e8c67970c3ba9b553ef7de92004b0e4b0a1beb6f6af05a29
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=13fa1b5b488a8133e0fd873d4960f3f7c2048c98bb3a3846bfda01795aab96c3
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=0add0025df9f690e2cf3d9630e5eec6ec927ba8c50613792c9c4301b85fca973
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=e205fcb0469e945f080b30fb9796e90463148f4e7bf4863ccbcd0f0dc6e080b8
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=095a06a13d4e6648b2498f4d2286f0f2766013419f2d7db3dcacaa74a677be5c
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=a3351da2b712bf047e6707c8c66b7f7560a581f3f9ec0d357fcb4060525672d5
+I/flutter (17131): GATEWAY: inbound EVENT sub=feed_notes_missing kind=1 id=dd9cca9b1dc1a2f487d842cf0bab02ff025a88579fea0946f86fb012fe23658c
+I/flutter (17131): GATEWAY: inbound EVENT sub=channels_info kind=40 id=0f8caa2fea911915033691dcfb9e02c7e3b21e7032b8677246384255a8983b18
+I/flutter (17131): ⏸️ ModelTaskQueue: low-priority paused
+I/flutter (17131): GanaEngine: schedule rebuilt with 1 enabled Gana(s)
+I/flutter (17131): [gana-fg] fire-on-enable standalone one-shot name="life lesson"
+I/flutter (17131): [gana-fg] ────────────────────────────────────────────
+I/flutter (17131): [gana-fg] runOnce START name="life lesson" runId=958b341f inputType=standalone outputType=feed mode=oneShot
+I/flutter (17131): [gana-fg]   self-outputs guard set: 2
+I/flutter (17131): [gana-fg]   input filter: 0 note(s)
+I/flutter (17131): [gana-fg]   Manas: life
+I/flutter (17131): [gana-fg]   knowledge packed: 1 note(s)
+I/flutter (17131): [gana-fg]   prompt: 268 chars (~67 tokens)
+I/flutter (17131): [gana-fg]   inference REQUEST → main isolate (expectedModelId=qwen25_05b)
+I/flutter (17131): ▶️  ModelTaskQueue: low-priority resumed (pending low=1)
+I/flutter (17131): 🔀 ModelTaskQueue: running extract (pending high=0 low=0 paused=false)
+I/flutter (17131): 🧪 generateOneShot: opening throwaway chat…
+I/flutter (17131): UnifiedModelManager: Model Qwen3-0.6B.litertlm installed: true
+I/flutter (17131): 🔁 Drain: no pending extractions
+I/flutter (17131): UnifiedModelManager: Model Qwen3-0.6B.litertlm installed: true
+I/flutter (17131): Using unified model file: /data/user/0/in.uniun.app/app_flutter/Qwen3-0.6B.litertlm
+I/flutter (17131): [LiteRtLmFfi] Loading native libraries...
+I/flutter (17131): [LiteRtLmFfi/perf] _ensureBindings total: 13ms
+I/flutter (17131): [LiteRtLmFfi] Libraries loaded
+I/flutter (17131): [LiteRtLmFfi/perf] _ensureBindings: 17ms
+I/native  (17131): I0000 00:00:1781951375.221282   17131 litert_lm_loader.cc:197] LitertLmLoader::Initialize
+I/native  (17131): I0000 00:00:1781951375.224584   17131 litert_lm_loader.cc:220] mmap_status is ok
+I/native  (17131): I0000 00:00:1781951375.225619   17131 litert_lm_loader.cc:225] status: OK
+I/native  (17131): I0000 00:00:1781951375.225647   17131 litert_lm_loader.cc:226] major_version: 1
+I/native  (17131): I0000 00:00:1781951375.225681   17131 litert_lm_loader.cc:227] minor_version: 5
+I/native  (17131): I0000 00:00:1781951375.225696   17131 litert_lm_loader.cc:228] patch_version: 0
+I/native  (17131): I0000 00:00:1781951375.225718   17131 litert_lm_loader.cc:261] section_index: 0
+I/native  (17131): I0000 00:00:1781951375.225729   17131 litert_lm_loader.cc:262] section_data_type: LlmMetadataProto
+I/native  (17131): I0000 00:00:1781951375.225739   17131 litert_lm_loader.cc:264] section_begin_offset: 16384
+I/native  (17131): I0000 00:00:1781951375.225749   17131 litert_lm_loader.cc:265] section_end_offset: 16536
+I/native  (17131): I0000 00:00:1781951375.225759   17131 litert_lm_loader.cc:261] section_index: 1
+I/native  (17131): I0000 00:00:1781951375.225767   17131 litert_lm_loader.cc:262] section_data_type: SP_Tokenizer
+I/native  (17131): I0000 00:00:1781951375.225775   17131 litert_lm_loader.cc:264] section_begin_offset: 32768
+I/native  (17131): I0000 00:00:1781951375.225783   17131 litert_lm_loader.cc:265] section_end_offset: 2681345
+I/native  (17131): I0000 00:00:1781951375.225793   17131 litert_lm_loader.cc:105] model_type: tf_lite_prefill_decode
+I/native  (17131): I0000 00:00:1781951375.225811   17131 litert_lm_loader.cc:261] section_index: 2
+I/native  (17131): I0000 00:00:1781951375.225820   17131 litert_lm_loader.cc:262] section_data_type: TFLiteModel
+I/native  (17131): I0000 00:00:1781951375.225828   17131 litert_lm_loader.cc:264] section_begin_offset: 2686976
+I/native  (17131): I0000 00:00:1781951375.225837   17131 litert_lm_loader.cc:265] section_end_offset: 614230168
+I/flutter (17131): [LiteRtLmFfi/perf] settings_create: 7ms
+I/flutter (17131): [LiteRtLmFfi] Creating engine from /data/user/0/in.uniun.app/app_flutter/Qwen3-0.6B.litertlm (backend=gpu, maxTokens=1024) ...
+I/flutter (17131): [LiteRtLmFfi/perf] === START litert_lm_engine_create (native — model load + accelerator init + KV cache prefill) ===
+I/native  (17131): I0000 00:00:1781951375.301871   17595 litert_lm_loader.cc:197] LitertLmLoader::Initialize
+I/native  (17131): I0000 00:00:1781951375.302212   17595 litert_lm_loader.cc:220] mmap_status is ok
+I/native  (17131): I0000 00:00:1781951375.302307   17595 litert_lm_loader.cc:225] status: OK
+I/native  (17131): I0000 00:00:1781951375.302349   17595 litert_lm_loader.cc:226] major_version: 1
+I/native  (17131): I0000 00:00:1781951375.302399   17595 litert_lm_loader.cc:227] minor_version: 5
+I/native  (17131): I0000 00:00:1781951375.302433   17595 litert_lm_loader.cc:228] patch_version: 0
+I/native  (17131): I0000 00:00:1781951375.302504   17595 litert_lm_loader.cc:261] section_index: 0
+I/native  (17131): I0000 00:00:1781951375.302545   17595 litert_lm_loader.cc:262] section_data_type: LlmMetadataProto
+I/native  (17131): I0000 00:00:1781951375.302579   17595 litert_lm_loader.cc:264] section_begin_offset: 16384
+I/native  (17131): I0000 00:00:1781951375.302614   17595 litert_lm_loader.cc:265] section_end_offset: 16536
+I/native  (17131): I0000 00:00:1781951375.302652   17595 litert_lm_loader.cc:261] section_index: 1
+I/native  (17131): I0000 00:00:1781951375.302685   17595 litert_lm_loader.cc:262] section_data_type: SP_Tokenizer
+I/native  (17131): I0000 00:00:1781951375.302716   17595 litert_lm_loader.cc:264] section_begin_offset: 32768
+I/native  (17131): I0000 00:00:1781951375.302771   17595 litert_lm_loader.cc:265] section_end_offset: 2681345
+I/native  (17131): I0000 00:00:1781951375.302814   17595 litert_lm_loader.cc:105] model_type: tf_lite_prefill_decode
+I/native  (17131): I0000 00:00:1781951375.302860   17595 litert_lm_loader.cc:261] section_index: 2
+I/native  (17131): I0000 00:00:1781951375.302895   17595 litert_lm_loader.cc:262] section_data_type: TFLiteModel
+I/native  (17131): I0000 00:00:1781951375.302928   17595 litert_lm_loader.cc:264] section_begin_offset: 2686976
+I/native  (17131): I0000 00:00:1781951375.302961   17595 litert_lm_loader.cc:265] section_end_offset: 614230168
+I/native  (17131): I0000 00:00:1781951375.305175   17595 engine_advanced_impl.cc:224] Legacy model files don't have LlmModelType, loading tokenizer now
+W/native  (17131): W0000 00:00:1781951375.527471   17595 litert_lm_loader.h:158] TFLite model type: TF_LITE_VISION_ENCODER not found for backend constraints. Skipping.
+W/native  (17131): W0000 00:00:1781951375.527660   17595 litert_lm_loader.h:158] TFLite model type: TF_LITE_AUDIO_ENCODER_HW not found for backend constraints. Skipping.
+W/native  (17131): W0000 00:00:1781951375.527682   17595 litert_lm_loader.h:174] TFLite model type: TF_LITE_VISION_ENCODER not found for prefer activation type. Use system's default backend activation type. System's default activation type for Text decoder is fp16. Vision encoder and audio encoder default is fp32.
+W/native  (17131): W0000 00:00:1781951375.527693   17595 litert_lm_loader.h:174] TFLite model type: TF_LITE_AUDIO_ENCODER_HW not found for prefer activation type. Use system's default backend activation type. System's default activation type for Text decoder is fp16. Vision encoder and audio encoder default is fp32.
+I/native  (17131): I0000 00:00:1781951375.527836   17595 engine_settings.cc:100] The Main backend constraint is not set.
+I/native  (17131): I0000 00:00:1781951375.527858   17595 engine_settings.cc:437] The validated engine settings: EngineSettings: 
+I/native  (17131):   MainExecutorSettings: backend: GPU
+I/native  (17131): backend_config:
+I/native  (17131): max_top_k: 1
+I/native  (17131): 
+I/native  (17131): max_tokens: 1024
+I/native  (17131): activation_data_type: Not set
+I/native  (17131): max_num_images: 0
+I/native  (17131): lora_rank: 0
+I/native  (17131): cache_dir: /data/user/0/in.uniun.app/files
+I/native  (17131): cache_file: Not set
+I/native  (17131): litert_dispatch_lib_dir: Not set
+I/native  (17131): model_assets: model_path: /data/user/0/in.uniun.app/app_flutter/Qwen3-0.6B.litertlm
+I/native  (17131): fake_weights_mode: FAKE_WEIGHTS_NONE
+I/native  (17131): 
+I/native  (17131): advanced_settings: prefill_batch_sizes: []
+I/native  (17131): num_output_candidates: 1
+I/native  (17131): configure_magic_numbers: true
+I/native  (17131): verify_magic_numbers: false
+I/native  (17131): clear_kv_cache_before_prefill: true
+I/native  (17131): num_logits_to_print_after_decode: 0
+I/native  (17131): gpu_madvise_original_shared_tensors: true
+I/native  (17131): is_benchmark: true
+I/native  (17131): preferred_device_substr: 
+I/native  (17131): num_threads_to_upload: -1
+I/native  (17131): num_threads_to_compile: -1
+I/native  (17131): convert_weights_on_gpu: true
+I/native  (17131): wait_for_weights_conversion_complete_in_benchmark: true
+I/native  (17131): optimize_shader_compilation: true
+I/native  (17131): cache_compiled_shaders_only: false
+I/native  (17131): share_constant_tensors: true
+I/native  (17131): sampler_handles_input: true
+I/native  (17131): allow_src_quantized_fc_conv_ops: false
+I/native  (17131): hint_waiting_for_completion: true
+I/native  (17131): gpu_context_low_priority: Not set
+I/native  (17131): enable_speculative_decoding: false
+I/native  (17131): disable_delegate_clustering: false
+I/native  (17131): hint_kernel_batch_size: 4
+I/native  (17131): 
+I/native  (17131):   LlmMetadata: goo.gle/debugonly    
+I/native  (17131): start_token {
+I/native  (17131):   token_ids {
+I/native  (17131):     ids: 4064
+I/native  (17131):   }
+I/native  (17131): }
+I/native  (17131): stop_tokens {
+I/native  (17131):   token_ids {
+I/native  (17131):     ids: 151645
+I/native  (17131):   }
+I/native  (17131): }
+I/native  (17131): prompt_templates {
+I/native  (17131):   user {
+I/native  (17131):     prefix: "<|im_start|>user\n"
+I/native  (17131):     suffix: "<|im_end|>\n"
+I/native  (17131):   }
+I/native  (17131):   model {
+I/native  (17131):     prefix: "<|im_start|>assistant\n"
+I/native  (17131):     suffix: "<|im_end|>\n"
+I/native  (17131):   }
+I/native  (17131):   system {
+I/native  (17131):     prefix: "<|im_start|>system\n"
+I/native  (17131):     suffix: "<|im_end|>\n"
+I/native  (17131):   }
+I/native  (17131): }
+I/native  (17131): sampler_params {
+I/native  (17131):   type: TOP_P
+I/native  (17131):   k: 20
+I/native  (17131):   p: 0.95
+I/native  (17131):   temperature: 0.6
+I/native  (17131): }
+I/native  (17131): max_num_tokens: 4096
+I/native  (17131): llm_model_type {
+I/native  (17131):   generic_model {
+I/native  (17131):   }
+I/native  (17131): }
+I/native  (17131): jinja_prompt_template: "{%- for message in messages -%}{%- if message.content is string -%}{%- if message.role == \'user\' %}<|im_start|>user\n{{ message.content }}<|im_end|>\n{% endif -%}{%- if message.role == \'model\' %}<|im_start|>assistant\n{{ message.content }}<|im_end|>\n{% endif -%}{%- if message.role == \'system\' %}<|im_start|>system\n{{ message.content }}<|im_end|>\n{% endif -%}{%- else -%}{%- if message.role == \'user\' %}<|im_start|>user\n{% elif message.role == \'model\' %}<|im_start|>assistant\n{% elif message.role == \'system\' %}<|im_start|>system\n{% endif -%}{%- for item in message.content %}{%- if item.type == \'text\' %}{{ item.text }}{% elif item.type == \'image\' -%}{{ \'<start_of_image>\' }}{%- elif item.type == \'audio\' -%}{{ \'<start_of_audio>\' }}{%- endif -%}{%- endfor -%}{%- if message.role == \'user\' %}<|im_end|>\n{% elif message.role == \'model\' %}<|im_end|>\n{% elif message.role == \'system\' %}<|im_end|>\n{% endif -%}{%- endif -%}{%- endfor -%}{%- if add_generation_prompt %}<|im_start|>assistant\n{% endif -%}"
+I/native  (17131):   BenchmarkParams: goo.gle/debugonly    
+I/native  (17131):   VisionExecutorSettings: Not set
+I/native  (17131):   AudioExecutorSettings: Not set
+I/native  (17131):   ParallelFileSectionLoading: true
+I/native  (17131):   SingleThreadedExecution: false
+I/native  (17131): 
+I/native  (17131): I0000 00:00:1781951375.531185   17595 model_resources_litert_lm.cc:67] model_type: TF_LITE_PREFILL_DECODE
+I/native  (17131): I0000 00:00:1781951375.531225   17595 model_resources_litert_lm.cc:68] litert model size: 611543192
+I/litert  (17131): [environment.cc:30] Creating LiteRT environment with options
+W/litert  (17131): [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
+I/litert  (17131): [gpu_registry.cc:114] Attempting to load GPU accelerator(libLiteRtGpuAccelerator.so).
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x7480cd80d0, name=LiteRT GPU
+I/litert  (17131): [gpu_registry.cc:122] Dynamically loaded GPU accelerator(libLiteRtGpuAccelerator.so) registered.
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x7480cd8710, name=CpuAccelerator
+I/litert  (17131): [cpu_registry.cc:42] CPU accelerator registered.
+I/native  (17131): I0000 00:00:1781951375.706160   17595 executor_settings_base.cc:347] Deleted 1 stale cache files.
+I/native  (17131): I0000 00:00:1781951375.706440   17595 litert_compiled_model_executor_utils.cc:511] Setting serialization dir: /data/user/0/in.uniun.app/files
+I/litert  (17131): [compiled_model.cc:797] Flatbuffer model initialized directly from incoming litert model.
+I/native  (17131): I0000 00:00:1781951375.746597   17595 delegate_opencl.cc:563] options->hint_waiting_for_completion: true
+I/native  (17131): I0000 00:00:1781951375.746787   17595 delegate_opencl.cc:565] options->kernel_batch_size: 4
+E/libc    (17131): Access denied finding property "ro.hardware.chipname"
+I/litert  (17131): [environment.cc:41] Adding options to the existing LiteRT environment
+I/tflite  (17131): Loaded OpenCL library with dlopen.
+I/litert  (17131): [gpu_environment.cc:220] Created OpenCL device from provided device id and platform id.
+I/litert  (17131): [gpu_environment.cc:283] Reusing provided EGL environment.
+I/litert  (17131): [gpu_environment.h:155] Created LiteRT GpuEnvironment.
+I/litert  (17131): [environment.cc:41] Adding options to the existing LiteRT environment
+I/tflite  (17131): Replacing 1306 out of 1306 node(s) with delegate (LITERT_CL) node, yielding 1 partitions for subgraph 0.
+I/native  (17131): I0000 00:00:1781951379.874898   17595 delegate_kernel.cc:297] Total 113 external tensors are used for delegate inputs and outputs
+I/native  (17131): I0000 00:00:1781951379.875653   17595 delegate_kernel.cc:816] Initializing OpenCL-based API from serialized data.
+I/tflite  (17131): Replacing 1358 out of 1358 node(s) with delegate (LITERT_CL) node, yielding 1 partitions for subgraph 1.
+I/native  (17131): I0000 00:00:1781951383.796657   17595 delegate_kernel.cc:297] Total 112 external tensors are used for delegate inputs and outputs
+I/native  (17131): I0000 00:00:1781951383.796808   17595 delegate_kernel.cc:816] Initializing OpenCL-based API from serialized data.
+I/litert  (17131): [environment.cc:30] Creating LiteRT environment with options
+W/litert  (17131): [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
+I/litert  (17131): [gpu_registry.cc:114] Attempting to load GPU accelerator(libLiteRtGpuAccelerator.so).
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x7480cd8760, name=LiteRT GPU
+I/litert  (17131): [gpu_registry.cc:122] Dynamically loaded GPU accelerator(libLiteRtGpuAccelerator.so) registered.
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x7453c1c550, name=CpuAccelerator
+I/litert  (17131): [cpu_registry.cc:42] CPU accelerator registered.
+W/native  (17131): W0000 00:00:1781951386.839912   17595 litert_lm_loader.cc:289] Section not found: 
+W/native  (17131): W0000 00:00:1781951386.840065   17595 litert_lm_loader.h:129] TFLite model for type: TF_LITE_END_OF_AUDIO not found. Skipping.
+I/native  (17131): I0000 00:00:1781951386.840086   17595 model_resources_litert_lm.cc:67] model_type: TF_LITE_END_OF_AUDIO
+I/native  (17131): I0000 00:00:1781951386.840099   17595 model_resources_litert_lm.cc:68] litert model size: 0
+W/native  (17131): W0000 00:00:1781951386.840121   17595 litert_lm_loader.cc:289] Section not found: 
+W/native  (17131): W0000 00:00:1781951386.840131   17595 litert_lm_loader.h:129] TFLite model for type: TF_LITE_END_OF_VISION not found. Skipping.
+I/native  (17131): I0000 00:00:1781951386.840141   17595 model_resources_litert_lm.cc:67] model_type: TF_LITE_END_OF_VISION
+I/native  (17131): I0000 00:00:1781951386.840149   17595 model_resources_litert_lm.cc:68] litert model size: 0
+W/native  (17131): W0000 00:00:1781951386.840158   17595 litert_lm_loader.cc:289] Section not found: 
+W/native  (17131): W0000 00:00:1781951386.840167   17595 litert_lm_loader.h:129] TFLite model for type: TF_LITE_EMBEDDER not found. Skipping.
+I/native  (17131): I0000 00:00:1781951386.840175   17595 model_resources_litert_lm.cc:67] model_type: TF_LITE_EMBEDDER
+I/native  (17131): I0000 00:00:1781951386.840183   17595 model_resources_litert_lm.cc:68] litert model size: 0
+W/native  (17131): W0000 00:00:1781951386.840192   17595 litert_lm_loader.cc:289] Section not found: 
+W/native  (17131): W0000 00:00:1781951386.840201   17595 litert_lm_loader.h:129] TFLite model for type: TF_LITE_PER_LAYER_EMBEDDER not found. Skipping.
+I/native  (17131): I0000 00:00:1781951386.840209   17595 model_resources_litert_lm.cc:67] model_type: TF_LITE_PER_LAYER_EMBEDDER
+I/native  (17131): I0000 00:00:1781951386.840217   17595 model_resources_litert_lm.cc:68] litert model size: 0
+I/native  (17131): I0000 00:00:1781951386.840297   17595 threadpool.cc:41] ThreadPool 'execution_thread_pool': Running up to 1 threads.
+I/native  (17131): I0000 00:00:1781951386.840328   17595 threadpool.cc:41] ThreadPool 'callback_thread_pool': Running up to 1 threads.
+I/flutter (17131): [LiteRtLmFfi/perf] === END litert_lm_engine_create: 11612ms (includes isolate spawn ~50-200ms) ===
+I/flutter (17131): [LiteRtLmFfi] litert_lm_engine_create took 11612ms
+I/flutter (17131): [LiteRtLmFfi/perf] initialize() total: 11643ms
+I/flutter (17131): [LiteRtLmFfi] Engine initialized successfully
+I/flutter (17131): --- Sending to Native ---
+I/flutter (17131): -------------------------
+I/flutter (17131): [transformToChatPrompt] modelType=ModelType.qwen3, fileType=ModelFileType.litertlm, messageType=MessageType.text, isUser=false
+I/flutter (17131): [transformToChatPrompt] Using _formatToolResponseContent, result length=268
+I/flutter (17131): InferenceChat: Starting async stream generation
+I/flutter (17131): InferenceChat: Starting to iterate over native tokens...
+I/native  (17131): I0000 00:00:1781951386.902227   17131 model_data_processor_factory.cc:384] Creating GenericDataProcessor
+I/native  (17131): I0000 00:00:1781951386.914248   17131 threadpool.cc:96] ThreadPool 'execution_thread_pool': Created a worker thread since all 0 worker threads are (supposed to be) busy.
+I/native  (17131): I0000 00:00:1781951389.768773   17685 threadpool.cc:96] ThreadPool 'callback_thread_pool': Created a worker thread since all 0 worker threads are (supposed to be) busy.
+I/native  (17131): I0000 00:00:1781951390.031823   17685 sampler_factory.cc:367] Dynamically loaded LiteRtTopKOpenClSampler C API.
+E/libc    (17131): Access denied finding property "ro.hardware.chipname"
+I/tflite  (17131): Loaded OpenCL library with dlopen.
+I/litert  (17131): [environment.cc:30] Creating LiteRT environment with options
+W/litert  (17131): [npu_registry.cc:34] NPU accelerator could not be loaded and registered: kLiteRtStatusErrorInvalidArgument.
+I/litert  (17131): [gpu_registry.cc:114] Attempting to load GPU accelerator(libLiteRtGpuAccelerator.so).
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x74d5f9ec10, name=LiteRT GPU
+I/litert  (17131): [gpu_registry.cc:122] Dynamically loaded GPU accelerator(libLiteRtGpuAccelerator.so) registered.
+I/litert  (17131): [accelerator_registry.cc:54] RegisterAccelerator: ptr=0x74d5f43180, name=CpuAccelerator
+I/litert  (17131): [cpu_registry.cc:42] CPU accelerator registered.
+I/flutter (17131): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 4280ms
+I/AssistStructure(17131): Flattened final assist data: 452 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(17131): The input method toggled cursor monitoring on
+D/InsetsController(17131): default animation onReady types: 8 mShow=true mHasAnimationCallbacks=true mRequestedTypes=8
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/chatty  (17131): uid=10388(in.uniun.app) identical 3 lines
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/InsetsAnimationCtrlImpl(17131): notify control request finished for types: 8
+D/InsetsController(17131): onAnimationFinish showOnFinish: true mRequestedTypes=8
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/chatty  (17131): uid=10388(in.uniun.app) identical 1 line
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/flutter (17131): 🧠 EmbedAndStore: start note=09a9b019 chars=7
+I/in.uniun.app(17131): NativeAlloc concurrent copying GC freed 95210(5043KB) AllocSpace objects, 12(624KB) LOS objects, 76% free, 3847KB/15MB, paused 143us total 172.667ms
+D/InputConnectionAdaptor(17131): The input method toggled cursor monitoring off
+D/InsetsController(17131): default animation onReady types: 8 mShow=false mHasAnimationCallbacks=true mRequestedTypes=8
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/chatty  (17131): uid=10388(in.uniun.app) identical 3 lines
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/chatty  (17131): uid=10388(in.uniun.app) identical 1 line
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/InsetsAnimationCtrlImpl(17131): notify control request finished for types: 8
+D/InsetsController(17131): onAnimationFinish showOnFinish: false mRequestedTypes=8
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/flutter (17131): 🧠 EmbedAndStore: embedded (dim=768), upserting to Tostore…
+I/flutter (17131): ✅ EmbedAndStore: Tostore upsert OK for 09a9b019
+I/flutter (17131): 🔎 Extract: start 09a9b019
+I/flutter (17131): 🔍 Tostore.vectorSearch → 2 raw hit(s)
+I/flutter (17131): 🔍 Tostore ANN returning 2 ScoredNote(s)
+I/flutter (17131): 🔎 Extract: 1 similar notes as context
+I/flutter (17131): 🔎 Extract: calling LLM one-shot…
+I/native  (17131): I0000 00:00:1781951456.217493   17131 session_advanced.h:166] SessionAdvanced::CancelProcess
+I/flutter (17131): [LiteRtLmFfi] Generation cancelled
+I/flutter (17131): [FfiInferenceModelSession/perf] generation total: 69348ms (prefill 4280ms + decode 65068ms over 180 chunks, ~2.8 chunks/sec)
+I/flutter (17131): InferenceChat: Native token stream ended
+I/flutter (17131): InferenceChat: Calculating response tokens...
+I/flutter (17131): InferenceChat: Response tokens: 42
+I/flutter (17131): InferenceChat: Current total tokens: 42
+I/flutter (17131): InferenceChat: Adding message to history...
+I/flutter (17131): InferenceChat: Added to full history
+I/flutter (17131): InferenceChat: Added to model history
+I/flutter (17131): InferenceChat: Message added to history successfully
+I/flutter (17131): InferenceChat: generateChatResponseAsync completed successfully
+I/flutter (17131): 🧪 generateOneShot: done (142 chars)
+I/flutter (17131): [LiteRtLmFfi] Conversation closed
+I/flutter (17131): 🔀 ModelTaskQueue: running extract (pending high=0 low=0 paused=false)
+I/flutter (17131): 🧪 generateOneShot: opening throwaway chat…
+I/flutter (17131): ℹ️  Reusing existing model instance for Qwen3-0.6B.litertlm
+I/flutter (17131): --- Sending to Native ---
+I/flutter (17131): [gana-fg]   inference RESPONSE kind=ok in 117719ms
+I/flutter (17131): -------------------------
+I/flutter (17131): [transformToChatPrompt] modelType=ModelType.qwen3, fileType=ModelFileType.litertlm, messageType=MessageType.text, isUser=false
+I/flutter (17131): [gana-fg]   body: "A life lesson: Learn from mistakes and keep growing. Every experience is a chanc…"
+I/flutter (17131): [gana-fg]   writing GanaPendingOutputModel (dispatcher publishes via feed path)
+I/flutter (17131): [transformToChatPrompt] Using _formatToolResponseContent, result length=2125
+I/flutter (17131): InferenceChat: Starting async stream generation
+I/flutter (17131): InferenceChat: Starting to iterate over native tokens...
+I/native  (17131): I0000 00:00:1781951456.285637   17131 model_data_processor_factory.cc:384] Creating GenericDataProcessor
+I/flutter (17131): [gana-fg] runOnce END status=succeeded totalMs=117860
+I/flutter (17131): GanaEngine: schedule rebuilt with 0 enabled Gana(s)
+I/flutter (17131): [FfiInferenceModelSession/perf] (async) time-to-first-chunk (prefill): 38086ms
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+D/InsetsController(17131): default animation onReady types: 1 mShow=true mHasAnimationCallbacks=true mRequestedTypes=1
+I/in.uniun.app(17131): Starting a blocking GC NativeAlloc
+D/FlutterJNI(17131): Sending viewport metrics to the engine.
+I/in.uniun.app(17131): NativeAlloc concurrent copying GC freed 33214(1700KB) AllocSpace objects, 4(208KB) LOS objects, 75% free, 3880KB/15MB, paused 121us total 108.891ms
+D/InsetsAnimationCtrlImpl(17131): notify control request finished for types: 1
+D/InsetsController(17131): onAnimationFinish showOnFinish: true mRequestedTypes=1
+I/native  (17131): I0000 00:00:1781951618.448496   17131 session_advanced.h:166] SessionAdvanced::CancelProcess
+I/flutter (17131): [LiteRtLmFfi] Generation cancelled
+I/flutter (17131): [FfiInferenceModelSession/perf] generation total: 162175ms (prefill 38086ms + decode 124089ms over 414 chunks, ~3.3 chunks/sec)
+I/flutter (17131): InferenceChat: Native token stream ended
+I/flutter (17131): InferenceChat: Calculating response tokens...
+I/flutter (17131): InferenceChat: Response tokens: 0
+I/flutter (17131): InferenceChat: Current total tokens: 0
+I/flutter (17131): InferenceChat: Adding message to history...
+I/flutter (17131): InferenceChat: Added to full history
+I/flutter (17131): InferenceChat: Added to model history
+I/flutter (17131): InferenceChat: Message added to history successfully
+I/flutter (17131): InferenceChat: generateChatResponseAsync completed successfully
+I/flutter (17131): 🧪 generateOneShot: done (0 chars)
+I/flutter (17131): [LiteRtLmFfi] Conversation closed
+I/flutter (17131): 🔎 Extract: LLM replied (0 chars)
+I/flutter (17131): ⚠️ Extract: unparseable LLM output. Raw snippet: 

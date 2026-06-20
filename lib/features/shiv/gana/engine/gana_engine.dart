@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/gana_pending_output_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
@@ -57,6 +58,12 @@ class GanaEngine {
 
   /// Subscriptions to keep alive for the engine's lifetime.
   final List<StreamSubscription<void>> _subs = [];
+
+  /// ganaIds we've already auto-fired this engine lifetime under the
+  /// "standalone + one-shot fires on enable" rule. Prevents re-firing on
+  /// every schedule rebuild (the Isar watcher emits on any Gana row write,
+  /// including run-status updates).
+  final Set<String> _firedOnEnable = <String>{};
 
   static const Duration _reactiveDebounceDelay = Duration(seconds: 3);
   static const Duration _scheduleRebuildDebounce = Duration(milliseconds: 500);
@@ -138,6 +145,30 @@ class GanaEngine {
 
     debugPrint('GanaEngine: schedule rebuilt with '
         '${_enabledGanas.length} enabled Gana(s)');
+
+    // Standalone + one-shot fires immediately on enable. Reactive watcher
+    // skips it (inputType is null) and there's no interval timer either,
+    // so without this kick nothing would ever run it.
+    //
+    // Guard with `_firedOnEnable` so subsequent rebuilds (triggered by any
+    // ganaModels write — including the run status update) don't re-fire it.
+    // After a successful one-shot publish the row auto-disables, so it
+    // won't show up here again anyway; this guard just covers the window
+    // between enable and the run completing.
+    for (final g in _enabledGanas) {
+      if (g.inputType == null &&
+          g.triggerMode == GanaTriggerMode.oneShot &&
+          !_firedOnEnable.contains(g.ganaId)) {
+        _firedOnEnable.add(g.ganaId);
+        debugPrint('[gana-fg] fire-on-enable standalone one-shot '
+            'name="${g.name}"');
+        // Fire-and-forget — _runIfPossible handles the single-flight mutex.
+        unawaited(_runIfPossible(g.ganaId));
+      }
+    }
+    // Drop entries for Ganas that are no longer enabled, so a future
+    // disable→enable cycle fires again.
+    _firedOnEnable.removeWhere((id) => !liveIds.contains(id));
   }
 
   // ── Triggers ─────────────────────────────────────────────────────────────
@@ -191,6 +222,12 @@ class GanaEngine {
   Future<void> _runOnce(GanaEntity g) async {
     final startedAt = DateTime.now();
     final runId = const Uuid().v4();
+    debugPrint('[gana-fg] ────────────────────────────────────────────');
+    debugPrint('[gana-fg] runOnce START name="${g.name}" '
+        'runId=${runId.substring(0, 8)} '
+        'inputType=${g.inputType?.name ?? "standalone"} '
+        'outputType=${g.outputType.name} '
+        'mode=${g.triggerMode.name}');
 
     // Model gates (noActiveModel + modelMismatch) live on the main-isolate
     // server — it has direct access to FlutterGemma + AppSettingsStore.
@@ -198,14 +235,17 @@ class GanaEngine {
 
     // Fetch input + ancestry + self-output history in parallel.
     final selfOutputs = await _selfOutputs(g.ganaId);
+    debugPrint('[gana-fg]   self-outputs guard set: ${selfOutputs.length}');
     final inputs = await GanaInputFilter.fetch(
       isar: _isar,
       gana: g,
       selfPubkeyHex: _selfPubkeyHex,
       selfOutputEventIds: selfOutputs,
     );
+    debugPrint('[gana-fg]   input filter: ${inputs.length} note(s)');
 
     if (g.inputType != null && inputs.isEmpty) {
+      debugPrint('[gana-fg]   SKIPPED: noNewInput');
       await _logRun(
         runId: runId,
         ganaId: g.ganaId,
@@ -227,11 +267,13 @@ class GanaEngine {
 
     // Knowledge pack.
     final manasNames = await _resolveManasNames(g.manasIds);
+    debugPrint('[gana-fg]   Manas: ${manasNames.join(", ")}');
     final knowledge = await ManasContextLoader.merge(
       isar: _isar,
       manasIds: g.manasIds,
       budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
     );
+    debugPrint('[gana-fg]   knowledge packed: ${knowledge.length} note(s)');
 
     // Assemble prompt.
     final prompt = GanaPromptBuilder.build(
@@ -241,12 +283,19 @@ class GanaEngine {
       inputMessagesByOldestFirst: inputs,
       replyAncestry: ancestry,
     );
+    debugPrint('[gana-fg]   prompt: ${prompt.length} chars '
+        '(~${prompt.length ~/ 4} tokens)');
 
     // Bridge to main isolate for inference.
+    debugPrint('[gana-fg]   inference REQUEST → main isolate '
+        '(expectedModelId=${g.desiredModelId ?? "any"})');
+    final infStart = DateTime.now();
     final response = await _runInference(
       prompt: prompt,
       expectedModelId: g.desiredModelId,
     );
+    debugPrint('[gana-fg]   inference RESPONSE kind=${response.kind.name} '
+        'in ${DateTime.now().difference(infStart).inMilliseconds}ms');
 
     switch (response.kind) {
       case GanaInferenceResponseKind.skippedNoActiveModel:
@@ -289,8 +338,12 @@ class GanaEngine {
         break; // continue below
     }
 
+    // Already sanitized at LocalLlmRunner.generateOneShot — the single
+    // chokepoint every on-device one-shot passes through. Trim only.
     final body = (response.body ?? '').trim();
     if (body.isEmpty || body.toUpperCase() == '<NOOP>') {
+      debugPrint('[gana-fg]   SKIPPED: noopReturned '
+          '(body=${body.isEmpty ? "empty" : "<NOOP>"})');
       await _logRun(
         runId: runId,
         ganaId: g.ganaId,
@@ -303,8 +356,12 @@ class GanaEngine {
       await _advanceCursor(g, inputs, lastRunAt: DateTime.now());
       return;
     }
+    final preview = body.replaceAll('\n', ' \\n ');
+    debugPrint('[gana-fg]   body: "${preview.length > 80 ? '${preview.substring(0, 80)}…' : preview}"');
 
     // Enqueue for the main-isolate dispatcher to publish.
+    debugPrint('[gana-fg]   writing GanaPendingOutputModel '
+        '(dispatcher publishes via ${g.outputType.name} path)');
     await _enqueueOutput(
       runId: runId,
       gana: g,
@@ -320,7 +377,10 @@ class GanaEngine {
       // outputEventId is filled in later by the dispatcher.
     );
 
-    await _advanceCursor(g, inputs, lastRunAt: DateTime.now());
+    await _advanceCursor(g, inputs,
+        lastRunAt: DateTime.now(), publishedOutput: true);
+    debugPrint('[gana-fg] runOnce END status=succeeded '
+        'totalMs=${DateTime.now().difference(startedAt).inMilliseconds}');
   }
 
   // ── Inference bridge ─────────────────────────────────────────────────────
@@ -400,6 +460,7 @@ class GanaEngine {
     GanaEntity g,
     List<NoteModel> inputs, {
     required DateTime lastRunAt,
+    bool publishedOutput = false,
   }) async {
     final row =
         await _isar.ganaModels.filter().ganaIdEqualTo(g.ganaId).findFirst();
@@ -411,6 +472,15 @@ class GanaEngine {
         ..lastProcessedCreated = last.created;
     }
     row.lastRunAt = lastRunAt;
+    // One-shot Ganas auto-disable after a real publish. `publishedOutput`
+    // is true only when the model actually produced a non-NOOP body and
+    // we wrote the pending row — NOOP runs don't burn the one-shot.
+    if (publishedOutput && row.triggerMode == GanaTriggerMode.recurring) {
+      // Recurring stays enabled — no change.
+    } else if (publishedOutput &&
+        row.triggerMode == GanaTriggerMode.oneShot) {
+      row.enabled = false;
+    }
     await _isar.writeTxn(() async {
       await _isar.ganaModels.put(row);
     });
@@ -427,6 +497,7 @@ class GanaEngine {
         .findAll();
     return ids.cast<String>().toSet();
   }
+
 
   Future<List<String>> _resolveManasNames(List<String> manasIds) async {
     if (manasIds.isEmpty) return const [];

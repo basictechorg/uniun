@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
@@ -343,6 +344,14 @@ class _GanaTile extends StatelessWidget {
   }
 
   String _triggerSummary(GanaEntity g, AppLocalizations l10n) {
+    // One-shot ignores the stored interval entirely — the engine never
+    // schedules a timer in this mode. Show the actual semantic, not the
+    // stale interval field.
+    if (g.triggerMode == GanaTriggerMode.oneShot) {
+      return g.inputType == null
+          ? l10n.ganaTileTriggerOnceOnEnable
+          : l10n.ganaTileTriggerOnceOnInput;
+    }
     final reactive = g.triggerReactive;
     final interval = g.triggerIntervalMinutes;
     if (reactive && interval != null) return l10n.ganaTileTriggerBoth(interval);

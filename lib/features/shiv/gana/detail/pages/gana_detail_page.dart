@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
@@ -146,7 +147,12 @@ class _StatusRow extends StatelessWidget {
           _kv('Input',
               gana.inputType?.name ?? 'standalone (interval-only)'),
           _kv('Output', gana.outputType.name),
-          if (gana.triggerIntervalMinutes != null)
+          _kv('Mode',
+              gana.triggerMode == GanaTriggerMode.oneShot ? 'one-shot' : 'recurring'),
+          // Interval is meaningless in one-shot — the engine ignores it.
+          // Hide it so the UI matches the engine's actual behavior.
+          if (gana.triggerMode == GanaTriggerMode.recurring &&
+              gana.triggerIntervalMinutes != null)
             _kv('Interval', '${gana.triggerIntervalMinutes}m'),
           if (gana.triggerReactive) _kv('Reactive', 'on'),
           if (gana.lastRunAt != null)

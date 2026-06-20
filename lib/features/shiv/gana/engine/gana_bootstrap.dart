@@ -74,10 +74,15 @@ class GanaBootstrap {
   /// OS will fire `ganaWorkManagerDispatcher` once within roughly
   /// [kBackgroundMinInterval] depending on system load and battery state.
   ///
-  /// The actual run is a no-inference cursor refresh — see
-  /// `gana_workmanager.dart` for what it does and doesn't do.
+  /// The bg dispatcher runs ONE Gana per tick — full inference, real
+  /// output. See `gana_workmanager.dart` §What it DOES.
   static Future<void> scheduleBackground() async {
     try {
+      // Resolve the active user's pubkey here in the main isolate —
+      // FlutterSecureStorage is unavailable in the workmanager dispatcher
+      // isolate, so we hand the pubkey off via `inputData`. Null is OK:
+      // the dispatcher no-ops if it isn't supplied.
+      final keys = await getIt<UserRepository>().getActiveKeysHex();
       await Workmanager().registerOneOffTask(
         _tickUniqueName,
         kGanaBackgroundTickTask,
@@ -87,6 +92,14 @@ class GanaBootstrap {
           networkType: NetworkType.connected,
           requiresBatteryNotLow: true,
         ),
+        inputData: {
+          if (keys?.pubkeyHex != null) 'selfPubkeyHex': keys!.pubkeyHex,
+          // privkeyHex needed for in-bg signing of kind-1 / kind-42 outputs.
+          // FlutterSecureStorage isn't available in the workmanager isolate,
+          // so we pass it via inputData. Same approach the gateway isolate
+          // uses (see GatewayInitMessage.privkeyHex).
+          if (keys?.privkeyHex != null) 'privkeyHex': keys!.privkeyHex,
+        },
       );
     } catch (e) {
       debugPrint('GanaBootstrap.scheduleBackground failed: $e');

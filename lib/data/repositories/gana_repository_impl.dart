@@ -34,6 +34,7 @@ class GanaRepositoryImpl extends GanaRepository {
         ..desiredModelId = g.desiredModelId
         ..triggerReactive = g.triggerReactive
         ..triggerIntervalMinutes = g.triggerIntervalMinutes
+        ..triggerMode = g.triggerMode
         ..enabled = g.enabled
         ..lastProcessedEventId = g.lastProcessedEventId
         ..lastProcessedCreated = g.lastProcessedCreated

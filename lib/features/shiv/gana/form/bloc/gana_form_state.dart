@@ -20,6 +20,7 @@ class GanaFormState {
     this.desiredModelId,
     this.triggerReactive = false,
     this.triggerIntervalMinutes,
+    this.triggerMode = GanaTriggerMode.recurring,
     this.enabled = false,
     this.createdAt,
     this.manases = const [],
@@ -52,6 +53,7 @@ class GanaFormState {
 
   final bool triggerReactive;
   final int? triggerIntervalMinutes;
+  final GanaTriggerMode triggerMode;
 
   final bool enabled;
 
@@ -88,13 +90,73 @@ class GanaFormState {
         if (outputDmConversationId == null) return false;
         break;
     }
-    // At least one trigger must be on (standalone Ganas without interval
-    // would never run).
-    if (!triggerReactive &&
-        (triggerIntervalMinutes == null || triggerIntervalMinutes! < 5)) {
-      return false;
+    // Trigger gating — every (mode, input) combo must have one valid
+    // trigger so the Gana actually fires once enabled:
+    //
+    //   one-shot + standalone : fires immediately on enable (no extra gate)
+    //   one-shot + input      : needs reactive on (fires on first match)
+    //   recurring + standalone: needs interval (≥5 min)
+    //   recurring + input     : needs reactive OR interval
+    if (triggerMode == GanaTriggerMode.oneShot) {
+      if (inputType != null && !triggerReactive) return false;
+    } else {
+      if (inputType == null) {
+        if (triggerIntervalMinutes == null ||
+            triggerIntervalMinutes! < 5) {
+          return false;
+        }
+      } else {
+        if (!triggerReactive &&
+            (triggerIntervalMinutes == null ||
+                triggerIntervalMinutes! < 5)) {
+          return false;
+        }
+      }
     }
     return true;
+  }
+
+  /// Human-readable reason save is blocked. Returned only when [canSave]
+  /// is false — UI shows this to explain what's missing. Null means
+  /// "no reason; save should be possible".
+  String? saveBlocker(AppLocalizations l10n) {
+    if (name.trim().isEmpty) return l10n.ganaFormBlockerName;
+    if (selectedManasIds.isEmpty) return l10n.ganaFormBlockerManas;
+    if (taskPrompt.trim().isEmpty) return l10n.ganaFormBlockerTask;
+    if (inputType != null && (inputRefId == null || inputRefId!.isEmpty)) {
+      return l10n.ganaFormBlockerInputRef;
+    }
+    switch (outputType) {
+      case GanaOutputType.feed:
+        break;
+      case GanaOutputType.channel:
+        if (outputChannelId == null) return l10n.ganaFormBlockerOutputRef;
+        break;
+      case GanaOutputType.privateChannel:
+        if (outputGroupId == null) return l10n.ganaFormBlockerOutputRef;
+        break;
+      case GanaOutputType.dm:
+        if (outputDmConversationId == null) return l10n.ganaFormBlockerOutputRef;
+        break;
+    }
+    if (triggerMode == GanaTriggerMode.oneShot) {
+      if (inputType != null && !triggerReactive) {
+        return l10n.ganaFormBlockerOneShotReactive;
+      }
+    } else {
+      if (inputType == null &&
+          (triggerIntervalMinutes == null ||
+              triggerIntervalMinutes! < 5)) {
+        return l10n.ganaFormBlockerInterval;
+      }
+      if (inputType != null &&
+          !triggerReactive &&
+          (triggerIntervalMinutes == null ||
+              triggerIntervalMinutes! < 5)) {
+        return l10n.ganaFormBlockerTrigger;
+      }
+    }
+    return null;
   }
 
   GanaFormState copyWith({
@@ -121,6 +183,7 @@ class GanaFormState {
     bool? triggerReactive,
     int? triggerIntervalMinutes,
     bool clearInterval = false,
+    GanaTriggerMode? triggerMode,
     bool? enabled,
     DateTime? createdAt,
     List<ManasEntity>? manases,
@@ -157,6 +220,7 @@ class GanaFormState {
       triggerIntervalMinutes: clearInterval
           ? null
           : (triggerIntervalMinutes ?? this.triggerIntervalMinutes),
+      triggerMode: triggerMode ?? this.triggerMode,
       enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
       manases: manases ?? this.manases,

@@ -1862,6 +1862,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get ganaTileTriggerOnceOnEnable => 'Once on enable';
+
+  @override
+  String get ganaTileTriggerOnceOnInput => 'Once on first input';
+
+  @override
   String get ganaTileLastRunNever => 'No runs yet';
 
   @override
@@ -1917,7 +1923,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ganaFormManasEmpty =>
-      'No Manases yet. Create one in Brahma first.';
+      'No Manases yet. A Gana needs a knowledge base to reason over — create one to continue.';
+
+  @override
+  String get ganaFormManasCreateNew => 'Create Manas';
+
+  @override
+  String get ganaFormModeRecurring => 'Recurring';
+
+  @override
+  String get ganaFormModeOneShot => 'One-shot';
+
+  @override
+  String get ganaFormModeRecurringHelp =>
+      'Keeps firing on every matching trigger until you disable it.';
+
+  @override
+  String get ganaFormModeOneShotHelp =>
+      'Fires once, then auto-disables itself. Re-enable to run again.';
+
+  @override
+  String get ganaFormBlockerName => 'Add a name to continue.';
+
+  @override
+  String get ganaFormBlockerManas =>
+      'Pick at least one Manas — a Gana needs knowledge to reason over.';
+
+  @override
+  String get ganaFormBlockerTask =>
+      'Write a task prompt so the Gana knows what to do.';
+
+  @override
+  String get ganaFormBlockerInputRef =>
+      'Pick the input source — channel, DM, user, or note.';
+
+  @override
+  String get ganaFormBlockerOutputRef =>
+      'Pick the output destination so the Gana knows where to publish.';
+
+  @override
+  String get ganaFormBlockerOneShotReactive =>
+      'One-shot Ganas with an input source need React to new input turned on.';
+
+  @override
+  String get ganaFormBlockerInterval =>
+      'Standalone recurring Ganas need an interval (≥ 5 min).';
+
+  @override
+  String get ganaFormBlockerTrigger =>
+      'Turn on React to new input, or set an interval (≥ 5 min).';
+
+  @override
+  String get ganaFormOneShotStandaloneNote =>
+      'Will fire once when you enable this Gana, then auto-disable.';
+
+  @override
+  String get ganaFormReactiveRequiredNote =>
+      'Required for one-shot Ganas with an input source.';
 
   @override
   String get ganaFormTaskPromptLabel => 'Task prompt';

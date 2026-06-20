@@ -115,6 +115,10 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
 
   /// Marks a message seen once it has been majority-visible then leaves view.
   void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    // visibility_detector schedules updates on a timer, so callbacks can
+    // fire after the State is unmounted (e.g. when navigating away while
+    // messages are scrolling out of view). Guard with `mounted`.
+    if (!mounted) return;
     if (info.visibleFraction >= 0.5) {
       _everVisible.add(eventId);
     } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {

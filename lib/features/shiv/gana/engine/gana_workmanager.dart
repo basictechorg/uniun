@@ -1,8 +1,29 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' hide Message;
+import 'package:flutter_gemma/core/message.dart' as gemma_msg;
+import 'package:flutter_gemma_embeddings/flutter_gemma_embeddings.dart';
+import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
+import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:isar_community/isar.dart';
+import 'package:nostr/nostr.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/core/enum/gana_output_type.dart';
+import 'package:uniun/core/enum/gana_run_status.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
+import 'package:uniun/data/models/gana_pending_output_model.dart';
+import 'package:uniun/data/models/gana_run_model.dart';
+import 'package:uniun/data/models/manas_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_input_filter.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
+import 'package:uniun/features/shiv/gana/engine/manas_context_loader.dart';
+import 'package:uuid/uuid.dart';
 import 'package:workmanager/workmanager.dart';
 
 /// Background task name. Must match `BGTaskSchedulerPermittedIdentifiers`
@@ -10,98 +31,675 @@ import 'package:workmanager/workmanager.dart';
 /// stable across schedules.
 const String kGanaBackgroundTickTask = 'in.uniun.app.gana.tick';
 
-/// Hard wall-clock cap per background run. iOS gives a few seconds for
-/// `BGProcessingTask` if `requiresExternalPower` is false; Android's
-/// foreground service can run longer but we don't need it to. Bail early
-/// rather than fight the OS.
-const Duration kBackgroundRunBudget = Duration(seconds: 25);
+/// Hard wall-clock cap per background run. Qwen3 0.6B benchmark on
+/// arm64-v8a: ~9s engine init + ~4s first token + ~0.3s/token decode.
+/// 90s budget allows ~250 tokens of output with safety margin.
+const Duration kBackgroundRunBudget = Duration(seconds: 90);
 
 /// Minimum interval between background ticks regardless of per-Gana
 /// trigger config (Battery / fairness clamp from `ganas.md` §2.4.3).
 const Duration kBackgroundMinInterval = Duration(minutes: 30);
 
+/// Max tokens generated per background run. Smaller than foreground
+/// (1024) — bg Ganas should produce short, signal-bearing replies, not
+/// essays.
+const int kBackgroundMaxTokens = 256;
+
+/// One Gana per tick. Loading flutter_gemma costs ~9s; doing two would
+/// blow the budget. Foreground catches up on the next app open.
+const int kBackgroundMaxGanasPerTick = 1;
+
 /// WorkManager dispatcher — top-level function MUST be top-level (not a
 /// class method) because the plugin tears off its reference.
 ///
-/// ## What this does NOT do
-///
-/// - It does NOT run inference. flutter_gemma 0.16.5 is unverified in a
-///   background isolate (see plan §6a). When inference is needed in true
-///   background, we'd need to either:
-///     a. Verify flutter_gemma supports `BackgroundIsolateBinaryMessenger`
-///        and call it from this isolate, OR
-///     b. Surface the queued work back to the main isolate on next foreground.
-///   For v1 we take path (b): the engine isolate writes work into Isar
-///   normally and the WorkManager tick just bumps cursors / triggers
-///   timestamps so interval Ganas don't drift wildly while the app sleeps.
-///
-/// - It does NOT publish events. Same reason: NIP-17 / MLS publishing
-///   touches native plugins that aren't safe to use without a fully
-///   initialized Flutter engine.
-///
 /// ## What it DOES
 ///
-/// Opens its own Isar handle and walks all enabled interval Ganas whose
-/// `lastRunAt + intervalMinutes < now`. For each, stamps a "due" marker
-/// (sets `lastRunAt = now`) so that when the user reopens the app, the
-/// engine's `_maybeRunInterval` immediately picks them up. Plain cursor
-/// bookkeeping — cheap, deterministic, no inference cost.
+/// 1. Boots BackgroundIsolateBinaryMessenger so plugin channels work.
+/// 2. Opens its own Isar handle at the shared DB path.
+/// 3. Initializes flutter_gemma 1.0.0 with the same engine list as
+///    `main.dart`. Verified PASS by
+///    `integration_test/flutter_gemma_bg_isolate_test.dart` (Qwen3 0.6B
+///    fresh-load on Android arm64 in 9.2s).
+/// 4. Picks ONE due interval Gana (battery-clamped to ≥30 min).
+/// 5. Runs the full engine flow: input filter → reply ancestry →
+///    Manas context pack → prompt build → openChat → inference → write
+///    GanaPendingOutputModel → log GanaRunModel → advance cursor.
+/// 6. Closes Isar, returns.
+///
+/// ## What it does NOT do
+///
+/// - Reactive triggers. The gateway isolate is NOT running here, so new
+///   notes don't arrive while the app is killed. Only interval Ganas
+///   fire in the background.
+/// - Publish events. The Gana writes a `GanaPendingOutputModel` row;
+///   the main-isolate `GanaOutputDispatcher` drains it next time the
+///   app opens. DM + private channel publishing needs main-isolate
+///   native plugins (NIP-17 / MLS).
+/// Single log tag prefix so it's easy to filter in `adb logcat`:
+///
+///   adb logcat | grep '\[gana\]'
+///
+/// Every step prints a timestamp delta from tick start so you can see
+/// where time goes (model init, prompt build, generation, publish).
+const String _logTag = '[gana]';
+DateTime? _tickStart;
+
+void _log(String msg) {
+  final t = _tickStart;
+  if (t == null) {
+    debugPrint('$_logTag $msg');
+    return;
+  }
+  final delta = DateTime.now().difference(t).inMilliseconds;
+  debugPrint('$_logTag +${delta.toString().padLeft(6)}ms $msg');
+}
+
 @pragma('vm:entry-point')
 void ganaWorkManagerDispatcher() {
-  Workmanager().executeTask((taskName, _) async {
-    if (taskName != kGanaBackgroundTickTask) return true;
+  Workmanager().executeTask((taskName, inputData) async {
+    if (taskName != kGanaBackgroundTickTask) {
+      debugPrint('$_logTag ignored unknown task: $taskName');
+      return true;
+    }
 
-    // workmanager's executeTask runs in a fresh isolate; ensure the
-    // binding is up so plugin channels (path_provider) work.
+    _tickStart = DateTime.now();
+    _log('═══════════════════════════════════════════════════════════');
+    _log('bg tick START (budget=${kBackgroundRunBudget.inSeconds}s)');
+
     WidgetsFlutterBinding.ensureInitialized();
+    final budgetEnd = DateTime.now().add(kBackgroundRunBudget);
+
+    Isar? isar;
     try {
+      // 1. Open Isar at the shared path.
+      _log('step 1: opening Isar at shared DB path');
       final dir = await getApplicationDocumentsDirectory();
-      final isar = await Isar.open(
+      isar = await Isar.open(
         isarSchemas,
         directory: dir.path,
         name: Isar.defaultName,
       );
+      _log('step 1: Isar opened');
 
-      final budgetEnd = DateTime.now().add(kBackgroundRunBudget);
+      // 2. Resolve self keys from inputData (passed by
+      //    GanaBootstrap.scheduleBackground). Without pubkey we can't
+      //    apply the self-loop guard; without privkey we can't sign
+      //    kind-1 / kind-42 outputs — bail.
+      _log('step 2: reading inputData (selfPubkeyHex + privkeyHex)');
+      final selfPubkeyHex = inputData?['selfPubkeyHex'] as String?;
+      final privkeyHex = inputData?['privkeyHex'] as String?;
+      if (selfPubkeyHex == null || selfPubkeyHex.isEmpty) {
+        _log('step 2: ABORT — no selfPubkeyHex in inputData');
+        await isar.close();
+        return true;
+      }
+      _log('step 2: selfPubkey=${_shortHex(selfPubkeyHex)} '
+          'privkey=${privkeyHex == null ? "missing" : "present"}');
 
-      // Walk enabled interval Ganas. For each one whose interval is due,
-      // bump `lastRunAt` so when the app reopens, the engine sees a fresh
-      // schedule and the user can intervene before the next inference fires.
-      final ganas = await isar.ganaModels
+      // 3. Pick the next due Gana. We sort by lastRunAt ascending so the
+      //    Gana that's been waiting longest runs first.
+      _log('step 3: scanning enabled Ganas');
+      final candidates = await isar.ganaModels
           .filter()
           .enabledEqualTo(true)
           .findAll();
+      _log('step 3: ${candidates.length} enabled Gana(s) found');
+      candidates.sort((a, b) {
+        final ta = a.lastRunAt?.millisecondsSinceEpoch ?? 0;
+        final tb = b.lastRunAt?.millisecondsSinceEpoch ?? 0;
+        return ta.compareTo(tb);
+      });
 
-      for (final g in ganas) {
-        if (DateTime.now().isAfter(budgetEnd)) {
-          debugPrint('Gana bg tick: budget exhausted, bailing');
-          break;
-        }
+      final due = <GanaModel>[];
+      for (final g in candidates) {
         final mins = g.triggerIntervalMinutes;
-        if (mins == null || mins <= 0) continue;
-        // Battery clamp — bg ticks treat the interval as at least
-        // [kBackgroundMinInterval] regardless of user setting.
-        final effective =
-            Duration(minutes: mins) < kBackgroundMinInterval
-                ? kBackgroundMinInterval
-                : Duration(minutes: mins);
-        final last = g.lastRunAt;
-        if (last != null && DateTime.now().difference(last) < effective) {
+        if (mins == null || mins <= 0) {
+          _log('step 3:   "${g.name}" → skip (no interval set)');
           continue;
         }
-        // Stamp lastRunAt so the foreground engine's next schedule rebuild
-        // picks it up as "due" and runs immediately when the app opens.
-        g.lastRunAt = DateTime.now();
-        await isar.writeTxn(() async {
-          await isar.ganaModels.put(g);
-        });
+        final effective = Duration(minutes: mins) < kBackgroundMinInterval
+            ? kBackgroundMinInterval
+            : Duration(minutes: mins);
+        final last = g.lastRunAt;
+        if (last != null && DateTime.now().difference(last) < effective) {
+          final secsLeft = (effective - DateTime.now().difference(last))
+              .inSeconds;
+          _log('step 3:   "${g.name}" → skip '
+              '(next due in ${secsLeft}s)');
+          continue;
+        }
+        _log('step 3:   "${g.name}" → DUE (last run '
+            '${last == null ? "never" : "${DateTime.now().difference(last).inMinutes}m ago"})');
+        due.add(g);
+        if (due.length >= kBackgroundMaxGanasPerTick) break;
       }
+
+      if (due.isEmpty) {
+        _log('step 3: nothing due, exiting cleanly');
+        await isar.close();
+        return true;
+      }
+
+      // 4. Initialize flutter_gemma (same engine list as main.dart).
+      _log('step 4: FlutterGemma.initialize '
+          '(LiteRtLm + MediaPipe + LiteRtEmbedder)');
+      final initStart = DateTime.now();
+      try {
+        await FlutterGemma.initialize(
+          inferenceEngines: const [
+            LiteRtLmEngine(),
+            MediaPipeEngine(),
+          ],
+          embeddingBackends: const [
+            LiteRtEmbeddingBackend(),
+          ],
+        );
+      } catch (e, st) {
+        _log('step 4: ABORT — FlutterGemma.initialize threw: $e');
+        debugPrint('$_logTag stack: $st');
+        await isar.close();
+        return false;
+      }
+      _log('step 4: initialized in '
+          '${DateTime.now().difference(initStart).inMilliseconds}ms');
+
+      _log('step 4b: checking hasActiveModel()');
+      if (!FlutterGemma.hasActiveModel()) {
+        _log('step 4b: ABORT — no active model installed');
+        await isar.close();
+        return true;
+      }
+      _log('step 4b: active model present');
+
+      // 5. Run the chosen Gana.
+      _log('step 5: running ${due.length} Gana(s)');
+      for (final ganaRow in due) {
+        if (DateTime.now().isAfter(budgetEnd)) {
+          _log('step 5: budget exhausted before next run');
+          break;
+        }
+        await _runOneGana(
+          isar: isar,
+          ganaRow: ganaRow,
+          selfPubkeyHex: selfPubkeyHex,
+          privkeyHex: privkeyHex,
+          budgetEnd: budgetEnd,
+        );
+      }
+
       await isar.close();
+      _log('bg tick END ok');
       return true;
     } catch (e, st) {
-      debugPrint('Gana bg tick failed: $e\n$st');
-      return false; // workmanager will retry on next schedule
+      _log('bg tick FAILED: $e');
+      debugPrint('$_logTag stack: $st');
+      try {
+        await isar?.close();
+      } catch (_) {
+        // already closed or never opened
+      }
+      return false; // workmanager retries on next schedule
     }
   });
 }
 
+Future<void> _runOneGana({
+  required Isar isar,
+  required GanaModel ganaRow,
+  required String selfPubkeyHex,
+  required String? privkeyHex,
+  required DateTime budgetEnd,
+}) async {
+  final gana = ganaRow.toDomain();
+  final runId = const Uuid().v4();
+  final startedAt = DateTime.now();
+  _log('───────────────────────────────────────────────────────');
+  _log('runOneGana START name="${gana.name}" runId=${runId.substring(0, 8)}');
+  _log('  manases=${gana.manasIds.length} '
+      'inputType=${gana.inputType?.name ?? "standalone"} '
+      'outputType=${gana.outputType.name} '
+      'mode=${gana.triggerMode.name}');
+
+  // Self-output guard set.
+  _log('  loading self-output guard set');
+  final selfOutputs = (await isar.ganaRunModels
+          .filter()
+          .ganaIdEqualTo(gana.ganaId)
+          .outputEventIdIsNotNull()
+          .outputEventIdProperty()
+          .findAll())
+      .cast<String>()
+      .toSet();
+  _log('  self-outputs: ${selfOutputs.length} eventIds');
+
+  // Input filter.
+  _log('  fetching input via GanaInputFilter');
+  final inputs = await GanaInputFilter.fetch(
+    isar: isar,
+    gana: gana,
+    selfPubkeyHex: selfPubkeyHex,
+    selfOutputEventIds: selfOutputs,
+  );
+  _log('  input: ${inputs.length} note(s) past cursor');
+
+  if (gana.inputType != null && inputs.isEmpty) {
+    _log('  SKIPPED: noNewInput (cursor caught up, nothing to do)');
+    await _writeRun(
+      isar: isar,
+      runId: runId,
+      ganaId: gana.ganaId,
+      startedAt: startedAt,
+      status: GanaRunStatus.skipped,
+      skipReason: GanaSkipReason.noNewInput,
+    );
+    return;
+  }
+
+  // Reply ancestry per input.
+  final ancestry = <String, List<NoteModel>>{};
+  for (final n in inputs) {
+    if (n.replyToEventId != null) {
+      ancestry[n.eventId] =
+          await GanaInputFilter.ancestry(isar: isar, note: n);
+    }
+  }
+  if (ancestry.isNotEmpty) {
+    _log('  reply ancestry walked for ${ancestry.length} input(s)');
+  }
+
+  // Manas context.
+  _log('  resolving ${gana.manasIds.length} Manas name(s)');
+  final manasNames = <String>[];
+  for (final id in gana.manasIds) {
+    final m = await isar.manasModels.filter().manasIdEqualTo(id).findFirst();
+    if (m != null) manasNames.add(m.name);
+  }
+  _log('  Manas names: ${manasNames.join(", ")}');
+
+  _log('  packing Manas context '
+      '(budget=${GanaPromptBuilder.defaultMaxTokens ~/ 2} tokens)');
+  final knowledge = await ManasContextLoader.merge(
+    isar: isar,
+    manasIds: gana.manasIds,
+    budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
+  );
+  _log('  knowledge: ${knowledge.length} note(s) packed');
+
+  _log('  building prompt');
+  final prompt = GanaPromptBuilder.build(
+    taskPrompt: gana.taskPrompt,
+    manasNames: manasNames,
+    knowledge: knowledge,
+    inputMessagesByOldestFirst: inputs,
+    replyAncestry: ancestry,
+  );
+  _log('  prompt size: ${prompt.length} chars (~${prompt.length ~/ 4} tokens)');
+
+  if (DateTime.now().isAfter(budgetEnd)) {
+    _log('  ABORT: budget exhausted before inference');
+    return;
+  }
+
+  // Inference. Throwaway chat — matches the foreground generateOneShot
+  // pattern in AIModelRunner.
+  _log('  generation START (maxTokens=$kBackgroundMaxTokens)');
+  String? body;
+  final infStart = DateTime.now();
+  var tokenCount = 0;
+  DateTime? firstTokenAt;
+  try {
+    _log('  opening model handle');
+    final model = await FlutterGemma.getActiveModel(
+      maxTokens: kBackgroundMaxTokens,
+    );
+    _log('  opening chat session');
+    final chat = await model.openChat(
+      temperature: 0.6,
+      topK: 20,
+      tokenBuffer: 128,
+    );
+    _log('  feeding prompt');
+    try {
+      await chat.addQueryChunk(gemma_msg.Message.text(text: prompt));
+      _log('  streaming tokens...');
+      final buf = StringBuffer();
+      await for (final response in chat.generateChatResponseAsync()) {
+        if (response is TextResponse && response.token.isNotEmpty) {
+          firstTokenAt ??= DateTime.now();
+          if (tokenCount == 0) {
+            _log('  first token in '
+                '${firstTokenAt!.difference(infStart).inMilliseconds}ms '
+                '(prefill done)');
+          }
+          buf.write(response.token);
+          tokenCount += 1;
+          // Periodic heartbeat so a runaway generation is visible in logs.
+          if (tokenCount % 32 == 0) {
+            _log('  ... $tokenCount tokens so far');
+          }
+        }
+        if (DateTime.now().isAfter(budgetEnd)) {
+          _log('  BUDGET EXHAUSTED mid-stream after $tokenCount tokens; '
+              'stopGeneration()');
+          try {
+            await chat.stopGeneration();
+          } catch (_) {
+            // best effort; engine teardown handles partial state
+          }
+          break;
+        }
+      }
+      body = buf.toString();
+      _log('  stream END: $tokenCount tokens, ${body.length} chars');
+    } finally {
+      try {
+        await chat.close();
+      } catch (_) {
+        // session may be already closing — ignore
+      }
+    }
+  } catch (e, st) {
+    _log('  FAILED: $e');
+    debugPrint('$_logTag stack: $st');
+    await _writeRun(
+      isar: isar,
+      runId: runId,
+      ganaId: gana.ganaId,
+      startedAt: startedAt,
+      status: GanaRunStatus.failed,
+      error: e.toString(),
+    );
+    return;
+  }
+  final totalMs = DateTime.now().difference(infStart).inMilliseconds;
+  final prefillMs =
+      firstTokenAt?.difference(infStart).inMilliseconds ?? totalMs;
+  final decodeMs = totalMs - prefillMs;
+  final tps = tokenCount > 0 && decodeMs > 0
+      ? (tokenCount * 1000 / decodeMs).toStringAsFixed(1)
+      : '-';
+  _log('  generation END: total=${totalMs}ms '
+      'prefill=${prefillMs}ms decode=${decodeMs}ms '
+      'tokens=$tokenCount ($tps tok/s)');
+
+  final trimmed = body.trim();
+  if (trimmed.isEmpty || trimmed.toUpperCase() == '<NOOP>') {
+    _log('  SKIPPED: noopReturned '
+        '(body=${trimmed.isEmpty ? "empty" : "<NOOP>"})');
+    await _writeRun(
+      isar: isar,
+      runId: runId,
+      ganaId: gana.ganaId,
+      startedAt: startedAt,
+      status: GanaRunStatus.skipped,
+      skipReason: GanaSkipReason.noopReturned,
+    );
+    // Advance cursor anyway — model decided to stay silent on this input.
+    await _advanceCursor(isar: isar, ganaRow: ganaRow, inputs: inputs);
+    return;
+  }
+  _log('  body preview: "${_previewBody(trimmed)}"');
+
+  // Route by output type:
+  //   - feed (kind 1) / channel (kind 42): sign locally + write to
+  //     EventQueueModel. The gateway isolate's watcher picks it up and
+  //     broadcasts. ZERO main-isolate hops.
+  //   - dm (NIP-17) / privateChannel (NIP-29 MLS): native plugins are
+  //     main-isolate-only. Write GanaPendingOutputModel; the main-
+  //     isolate GanaOutputDispatcher drains it on next app foreground.
+  String? publishedEventId;
+  if (gana.outputType == GanaOutputType.feed ||
+      gana.outputType == GanaOutputType.channel) {
+    if (privkeyHex == null || privkeyHex.isEmpty) {
+      _log('  publish: no privkeyHex → falling back to pending row');
+      await _writePendingOutput(
+        isar: isar, gana: gana, runId: runId, body: trimmed,
+      );
+    } else {
+      _log('  publish IN-BG: ${gana.outputType.name} '
+          '(signing locally, writing EventQueueModel)');
+      publishedEventId = await _publishInBg(
+        isar: isar,
+        gana: gana,
+        body: trimmed,
+        privkeyHex: privkeyHex,
+      );
+      if (publishedEventId != null) {
+        _log('  publish DONE: eventId=${_shortHex(publishedEventId)} '
+            '(gateway broadcasts next watcher tick)');
+      } else {
+        _log('  publish FAILED in-bg → falling back to pending row');
+        await _writePendingOutput(
+          isar: isar, gana: gana, runId: runId, body: trimmed,
+        );
+      }
+    }
+  } else {
+    _log('  publish DEFERRED: ${gana.outputType.name} '
+        '(MLS/NIP-17 → main-isolate dispatcher on next foreground)');
+    await _writePendingOutput(
+      isar: isar, gana: gana, runId: runId, body: trimmed,
+    );
+  }
+
+  await _writeRun(
+    isar: isar,
+    runId: runId,
+    ganaId: gana.ganaId,
+    startedAt: startedAt,
+    status: GanaRunStatus.succeeded,
+    inputEventIds: inputs.map((n) => n.eventId).toList(),
+    outputEventId: publishedEventId,
+  );
+
+  await _advanceCursor(
+    isar: isar,
+    ganaRow: ganaRow,
+    inputs: inputs,
+    publishedOutput: true,
+  );
+  _log('runOneGana END status=succeeded '
+      'totalRunMs=${DateTime.now().difference(startedAt).inMilliseconds}');
+}
+
+// Tiny helpers used by the verbose log lines.
+String _shortHex(String s) {
+  if (s.length <= 12) return s;
+  return '${s.substring(0, 8)}…${s.substring(s.length - 4)}';
+}
+
+String _previewBody(String s) {
+  final flat = s.replaceAll('\n', ' \\n ');
+  if (flat.length <= 80) return flat;
+  return '${flat.substring(0, 80)}…';
+}
+
+/// Sign + enqueue a kind-1 (feed) or kind-42 (channel) event directly
+/// from the bg isolate. Returns the resulting `eventId`, or null on
+/// failure (in which case the caller falls back to the pending table).
+///
+/// We mirror the existing publish use cases' tag order so the broadcast
+/// event re-serializes to the same SHA-256 as the signed eventId.
+Future<String?> _publishInBg({
+  required Isar isar,
+  required GanaEntity gana,
+  required String body,
+  required String privkeyHex,
+}) async {
+  try {
+    final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (gana.outputType == GanaOutputType.feed) {
+      final ev = Event.from(
+        privkey: privkeyHex,
+        kind: kNoteKind,
+        content: body,
+        tags: const <List<String>>[],
+        createdAt: nowUnix,
+      );
+      final createdAt =
+          DateTime.fromMillisecondsSinceEpoch(ev.createdAt * 1000);
+      await isar.writeTxn(() async {
+        // Local visibility — mirror PublishNoteUseCase step 1 so the
+        // published note shows up in the feed immediately. Without this
+        // the UI only ever sees the note if the relay echoes it back.
+        await isar.noteModels.put(NoteModel(
+          eventId: ev.id,
+          sig: ev.sig,
+          authorPubkey: ev.pubkey,
+          content: ev.content,
+          kind: kNoteKind,
+          type: NoteType.text,
+          eTagRefs: const [],
+          pTagRefs: const [],
+          tTags: const [],
+          created: createdAt,
+        ));
+        // Relay broadcast.
+        await isar.eventQueueModels.put(
+          EventQueueModel()
+            ..eventId = ev.id
+            ..authorPubkey = ev.pubkey
+            ..sig = ev.sig
+            ..content = ev.content
+            ..kind = kNoteKind
+            ..eTagRefs = const []
+            ..pTagRefs = const []
+            ..tTags = const []
+            ..created = createdAt
+            ..enqueuedAt = DateTime.now(),
+        );
+      });
+      return ev.id;
+    }
+    if (gana.outputType == GanaOutputType.channel) {
+      final channelId = gana.outputChannelId;
+      if (channelId == null) return null;
+      final tags = <List<String>>[
+        ['e', channelId, '', 'root'],
+      ];
+      final ev = Event.from(
+        privkey: privkeyHex,
+        kind: kChannelMessageKind,
+        content: body,
+        tags: tags,
+        createdAt: nowUnix,
+      );
+      final createdAt =
+          DateTime.fromMillisecondsSinceEpoch(ev.createdAt * 1000);
+      await isar.writeTxn(() async {
+        // Local visibility — same as feed branch above.
+        await isar.noteModels.put(NoteModel(
+          eventId: ev.id,
+          sig: ev.sig,
+          authorPubkey: ev.pubkey,
+          content: ev.content,
+          kind: kChannelMessageKind,
+          channelId: channelId,
+          type: NoteType.text,
+          eTagRefs: [channelId],
+          rootEventId: channelId,
+          pTagRefs: const [],
+          tTags: const [],
+          created: createdAt,
+        ));
+        await isar.eventQueueModels.put(
+          EventQueueModel()
+            ..eventId = ev.id
+            ..authorPubkey = ev.pubkey
+            ..sig = ev.sig
+            ..content = ev.content
+            ..kind = kChannelMessageKind
+            ..eTagRefs = [channelId]
+            ..rootEventId = channelId
+            ..pTagRefs = const []
+            ..tTags = const []
+            ..created = createdAt
+            ..enqueuedAt = DateTime.now(),
+        );
+      });
+      return ev.id;
+    }
+  } catch (e, st) {
+    debugPrint('Gana bg tick: in-bg publish failed: $e\n$st');
+  }
+  return null;
+}
+
+Future<void> _writePendingOutput({
+  required Isar isar,
+  required GanaEntity gana,
+  required String runId,
+  required String body,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.ganaPendingOutputModels.put(
+      GanaPendingOutputModel()
+        ..pendingId = const Uuid().v4()
+        ..ganaId = gana.ganaId
+        ..runId = runId
+        ..body = body
+        ..outputType = gana.outputType
+        ..outputChannelId = gana.outputChannelId
+        ..outputGroupId = gana.outputGroupId
+        ..outputDmConversationId = gana.outputDmConversationId
+        ..createdAt = DateTime.now(),
+    );
+  });
+}
+
+Future<void> _writeRun({
+  required Isar isar,
+  required String runId,
+  required String ganaId,
+  required DateTime startedAt,
+  required GanaRunStatus status,
+  GanaSkipReason? skipReason,
+  List<String> inputEventIds = const [],
+  String? outputEventId,
+  String? error,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.ganaRunModels.put(
+      GanaRunModel()
+        ..runId = runId
+        ..ganaId = ganaId
+        ..startedAt = startedAt
+        ..status = status
+        ..skipReason = skipReason
+        ..inputEventIds = inputEventIds
+        ..outputEventId = outputEventId
+        ..error = error,
+    );
+  });
+}
+
+Future<void> _advanceCursor({
+  required Isar isar,
+  required GanaModel ganaRow,
+  required List<NoteModel> inputs,
+  bool publishedOutput = false,
+}) async {
+  // Re-fetch by ganaId so we don't trample a concurrent write from
+  // foreground (Isar's last-write-wins on the same row is fine, but we
+  // want to preserve any cursor updates that happened during inference).
+  final fresh = await isar.ganaModels
+      .filter()
+      .ganaIdEqualTo(ganaRow.ganaId)
+      .findFirst();
+  if (fresh == null) return;
+  if (inputs.isNotEmpty) {
+    final last = inputs.last; // oldest-first → last is newest
+    fresh
+      ..lastProcessedEventId = last.eventId
+      ..lastProcessedCreated = last.created;
+  }
+  fresh.lastRunAt = DateTime.now();
+  // Mirror the foreground engine: one-shot Ganas auto-disable on a real
+  // publish (not on NOOP — caller passes publishedOutput=false then).
+  if (publishedOutput && fresh.triggerMode == GanaTriggerMode.oneShot) {
+    fresh.enabled = false;
+  }
+  await isar.writeTxn(() async {
+    await isar.ganaModels.put(fresh);
+  });
+}

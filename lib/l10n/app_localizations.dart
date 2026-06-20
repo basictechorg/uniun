@@ -3478,6 +3478,18 @@ abstract class AppLocalizations {
   /// **'Reactive + every {n}m'**
   String ganaTileTriggerBoth(int n);
 
+  /// Subtitle for a one-shot standalone Gana
+  ///
+  /// In en, this message translates to:
+  /// **'Once on enable'**
+  String get ganaTileTriggerOnceOnEnable;
+
+  /// Subtitle for a one-shot Gana with an input source
+  ///
+  /// In en, this message translates to:
+  /// **'Once on first input'**
+  String get ganaTileTriggerOnceOnInput;
+
   /// Last-run label when the Gana has never run
   ///
   /// In en, this message translates to:
@@ -3571,8 +3583,98 @@ abstract class AppLocalizations {
   /// Empty-state when the user has no Manases
   ///
   /// In en, this message translates to:
-  /// **'No Manases yet. Create one in Brahma first.'**
+  /// **'No Manases yet. A Gana needs a knowledge base to reason over — create one to continue.'**
   String get ganaFormManasEmpty;
+
+  /// Inline CTA to open the Manas form from the Gana form
+  ///
+  /// In en, this message translates to:
+  /// **'Create Manas'**
+  String get ganaFormManasCreateNew;
+
+  /// Cron-job mode label
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring'**
+  String get ganaFormModeRecurring;
+
+  /// Fire once then auto-disable label
+  ///
+  /// In en, this message translates to:
+  /// **'One-shot'**
+  String get ganaFormModeOneShot;
+
+  /// Recurring mode helper
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps firing on every matching trigger until you disable it.'**
+  String get ganaFormModeRecurringHelp;
+
+  /// One-shot mode helper
+  ///
+  /// In en, this message translates to:
+  /// **'Fires once, then auto-disables itself. Re-enable to run again.'**
+  String get ganaFormModeOneShotHelp;
+
+  /// Save-blocker hint: missing name
+  ///
+  /// In en, this message translates to:
+  /// **'Add a name to continue.'**
+  String get ganaFormBlockerName;
+
+  /// Save-blocker hint: no Manas selected
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least one Manas — a Gana needs knowledge to reason over.'**
+  String get ganaFormBlockerManas;
+
+  /// Save-blocker hint: empty task prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Write a task prompt so the Gana knows what to do.'**
+  String get ganaFormBlockerTask;
+
+  /// Save-blocker hint: input type set but ref empty
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the input source — channel, DM, user, or note.'**
+  String get ganaFormBlockerInputRef;
+
+  /// Save-blocker hint: output type set but ref empty
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the output destination so the Gana knows where to publish.'**
+  String get ganaFormBlockerOutputRef;
+
+  /// Save-blocker hint: one-shot + input but reactive off
+  ///
+  /// In en, this message translates to:
+  /// **'One-shot Ganas with an input source need React to new input turned on.'**
+  String get ganaFormBlockerOneShotReactive;
+
+  /// Save-blocker hint: recurring + standalone but no interval
+  ///
+  /// In en, this message translates to:
+  /// **'Standalone recurring Ganas need an interval (≥ 5 min).'**
+  String get ganaFormBlockerInterval;
+
+  /// Save-blocker hint: recurring + input but no trigger picked
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on React to new input, or set an interval (≥ 5 min).'**
+  String get ganaFormBlockerTrigger;
+
+  /// Help text for one-shot + standalone (no trigger UI needed)
+  ///
+  /// In en, this message translates to:
+  /// **'Will fire once when you enable this Gana, then auto-disable.'**
+  String get ganaFormOneShotStandaloneNote;
+
+  /// Help text under reactive switch when it's required
+  ///
+  /// In en, this message translates to:
+  /// **'Required for one-shot Ganas with an input source.'**
+  String get ganaFormReactiveRequiredNote;
 
   /// Field label
   ///

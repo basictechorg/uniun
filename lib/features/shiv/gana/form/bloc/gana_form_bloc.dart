@@ -3,6 +3,8 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
@@ -63,6 +65,16 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         (e, em) => em(state.copyWith(triggerReactive: e.value)));
     on<GanaFormIntervalChangedEvent>(
         (e, em) => em(state.copyWith(triggerIntervalMinutes: e.value, clearInterval: e.value == null)));
+    on<GanaFormTriggerModeChangedEvent>((e, em) {
+      // Switching to one-shot voids the interval — the engine ignores it
+      // in this mode, and persisting a stale value misleads the drawer
+      // summary into showing "every 5m" for a one-shot Gana.
+      if (e.value == GanaTriggerMode.oneShot) {
+        em(state.copyWith(triggerMode: e.value, clearInterval: true));
+      } else {
+        em(state.copyWith(triggerMode: e.value));
+      }
+    });
     on<GanaFormEnabledToggleEvent>(
         (e, em) => em(state.copyWith(enabled: e.value)));
     on<GanaFormSubmitEvent>(_onSubmit, transformer: droppable());
@@ -137,6 +149,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       desiredModelId: gana.desiredModelId,
       triggerReactive: gana.triggerReactive,
       triggerIntervalMinutes: gana.triggerIntervalMinutes,
+      triggerMode: gana.triggerMode,
       enabled: gana.enabled,
       createdAt: gana.createdAt,
       manases: manases,
@@ -231,6 +244,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       desiredModelId: state.desiredModelId,
       triggerReactive: state.triggerReactive,
       triggerIntervalMinutes: state.triggerIntervalMinutes,
+      triggerMode: state.triggerMode,
       enabled: state.enabled,
       createdAt: state.createdAt ?? now,
       updatedAt: now,

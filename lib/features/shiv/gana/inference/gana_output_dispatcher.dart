@@ -10,6 +10,8 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_pending_output_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
+import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
@@ -129,7 +131,7 @@ class GanaOutputDispatcher {
       case GanaOutputType.privateChannel:
         return await _publishPrivateChannel(row, privkeyHex, pubkeyHex);
       case GanaOutputType.dm:
-        return await _publishDm(row, privkeyHex);
+        return await _publishDm(row, privkeyHex, pubkeyHex);
     }
   }
 
@@ -148,6 +150,23 @@ class GanaOutputDispatcher {
       createdAt: nowUnix,
     );
     final created = DateTime.fromMillisecondsSinceEpoch(kind1.createdAt * 1000);
+    // Mirror PublishNoteUseCase: write to NoteModel for local UI visibility,
+    // then enqueue for relay broadcast. Without the NoteModel write the
+    // Gana's note would only appear in the feed if the relay echoes it back.
+    await _isar.writeTxn(() async {
+      await _isar.noteModels.put(NoteModel(
+        eventId: kind1.id,
+        sig: kind1.sig,
+        authorPubkey: kind1.pubkey,
+        content: kind1.content,
+        kind: kNoteKind,
+        type: NoteType.text,
+        eTagRefs: const [],
+        pTagRefs: const [],
+        tTags: const [],
+        created: created,
+      ));
+    });
     final res = await _eventQueueRepository.enqueueSignedEvent(
       eventId: kind1.id,
       authorPubkey: kind1.pubkey,
@@ -191,17 +210,20 @@ class GanaOutputDispatcher {
     if (groupId == null) {
       throw StateError('privateChannel outputType requires outputGroupId');
     }
-    // SendPrivateChannelMessageUsecase returns void; the transport service
-    // owns the event id (logged internally). We don't have a clean handle
-    // on it here, so we synthesize a marker. The run log still shows
-    // succeeded; the dispatcher can't stamp a real eventId without a
-    // refactor of the marmot transport service.
+    // `SendPrivateChannelMessageUsecase.execute` returns void, but the
+    // transport service writes the resulting NoteModel synchronously before
+    // returning. Snapshot the latest-self-authored note in this group
+    // immediately after the call and use its `eventId`.
+    final beforeId = await _latestSelfEventIdInGroup(groupId, pubkeyHex);
     await _privateChannelUseCase.execute(
       groupId: groupId,
       content: row.body,
       authorPubkey: pubkeyHex,
       privkeyHex: privkeyHex,
     );
+    final afterId = await _latestSelfEventIdInGroup(groupId, pubkeyHex);
+    if (afterId != null && afterId != beforeId) return afterId;
+    // Fell back if the transport didn't write a row (shouldn't happen).
     return 'pc:$groupId:${DateTime.now().millisecondsSinceEpoch}';
   }
 
@@ -209,6 +231,7 @@ class GanaOutputDispatcher {
   Future<String> _publishDm(
     GanaPendingOutputModel row,
     String privkeyHex,
+    String pubkeyHex,
   ) async {
     final convId = row.outputDmConversationId;
     if (convId == null) {
@@ -219,15 +242,50 @@ class GanaOutputDispatcher {
     if (conv == null) {
       throw StateError('DM conversation $convId not found');
     }
+    // Same pattern as private channels — `SendDmUseCase` writes the
+    // outbound NoteModel synchronously with a deterministic local id.
+    // Snapshot before/after and pick the new row.
+    final beforeId = await _latestSelfEventIdInDm(conv.id, pubkeyHex);
     final res = await _dmUseCase.call(SendDmParams(
       otherPubkey: conv.otherPubkey,
       content: row.body,
     ));
-    return res.fold(
-      (f) => throw Exception(f.toString()),
-      // DM use case returns Unit, no event id; we synthesize a marker.
-      (_) => 'dm:${conv.otherPubkey}:${DateTime.now().millisecondsSinceEpoch}',
-    );
+    return res.fold<Future<String>>(
+      (f) async => throw Exception(f.toString()),
+      (_) async {
+        final afterId = await _latestSelfEventIdInDm(conv.id, pubkeyHex);
+        if (afterId != null && afterId != beforeId) return afterId;
+        return 'dm:${conv.otherPubkey}:${DateTime.now().millisecondsSinceEpoch}';
+      },
+    ).then((v) => v);
+  }
+
+  // ── Lookups for outputEventId post-send ────────────────────────────────
+
+  Future<String?> _latestSelfEventIdInGroup(
+    String groupId,
+    String selfPubkey,
+  ) async {
+    final row = await _isar.noteModels
+        .filter()
+        .groupIdEqualTo(groupId)
+        .authorPubkeyEqualTo(selfPubkey)
+        .sortByCreatedDesc()
+        .findFirst();
+    return row?.eventId;
+  }
+
+  Future<String?> _latestSelfEventIdInDm(
+    int conversationId,
+    String selfPubkey,
+  ) async {
+    final row = await _isar.noteModels
+        .filter()
+        .conversationIdEqualTo(conversationId)
+        .authorPubkeyEqualTo(selfPubkey)
+        .sortByCreatedDesc()
+        .findFirst();
+    return row?.eventId;
   }
 
   // ── Run stamping + retry bookkeeping ────────────────────────────────────
