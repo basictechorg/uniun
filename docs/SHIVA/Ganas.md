@@ -519,10 +519,33 @@ Three states:
 | Platform | What we added | Why |
 |---|---|---|
 | Android | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`, `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `POST_NOTIFICATIONS` permissions | foreground service required for tasks beyond 10-min wall budget; wake lock keeps the CPU awake for the tick |
-| iOS | `UIBackgroundModes: fetch + processing`; `BGTaskSchedulerPermittedIdentifiers: in.uniun.app.gana.tick` | BGTaskScheduler refuses to launch a task whose identifier wasn't pre-declared |
-| pubspec | `workmanager: ^0.6.0` | cross-platform background scheduler |
+| iOS Info.plist | `UIBackgroundModes: [fetch, processing]`; `BGTaskSchedulerPermittedIdentifiers: [in.uniun.app.gana.tick]` | BGTaskScheduler refuses to launch a task whose identifier wasn't pre-declared |
+| iOS AppDelegate.swift | `WorkmanagerPlugin.registerBGProcessingTask(withIdentifier: "in.uniun.app.gana.tick")` inside `application(_:didFinishLaunchingWithOptions:)` BEFORE the super call | iOS requires the Swift-side handler registration during the launch window — Info.plist alone is not enough. Without this, `registerOneOffTask` submits successfully on the Dart side but the OS never fires the task. |
+| pubspec | `workmanager: ^0.9.0` | cross-platform background scheduler. 0.7+ fixed foreground-registration NPE; 0.8 dropped `isInDebugMode` (now no-op). |
 
-### 8.2 The unanswered question — v2 background inference
+### 8.2 Testing background tasks
+
+Background ticks are notoriously hard to verify because the OS schedules them on its own clock. Use these tools instead of waiting:
+
+**iOS — simulator NEVER fires BG tasks.** Apple documents this: BGTaskScheduler tasks are not delivered in the simulator. Always test on a physical device. From an Xcode lldb console, while the app is paused, you can force-fire one:
+
+```
+e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"in.uniun.app.gana.tick"]
+```
+
+**Android — Doze + App Standby Buckets defer one-off tasks.** Even with everything wired correctly the OS may delay the job for hours, especially if the user hasn't opened the app recently. Force-fire via adb:
+
+```bash
+# list jobs scheduled by our app
+adb shell dumpsys jobscheduler | grep -A 20 in.uniun.app
+
+# run the scheduled job immediately (replace 999 with the job id from dumpsys)
+adb shell cmd jobscheduler run -f in.uniun.app 999
+```
+
+**`initialDelay` is Android-only.** On iOS the parameter is silently ignored — iOS picks its own wake time.
+
+### 8.3 The unanswered question — v2 background inference
 
 flutter_gemma 1.0.0's docs are silent on whether `FlutterGemma.initialize()` + `openChat()` work in a background isolate. We don't ship background inference in v1 because shipping unverified inference behaviour means broken Ganas that the user can't debug.
 

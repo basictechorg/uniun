@@ -22,10 +22,9 @@ class GanaWorkmanagerBootstrap {
     if (_initialized) return;
     _initialized = true;
     try {
-      await Workmanager().initialize(
-        ganaWorkManagerDispatcher,
-        isInDebugMode: false,
-      );
+      // workmanager 0.9 dropped `isInDebugMode` (it was a no-op anyway —
+      // logging now flows through WorkmanagerDebug handlers).
+      await Workmanager().initialize(ganaWorkManagerDispatcher);
     } catch (e, st) {
       debugPrint(
           'GanaWorkmanagerBootstrap.initialize failed (bg ticks disabled): '
