@@ -32,6 +32,11 @@ abstract class GanaEntity with _$GanaEntity {
     int? triggerIntervalMinutes,
     @Default(GanaTriggerMode.recurring) GanaTriggerMode triggerMode,
 
+    /// Required for recurring mode (1..1000). When set, the engine
+    /// auto-disables the Gana once it has produced this many successful
+    /// publishes. Null/ignored for one-shot.
+    int? maxOutputs,
+
     // Master switch
     @Default(false) bool enabled,
 

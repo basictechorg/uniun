@@ -1853,6 +1853,15 @@
   "ganaFormBlockerTrigger": "Turn on React to new input, or set an interval (≥ 5 min).",
   "@ganaFormBlockerTrigger": { "description": "Save-blocker hint: recurring + input but no trigger picked" },
 
+  "ganaFormBlockerMaxOutputs": "Set a max-notes cap between 1 and 1000.",
+  "@ganaFormBlockerMaxOutputs": { "description": "Save-blocker hint: recurring without a maxOutputs cap" },
+
+  "ganaFormMaxOutputsLabel": "Max notes to produce",
+  "@ganaFormMaxOutputsLabel": { "description": "Label for the recurring safety cap input" },
+
+  "ganaFormMaxOutputsHelp": "Recurring Ganas auto-disable after publishing this many notes. 1–1000.",
+  "@ganaFormMaxOutputsHelp": { "description": "Helper text for the max-outputs cap" },
+
   "ganaFormOneShotStandaloneNote": "Will fire once when you enable this Gana, then auto-disable.",
   "@ganaFormOneShotStandaloneNote": { "description": "Help text for one-shot + standalone (no trigger UI needed)" },
 

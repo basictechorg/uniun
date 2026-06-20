@@ -66,15 +66,23 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     on<GanaFormIntervalChangedEvent>(
         (e, em) => em(state.copyWith(triggerIntervalMinutes: e.value, clearInterval: e.value == null)));
     on<GanaFormTriggerModeChangedEvent>((e, em) {
-      // Switching to one-shot voids the interval — the engine ignores it
-      // in this mode, and persisting a stale value misleads the drawer
-      // summary into showing "every 5m" for a one-shot Gana.
+      // Switching to one-shot voids the interval AND the maxOutputs cap
+      // — both are recurring-only. Persisting them misleads the UI.
       if (e.value == GanaTriggerMode.oneShot) {
-        em(state.copyWith(triggerMode: e.value, clearInterval: true));
+        em(state.copyWith(
+          triggerMode: e.value,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
       } else {
         em(state.copyWith(triggerMode: e.value));
       }
     });
+    on<GanaFormMaxOutputsChangedEvent>(
+        (e, em) => em(state.copyWith(
+              maxOutputs: e.value,
+              clearMaxOutputs: e.value == null,
+            )));
     on<GanaFormEnabledToggleEvent>(
         (e, em) => em(state.copyWith(enabled: e.value)));
     on<GanaFormSubmitEvent>(_onSubmit, transformer: droppable());
@@ -150,6 +158,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       triggerReactive: gana.triggerReactive,
       triggerIntervalMinutes: gana.triggerIntervalMinutes,
       triggerMode: gana.triggerMode,
+      maxOutputs: gana.maxOutputs,
       enabled: gana.enabled,
       createdAt: gana.createdAt,
       manases: manases,
@@ -245,6 +254,9 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       triggerReactive: state.triggerReactive,
       triggerIntervalMinutes: state.triggerIntervalMinutes,
       triggerMode: state.triggerMode,
+      maxOutputs: state.triggerMode == GanaTriggerMode.recurring
+          ? state.maxOutputs
+          : null,
       enabled: state.enabled,
       createdAt: state.createdAt ?? now,
       updatedAt: now,

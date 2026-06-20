@@ -71,6 +71,11 @@ class GanaFormTriggerModeChangedEvent extends GanaFormEvent {
   final GanaTriggerMode value;
 }
 
+class GanaFormMaxOutputsChangedEvent extends GanaFormEvent {
+  const GanaFormMaxOutputsChangedEvent(this.value);
+  final int? value;
+}
+
 class GanaFormEnabledToggleEvent extends GanaFormEvent {
   const GanaFormEnabledToggleEvent(this.value);
   final bool value;

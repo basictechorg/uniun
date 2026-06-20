@@ -40,6 +40,7 @@ class _GanaFormViewState extends State<_GanaFormView> {
   final _taskCtrl = TextEditingController();
   final _userRefCtrl = TextEditingController();
   final _intervalCtrl = TextEditingController();
+  final _maxOutputsCtrl = TextEditingController();
   bool _seeded = false;
 
   @override
@@ -49,6 +50,7 @@ class _GanaFormViewState extends State<_GanaFormView> {
     _taskCtrl.dispose();
     _userRefCtrl.dispose();
     _intervalCtrl.dispose();
+    _maxOutputsCtrl.dispose();
     super.dispose();
   }
 
@@ -73,6 +75,7 @@ class _GanaFormViewState extends State<_GanaFormView> {
               : '';
           _intervalCtrl.text =
               state.triggerIntervalMinutes?.toString() ?? '';
+          _maxOutputsCtrl.text = state.maxOutputs?.toString() ?? '';
         }
         if (state.status == GanaFormStatus.error &&
             state.errorMessage != null) {
@@ -144,6 +147,7 @@ class _GanaFormViewState extends State<_GanaFormView> {
                   taskCtrl: _taskCtrl,
                   userRefCtrl: _userRefCtrl,
                   intervalCtrl: _intervalCtrl,
+                  maxOutputsCtrl: _maxOutputsCtrl,
                 ),
         );
       },
@@ -159,6 +163,7 @@ class _Body extends StatelessWidget {
     required this.taskCtrl,
     required this.userRefCtrl,
     required this.intervalCtrl,
+    required this.maxOutputsCtrl,
   });
 
   final GanaFormState state;
@@ -167,6 +172,7 @@ class _Body extends StatelessWidget {
   final TextEditingController taskCtrl;
   final TextEditingController userRefCtrl;
   final TextEditingController intervalCtrl;
+  final TextEditingController maxOutputsCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +269,11 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 24),
         _SectionTitle(l10n.ganaFormTriggersSectionTitle),
         const SizedBox(height: 10),
-        _TriggersSection(state: state, intervalCtrl: intervalCtrl),
+        _TriggersSection(
+          state: state,
+          intervalCtrl: intervalCtrl,
+          maxOutputsCtrl: maxOutputsCtrl,
+        ),
         const SizedBox(height: 24),
         _EnabledSwitch(state: state),
         // Save-blocker hint — only shows when canSave is false. Tells the
@@ -932,9 +942,14 @@ String? _followedNoteLabel(List<FollowedNoteEntity> all, String? id) {
 }
 
 class _TriggersSection extends StatelessWidget {
-  const _TriggersSection({required this.state, required this.intervalCtrl});
+  const _TriggersSection({
+    required this.state,
+    required this.intervalCtrl,
+    required this.maxOutputsCtrl,
+  });
   final GanaFormState state;
   final TextEditingController intervalCtrl;
+  final TextEditingController maxOutputsCtrl;
 
   @override
   Widget build(BuildContext context) {
@@ -1034,6 +1049,34 @@ class _TriggersSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             l10n.ganaFormIntervalUnit,
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.onSurfaceVariant),
+          ),
+          // Recurring-only safety cap. Without this the Gana could keep
+          // publishing forever if the user forgets about it.
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: Text(l10n.ganaFormMaxOutputsLabel)),
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: maxOutputsCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: _inputDeco('10'),
+                  onChanged: (v) {
+                    final n = int.tryParse(v);
+                    context
+                        .read<GanaFormBloc>()
+                        .add(GanaFormMaxOutputsChangedEvent(n));
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.ganaFormMaxOutputsHelp,
             style: const TextStyle(
                 fontSize: 12, color: AppColors.onSurfaceVariant),
           ),

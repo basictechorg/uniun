@@ -222,23 +222,21 @@ class _ShivLanding extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // SHIV icon
-                SvgPicture.asset(
-                  'assets/images/tabs/shiva.svg',
-                  width: 36,
-                  height: 36,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.onSurfaceVariant,
-                    BlendMode.srcIn,
+                // SHIV icon — tap to open the drawer (matches Vishnu/Brahma).
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Scaffold.of(ctx).openDrawer(),
+                  child: SvgPicture.asset(
+                    'assets/images/tabs/shiva.svg',
+                    width: 36,
+                    height: 36,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.onSurfaceVariant,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
                 const Spacer(),
-                // History — ctx is a descendant of this Scaffold so openDrawer works
-                _HeaderIcon(
-                  icon: Icons.history_rounded,
-                  tooltip: l10n.shivConversationsTooltip,
-                  onTap: () => Scaffold.of(ctx).openDrawer(),
-                ),
                 // Tree (disabled on landing — no active conversation)
                 _HeaderIcon(
                   assetPath: 'assets/images/network_node.svg',

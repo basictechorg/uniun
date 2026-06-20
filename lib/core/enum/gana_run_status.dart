@@ -32,4 +32,9 @@ enum GanaSkipReason {
 
   /// The model returned `<NOOP>` or empty body — explicit "nothing to say."
   noopReturned,
+
+  /// Recurring Gana has hit its `maxOutputs` cap. Engine auto-disables the
+  /// Gana so subsequent triggers don't keep skipping forever. User can
+  /// raise the cap and re-enable.
+  maxOutputsReached,
 }

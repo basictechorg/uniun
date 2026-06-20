@@ -274,6 +274,25 @@ class GanaEngine {
     final selfOutputs = await _selfOutputs(g.ganaId);
     debugPrint('[gana]   self-outputs guard set: ${selfOutputs.length}');
 
+    // Recurring cap — count this run BEFORE doing inference work so we
+    // bail early. One-shot Ganas auto-disable on first publish anyway,
+    // so the cap is recurring-only.
+    if (g.triggerMode == GanaTriggerMode.recurring &&
+        g.maxOutputs != null &&
+        selfOutputs.length >= g.maxOutputs!) {
+      debugPrint('[gana]   SKIPPED: maxOutputsReached '
+          '(${selfOutputs.length}/${g.maxOutputs}) — auto-disabling');
+      await _logRun(
+        runId: runId,
+        ganaId: g.ganaId,
+        startedAt: startedAt,
+        status: GanaRunStatus.skipped,
+        skipReason: GanaSkipReason.maxOutputsReached,
+      );
+      await _disable(g.ganaId);
+      return;
+    }
+
     final keys = await _userRepo.getActiveKeysHex();
     if (keys == null) {
       debugPrint('[gana]   SKIPPED: no active user');
@@ -637,6 +656,16 @@ class GanaEngine {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────
+
+  Future<void> _disable(String ganaId) async {
+    final row =
+        await _isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+    if (row == null) return;
+    row.enabled = false;
+    await _isar.writeTxn(() async {
+      await _isar.ganaModels.put(row);
+    });
+  }
 
   Future<Set<String>> _selfOutputs(String ganaId) async {
     final ids = await _isar.ganaRunModels

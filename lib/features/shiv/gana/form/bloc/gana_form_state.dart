@@ -21,6 +21,7 @@ class GanaFormState {
     this.triggerReactive = false,
     this.triggerIntervalMinutes,
     this.triggerMode = GanaTriggerMode.recurring,
+    this.maxOutputs,
     this.enabled = false,
     this.createdAt,
     this.manases = const [],
@@ -54,6 +55,10 @@ class GanaFormState {
   final bool triggerReactive;
   final int? triggerIntervalMinutes;
   final GanaTriggerMode triggerMode;
+
+  /// Recurring-only safety cap (1..1000). Ignored for one-shot. Required
+  /// for recurring — otherwise a forgotten Gana publishes forever.
+  final int? maxOutputs;
 
   final bool enabled;
 
@@ -112,6 +117,11 @@ class GanaFormState {
           return false;
         }
       }
+      // Recurring also needs a max-outputs cap so the Gana can't run
+      // forever if the user forgets about it. Hard ceiling at 1000.
+      if (maxOutputs == null || maxOutputs! < 1 || maxOutputs! > 1000) {
+        return false;
+      }
     }
     return true;
   }
@@ -155,6 +165,9 @@ class GanaFormState {
               triggerIntervalMinutes! < 5)) {
         return l10n.ganaFormBlockerTrigger;
       }
+      if (maxOutputs == null || maxOutputs! < 1 || maxOutputs! > 1000) {
+        return l10n.ganaFormBlockerMaxOutputs;
+      }
     }
     return null;
   }
@@ -184,6 +197,8 @@ class GanaFormState {
     int? triggerIntervalMinutes,
     bool clearInterval = false,
     GanaTriggerMode? triggerMode,
+    int? maxOutputs,
+    bool clearMaxOutputs = false,
     bool? enabled,
     DateTime? createdAt,
     List<ManasEntity>? manases,
@@ -221,6 +236,8 @@ class GanaFormState {
           ? null
           : (triggerIntervalMinutes ?? this.triggerIntervalMinutes),
       triggerMode: triggerMode ?? this.triggerMode,
+      maxOutputs:
+          clearMaxOutputs ? null : (maxOutputs ?? this.maxOutputs),
       enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
       manases: manases ?? this.manases,

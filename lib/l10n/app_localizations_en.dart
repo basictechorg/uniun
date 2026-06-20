@@ -1974,6 +1974,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn on React to new input, or set an interval (≥ 5 min).';
 
   @override
+  String get ganaFormBlockerMaxOutputs =>
+      'Set a max-notes cap between 1 and 1000.';
+
+  @override
+  String get ganaFormMaxOutputsLabel => 'Max notes to produce';
+
+  @override
+  String get ganaFormMaxOutputsHelp =>
+      'Recurring Ganas auto-disable after publishing this many notes. 1–1000.';
+
+  @override
   String get ganaFormOneShotStandaloneNote =>
       'Will fire once when you enable this Gana, then auto-disable.';
 

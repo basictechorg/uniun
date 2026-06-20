@@ -155,6 +155,9 @@ class _StatusRow extends StatelessWidget {
               gana.triggerIntervalMinutes != null)
             _kv('Interval', '${gana.triggerIntervalMinutes}m'),
           if (gana.triggerReactive) _kv('Reactive', 'on'),
+          if (gana.triggerMode == GanaTriggerMode.recurring &&
+              gana.maxOutputs != null)
+            _kv('Max notes', gana.maxOutputs!.toString()),
           if (gana.lastRunAt != null)
             _kv('Last run', gana.lastRunAt!.toLocal().toString()),
         ],

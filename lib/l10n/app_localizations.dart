@@ -3664,6 +3664,24 @@ abstract class AppLocalizations {
   /// **'Turn on React to new input, or set an interval (≥ 5 min).'**
   String get ganaFormBlockerTrigger;
 
+  /// Save-blocker hint: recurring without a maxOutputs cap
+  ///
+  /// In en, this message translates to:
+  /// **'Set a max-notes cap between 1 and 1000.'**
+  String get ganaFormBlockerMaxOutputs;
+
+  /// Label for the recurring safety cap input
+  ///
+  /// In en, this message translates to:
+  /// **'Max notes to produce'**
+  String get ganaFormMaxOutputsLabel;
+
+  /// Helper text for the max-outputs cap
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring Ganas auto-disable after publishing this many notes. 1–1000.'**
+  String get ganaFormMaxOutputsHelp;
+
   /// Help text for one-shot + standalone (no trigger UI needed)
   ///
   /// In en, this message translates to:

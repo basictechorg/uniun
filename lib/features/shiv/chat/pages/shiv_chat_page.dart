@@ -156,11 +156,18 @@ class _ShivChatHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // SHIV + thread title
-          SvgPicture.asset(
-            'assets/images/tabs/shiva.svg',
-            height: 30,
-            colorFilter: const ColorFilter.mode(AppColors.onSurfaceVariant, BlendMode.srcIn),
+          // SHIV icon — tap to open the drawer (matches Vishnu/Brahma).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onHistoryTap,
+            child: SvgPicture.asset(
+              'assets/images/tabs/shiva.svg',
+              height: 30,
+              colorFilter: const ColorFilter.mode(
+                AppColors.onSurfaceVariant,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -195,12 +202,6 @@ class _ShivChatHeader extends StatelessWidget {
               ),
             ),
           ],
-          // History — back to conversation list
-          _HeaderIcon(
-            icon: Icons.history_rounded,
-            onTap: onHistoryTap,
-            tooltip: l10n.shivConversationsTooltip,
-          ),
           // Tree — branch graph for this conversation
           _HeaderIcon(
             assetPath: 'assets/images/network_node.svg',

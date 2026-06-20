@@ -80,6 +80,17 @@ class GanaModel {
   @Enumerated(EnumType.name)
   GanaTriggerMode triggerMode = GanaTriggerMode.recurring;
 
+  /// Total successful publishes this Gana is allowed to produce before
+  /// auto-disabling. Required when [triggerMode] is recurring (otherwise
+  /// the user can forget about it and the Gana would publish forever);
+  /// ignored for one-shot (which auto-disables after one publish anyway).
+  ///
+  /// Form clamps to 1..1000. Engine counts successful runs via
+  /// `GanaRunModel where ganaId=X AND outputEventId != null` and, once
+  /// the count meets or exceeds this value, skips with
+  /// [GanaSkipReason.maxOutputsReached] and sets [enabled]=false.
+  int? maxOutputs;
+
   // ── Master switch ────────────────────────────────────────────────────────
 
   /// Defaults to `false`. The user explicitly enables after reviewing the
@@ -122,6 +133,7 @@ extension GanaModelExtension on GanaModel {
         triggerReactive: triggerReactive,
         triggerIntervalMinutes: triggerIntervalMinutes,
         triggerMode: triggerMode,
+        maxOutputs: maxOutputs,
         enabled: enabled,
         lastProcessedEventId: lastProcessedEventId,
         lastProcessedCreated: lastProcessedCreated,
