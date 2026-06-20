@@ -15,7 +15,6 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
-import 'package:uniun/data/models/gana_pending_output_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
@@ -62,8 +61,9 @@ const int kBackgroundMaxGanasPerTick = 1;
 ///    fresh-load on Android arm64 in 9.2s).
 /// 4. Picks ONE due interval Gana (battery-clamped to ≥30 min).
 /// 5. Runs the full engine flow: input filter → reply ancestry →
-///    Manas context pack → prompt build → openChat → inference → write
-///    GanaPendingOutputModel → log GanaRunModel → advance cursor.
+///    Manas context pack → prompt build → openChat → inference →
+///    publish (feed/channel in-isolate; DM/private skipped — see below) →
+///    log GanaRunModel → advance cursor.
 /// 6. Closes Isar, returns.
 ///
 /// ## What it does NOT do
@@ -71,10 +71,11 @@ const int kBackgroundMaxGanasPerTick = 1;
 /// - Reactive triggers. The gateway isolate is NOT running here, so new
 ///   notes don't arrive while the app is killed. Only interval Ganas
 ///   fire in the background.
-/// - Publish events. The Gana writes a `GanaPendingOutputModel` row;
-///   the main-isolate `GanaOutputDispatcher` drains it next time the
-///   app opens. DM + private channel publishing needs main-isolate
-///   native plugins (NIP-17 / MLS).
+/// - DM + private-channel publishing in bg. Those kinds need
+///   main-isolate-only native plugins (NIP-17 gift-wrap / NIP-29 MLS).
+///   The bg tick logs a skip; the foreground engine reactively picks the
+///   same input up on next app open. One-shot DM/PC Ganas with no
+///   reactive trigger therefore won't fire from bg — known limitation.
 /// Single log tag prefix so it's easy to filter in `adb logcat`:
 ///
 ///   adb logcat | grep '\[gana\]'
@@ -122,7 +123,7 @@ void ganaWorkManagerDispatcher() {
       _log('step 1: Isar opened');
 
       // 2. Resolve self keys from inputData (passed by
-      //    GanaBootstrap.scheduleBackground). Without pubkey we can't
+      //    GanaWorkmanagerBootstrap.scheduleBackground). Without pubkey we can't
       //    apply the self-loop guard; without privkey we can't sign
       //    kind-1 / kind-42 outputs — bail.
       _log('step 2: reading inputData (selfPubkeyHex + privkeyHex)');
@@ -445,16 +446,20 @@ Future<void> _runOneGana({
   //     EventQueueModel. The gateway isolate's watcher picks it up and
   //     broadcasts. ZERO main-isolate hops.
   //   - dm (NIP-17) / privateChannel (NIP-29 MLS): native plugins are
-  //     main-isolate-only. Write GanaPendingOutputModel; the main-
-  //     isolate GanaOutputDispatcher drains it on next app foreground.
+  //     main-isolate-only. Skipped in bg; foreground engine catches up via
+  //     foreground engine when the user reopens the app.
+  // Bg publish — only feed (kind 1) + channel (kind 42) are safe to sign
+  // and broadcast from this isolate (no native plugins required, gateway
+  // watcher picks up the EventQueueModel row). DM (NIP-17) and private
+  // channels (NIP-29 MLS) need main-isolate plugins, so we skip them in
+  // bg; the foreground engine reactively picks up the same input next
+  // time the app opens. One-shot DM/PC Ganas with no reactive trigger
+  // won't fire from bg — known limitation.
   String? publishedEventId;
   if (gana.outputType == GanaOutputType.feed ||
       gana.outputType == GanaOutputType.channel) {
     if (privkeyHex == null || privkeyHex.isEmpty) {
-      _log('  publish: no privkeyHex → falling back to pending row');
-      await _writePendingOutput(
-        isar: isar, gana: gana, runId: runId, body: trimmed,
-      );
+      _log('  publish SKIPPED: no privkeyHex in bg (will retry foreground)');
     } else {
       _log('  publish IN-BG: ${gana.outputType.name} '
           '(signing locally, writing EventQueueModel)');
@@ -468,18 +473,12 @@ Future<void> _runOneGana({
         _log('  publish DONE: eventId=${_shortHex(publishedEventId)} '
             '(gateway broadcasts next watcher tick)');
       } else {
-        _log('  publish FAILED in-bg → falling back to pending row');
-        await _writePendingOutput(
-          isar: isar, gana: gana, runId: runId, body: trimmed,
-        );
+        _log('  publish FAILED in-bg (will retry foreground)');
       }
     }
   } else {
-    _log('  publish DEFERRED: ${gana.outputType.name} '
-        '(MLS/NIP-17 → main-isolate dispatcher on next foreground)');
-    await _writePendingOutput(
-      isar: isar, gana: gana, runId: runId, body: trimmed,
-    );
+    _log('  publish SKIPPED: ${gana.outputType.name} requires main-isolate '
+        'plugins (DM/MLS); foreground engine will handle on next trigger');
   }
 
   await _writeRun(
@@ -623,28 +622,6 @@ Future<String?> _publishInBg({
     debugPrint('Gana bg tick: in-bg publish failed: $e\n$st');
   }
   return null;
-}
-
-Future<void> _writePendingOutput({
-  required Isar isar,
-  required GanaEntity gana,
-  required String runId,
-  required String body,
-}) async {
-  await isar.writeTxn(() async {
-    await isar.ganaPendingOutputModels.put(
-      GanaPendingOutputModel()
-        ..pendingId = const Uuid().v4()
-        ..ganaId = gana.ganaId
-        ..runId = runId
-        ..body = body
-        ..outputType = gana.outputType
-        ..outputChannelId = gana.outputChannelId
-        ..outputGroupId = gana.outputGroupId
-        ..outputDmConversationId = gana.outputDmConversationId
-        ..createdAt = DateTime.now(),
-    );
-  });
 }
 
 Future<void> _writeRun({

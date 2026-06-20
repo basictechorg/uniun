@@ -6,8 +6,8 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
-import 'package:uniun/features/shiv/gana/engine/gana_bootstrap.dart';
-import 'package:uniun/features/shiv/gana/inference/gana_output_dispatcher.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_engine.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_workmanager_bootstrap.dart';
 import 'package:uniun/features/shiv/pages/shiv_page.dart';
 import 'package:uniun/gateway/gateway.dart';
 
@@ -33,12 +33,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.initState();
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
     GatewayBootstrap.start();
-    // Bring up the Gana engine + its main-isolate output dispatcher. The
-    // dispatcher must start before the engine so it's ready to drain any
-    // pending output rows the engine emits in its first run.
+    // Bring up the foreground Gana engine (main-isolate singleton — no
+    // separate isolate; see `gana_engine.dart` header for the rationale)
+    // and initialize WorkManager for the bg-tick path.
     () async {
-      await getIt<GanaOutputDispatcher>().start();
-      await GanaBootstrap.start();
+      await getIt<GanaEngine>().start();
+      await GanaWorkmanagerBootstrap.initialize();
     }();
     WidgetsBinding.instance.addObserver(this);
   }
@@ -56,9 +56,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // When backgrounded, schedule a one-shot WorkManager tick so interval
     // Ganas don't drift indefinitely while the app is suspended.
     if (state == AppLifecycleState.paused) {
-      GanaBootstrap.scheduleBackground();
+      GanaWorkmanagerBootstrap.scheduleBackground();
     } else if (state == AppLifecycleState.resumed) {
-      GanaBootstrap.cancelBackground();
+      GanaWorkmanagerBootstrap.cancelBackground();
     }
   }
 

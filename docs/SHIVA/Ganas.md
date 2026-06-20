@@ -3,6 +3,13 @@
 > **Status**: Phase 2 (shipped foreground; background tick installed; background inference gated on `flutter_gemma_bg_isolate_test.dart`).
 > **Lives in**: Shiv (the AI assistant tab).
 > **Companion**: `docs/BRAHMA/Manas.md` (the knowledge bases Ganas consume).
+>
+> **2026-06-20 refactor**: the foreground engine moved from its own Dart
+> isolate **into the main isolate** as a `@lazySingleton`. The SendPort
+> bridge, inference server, output dispatcher, and `GanaPendingOutputModel`
+> are gone. Rationale + trade-offs in §2 + §7 below. The WorkManager
+> background-tick path is unchanged (it has its own ephemeral isolate
+> spawned by the OS).
 
 A **Gana** ("गण" — a band, group, or attendant in Sanskrit) is a user-defined AI worker. The user gives it knowledge (one or more **Manases**), instructions (a **task prompt**), an **input** to watch, an **output** to publish to, and **triggers**. Once enabled, the Gana runs by itself — on-device — and publishes results as real Nostr events.
 
@@ -13,12 +20,12 @@ Ganas are **purely local config** — they never broadcast as Nostr events. Two 
 ## Table of Contents
 
 1. [Functional model](#1-functional-model)
-2. [Three-isolate topology](#2-three-isolate-topology)
+2. [Topology](#2-topology)
 3. [Manas Context Loader](#3-manas-context-loader)
 4. [Data model](#4-data-model)
 5. [Domain layer](#5-domain-layer)
 6. [Single-run lifecycle](#6-single-run-lifecycle)
-7. [Inference bridge — does it block the UI?](#7-inference-bridge--does-it-block-the-ui)
+7. [Does the main-isolate engine block the UI?](#7-does-the-main-isolate-engine-block-the-ui)
 8. [Background execution](#8-background-execution)
 9. [Self-loop + safety guards](#9-self-loop--safety-guards)
 10. [UI placement](#10-ui-placement)
@@ -58,32 +65,39 @@ User config:
                 the most relevant note from my Manas and reply with a
                 1-2 sentence paraphrase that adds value."
 
-Run trace:
+Run trace (post-refactor):
   1. Bob posts kind-42 in #daily-thoughts.
   2. Gateway writes it to noteModels.
-  3. Engine's noteModels.watchLazy() fires; debounced 3s.
+  3. Main-isolate engine's noteModels.watchLazy() fires; debounced 3s.
   4. Input filter selects Bob's message (created > cursor, not self,
      not in our own output history).
-  5. Manas Context Loader packs 28 of 47 notes under the budget.
-  6. Prompt assembled: task → INPUT (Bob's msg) → KNOWLEDGE (28 notes).
-  7. Engine SendPort ──► main isolate inference server.
-  8. Server: openChat → sendMessage → text reply.
-  9. <NOOP> check: no. Body extracted.
- 10. Engine writes GanaPendingOutputModel { body, ganaId, runId,
-     outputType: channel, outputChannelId: #daily-thoughts }.
- 11. Cursor advanced; GanaRunModel.succeeded logged.
- 12. Main-isolate GanaOutputDispatcher watches the pending table,
-     picks the row, calls CreateChannelMessageUseCase.
- 13. Existing publish path (sign → EventQueueModel → gateway → relay).
- 14. Dispatcher stamps outputEventId back on the GanaRun row.
- 15. Bob sees the reply in #daily-thoughts within ~10s.
+  5. Manas Context Loader embeds Bob's message, vector-searches the
+     Manas pool, and packs the top scored hits under the token budget.
+  6. Prompt assembled: SYSTEM rules → USER instruction → KNOWLEDGE
+     → INPUT (Bob's msg).
+  7. Engine calls AIModelRunner.generateOneShot() directly — same
+     LocalInferenceQueue.runLow lane the rest of the app uses (Shiv
+     chat at runHigh preempts).
+  8. Reply sanitized through LlmTextSanitizer (envelope strip + GPT-2
+     byte-pass decode for emoji).
+  9. <NOOP> sentinel check: no. Body extracted.
+ 10. Engine calls CreateChannelMessageUseCase directly (no pending
+     table, no dispatcher hop).
+ 11. Existing publish path: NoteModel.put + EventQueueModel.put →
+     gateway → relay.
+ 12. Cursor advanced; GanaRunModel.succeeded logged with the
+     outputEventId.
+ 13. Bob sees the reply in #daily-thoughts within ~10s.
 ```
 
 ---
 
-## 2. Three-isolate topology
+## 2. Topology
 
-This is the most important diagram in the doc.
+Two isolates total now: the main app isolate (which owns the foreground
+engine alongside everything else) and the WorkManager dispatcher's
+ephemeral OS-spawned isolate. The gateway has its own isolate, which is
+the existing relay-sync component — it doesn't host Gana logic.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -94,65 +108,61 @@ This is the most important diagram in the doc.
 │  GanaDetailPage    ─► GetGanaRunsUseCase                                 │
 │                                                                          │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ GanaInferenceServer  (@lazySingleton, started by GanaBootstrap)    │ │
-│  │   ◄── SendPort ◄── engine isolate                                  │ │
-│  │   delegates to AIModelRunner.generateOneShot()                     │ │
-│  │   which goes through LocalInferenceQueue.runLow                    │ │
-│  │   ─► Shiv chat (runHigh) always preempts                           │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │ GanaOutputDispatcher (@lazySingleton)                              │ │
-│  │   watches ganaPendingOutputModels.watchLazy()                      │ │
-│  │   ─► PublishNoteUseCase (feed)                                     │ │
-│  │   ─► CreateChannelMessageUseCase (channel)                         │ │
-│  │   ─► SendPrivateChannelMessageUsecase (NIP-29 / MLS)               │ │
-│  │   ─► SendDmUseCase (NIP-17 gift-wrap)                              │ │
-│  │   on success → stamps outputEventId on the matching GanaRun        │ │
+│  │ GanaEngine  (@lazySingleton, started in HomePage.initState)        │ │
+│  │                                                                    │ │
+│  │   ├ Isar.ganaModels.watchLazy()    ─► schedule rebuild (500ms)     │ │
+│  │   ├ Isar.noteModels.watchLazy()    ─► reactive Ganas (3s debounce) │ │
+│  │   ├ Timer.periodic(N min)          ─► interval Ganas               │ │
+│  │   ├ Single-flight mutex            ─► one run at a time, app-wide  │ │
+│  │   │                                                                │ │
+│  │   └ One run:                                                       │ │
+│  │      1. Self-output guard set loaded                               │ │
+│  │      2. GanaInputFilter (per-type Isar query + cursor +            │ │
+│  │         drop-self-pubkey + drop-self-outputs)                      │ │
+│  │      3. Reply ancestry (up to 2 hops)                              │ │
+│  │      4. ManasContextLoader.merge                                   │ │
+│  │           • input present ⇒ embed query, vector-search,            │ │
+│  │             intersect with Manas membership, pack top-K            │ │
+│  │           • else ⇒ newest-first fallback                           │ │
+│  │      5. GanaPromptBuilder — SYSTEM rules + USER instruction +      │ │
+│  │         KNOWLEDGE + INPUT (no `publish_message(body=...)` ask)     │ │
+│  │      6. Model gates (hasActiveModel + desiredModelId == active)    │ │
+│  │      7. AIModelRunner.generateOneShot — LocalInferenceQueue.runLow │ │
+│  │         (Shiv chat at runHigh always preempts)                     │ │
+│  │      8. LlmTextSanitizer cleans envelope + GPT-2 byte-pass mojibake│ │
+│  │      9. NOOP sentinel check; else call publish use case directly:  │ │
+│  │           • PublishNoteUseCase (feed, kind 1)                      │ │
+│  │           • CreateChannelMessageUseCase (channel, kind 42)         │ │
+│  │           • SendDmUseCase (DM, NIP-17 gift-wrap)                   │ │
+│  │           • SendPrivateChannelMessageUsecase (NIP-29 MLS)          │ │
+│  │     10. Log GanaRunModel + advance cursor                          │ │
+│  │     11. One-shot Ganas auto-disable on successful publish          │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 │                                                                          │
 │  HomePage (WidgetsBindingObserver)                                       │
-│    AppLifecycleState.paused  ─► GanaBootstrap.scheduleBackground()       │
-│    AppLifecycleState.resumed ─► GanaBootstrap.cancelBackground()         │
+│    AppLifecycleState.paused  ─► GanaWorkmanagerBootstrap.scheduleBg()    │
+│    AppLifecycleState.resumed ─► GanaWorkmanagerBootstrap.cancelBg()      │
 └──────────────────────────────────────────────────────────────────────────┘
                                   ▲       │
                                   │       │  Isar (shared DB on-disk)
-                                  │       ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                  GANA ENGINE ISOLATE  (long-lived background)             │
-│                                                                          │
-│  GanaEngine                                                              │
-│   ├ noteModels.watchLazy()  ─► reactive Ganas (3s debounce)              │
-│   ├ Timer.periodic(N min)   ─► interval Ganas                            │
-│   ├ ganaModels.watchLazy()  ─► schedule rebuild (500ms debounce)         │
-│   ├ Single-flight mutex     ─► one run at a time globally                │
-│   │                                                                      │
-│   └ One run:                                                             │
-│      ┌─────────────────────────────────────────────────────────┐         │
-│      │ 1. Self-output set loaded for guard                      │         │
-│      │ 2. GanaInputFilter (per-type Isar query + cursor +       │         │
-│      │    drop-self-pubkey + drop-self-outputs)                 │         │
-│      │ 3. Reply ancestry (up to 2 hops)                         │         │
-│      │ 4. ManasContextLoader.merge — union across all manasIds  │         │
-│      │ 5. GanaPromptBuilder — task + INPUT + KNOWLEDGE + NOOP   │         │
-│      │ 6. SendPort ─► main isolate GanaInferenceServer          │         │
-│      │ 7. Reply (ok / skip / fail / cancelled)                  │         │
-│      │ 8. Write GanaPendingOutputModel (engine never publishes) │         │
-│      │ 9. Log GanaRunModel + advance cursor                     │         │
-│      └─────────────────────────────────────────────────────────┘         │
-└──────────────────────────────────────────────────────────────────────────┘
-                                  ▲       │
-                                  │       │  Isar (shared)
                                   │       ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │              WORKMANAGER ISOLATE  (ephemeral, OS-dispatched)              │
 │                                                                          │
 │  ganaWorkManagerDispatcher (top-level, @pragma vm:entry-point)           │
 │   ├ Fires ~30 min after AppLifecycleState.paused                         │
+│   ├ BackgroundIsolateBinaryMessenger.ensureInitialized(RootIsolateToken) │
 │   ├ Opens own Isar at the shared path                                    │
-│   └ Walks enabled interval Ganas                                         │
-│       ─► v1: bumps lastRunAt on due ones (NO inference)                  │
-│       ─► v2 (after bg-isolate test passes): real inference here          │
+│   ├ Loads flutter_gemma fresh (verified by                               │
+│   │   integration_test/flutter_gemma_bg_isolate_test.dart)               │
+│   └ Walks enabled interval Ganas, ONE per tick:                          │
+│       ─► feed (kind 1) / channel (kind 42): sign locally, write          │
+│          EventQueueModel directly (gateway broadcasts on next watcher    │
+│          tick). NoteModel.put for local visibility.                      │
+│       ─► DM (NIP-17) / private channel (NIP-29 MLS): SKIPPED in bg.      │
+│          Foreground engine reactively picks the same input up on next    │
+│          app open. (Limitation: one-shot DM/PC Ganas with no reactive    │
+│          trigger won't fire from a killed app.)                          │
 └──────────────────────────────────────────────────────────────────────────┘
                                   │
                                   │  EventQueueModel rows from publish use cases
@@ -160,7 +170,38 @@ This is the most important diagram in the doc.
                   GATEWAY ISOLATE (existing) ──► relay broadcast
 ```
 
-Three isolates, **two of them long-lived** (main + engine), one ephemeral (workmanager fires only when the app is paused/killed).
+### Why no engine isolate any more
+
+Pre-refactor, the engine lived in its own Dart isolate and bridged into
+the main isolate via `SendPort → GanaInferenceServer →
+LocalInferenceQueue → flutter_gemma`. Replies came back via `SendPort`,
+then the engine wrote a `GanaPendingOutputModel` row that a main-isolate
+`GanaOutputDispatcher` drained via `watchLazy`. Six hops per run.
+
+The engine's hot-path work breaks down as:
+
+| Step | Type | Blocks Dart event loop? |
+|---|---|---|
+| Isar `watchLazy()` callback | Async stream tick | No |
+| Build prompt (string concat + Isar reads) | Async + cheap | No (Isar is async) |
+| `AIModelRunner.generateOneShot` | FFI to native threads | No |
+| Per-token stream callback (~50µs × 180) | Async stream tick | No |
+| Publish use case (NoteModel.put + EventQueueModel.put) | Async + writeTxn | No |
+
+Nothing in there is pure-Dart CPU-bound. The 200-second generation runs
+on native threads (`execution_thread_pool` + `callback_thread_pool`
+visible in the native logs). The Dart isolate is parked on awaits
+99.99% of the time. So a separate isolate buys nothing measurable while
+costing 6 hops + a duplicate Isar handle.
+
+What we kept:
+
+- **`LocalInferenceQueue.runLow` / `runHigh`** — chat preemption still
+  matters because the GPU is one-at-a-time. flutter_gemma 1.0's
+  concurrent-sessions feature removes model duplication, not GPU
+  serialization.
+- **WorkManager bg isolate** — separate concern. OS-dispatched, can't
+  share with main. Stays exactly as-is.
 
 ---
 
@@ -173,31 +214,49 @@ ManasContextLoader.merge({
   required Isar isar,
   required List<String> manasIds,
   required int budget,                  // tokens
+  String? relevanceQuery,               // optional — usually the input text
 }) async → List<PackedNote>
 
    1. For each manasId in manasIds:
         link rows = ManasNoteLinkModel where manasId == this
         add all noteIds to a Set (dedupes across manases)
 
-   2. For each noteId in the union:
-        resolve via SavedNoteRepository → noteModels → draftModels
-        (first hit wins; produces PackedNote with source = saved | own | draft)
+   2. Branch on whether we have a relevance query:
 
-   3. Sort PackedNote list by `created` descending
+      ─ By-relevance (when relevanceQuery is non-empty):
+          a. EmbeddingService.embed(query)  → vector
+          b. VectorSearchService.search(queryVector: vec, topK: 50)
+          c. Intersect with the Manas membership Set (preserves score order)
+          d. Resolve each surviving id (saved → notes → drafts)
+          e. Pack high-score first under the char budget
+          f. On any failure (no embedder, no vector index) fall through.
 
-   4. Pack newest-first under (budget * 4 chars/token * 0.85 safety margin)
-      Skip oversize notes rather than truncate (truncation changes meaning)
+      ─ Newest-first (fallback):
+          a. Resolve every id in the Set
+          b. Sort by `created` desc
+          c. Pack newest-first under the char budget
 
-   5. Return packed list
+   3. Skip oversize notes rather than truncate (truncation changes meaning).
 ```
 
-No vector retrieval in v1. Manases are small and curated by hand — the user already ranked them by adding the notes. Direct-pack is cheap, deterministic, and runs entirely in the engine isolate without an embedder. Scoped-vector retrieval (carrying `allowedNoteIds` through `VectorRepository`) is deferred.
+Why we now use the embeddings: every saved/own note already gets its
+embedding upserted to tostore via the existing RAG pipeline (`🧠
+EmbedAndStore` in the logs). The infrastructure was sitting there; the
+engine being in the main isolate made it a 5-line addition instead of a
+cross-isolate plumbing project. Reactive Ganas now retrieve by
+similarity to the actual input message instead of by recency, which is
+the right semantic for "reply with the most relevant note."
+
+Standalone Ganas (no input) still use newest-first — there's nothing to
+score against.
 
 ---
 
 ## 4. Data model
 
-Four Isar collections (three new, plus existing `ManasModel` / `ManasNoteLinkModel`).
+Two new Isar collections (plus existing `ManasModel` / `ManasNoteLinkModel`).
+The third (`GanaPendingOutputModel`) was deleted in the 2026-06-20 refactor
+— the foreground engine publishes directly now, no handoff table needed.
 
 ```
 ┌──────────────────────────────┐  ┌──────────────────────────────┐
@@ -226,32 +285,12 @@ Four Isar collections (three new, plus existing `ManasModel` / `ManasNoteLinkMod
 │ DateTime updatedAt           │
 └──────────────────────────────┘
 
-┌──────────────────────────────────────────────────────┐
-│ GanaPendingOutputModel                                │
-├──────────────────────────────────────────────────────┤
-│ Id  id                                                │
-│ String pendingId  (uniq)                              │
-│ String ganaId  (idx)                                  │
-│ String runId   (idx)         ──► stamps outputEventId │
-│ String body                       on this GanaRun     │
-│ GanaOutputType outputType                             │
-│ String? outputChannelId                               │
-│ String? outputGroupId                                 │
-│ int? outputDmConversationId                           │
-│ DateTime createdAt  (idx)                             │
-│ int attempts                 retry capped at 3        │
-│ String? lastError                                     │
-└──────────────────────────────────────────────────────┘
-       ▲ engine writes              ▼ main-isolate dispatcher
-       │                            │ watches this table,
-       │                            │ publishes, then deletes
-       └───── pendingId is the      │
-             handshake.             │
-                                    ▼
-                             [PublishNoteUseCase / etc]
+(`GanaPendingOutputModel` removed — engine publishes directly.)
 ```
 
-All three schemas registered in `lib/data/datasources/isar_schemas.dart`. Additive — existing installs pick them up on next launch without migration.
+Schemas registered in `lib/data/datasources/isar_schemas.dart`:
+`GanaModelSchema`, `GanaRunModelSchema`. Additive — existing installs
+pick them up on next launch without migration.
 
 ---
 
@@ -328,11 +367,14 @@ Two `@Injectable(as: ...)` repository impls in `lib/data/repositories/`:
                                   │
                                   ▼
                     ┌─────────────────────────────────────┐
-                    │ SendPort ─► main isolate inference  │
-                    │ Server gates:                        │
-                    │  - hasActiveModel                    │
-                    │  - desiredModelId == active          │
-                    │ Else: skip codes via reply           │
+                    │ Model gates (inline now):           │
+                    │  - FlutterGemma.hasActiveModel()    │
+                    │  - desiredModelId == active or null │
+                    │ Else: log skip + return             │
+                    │                                     │
+                    │ AIModelRunner.generateOneShot(...)  │
+                    │  ─► LocalInferenceQueue.runLow      │
+                    │     (chat at runHigh preempts)      │
                     └─────────────────────────────────────┘
                                   │
                 ┌─────────────────┼─────────────────────────┐
@@ -349,18 +391,18 @@ Two `@Injectable(as: ...)` repository impls in `lib/data/repositories/`:
         │ ok
         ▼
     ┌─────────────────────────────────────┐
-    │ Write GanaPendingOutputModel        │
-    │ Log GanaRunModel.succeeded          │
+    │ Call publish use case directly:     │
+    │   - PublishNoteUseCase (feed)       │
+    │   - CreateChannelMessageUseCase     │
+    │   - SendDmUseCase (NIP-17)          │
+    │   - SendPrivateChannelMessageUsecase│
+    │     (NIP-29 MLS)                    │
+    │ Returns outputEventId               │
+    │                                     │
+    │ Log GanaRunModel.succeeded with     │
+    │   outputEventId set                 │
     │ Advance cursor (eventId, time)      │
-    └─────────────────────────────────────┘
-        │
-        ▼
-    ┌─────────────────────────────────────┐
-    │ Main-isolate GanaOutputDispatcher   │ ◄─ separate flow
-    │   watches pending table             │   (runs continuously,
-    │   ─► publish use case                │    not waited on by engine)
-    │   ─► stamps outputEventId           │
-    │   ─► deletes pending row            │
+    │ One-shot Ganas auto-disable here    │
     └─────────────────────────────────────┘
 ```
 
@@ -368,41 +410,73 @@ Cursor is **never** advanced on skip or fail. The same input is retried on the n
 
 ---
 
-## 7. Inference bridge — does it block the UI?
+## 7. Does the main-isolate engine block the UI?
 
-**No.** Here's why, with the actual call chain:
+**No.** Empirically verified — Manas note extraction has been running in
+the main isolate since launch via the same `AIModelRunner.generateOneShot
+→ LocalInferenceQueue` path, while the user scrolls and types without
+hitches. Ganas use the same plumbing.
+
+The full call chain post-refactor:
 
 ```
-Engine isolate                            Main isolate
-─────────────                              ────────────
-_runInference()
-  reply = ReceivePort()           ────►  GanaInferenceServer._onMessage(req)
-  send GanaInferenceRequest                │
-  await reply.first  ◄──── waits ────┐    │  ─► AIModelRunner.generateOneShot(prompt)
-                                     │    │      │
-                                     │    │      └─► LocalInferenceQueue.runLow(...)
-                                     │    │            ─► serial behind chat (runHigh)
-                                     │    │            ─► flutter_gemma in MAIN ISOLATE
-                                     │    │            ─► returns String? when done
-                                     │    │
-                                     └────┴── reply.send(GanaInferenceResponse)
+Reactive watcher / interval timer / fire-on-enable
+  └─► GanaEngine._runIfPossible (single-flight mutex)
+        └─► _runOnce
+              ├─ Isar reads (input filter, ancestry, Manas links)   [async]
+              ├─ EmbeddingService.embed (if reactive)               [FFI → native]
+              ├─ VectorSearchService.search                         [async]
+              ├─ Prompt build (string concat)                        [<1ms]
+              ├─ AIModelRunner.generateOneShot                       [FFI]
+              │    └─ LocalInferenceQueue.runLow
+              │         └─ flutter_gemma native threads             [native pool]
+              │             ─► chat (runHigh) preempts via
+              │                InferenceChat.stopGeneration
+              ├─ LlmTextSanitizer.clean                              [<1ms]
+              └─ Publish use case
+                  ├─ NoteModel.put (writeTxn)                        [async]
+                  └─ EventQueueModel.put (writeTxn)                  [async]
 ```
 
-Key invariants:
+Where Dart-thread time goes during a 200-second run:
 
-1. **The engine isolate is NOT the UI thread.** All scheduling, Isar queries, Manas packing, prompt building, cursor bookkeeping happen in the engine isolate — never on the main isolate's frame budget.
+| Phase | Dart-thread time |
+|---|---|
+| Watcher dispatch + scheduling | ~1ms |
+| Isar reads (input + ancestry + Manas) | ~10-30ms |
+| EmbeddingService.embed (when reactive) | <10ms Dart-side (TFLite native) |
+| VectorSearchService.search | ~5-20ms |
+| Prompt build | <1ms |
+| AIModelRunner stream callbacks | ~50µs × 180 = ~10ms total |
+| Sanitize | <1ms |
+| Publish writes | ~10-30ms |
+| **Total Dart-thread per run** | **~50-100ms spread over 200,000ms** |
 
-2. **`await reply.first` parks the engine, not the UI.** A `ReceivePort` listen is asynchronous — the engine isolate yields to its own event loop while waiting. The main isolate keeps painting frames.
+That's <0.05% of wall clock spent on the Dart event loop. UI frames at
+60Hz (16ms budget) are unaffected.
 
-3. **The actual inference cost IS on the main isolate**, because flutter_gemma's native session is loaded there. BUT:
-   - `flutter_gemma` runs inference on a **native thread** (MediaPipe / LiteRT-LM internals); the main isolate is only the orchestrator.
-   - The async stream (`generateChatResponseAsync()`) yields control back to Flutter between tokens, so each frame can still tick.
-   - Chat (high-priority lane) **preempts** Gana inference (low-priority lane) via `LocalInferenceQueue` — if the user opens Shiv mid-Gana-run, the chat turn cuts the line and the Gana queues behind it.
-   - On low-end devices a generation burst CAN visibly slow scrolling for a few seconds; this is the same cost the existing Shiv chat already pays. Ganas use the same plumbing — no new performance hazard.
+What flutter_gemma actually does: each `TextResponse` chunk crosses
+back from a C++ thread via FFI as a stream event. The Dart side handles
+the chunk in microseconds (sanitize-tracker, scrubber, buffer.write).
+Native decoding continues independently on `execution_thread_pool`.
 
-4. **`generateOneShot` returns `null` on preempt or model swap.** The engine treats this as `cancelled` → logs `modelSwapped` → does NOT advance cursor → next trigger retries cleanly.
+Edge cases that DO have a measurable cost on the main isolate:
 
-So: **the bridge does NOT block the UI on the engine side, and the inference cost on the main side is the same cost Shiv chat already pays.** If you want zero main-isolate cost, the path is to make inference work in a background isolate — which is what §8 is about.
+- **First model load** (`litert_lm_engine_create` — ~10s observed).
+  Happens once per chat session open. flutter_gemma already spawns an
+  internal helper isolate for the heavy lift (note in the log:
+  `(includes isolate spawn ~50-200ms)`), but the orchestrating Dart
+  side does pay ~100-300ms in scattered work during that 10s window.
+- **Burst publish** (NoteModel.put + EventQueueModel.put back-to-back,
+  plus gateway watcher waking). ~50-100ms hitch visible once per Gana
+  publish. Same cost as a user-typed publish from Brahma.
+
+Both were present before the refactor too. Nothing got worse.
+
+**`generateOneShot` returns `null` on preempt or model swap.** Engine
+treats it as cancelled, logs `modelSwapped` if the active model id
+actually changed between request start and return, and does NOT advance
+cursor → next trigger retries cleanly.
 
 ---
 
@@ -471,7 +545,7 @@ The test that answers this lives at `test/integration/flutter_gemma_bg_isolate_t
 | Cursor | NOT advanced on skip/fail | Same input retried next trigger; never lose work |
 | Scheduler | Single-flight FIFO mutex | One Gana run at a time globally — predictable inference load |
 | Queue | `LocalInferenceQueue.runLow` | Chat (`runHigh`) preempts; user never waits behind a Gana |
-| Dispatcher | Retry capped at 3 | Publish failures eventually mark the run failed and stop hammering relays |
+| Publish | use-case-level errors → `GanaRunStatus.failed` | Publish failures surface in the run log; engine does not retry automatically (next trigger will re-attempt naturally) |
 | Form | `enabled = false` default | User must explicitly turn on after reviewing config — no surprise publishes |
 | Form | Interval ≥ 5 min | Foreground; background clamps to ≥ 30 min |
 | Cleanup | Per-Gana 10 / global 1000 | `GanaRun` log doesn't grow unbounded; pruned every 6h |
@@ -574,20 +648,23 @@ lib/
 │   └── usecases/gana_usecases.dart    11 @lazySingleton use cases
 │
 ├── features/shiv/gana/
-│   ├── engine/                         BACKGROUND ISOLATE
-│   │   ├── gana_bootstrap.dart         spawn + Workmanager init + lifecycle
-│   │   ├── gana_isolate.dart           entry point; opens own Isar
-│   │   ├── gana_init_message.dart      handshake payload (SendPort, dir, pubkey)
-│   │   ├── gana_engine.dart            scheduler + reactive + interval + mutex
+│   ├── engine/                         MAIN ISOLATE (post-refactor)
+│   │   ├── gana_engine.dart            @lazySingleton — scheduler + run loop +
+│   │   │                               direct publish (NO SendPort, NO bridge)
 │   │   ├── gana_input_filter.dart      per-type Isar queries + self-guards
-│   │   ├── gana_prompt_builder.dart    task + INPUT + KNOWLEDGE + NOOP
-│   │   ├── manas_context_loader.dart   multi-Manas union + budget pack
-│   │   └── gana_workmanager.dart       top-level dispatcher (bg ticks)
+│   │   ├── gana_prompt_builder.dart    SYSTEM rules + USER instruction +
+│   │   │                               KNOWLEDGE + INPUT + NOOP sentinel
+│   │   ├── manas_context_loader.dart   by-relevance (embed + vector) OR
+│   │   │                               newest-first fallback
+│   │   ├── gana_workmanager.dart       top-level OS-dispatched bg tick
+│   │   └── gana_workmanager_bootstrap.dart  initialize + schedule/cancel bg
 │   │
-│   ├── inference/                      MAIN ISOLATE
-│   │   ├── gana_inference_protocol.dart   request/response classes (sendable)
-│   │   ├── gana_inference_server.dart     @lazySingleton; bridges to AIModelRunner
-│   │   └── gana_output_dispatcher.dart    @lazySingleton; drains pending → publish
+│   │   DELETED 2026-06-20 (moved into main isolate as @lazySingleton):
+│   │     gana_bootstrap.dart, gana_isolate.dart, gana_init_message.dart,
+│   │     inference/gana_inference_server.dart,
+│   │     inference/gana_inference_protocol.dart,
+│   │     inference/gana_output_dispatcher.dart,
+│   │     data/models/gana_pending_output_model.dart
 │   │
 │   ├── list/bloc/
 │   │   ├── gana_list_bloc.dart        backs ShivHistoryDrawer Ganas section
@@ -634,9 +711,8 @@ test/integration/
 
 | Item | Trigger to ship |
 |---|---|
-| **Background inference** | `flutter_gemma_bg_isolate_test.dart` PASS on a real device |
-| **Function-calling output** | When flutter_gemma's tool-schema API is wired through our prompt path; currently plain text + `<NOOP>` sentinel |
-| **Scoped vector retrieval** | When typical Manas size > prompt budget; currently direct-pack is fine |
-| **Real `outputEventId` for DM + private channel** | Transport services (`SendDmUseCase`, `MarmotTransportService`) need to return event ids; currently the dispatcher synthesizes markers |
+| **Background inference for DM/PC** | Currently bg tick skips kind 14 / 9023 (native plugins are main-isolate-only). Plumbing NIP-17 / MLS into the bg isolate would lift the limitation. |
+| **Function-calling output** | Dropped from the prompt entirely. Models leak `publish_message(body=...)` as text; we treated it as a sanitizer rule and the prompt now asks for plain text directly. If flutter_gemma exposes true tool-calling later we could revisit. |
+| **Real `outputEventId` for DM + private channel** | Transport use cases (`SendDmUseCase`, `SendPrivateChannelMessageUsecase`) return `void` / `Unit`. Engine snapshots `noteModels` before/after the call to recover the new eventId — works but feels fragile. |
 | **User-private config sync across devices** | Out of scope; would need encrypted Nostr-based sync layer |
 | **"Run now" button** | Deferred; once we see how trigger model behaves in the wild |

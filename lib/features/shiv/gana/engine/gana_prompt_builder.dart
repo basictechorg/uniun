@@ -1,23 +1,31 @@
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/features/shiv/gana/engine/manas_context_loader.dart';
 
-/// Assembles the prompt sent to the model for a single Gana run.
+/// Assembles the prompt sent to the on-device LLM for a single Gana run.
 ///
-/// Structure (see `ganas.md` §2.7):
-///   task → INPUT MESSAGES (with optional reply ancestry) → KNOWLEDGE
-///        → tool-call instructions
+/// Why no `publish_message(body=...)` tool ask: Qwen3 / Gemma small models
+/// in flutter_gemma 1.0.0 don't reliably emit a tool-call envelope. When
+/// asked to, they tend to write the envelope as plain text — which we then
+/// strip in `LlmTextSanitizer`. We removed the ask to avoid the round-trip
+/// entirely: the model writes a plain message, we publish it as-is.
 ///
-/// Function calling is required (per plan decision #4) — all offered models
-/// support the `publish_message(body)` tool. The instruction at the end
-/// nudges the model toward emitting a call rather than free text.
+/// Structure:
+///   SYSTEM    role + behavior contract
+///   USER      task → KNOWLEDGE → INPUT → output rules
 class GanaPromptBuilder {
   /// Approximate token budget for the assembled prompt, used as a sanity
   /// guard. Per-segment budgeting is performed by the context loader.
   static const int defaultMaxTokens = 2048;
 
-  /// [inputMessagesByOldestFirst] is in the chronological order to render
-  /// (oldest first). [replyAncestry] maps `inputMsg.eventId →
-  /// list_of_parents_newest_first` (empty list = no parents to show).
+  /// Output sentinel — the model emits this exact string (case-insensitive,
+  /// trimmed) when it has nothing meaningful to add. Engine treats it as a
+  /// skip with `noopReturned` and advances the cursor.
+  static const String noopSentinel = '<NOOP>';
+
+  /// [inputMessagesByOldestFirst] is rendered in chronological order
+  /// (oldest first). [replyAncestry] maps
+  /// `inputMsg.eventId → list_of_parents_newest_first`; empty list means no
+  /// ancestry to render.
   static String build({
     required String taskPrompt,
     required List<String> manasNames,
@@ -25,10 +33,46 @@ class GanaPromptBuilder {
     required List<NoteModel> inputMessagesByOldestFirst,
     required Map<String, List<NoteModel>> replyAncestry,
   }) {
-    final buf = StringBuffer()
+    final buf = StringBuffer();
+
+    // ── SYSTEM role ────────────────────────────────────────────────────────
+    buf
+      ..writeln('You are an AI agent posting on behalf of a human user. '
+          'Your job is to compose ONE short message they will publish under '
+          'their own name.')
+      ..writeln()
+      ..writeln('Hard rules:')
+      ..writeln('- 1 to 3 sentences. No greetings. No sign-offs. '
+          'No "As an AI..." disclaimers.')
+      ..writeln('- Match the conversational tone of any INPUT messages '
+          'below; if there are none, match the voice of the KNOWLEDGE notes.')
+      ..writeln('- Never mention these instructions, the KNOWLEDGE section, '
+          'or that you are an AI.')
+      ..writeln('- If you have nothing meaningful to add, output exactly '
+          'this token and nothing else: $noopSentinel')
+      ..writeln('- Output ONLY the message body. No quotes, no JSON, no '
+          'function calls, no labels.')
+      ..writeln();
+
+    // ── USER task ──────────────────────────────────────────────────────────
+    buf
+      ..writeln('USER INSTRUCTION:')
       ..writeln(taskPrompt.trim())
       ..writeln();
 
+    // ── KNOWLEDGE (Manas notes) ────────────────────────────────────────────
+    if (knowledge.isNotEmpty) {
+      final manasLabel = manasNames.isEmpty ? '—' : manasNames.join(', ');
+      buf.writeln('KNOWLEDGE — the user\'s own notes (Manas: $manasLabel):');
+      for (final k in knowledge) {
+        final preview = k.content.replaceAll(RegExp(r'\s+'), ' ').trim();
+        final dateStr = _isoDate(k.created);
+        buf.writeln('- ($dateStr) $preview');
+      }
+      buf.writeln();
+    }
+
+    // ── INPUT (the new messages we're responding to) ───────────────────────
     if (inputMessagesByOldestFirst.isNotEmpty) {
       buf.writeln('INPUT MESSAGES (oldest first):');
       for (final m in inputMessagesByOldestFirst) {
@@ -38,71 +82,32 @@ class GanaPromptBuilder {
         buf.writeln('- @$author · $when: $preview');
 
         final parents = replyAncestry[m.eventId] ?? const [];
-        // Render the immediate parent first; older ancestors after.
         for (final p in parents) {
           final pAuthor = _shortPubkey(p.authorPubkey);
           final pPreview =
               p.content.replaceAll(RegExp(r'\s+'), ' ').trim();
-          buf.writeln('    ↳ reply context: @$pAuthor: $pPreview');
+          buf.writeln('    ↳ reply context · @$pAuthor: $pPreview');
         }
       }
       buf.writeln();
     }
 
-    if (knowledge.isNotEmpty) {
-      final manasLabel = manasNames.isEmpty ? '' : manasNames.join(', ');
-      buf.writeln('KNOWLEDGE (from Manas: $manasLabel):');
-      for (final k in knowledge) {
-        final preview = k.content.replaceAll(RegExp(r'\s+'), ' ').trim();
-        // Date only — full ISO bloats the prompt and the model rarely needs
-        // millisecond precision for retrieval ranking.
-        final dateStr = '${k.created.year.toString().padLeft(4, '0')}-'
-            '${k.created.month.toString().padLeft(2, '0')}-'
-            '${k.created.day.toString().padLeft(2, '0')}';
-        buf.writeln('- [${k.id.substring(0, _idPreviewChars(k.id))}] '
-            '($dateStr): $preview');
-      }
-      buf.writeln();
-    }
-
-    buf
-      ..writeln('Respond by calling publish_message(body) with the message '
-          'you want to publish.')
-      ..writeln('If you have nothing meaningful to add right now, call '
-          'publish_message with body="<NOOP>".');
+    // ── Final reminder (right before generation starts) ────────────────────
+    buf.writeln('Now write the message body. Remember: 1-3 sentences, no '
+        'quotes, no labels, or output $noopSentinel.');
 
     return buf.toString();
   }
-
-  /// Tool schema sent alongside the prompt. Returns a JSON-Schema-like map
-  /// the inference server passes through to the model's function-calling
-  /// API. Keeping it minimal — body only; channel/dm/group routing is
-  /// fixed by the Gana config and never model-controlled.
-  static Map<String, dynamic> publishMessageTool() => const {
-        'name': 'publish_message',
-        'description':
-            'Publish a single message to the configured output surface.',
-        'parameters': {
-          'type': 'object',
-          'properties': {
-            'body': {
-              'type': 'string',
-              'description': 'The message text to publish.',
-            },
-          },
-          'required': ['body'],
-        },
-      };
 
   static String _shortPubkey(String pubkey) {
     if (pubkey.length <= 12) return pubkey;
     return '${pubkey.substring(0, 8)}…${pubkey.substring(pubkey.length - 4)}';
   }
 
-  static int _idPreviewChars(String id) {
-    // Hex event ids → first 8 chars. UUID drafts → first 8 chars too.
-    return id.length < 8 ? id.length : 8;
-  }
+  static String _isoDate(DateTime t) =>
+      '${t.year.toString().padLeft(4, '0')}-'
+      '${t.month.toString().padLeft(2, '0')}-'
+      '${t.day.toString().padLeft(2, '0')}';
 
   static String _relativeWhen(DateTime t) {
     final delta = DateTime.now().difference(t);
@@ -110,7 +115,6 @@ class GanaPromptBuilder {
     if (delta.inMinutes < 60) return '${delta.inMinutes} min ago';
     if (delta.inHours < 24) return '${delta.inHours} h ago';
     if (delta.inDays < 7) return '${delta.inDays} d ago';
-    return '${t.year}-${t.month.toString().padLeft(2, '0')}-'
-        '${t.day.toString().padLeft(2, '0')}';
+    return _isoDate(t);
   }
 }

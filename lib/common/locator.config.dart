@@ -198,12 +198,9 @@ import 'package:uniun/features/settings/cubit/settings_cubit.dart' as _i331;
 import 'package:uniun/features/settings/cubit/storage_cubit.dart' as _i13;
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart' as _i574;
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart' as _i190;
+import 'package:uniun/features/shiv/gana/engine/gana_engine.dart' as _i426;
 import 'package:uniun/features/shiv/gana/form/bloc/gana_form_bloc.dart'
     as _i942;
-import 'package:uniun/features/shiv/gana/inference/gana_inference_server.dart'
-    as _i1035;
-import 'package:uniun/features/shiv/gana/inference/gana_output_dispatcher.dart'
-    as _i836;
 import 'package:uniun/features/shiv/gana/list/bloc/gana_list_bloc.dart'
     as _i174;
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart'
@@ -702,12 +699,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1033.CreateChannelUseCase>(),
       ),
     );
-    gh.lazySingleton<_i1035.GanaInferenceServer>(
-      () => _i1035.GanaInferenceServer(
-        gh<_i937.AIModelRunner>(),
-        gh<_i107.AppSettingsStore>(),
-      ),
-    );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
       () => _i537.SaveDraftUseCase(gh<_i170.DraftRepository>()),
     );
@@ -1147,6 +1138,18 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i78.SendPrivateChannelMessageUsecase>(),
       ),
     );
+    gh.lazySingleton<_i426.GanaEngine>(
+      () => _i426.GanaEngine(
+        gh<_i214.Isar>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i103.UserRepository>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+      ),
+    );
     gh.factory<_i630.ManasFormBloc>(
       () => _i630.ManasFormBloc(
         gh<_i977.UpsertManasUseCase>(),
@@ -1159,16 +1162,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.GetOwnNotesUseCase>(),
         gh<_i799.GetActiveUserUseCase>(),
         gh<_i537.GetDraftsUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i836.GanaOutputDispatcher>(
-      () => _i836.GanaOutputDispatcher(
-        gh<_i214.Isar>(),
-        gh<_i103.UserRepository>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(
