@@ -43,7 +43,7 @@ class GanaWorkmanagerBootstrap {
         _tickUniqueName,
         kGanaBackgroundTickTask,
         existingWorkPolicy: ExistingWorkPolicy.keep,
-        initialDelay: kBackgroundMinInterval,
+        initialDelay: kBackgroundInitialDelay,
         constraints: Constraints(
           networkType: NetworkType.connected,
           requiresBatteryNotLow: true,

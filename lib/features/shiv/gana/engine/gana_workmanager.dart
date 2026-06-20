@@ -7,6 +7,7 @@ import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nostr/nostr.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
@@ -35,14 +36,26 @@ const String kGanaBackgroundTickTask = 'in.uniun.app.gana.tick';
 /// 90s budget allows ~250 tokens of output with safety margin.
 const Duration kBackgroundRunBudget = Duration(seconds: 90);
 
-/// Minimum interval between background ticks regardless of per-Gana
-/// trigger config (Battery / fairness clamp from `ganas.md` §2.4.3).
+/// Battery-fairness clamp: regardless of a Gana's `triggerIntervalMinutes`,
+/// the engine never considers it "due" in background more often than this.
+/// A 5-min Gana run in foreground will be skipped in bg until 30 min have
+/// elapsed since `lastRunAt`.
 const Duration kBackgroundMinInterval = Duration(minutes: 30);
 
-/// Max tokens generated per background run. Smaller than foreground
-/// (1024) — bg Ganas should produce short, signal-bearing replies, not
-/// essays.
-const int kBackgroundMaxTokens = 256;
+/// How long after the app is backgrounded before the OS attempts to fire
+/// the first tick. Short delay = quicker pickup; the OS still defers
+/// further based on Doze, App Standby Bucket, network + battery
+/// constraints, so this is a floor, not a guarantee. Production default
+/// is 1 minute; raise to 15-30 min if battery profiling shows the bg
+/// tick is too eager.
+const Duration kBackgroundInitialDelay = Duration(minutes: 1);
+
+/// Max tokens generated per background run. Bumped from 256 → 1024
+/// because Qwen3 produces a <think>...</think> reasoning block before
+/// the answer; if maxTokens runs out mid-thought, LlmTextSanitizer
+/// returns empty and the run skips. 1024 gives the model room to
+/// finish reasoning AND emit a 1-3 sentence answer.
+const int kBackgroundMaxTokens = 1024;
 
 /// One Gana per tick. Loading flutter_gemma costs ~9s; doing two would
 /// blow the budget. Foreground catches up on the next app open.
@@ -423,10 +436,16 @@ Future<void> _runOneGana({
       'prefill=${prefillMs}ms decode=${decodeMs}ms '
       'tokens=$tokenCount ($tps tok/s)');
 
-  final trimmed = body.trim();
+  // Same chokepoint discipline as the foreground engine: every on-device
+  // LLM output runs through LlmTextSanitizer.clean before being persisted
+  // or published. Strips <think>...</think> reasoning blocks, tool-call
+  // envelopes, and decodes GPT-2 byte-mojibake (emoji).
+  // If the model was cut off mid-thought (open <think> with no close),
+  // the sanitizer returns '' and we treat it as a NOOP skip.
+  final trimmed = LlmTextSanitizer.clean(body);
   if (trimmed.isEmpty || trimmed.toUpperCase() == '<NOOP>') {
     _log('  SKIPPED: noopReturned '
-        '(body=${trimmed.isEmpty ? "empty" : "<NOOP>"})');
+        '(body=${trimmed.isEmpty ? "empty/think-only" : "<NOOP>"})');
     await _writeRun(
       isar: isar,
       runId: runId,

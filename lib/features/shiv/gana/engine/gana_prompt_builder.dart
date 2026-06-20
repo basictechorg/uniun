@@ -35,6 +35,13 @@ class GanaPromptBuilder {
   }) {
     final buf = StringBuffer();
 
+    // `/no_think` is Qwen3's official soft-switch to disable chain-of-thought.
+    // Without it Qwen wraps its answer in `<think>...</think>` reasoning,
+    // and if maxTokens runs out mid-thought we end up with no answer at all.
+    // The token is parsed by Qwen3's chat template; non-Qwen models simply
+    // ignore unknown directives at the top.
+    buf.writeln('/no_think');
+
     // ── SYSTEM role ────────────────────────────────────────────────────────
     buf
       ..writeln('You are an AI agent posting on behalf of a human user. '

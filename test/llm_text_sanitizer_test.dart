@@ -26,4 +26,24 @@ void main() {
     expect(LlmTextSanitizer.clean('hello world'), 'hello world');
     expect(LlmTextSanitizer.clean('Hola, ¿cómo estás?'), 'Hola, ¿cómo estás?');
   });
+
+  test('strips balanced <think>...</think> blocks', () {
+    final out = LlmTextSanitizer.clean(
+        '<think>Let me think about this...</think>The answer is 42.');
+    expect(out, 'The answer is 42.');
+  });
+
+  test('returns empty when truncated mid-think', () {
+    final out = LlmTextSanitizer.clean(
+        '<think> Okay, the user wants a good motivation life lesson. Let me think abou');
+    expect(out, '');
+  });
+
+  test('strips multiple think blocks', () {
+    final out = LlmTextSanitizer.clean(
+        '<think>step 1</think>Hi <think>step 2</think>there.');
+    expect(out, contains('Hi'));
+    expect(out, contains('there.'));
+    expect(out, isNot(contains('<think>')));
+  });
 }

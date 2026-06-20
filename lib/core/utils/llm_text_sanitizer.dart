@@ -3,16 +3,24 @@ import 'dart:convert';
 /// Cleans raw text emitted by on-device LLMs (flutter_gemma) before it
 /// is persisted or shown to a user.
 ///
-/// The model stream leaks two classes of garbage we always want to
+/// The model stream leaks three classes of garbage we always want to
 /// remove regardless of which surface consumed it (Shiv chat, Gana
 /// publish, Manas note extraction, etc.):
 ///
-///   1. **Tool-call envelopes.** Qwen3 can't actually emit a tool call,
+///   1. **Reasoning blocks (`<think>...</think>`).** Qwen3 and DeepSeek
+///      R1 prefix their answer with chain-of-thought wrapped in
+///      `<think>` tags. The closing tag may be missing if the model
+///      hits maxTokens mid-thought — in which case the entire body is
+///      reasoning, not the answer. We strip the block. If only an
+///      opening tag is present (truncated), we return empty so the
+///      caller treats it as `<NOOP>`.
+///
+///   2. **Tool-call envelopes.** Qwen3 can't actually emit a tool call,
 ///      so when prompted with "call publish_message(body=…)" it writes
 ///      the envelope as plain text. We strip the outer wrapper and keep
 ///      the inner string. Also handles loose JSON `{"body":"…"}`.
 ///
-///   2. **GPT-2 / BPE byte-encoding leaks.** flutter_gemma's tokenizer
+///   3. **GPT-2 / BPE byte-encoding leaks.** flutter_gemma's tokenizer
 ///      represents raw bytes 0x80–0xFF (and 0x00–0x20, 0x7F, 0xAD) as
 ///      specific Unicode codepoints in Latin Extended-A so the stream
 ///      is always valid UTF-16. The detokenizer normally reverses this;
@@ -31,13 +39,31 @@ class LlmTextSanitizer {
   static final RegExp _looseJson = RegExp(
     r'''^\s*\{\s*(?:"body"|'body')\s*:\s*(['"])([\s\S]*)\1\s*\}\s*$''',
   );
+  // Matches a balanced <think>...</think> anywhere in the string.
+  // Non-greedy so multiple blocks each get stripped.
+  static final RegExp _thinkBalanced = RegExp(
+    r'<think>[\s\S]*?</think>',
+    caseSensitive: false,
+  );
+  // Matches an OPEN tag with no close (model was cut off mid-thought).
+  static final RegExp _thinkOpenOnly = RegExp(
+    r'<think>[\s\S]*$',
+    caseSensitive: false,
+  );
 
   /// Sanitize one chunk of model output. Pure function — safe to call
   /// from any isolate.
   static String clean(String raw) {
     var s = raw.trim();
 
-    // 1. Strip tool-call envelopes.
+    // 1. Strip <think>...</think> reasoning blocks (Qwen3, DeepSeek R1).
+    //    Balanced first; if an unmatched open tag remains, the model was
+    //    cut off mid-reasoning and there is no answer at all — return
+    //    empty so the caller's NOOP branch fires.
+    s = s.replaceAll(_thinkBalanced, '').trim();
+    if (_thinkOpenOnly.hasMatch(s)) return '';
+
+    // 2. Strip tool-call envelopes.
     final fnCall = _toolCall.firstMatch(s);
     if (fnCall != null) {
       s = fnCall.group(2)!;
@@ -46,7 +72,7 @@ class LlmTextSanitizer {
       if (json != null) s = json.group(2)!;
     }
 
-    // 2. Reverse GPT-2 byte_to_unicode in runs.
+    // 3. Reverse GPT-2 byte_to_unicode in runs.
     //    The model usually detokenizes correctly (so most text is plain
     //    UTF-16); only multi-byte sequences like emojis leak through as
     //    a run of byte-encoded chars (e.g. `ðŁĮ±` for 🌱). We scan for
