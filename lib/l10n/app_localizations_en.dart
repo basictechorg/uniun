@@ -1665,6 +1665,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get syncWindowTitle => 'Sync window';
+
+  @override
+  String get syncWindowSubtitle =>
+      'How far back to sync feed, channel, and group messages. Followed notes and DMs always sync in full. Applies on next app launch.';
+
+  @override
+  String syncWindowDays(int days) {
+    return '$days days';
+  }
+
+  @override
   String get noteCardMediaDownloading => 'Downloading…';
 
   @override

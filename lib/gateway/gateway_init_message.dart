@@ -27,10 +27,18 @@ class GatewayInitMessage {
   /// Settings changes take effect on next app launch.
   final int? autoDeleteOldNotesDays;
 
+  /// User-configured recent-sync window in days for the capped surfaces
+  /// (feed / channel / private-channel messages). `null` = use the default
+  /// (`kRecentSyncWindow`, 30 days). Read from `AppSettingsStore` at spawn time
+  /// because SharedPreferences is unavailable in background isolates. Settings
+  /// changes take effect on next app launch.
+  final int? recentSyncWindowDays;
+
   const GatewayInitMessage({
     required this.isarDirectory,
     this.privkeyHex,
     this.pubkeyHex,
     this.autoDeleteOldNotesDays,
+    this.recentSyncWindowDays,
   });
 }

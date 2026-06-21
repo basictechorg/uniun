@@ -24,6 +24,7 @@ import 'package:uniun/gateway/outbound/routing/dm_routing_strategy.dart';
 import 'package:uniun/gateway/outbound/routing/private_channel_routing_strategy.dart';
 import 'package:uniun/gateway/outbound/temp_session_coordinator.dart';
 import 'package:uniun/gateway/subscriptions/nip77_synchronizer.dart';
+import 'package:uniun/gateway/subscriptions/sync_window.dart';
 import 'package:uniun/gateway/subscriptions/providers/channels_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/dms_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/drafts_subscription.dart';
@@ -54,6 +55,8 @@ class GatewayOrchestrator {
   /// Stays inside the Gateway isolate.
   final String? _activePrivkey;
 
+  final Duration _recentSyncWindow;
+
   late final EventRouter _router;
   late final RelayRegistry _registry;
   late final TempSessionCoordinator _tempCoordinator;
@@ -67,9 +70,11 @@ class GatewayOrchestrator {
     required Isar isar,
     String? activePubkey,
     String? activePrivkey,
+    Duration recentSyncWindow = kRecentSyncWindow,
   })  : _isar = isar,
         _activePubkey = activePubkey,
-        _activePrivkey = activePrivkey;
+        _activePrivkey = activePrivkey,
+        _recentSyncWindow = recentSyncWindow;
 
   Future<void> start() async {
     var relays = await _isar.relayModels.where().findAll();
@@ -124,6 +129,7 @@ class GatewayOrchestrator {
       statusReporter: RelayStatusReporter(_isar),
       providerFactory: _subscriptionProviders,
       activePubkey: _activePubkey,
+      recentSyncWindow: _recentSyncWindow,
     );
 
     _tempCoordinator = TempSessionCoordinator(

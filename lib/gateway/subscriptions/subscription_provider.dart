@@ -1,12 +1,23 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/gateway/session/relay_session.dart';
+import 'package:uniun/gateway/subscriptions/sync_window.dart';
 
 /// Context passed to every [SubscriptionProvider] call.
 class SubscriptionContext {
   final Isar isar;
   final String? activePubkey;
-  const SubscriptionContext({required this.isar, this.activePubkey});
+
+  /// How far back the capped surfaces (feed / channel / private-channel
+  /// messages) pull. Defaults to [kRecentSyncWindow]; the Gateway overrides it
+  /// from the user's setting at boot.
+  final Duration recentSyncWindow;
+
+  const SubscriptionContext({
+    required this.isar,
+    this.activePubkey,
+    this.recentSyncWindow = kRecentSyncWindow,
+  });
 }
 
 /// Declarative description of one ongoing REQ subscription against a relay.
@@ -41,14 +52,15 @@ abstract class SubscriptionProvider {
   Future<Iterable<String>> deletedEventIds(SubscriptionContext ctx) =>
       ctx.isar.deletedNoteModels.where().eventIdProperty().findAll();
 
-  /// Optional companion REQ to fire right after the main subscription opens.
-  /// Returns the (subId, filter) pair, or null for none.
-  /// Used by channel and private-channel providers to fetch kind-40 / kind-9002
-  /// metadata by id, which can't be expressed as an `#e` filter.
-  Future<({String subId, Map<String, dynamic> filter})?> companionRequest(
+  /// Companion REQs to fire right after the main subscription opens. Each is a
+  /// plain (non-NIP-77) REQ — used for by-id metadata lookups (kind 40 / 9002)
+  /// and for low-volume / crypto-critical events that must pull full history
+  /// (kind 41 channel metadata; the 9021/9022/9024/9025 MLS control plane).
+  /// Returns an empty list for providers with no companion.
+  Future<List<({String subId, Map<String, dynamic> filter})>> companionRequests(
     SubscriptionContext ctx,
   ) async =>
-      null;
+      const [];
 
   /// Called by the manager when this provider's sub should be (re)opened.
   /// Default: emits the standard CLOSE so the synchronizer can reopen.

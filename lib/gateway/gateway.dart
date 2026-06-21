@@ -8,6 +8,7 @@ import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/gateway/cleanup/cleanup_manager.dart';
 import 'package:uniun/gateway/gateway_init_message.dart';
 import 'package:uniun/gateway/orchestrator/gateway_orchestrator.dart';
+import 'package:uniun/gateway/subscriptions/sync_window.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/services/nip17_encryption_service.dart';
@@ -32,10 +33,15 @@ Future<void> gatewayEntryPoint(GatewayInitMessage init) async {
       name: Isar.defaultName,
     );
 
+    final recentSyncWindow = init.recentSyncWindowDays != null
+        ? Duration(days: init.recentSyncWindowDays!)
+        : kRecentSyncWindow;
+
     final orchestrator = GatewayOrchestrator(
       isar: isar,
       activePubkey: init.pubkeyHex,
       activePrivkey: init.privkeyHex,
+      recentSyncWindow: recentSyncWindow,
     );
     final nip17Service = Nip17EncryptionService(
       isar,
@@ -78,6 +84,7 @@ class GatewayBootstrap {
     // user is logged in yet.
     final keys = await getIt<UserRepository>().getActiveKeysHex();
     final autoDeleteDays = getIt<AppSettingsStore>().autoDeleteOldNotesDays;
+    final recentSyncWindowDays = getIt<AppSettingsStore>().recentSyncWindowDays;
 
     Isolate.spawn(
       gatewayEntryPoint,
@@ -86,6 +93,7 @@ class GatewayBootstrap {
         privkeyHex: keys?.privkeyHex,
         pubkeyHex: keys?.pubkeyHex,
         autoDeleteOldNotesDays: autoDeleteDays,
+        recentSyncWindowDays: recentSyncWindowDays,
       ),
     );
   }

@@ -3118,6 +3118,24 @@ abstract class AppLocalizations {
   /// **'{days} days'**
   String storageRetentionDays(int days);
 
+  /// Row title for the sync-window dropdown in Settings → Storage. Controls how many days of history feed/channels/groups pull.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync window'**
+  String get syncWindowTitle;
+
+  /// Subtitle under the sync-window row; explains scope and that it applies on next launch.
+  ///
+  /// In en, this message translates to:
+  /// **'How far back to sync feed, channel, and group messages. Followed notes and DMs always sync in full. Applies on next app launch.'**
+  String get syncWindowSubtitle;
+
+  /// Dropdown value for the sync-window length in days.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String syncWindowDays(int days);
+
   /// Status text shown on a note-card media tile while bytes are downloading
   ///
   /// In en, this message translates to:

@@ -11,6 +11,7 @@ import 'package:uniun/gateway/session/relay_session.dart';
 import 'package:uniun/gateway/subscriptions/nip77_synchronizer.dart';
 import 'package:uniun/gateway/subscriptions/subscription_manager.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
+import 'package:uniun/gateway/subscriptions/sync_window.dart';
 import 'package:uniun/gateway/transport/relay_connection.dart';
 
 /// Bundles everything that hangs off a single [RelaySession] so the lifecycle
@@ -44,6 +45,7 @@ class RelayRegistry {
   final RelayStatusReporter _statusReporter;
   final List<SubscriptionProvider> Function() _providerFactory;
   final String? _activePubkey;
+  final Duration _recentSyncWindow;
 
   final Map<String, _RegistryEntry> _entries = {};
 
@@ -55,13 +57,15 @@ class RelayRegistry {
     required RelayStatusReporter statusReporter,
     required List<SubscriptionProvider> Function() providerFactory,
     String? activePubkey,
+    Duration recentSyncWindow = kRecentSyncWindow,
   })  : _isar = isar,
         _router = router,
         _inboundBus = inboundBus,
         _synchronizer = synchronizer,
         _statusReporter = statusReporter,
         _providerFactory = providerFactory,
-        _activePubkey = activePubkey;
+        _activePubkey = activePubkey,
+        _recentSyncWindow = recentSyncWindow;
 
   RelaySession? get(String url) => _entries[url]?.session;
   Iterable<RelaySession> get all =>
@@ -156,7 +160,11 @@ class RelayRegistry {
       session: session,
       providers: _providerFactory(),
       synchronizer: _synchronizer,
-      context: SubscriptionContext(isar: _isar, activePubkey: _activePubkey),
+      context: SubscriptionContext(
+        isar: _isar,
+        activePubkey: _activePubkey,
+        recentSyncWindow: _recentSyncWindow,
+      ),
     );
 
     final inboundSub = _inboundBus.attach(session);

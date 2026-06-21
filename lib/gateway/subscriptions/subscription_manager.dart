@@ -86,9 +86,10 @@ class SubscriptionManager {
       supportsNip77: p.supportsNip77,
     );
 
-    final companion = await p.companionRequest(context);
-    if (companion != null && session.isConnected) {
-      session.sendRaw(NostrFrame.req(companion.subId, companion.filter));
+    final companions = await p.companionRequests(context);
+    for (final c in companions) {
+      if (!session.isConnected) break;
+      session.sendRaw(NostrFrame.req(c.subId, c.filter));
     }
   }
 }

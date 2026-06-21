@@ -22,6 +22,7 @@ class StorageState {
     this.deletedCount = 0,
     this.deleteChatHistorySuccess = false,
     this.autoDeleteOldNotesDays,
+    this.recentSyncWindowDays = 7,
   });
 
   final bool isLoading;
@@ -47,6 +48,10 @@ class StorageState {
   /// retention window applied to short-lived public traffic. Saved /
   /// followed / own / DM / private-channel notes are never affected.
   final int? autoDeleteOldNotesDays;
+
+  /// Days of history the capped sync surfaces pull. Default 7. Takes effect on
+  /// next app launch (read by the Gateway isolate at boot).
+  final int recentSyncWindowDays;
 
   int get totalBytes =>
       dbSizeBytes +
@@ -75,6 +80,7 @@ class StorageState {
     int? deletedCount,
     bool? deleteChatHistorySuccess,
     Object? autoDeleteOldNotesDays = _sentinel,
+    int? recentSyncWindowDays,
   }) {
     return StorageState(
       isLoading: isLoading ?? this.isLoading,
@@ -101,6 +107,7 @@ class StorageState {
       autoDeleteOldNotesDays: identical(autoDeleteOldNotesDays, _sentinel)
           ? this.autoDeleteOldNotesDays
           : autoDeleteOldNotesDays as int?,
+      recentSyncWindowDays: recentSyncWindowDays ?? this.recentSyncWindowDays,
     );
   }
 }
