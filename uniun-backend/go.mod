@@ -1,6 +1,6 @@
 module uniun-backend
 
-go 1.25.0
+go 1.24.1
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4

@@ -51,7 +51,7 @@ func LoadConfig() {
 		RelayPublicKey:   getEnv("RELAY_PUBKEY", ""),
 		RelayBanner:      getEnv("RELAY_BANNER", ""),
 
-		AzureForBlossom:      getBoolEnv("AZURE_FOR_BLOSSOM", false),
+		AzureForBlossom:      getBoolEnv("AZURE_FOR_BLOSSOM", true),
 		AzStorageAccountName: getEnv("AZURE_STORAGE_ACCOUNT_NAME", "uniun"),
 		AzStorageAccountKey:  getEnv("AZURE_STORAGE_ACCOUNT_KEY", ""),
 		AzBlossomContainer:   getEnv("AZURE_BLOSSOM_CONTAINER", "blossom"),

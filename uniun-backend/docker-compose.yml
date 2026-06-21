@@ -1,0 +1,105 @@
+# docker-compose.yml — Uniun relay (Khatru + BadgerDB + Blossom).
+#
+# The admin sets secrets via shell env or an optional .env file in this
+# directory before running `docker-compose up -d`. All non-secret config
+# falls back to the defaults baked into `config.go` / the Dockerfile.
+#
+# Required at runtime (admin must set BEFORE `docker-compose up`):
+#   AZURE_STORAGE_ACCOUNT_KEY    Azure Blob key for Blossom uploads
+#
+# Optional overrides (sensible defaults shown):
+#   RELAY_NAME, RELAY_DESCRIPTION, RELAY_CONTACT, RELAY_PUBKEY,
+#   RELAY_URL, RELAY_ICON, RELAY_BANNER
+#   AZURE_STORAGE_ACCOUNT_NAME (default "uniun")
+#   AZURE_BLOSSOM_CONTAINER    (default "blossom")
+#   MYSQL_DSN                  (default empty — mirror disabled)
+#   LOG_LEVEL                  (default "info")
+#
+# Production binds to 127.0.0.1:8082 so the existing nginx vhost
+# (listen 8080 ssl → proxy_pass http://localhost:8082) keeps working
+# with zero config change.
+
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uniun-relay:latest
+    container_name: uniun-relay
+    restart: unless-stopped
+
+    # Only bind to loopback — nginx terminates TLS and proxies in. The
+    # relay must NEVER be publicly reachable on 8082; HTTPS is provided
+    # by nginx on 8080 with Let's Encrypt certs.
+    ports:
+      - "127.0.0.1:8082:8082"
+
+    # BadgerDB persists across container rebuilds via bind-mount. The
+    # host path matches the existing PM2 deployment so cutover is
+    # zero-data-movement (and rollback to PM2 is trivial — same files).
+    volumes:
+      - ./db:/data/db
+
+    environment:
+      # ── Server ────────────────────────────────────────────────────
+      RELAY_BIND: "0.0.0.0"          # bind inside container; published only on 127.0.0.1
+      RELAY_PORT: "8082"             # matches nginx upstream
+      RELAY_URL: "${RELAY_URL:-wss://dev.uniun.in:8080}"
+
+      # ── Storage ───────────────────────────────────────────────────
+      WORKING_DIR: "/data"
+      MYSQL_DSN: "${MYSQL_DSN:-}"    # empty → MySQL mirror disabled
+
+      # ── Relay NIP-11 metadata ─────────────────────────────────────
+      RELAY_NAME: "${RELAY_NAME:-Uniun Relay}"
+      RELAY_DESCRIPTION: "${RELAY_DESCRIPTION:-Uniun social relay}"
+      RELAY_CONTACT: "${RELAY_CONTACT:-}"
+      RELAY_PUBKEY: "${RELAY_PUBKEY:-}"
+      RELAY_ICON: "${RELAY_ICON:-}"
+      RELAY_BANNER: "${RELAY_BANNER:-}"
+
+      # ── Blossom / Azure ───────────────────────────────────────────
+      # AZURE_FOR_BLOSSOM defaults to true in config.go (flipped from
+      # the original false default so prod env doesn't need a manual
+      # override). Set to "false" to disable Blossom in this deploy.
+      AZURE_FOR_BLOSSOM: "${AZURE_FOR_BLOSSOM:-true}"
+      AZURE_STORAGE_ACCOUNT_NAME: "${AZURE_STORAGE_ACCOUNT_NAME:-uniun}"
+      # NO DEFAULT — must be set by the admin. compose will substitute
+      # empty if unset, and Blossom uploads will fail at runtime with a
+      # clear "auth failed" error rather than silently using anon access.
+      AZURE_STORAGE_ACCOUNT_KEY: "${AZURE_STORAGE_ACCOUNT_KEY}"
+      AZURE_BLOSSOM_CONTAINER: "${AZURE_BLOSSOM_CONTAINER:-blossom}"
+
+      # ── Logging ───────────────────────────────────────────────────
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      # LOG_FILE intentionally empty in container: stdout/stderr is
+      # captured by Docker's log driver. Use `docker logs uniun-relay`.
+      LOG_FILE: ""
+
+    # Hardening — relay only needs to read TLS roots (baked into the
+    # distroless base) and write to /data. Everything else is read-only.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+    # Modest resource ceiling. Relay is I/O bound; CPU rarely peaks.
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+    # The relay responds to GET / with the NIP-11 relay information
+    # document — perfect cheap healthcheck. distroless has no wget/curl
+    # so we exec the binary itself with a -healthcheck flag... except
+    # we don't have one. Skip docker healthcheck; nginx will fail
+    # upstream if the relay is down, and we have `restart: unless-stopped`.
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
