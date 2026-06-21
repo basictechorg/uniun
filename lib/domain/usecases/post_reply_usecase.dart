@@ -29,21 +29,11 @@ class PostReplyParams {
   final String content;
   final List<String> mentionRefs;
 
-  /// Uploaded Blossom blobs. Emitted as NIP-92 `imeta` tags on the outbound
-  /// event (feed/channel). DM (kind 14) and private channel (kind 9023)
-  /// carry the attachments via the encrypted envelope — receiver-side
-  /// rendering is a follow-up; the sender side renders from local state.
   final List<MediaBlobEntity> attachments;
 
-  /// Forces a specific reply transport instead of deriving it from [root].
-  /// Used by the saved-only thread, where replies always post as feed notes.
   final NoteSource? sourceOverride;
 }
 
-/// Posts a reply to [PostReplyParams.root], routing to the correct transport by
-/// the note's [NoteSource]. Every surface sets the same NIP-10 link
-/// (`replyToEventId = root.id`, `rootEventId = thread root`); only the encrypted
-/// transport differs.
 @lazySingleton
 class PostReplyUseCase {
   final PublishNoteUseCase _publishNote;
@@ -84,14 +74,16 @@ class PostReplyUseCase {
             );
 
           case NoteSource.channel:
-            final r = await _createChannelMessage.call(CreateChannelMessageInput(
-              channelId: root.sourceChannelId ?? '',
-              content: params.content,
-              privateKey: keys.privkeyHex,
-              replyToEventId: replyToId,
-              mentionRefs: params.mentionRefs,
-              attachments: params.attachments,
-            ));
+            final r = await _createChannelMessage.call(
+              CreateChannelMessageInput(
+                channelId: root.sourceChannelId ?? '',
+                content: params.content,
+                privateKey: keys.privkeyHex,
+                replyToEventId: replyToId,
+                mentionRefs: params.mentionRefs,
+                attachments: params.attachments,
+              ),
+            );
             return r.fold((f) => Left(f), (_) => const Right(unit));
 
           case NoteSource.privateChannel:
@@ -111,17 +103,19 @@ class PostReplyUseCase {
             final counterparty = root.authorPubkey == keys.pubkeyHex
                 ? (root.dmReceiverPubkey ?? root.authorPubkey)
                 : root.authorPubkey;
-            return _sendDm.call(SendDmParams(
-              otherPubkey: counterparty,
-              content: params.content,
-              type: params.attachments.any((a) => a.mime.startsWith('image/'))
-                  ? NoteType.image
-                  : NoteType.text,
-              rootEventId: threadRoot,
-              replyToEventId: replyToId,
-              mentionRefs: params.mentionRefs,
-              attachments: params.attachments,
-            ));
+            return _sendDm.call(
+              SendDmParams(
+                otherPubkey: counterparty,
+                content: params.content,
+                type: params.attachments.any((a) => a.mime.startsWith('image/'))
+                    ? NoteType.image
+                    : NoteType.text,
+                rootEventId: threadRoot,
+                replyToEventId: replyToId,
+                mentionRefs: params.mentionRefs,
+                attachments: params.attachments,
+              ),
+            );
         }
       } catch (e) {
         return Left(Failure.errorFailure(e.toString()));
@@ -136,13 +130,10 @@ class PostReplyUseCase {
     required String threadRoot,
     required PostReplyParams params,
   }) async {
-    // Canonical tag order — matches
-    // [EventQueueModel.toSerializedRelayMessage]:
-    //   e root → e reply → e mention → imeta
     final imetaTags = buildImetaTags(params.attachments);
     final tags = <List<String>>[
       ['e', threadRoot, '', 'root'],
-      if (replyToId != threadRoot) ['e', replyToId, '', 'reply'],
+      ['e', replyToId, '', 'reply'],
       for (final ref in params.mentionRefs) ['e', ref, '', 'mention'],
       ...imetaTags,
     ];
@@ -180,10 +171,9 @@ class PostReplyUseCase {
 
     final result = params.attachments.isEmpty
         ? await _publishNote.call(note)
-        : await _publishMediaNote.call(PublishMediaNoteInput(
-            note: note,
-            attachments: params.attachments,
-          ));
+        : await _publishMediaNote.call(
+            PublishMediaNoteInput(note: note, attachments: params.attachments),
+          );
     return result.fold((f) => Left(f), (published) {
       unawaited(_embedAndStore.call((published.id, published.content)));
       return const Right(unit);
