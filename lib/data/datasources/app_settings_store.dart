@@ -15,6 +15,7 @@ class AppSettingsStore {
   static const _kActiveModelId = 'app_settings.active_model_id';
   static const _kAutoDeleteOldNotesDays =
       'app_settings.auto_delete_old_notes_days';
+  static const _kRecentSyncWindowDays = 'app_settings.recent_sync_window_days';
 
   final SharedPreferences _prefs;
 
@@ -54,6 +55,17 @@ class AppSettingsStore {
       await _prefs.setInt(_kAutoDeleteOldNotesDays, days);
     }
   }
+
+  /// Days of history the capped sync surfaces (feed / channel / private-channel
+  /// messages) pull. Defaults to 7 when unset. Followed notes, DMs, and the MLS
+  /// control plane ignore this — they always pull full history.
+  int get recentSyncWindowDays {
+    final v = _prefs.getInt(_kRecentSyncWindowDays);
+    return (v != null && v > 0) ? v : 7;
+  }
+
+  Future<void> setRecentSyncWindowDays(int days) =>
+      _prefs.setInt(_kRecentSyncWindowDays, days);
 }
 
 /// Holds the logged-in user's public identity (pubkeyHex, npub, createdAt).

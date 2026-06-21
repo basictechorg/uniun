@@ -1541,6 +1541,15 @@
   "storageRetentionDays": "{days} days",
   "@storageRetentionDays": { "description": "Dropdown value for the auto-delete retention window in days.", "placeholders": { "days": { "type": "int" } } },
 
+  "syncWindowTitle": "Sync window",
+  "@syncWindowTitle": { "description": "Row title for the sync-window dropdown in Settings → Storage. Controls how many days of history feed/channels/groups pull." },
+
+  "syncWindowSubtitle": "How far back to sync feed, channel, and group messages. Followed notes and DMs always sync in full. Applies on next app launch.",
+  "@syncWindowSubtitle": { "description": "Subtitle under the sync-window row; explains scope and that it applies on next launch." },
+
+  "syncWindowDays": "{days} days",
+  "@syncWindowDays": { "description": "Dropdown value for the sync-window length in days.", "placeholders": { "days": { "type": "int" } } },
+
   "noteCardMediaDownloading": "Downloading…",
   "@noteCardMediaDownloading": { "description": "Status text shown on a note-card media tile while bytes are downloading" },
 

@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
+import 'package:uniun/gateway/subscriptions/sync_window.dart';
 
 /// Subscribes to Kind 1 notes scoped to the active user + everyone they follow.
 ///
@@ -26,6 +27,7 @@ class FeedNotesSubscription extends SubscriptionProvider {
     return {
       'kinds': [1],
       'authors': authors,
+      'since': recentSyncSinceEpochSeconds(ctx.recentSyncWindow),
     };
   }
 

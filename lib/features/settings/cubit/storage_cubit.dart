@@ -52,6 +52,7 @@ class StorageCubit extends Cubit<StorageState> {
         conversationCount: stats.conversationCount,
         ownPubkey: pubkey,
         autoDeleteOldNotesDays: _settings.autoDeleteOldNotesDays,
+        recentSyncWindowDays: _settings.recentSyncWindowDays,
       )),
     );
   }
@@ -62,6 +63,14 @@ class StorageCubit extends Cubit<StorageState> {
   Future<void> setAutoDeleteOldNotesDays(int? days) async {
     await _settings.setAutoDeleteOldNotesDays(days);
     emit(state.copyWith(autoDeleteOldNotesDays: days));
+  }
+
+  /// Persist the user's sync-window choice (days of history the capped sync
+  /// surfaces pull). Takes effect on next app launch — the Gateway isolate
+  /// reads it at boot and SharedPreferences is unavailable in that isolate.
+  Future<void> setRecentSyncWindowDays(int days) async {
+    await _settings.setRecentSyncWindowDays(days);
+    emit(state.copyWith(recentSyncWindowDays: days));
   }
 
   Future<void> deleteFeedNotes() async {
