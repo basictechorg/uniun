@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/shiv/composer_chat/cubit/composer_chat_state.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
@@ -107,7 +108,13 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
         .listen(
       (token) {
         buf.write(token);
-        emit(state.copyWith(streaming: buf.toString()));
+        // Sanitize the cumulative raw buffer for display — decodes GPT-2
+        // byte runs (emoji mojibake), strips tool-call envelopes, hides
+        // `<think>` blocks. Idempotent + safe to re-run every token. Must
+        // run on the WHOLE buffer (not per chunk) because UTF-8 sequences
+        // can span chunks.
+        emit(state.copyWith(
+            streaming: LlmTextSanitizer.clean(buf.toString())));
       },
       onDone: () {
         final answer = stripThinking(buf.toString());

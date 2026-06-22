@@ -145,12 +145,27 @@ class PromptBuilder {
   ///
   /// This is the ONLY thing added to [InferenceChat] per turn — no history,
   /// no system prompt repetition.
+  ///
+  /// Small models (Qwen3 0.6B) routinely swap roles when the user's name
+  /// appears repeatedly in context. To anchor identity we restate the persona
+  /// **near the question** (where models attend most) and end the prompt with
+  /// an explicit `Shiv:` answer cue so the model is primed to speak in
+  /// Shiv's voice — see [_personaAnchor] and [_answerCue].
   String buildUserMessage({
     required String userQuestion,
     required EnrichedContext context,
     required PromptBudget budget,
+    String? userName,
   }) {
-    if (context.isEmpty) return userQuestion;
+    if (context.isEmpty) {
+      // Even with no RAG context, anchor identity + cue the assistant.
+      final buf = StringBuffer();
+      buf.writeln(_personaAnchor(userName));
+      buf.writeln();
+      buf.writeln('Question: $userQuestion');
+      buf.write(_answerCue());
+      return buf.toString();
+    }
 
     final sections = <String>[];
     var used = PromptBudget.estimateTokens(userQuestion);
@@ -205,7 +220,14 @@ class PromptBuilder {
       used += PromptBudget.estimateTokens(restSection);
     }
 
-    if (sections.isEmpty) return userQuestion;
+    if (sections.isEmpty) {
+      final buf = StringBuffer();
+      buf.writeln(_personaAnchor(userName));
+      buf.writeln();
+      buf.writeln('Question: $userQuestion');
+      buf.write(_answerCue());
+      return buf.toString();
+    }
 
     final buf = StringBuffer();
     buf.writeln('Question: $userQuestion');
@@ -214,9 +236,29 @@ class PromptBuilder {
       buf.writeln(s);
       buf.writeln();
     }
+    // Persona anchor immediately before the question — small models attend
+    // most to the end of the context.
+    buf.writeln(_personaAnchor(userName));
+    buf.writeln();
     buf.write('## Question\n$userQuestion');
+    buf.write(_answerCue());
     return buf.toString();
   }
+
+  /// Re-asserts identity near the question so a small model doesn't drift
+  /// into answering as the user. Mentioning the user's name here lets the
+  /// negation ("NOT $name") land harder than a single top-of-prompt line.
+  String _personaAnchor(String? userName) {
+    if (userName == null || userName.isEmpty) {
+      return 'You are Shiv. Reply as Shiv.';
+    }
+    return 'You are Shiv (the assistant). You are NOT $userName. '
+        'When asked your name, you are Shiv. Reply as Shiv.';
+  }
+
+  /// Explicit assistant cue. Primes the model to begin its reply in
+  /// Shiv\'s voice rather than echoing the user.
+  String _answerCue() => '\n\nShiv:';
 
   String? _renderNotesSection(
     String heading,

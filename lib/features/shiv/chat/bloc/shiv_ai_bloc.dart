@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/message_role.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
@@ -38,6 +39,13 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final DrainPendingExtractionsUseCase _drainPending;
 
   StreamSubscription<String>? _streamSub;
+
+  /// Raw concatenation of streamed tokens for the in-flight assistant turn.
+  /// Reset to '' at each `_initChatSession`. The state's [streamingContent]
+  /// is the SANITIZED projection of this — we never concat new chunks onto
+  /// the sanitized string because the sanitizer can swallow a truncated
+  /// mid-`<think>` prefix that only closes in a later chunk.
+  String _rawStreamingBuffer = '';
 
   /// The active conversation's system instruction (persona + any branch
   /// context), built in [_initChatSession] and passed into every send. Held
@@ -249,6 +257,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       streamingContent: '',
       streamingMessageId: assistantMsgId,
     ));
+    _rawStreamingBuffer = '';
 
     // 3 — RAG: embed query → retrieve notes → build per-turn user message.
     final ragMsg =
@@ -324,12 +333,18 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   }
 
   void _onTokenReceived(_TokenReceived event, Emitter<ShivAIState> emit) {
-    final current = state.streamingContent ?? '';
     // Strip whitespace-only prefix some chat templates emit as the first token.
-    final accumulated = current.isEmpty
-        ? (current + event.token).trimLeft()
-        : current + event.token;
-    emit(state.copyWith(streamingContent: accumulated));
+    _rawStreamingBuffer = _rawStreamingBuffer.isEmpty
+        ? (_rawStreamingBuffer + event.token).trimLeft()
+        : _rawStreamingBuffer + event.token;
+    // The sanitizer MUST run on the cumulative buffer, not per-chunk, because
+    // UTF-8 multi-byte sequences (emoji mojibake) can span token boundaries.
+    // Idempotent + cheap — safe to re-run every token. This is the only path
+    // that cleans the live bubble; `_onStreamDone` saves the cleaned row
+    // separately via [shiv_repository_impl.dart].
+    emit(state.copyWith(
+      streamingContent: LlmTextSanitizer.clean(_rawStreamingBuffer),
+    ));
   }
 
   Future<void> _onStreamDone(

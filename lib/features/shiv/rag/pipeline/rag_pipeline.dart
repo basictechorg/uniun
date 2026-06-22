@@ -124,10 +124,12 @@ class RagPipeline {
       maxHops: budget.maxHops,
       manasIds: manasIds,
     );
+    _personalization ??= await _loadPersonalization();
     final userMessage = _promptBuilder.buildUserMessage(
       userQuestion: userQuestion,
       context: context,
       budget: budget,
+      userName: _personalization?.userName,
     );
     final count =
         context.seedNotes.length + context.graphEdges.length + context.memories.length;

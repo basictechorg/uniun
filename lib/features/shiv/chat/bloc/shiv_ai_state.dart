@@ -22,8 +22,12 @@ abstract class ShivAIState with _$ShivAIState {
     ShivConversationEntity? activeConversation,
     @Default([]) List<ShivMessageEntity> messages,
 
-    /// The streaming assistant message being built token-by-token.
-    /// Non-null only while [status] == [ShivChatStatus.streaming].
+    /// The streaming assistant message being built token-by-token, AS
+    /// DISPLAYED — sanitized through [LlmTextSanitizer.clean] (GPT-2 byte
+    /// runs decoded, UTF-8 mojibake repaired, `<think>` blocks stripped).
+    /// The raw token concatenation lives on the bloc; this string is for
+    /// rendering only. Non-null only while [status] ==
+    /// [ShivChatStatus.streaming].
     String? streamingContent,
 
     /// The messageId of the placeholder assistant message being streamed.
