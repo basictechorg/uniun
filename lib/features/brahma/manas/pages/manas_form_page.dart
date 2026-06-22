@@ -479,6 +479,7 @@ class _SearchResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -505,7 +506,43 @@ class _SearchResultRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (preview.kind != ManasNoteKind.unknown) ...[
+              const SizedBox(width: 8),
+              _KindBadge(kind: preview.kind, l10n: l10n),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KindBadge extends StatelessWidget {
+  const _KindBadge({required this.kind, required this.l10n});
+  final ManasNoteKind kind;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (kind) {
+      ManasNoteKind.saved => (l10n.manasFormKindSaved, AppColors.graphSaved),
+      ManasNoteKind.own   => (l10n.manasFormKindOwn,   AppColors.graphOwn),
+      ManasNoteKind.draft => (l10n.manasFormKindDraft, AppColors.graphDraft),
+      ManasNoteKind.unknown => ('', AppColors.outline),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
         ),
       ),
     );

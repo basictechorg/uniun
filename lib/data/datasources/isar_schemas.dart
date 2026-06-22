@@ -30,6 +30,8 @@ import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/data/models/media/media_cache_model.dart';
 import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/manas_note_link_model.dart';
+import 'package:uniun/data/models/gana_model.dart';
+import 'package:uniun/data/models/gana_run_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -61,5 +63,7 @@ final List<CollectionSchema> isarSchemas = [
   MediaCacheModelSchema,
   ManasModelSchema,
   ManasNoteLinkModelSchema,
+  GanaModelSchema,
+  GanaRunModelSchema,
 ];
 

@@ -1676,6 +1676,15 @@
   "manasFormNoteUnavailable": "(note unavailable)",
   "@manasFormNoteUnavailable": { "description": "Chip label when a referenced note is not in local cache" },
 
+  "manasFormKindSaved": "Saved",
+  "@manasFormKindSaved": { "description": "Provenance badge on search-result rows for saved notes" },
+
+  "manasFormKindOwn": "Own",
+  "@manasFormKindOwn": { "description": "Provenance badge on search-result rows for own (authored) notes" },
+
+  "manasFormKindDraft": "Draft",
+  "@manasFormKindDraft": { "description": "Provenance badge on search-result rows for local drafts" },
+
   "manasFormDeleteConfirmTitle": "Delete this Manas?",
   "@manasFormDeleteConfirmTitle": { "description": "Title of the form's delete confirmation dialog" },
 
@@ -1728,5 +1737,263 @@
   "@manasMembershipSheetEmptyCta": { "description": "Primary CTA in the empty-state of the membership sheet" },
 
   "manasIconPickerTitle": "Pick an icon",
-  "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" }
+  "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" },
+
+  "ganaDrawerSectionTitle": "GANAS",
+  "@ganaDrawerSectionTitle": { "description": "Section header above the Ganas list in the Shiv drawer" },
+
+  "ganaDrawerEmptyTitle": "No Ganas yet",
+  "@ganaDrawerEmptyTitle": { "description": "Empty-state title in the Ganas section" },
+
+  "ganaDrawerEmptyBody": "Create an AI worker that watches a surface and publishes for you.",
+  "@ganaDrawerEmptyBody": { "description": "Empty-state body in the Ganas section" },
+
+  "ganaDrawerNewButton": "+ New Gana",
+  "@ganaDrawerNewButton": { "description": "Add-new button in the Ganas section header" },
+
+  "ganaTileDisabled": "Off",
+  "@ganaTileDisabled": { "description": "Status pill on a Gana tile when it is disabled" },
+
+  "ganaTileTriggerReactive": "Reactive",
+  "@ganaTileTriggerReactive": { "description": "Subtitle fragment shown when a Gana fires on new input" },
+
+  "ganaTileTriggerInterval": "Every {n}m",
+  "@ganaTileTriggerInterval": {
+    "description": "Subtitle fragment for an interval Gana; {n} is the minute count",
+    "placeholders": { "n": { "type": "int" } }
+  },
+
+  "ganaTileTriggerBoth": "Reactive + every {n}m",
+  "@ganaTileTriggerBoth": {
+    "description": "Subtitle when a Gana has both triggers",
+    "placeholders": { "n": { "type": "int" } }
+  },
+
+  "ganaTileTriggerOnceOnEnable": "Once on enable",
+  "@ganaTileTriggerOnceOnEnable": { "description": "Subtitle for a one-shot standalone Gana" },
+
+  "ganaTileTriggerOnceOnInput": "Once on first input",
+  "@ganaTileTriggerOnceOnInput": { "description": "Subtitle for a one-shot Gana with an input source" },
+
+  "ganaTileLastRunNever": "No runs yet",
+  "@ganaTileLastRunNever": { "description": "Last-run label when the Gana has never run" },
+
+  "ganaTileLastRunSucceeded": "Last run · {when}",
+  "@ganaTileLastRunSucceeded": {
+    "description": "Last-run label on success; {when} is a relative time",
+    "placeholders": { "when": { "type": "String" } }
+  },
+
+  "ganaTileLastRunSkipped": "Skipped · {when}",
+  "@ganaTileLastRunSkipped": {
+    "description": "Last-run label when the most recent run was skipped",
+    "placeholders": { "when": { "type": "String" } }
+  },
+
+  "ganaTileLastRunFailed": "Failed · {when}",
+  "@ganaTileLastRunFailed": {
+    "description": "Last-run label when the most recent run failed",
+    "placeholders": { "when": { "type": "String" } }
+  },
+
+  "ganaFormCreateTitle": "New Gana",
+  "@ganaFormCreateTitle": { "description": "AppBar title in create mode" },
+
+  "ganaFormEditTitle": "Edit · {name}",
+  "@ganaFormEditTitle": {
+    "description": "AppBar title in edit mode",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
+  "ganaFormEditTitleFallback": "Edit Gana",
+  "@ganaFormEditTitleFallback": { "description": "Edit-mode title when the name is empty" },
+
+  "ganaFormSaveAction": "Save",
+  "@ganaFormSaveAction": { "description": "AppBar action — save the Gana" },
+
+  "ganaFormDeleteAction": "Delete Gana",
+  "@ganaFormDeleteAction": { "description": "Edit-mode delete button label" },
+
+  "ganaFormNameLabel": "Name",
+  "@ganaFormNameLabel": { "description": "Field label" },
+
+  "ganaFormNameHint": "e.g. Life Lessons Replier",
+  "@ganaFormNameHint": { "description": "Name field placeholder" },
+
+  "ganaFormDescriptionLabel": "Description",
+  "@ganaFormDescriptionLabel": { "description": "Field label" },
+
+  "ganaFormDescriptionHint": "Optional. What is this Gana for?",
+  "@ganaFormDescriptionHint": { "description": "Description placeholder" },
+
+  "ganaFormManasSectionTitle": "MANASES",
+  "@ganaFormManasSectionTitle": { "description": "Section title above the Manas multi-select" },
+
+  "ganaFormManasSectionSubtitle": "Pick one or more Manases the Gana will use as knowledge.",
+  "@ganaFormManasSectionSubtitle": { "description": "Helper text under the section title" },
+
+  "ganaFormManasEmpty": "No Manases yet. A Gana needs a knowledge base to reason over — create one to continue.",
+  "@ganaFormManasEmpty": { "description": "Empty-state when the user has no Manases" },
+
+  "ganaFormManasCreateNew": "Create Manas",
+  "@ganaFormManasCreateNew": { "description": "Inline CTA to open the Manas form from the Gana form" },
+
+  "ganaFormModeRecurring": "Recurring",
+  "@ganaFormModeRecurring": { "description": "Cron-job mode label" },
+
+  "ganaFormModeOneShot": "One-shot",
+  "@ganaFormModeOneShot": { "description": "Fire once then auto-disable label" },
+
+  "ganaFormModeRecurringHelp": "Keeps firing on every matching trigger until you disable it.",
+  "@ganaFormModeRecurringHelp": { "description": "Recurring mode helper" },
+
+  "ganaFormModeOneShotHelp": "Fires once, then auto-disables itself. Re-enable to run again.",
+  "@ganaFormModeOneShotHelp": { "description": "One-shot mode helper" },
+
+  "ganaFormBlockerName": "Add a name to continue.",
+  "@ganaFormBlockerName": { "description": "Save-blocker hint: missing name" },
+
+  "ganaFormBlockerManas": "Pick at least one Manas — a Gana needs knowledge to reason over.",
+  "@ganaFormBlockerManas": { "description": "Save-blocker hint: no Manas selected" },
+
+  "ganaFormBlockerTask": "Write a task prompt so the Gana knows what to do.",
+  "@ganaFormBlockerTask": { "description": "Save-blocker hint: empty task prompt" },
+
+  "ganaFormBlockerInputRef": "Pick the input source — channel, DM, user, or note.",
+  "@ganaFormBlockerInputRef": { "description": "Save-blocker hint: input type set but ref empty" },
+
+  "ganaFormBlockerOutputRef": "Pick the output destination so the Gana knows where to publish.",
+  "@ganaFormBlockerOutputRef": { "description": "Save-blocker hint: output type set but ref empty" },
+
+  "ganaFormBlockerOneShotReactive": "One-shot Ganas with an input source need React to new input turned on.",
+  "@ganaFormBlockerOneShotReactive": { "description": "Save-blocker hint: one-shot + input but reactive off" },
+
+  "ganaFormBlockerInterval": "Standalone recurring Ganas need an interval (≥ 5 min).",
+  "@ganaFormBlockerInterval": { "description": "Save-blocker hint: recurring + standalone but no interval" },
+
+  "ganaFormBlockerTrigger": "Turn on React to new input, or set an interval (≥ 5 min).",
+  "@ganaFormBlockerTrigger": { "description": "Save-blocker hint: recurring + input but no trigger picked" },
+
+  "ganaFormBlockerMaxOutputs": "Set a max-notes cap between 1 and 1000.",
+  "@ganaFormBlockerMaxOutputs": { "description": "Save-blocker hint: recurring without a maxOutputs cap" },
+
+  "ganaFormMaxOutputsLabel": "Max notes to produce",
+  "@ganaFormMaxOutputsLabel": { "description": "Label for the recurring safety cap input" },
+
+  "ganaFormMaxOutputsHelp": "Recurring Ganas auto-disable after publishing this many notes. 1–1000.",
+  "@ganaFormMaxOutputsHelp": { "description": "Helper text for the max-outputs cap" },
+
+  "ganaFormOneShotStandaloneNote": "Will fire once when you enable this Gana, then auto-disable.",
+  "@ganaFormOneShotStandaloneNote": { "description": "Help text for one-shot + standalone (no trigger UI needed)" },
+
+  "ganaFormReactiveRequiredNote": "Required for one-shot Ganas with an input source.",
+  "@ganaFormReactiveRequiredNote": { "description": "Help text under reactive switch when it's required" },
+
+  "ganaFormTaskPromptLabel": "Task prompt",
+  "@ganaFormTaskPromptLabel": { "description": "Field label" },
+
+  "ganaFormTaskPromptHint": "Tell the Gana what to do. e.g. \"When someone posts a question here, reply with the most relevant note from my Manas and add one line of commentary.\"",
+  "@ganaFormTaskPromptHint": { "description": "Placeholder for the task prompt" },
+
+  "ganaFormInputSectionTitle": "INPUT",
+  "@ganaFormInputSectionTitle": { "description": "Section title for the input source" },
+
+  "ganaFormInputStandalone": "Standalone (no input)",
+  "@ganaFormInputStandalone": { "description": "Input-type option meaning no input surface" },
+
+  "ganaFormInputChannel": "Public channel",
+  "@ganaFormInputChannel": { "description": "Input-type option" },
+
+  "ganaFormInputPrivateChannel": "Private channel",
+  "@ganaFormInputPrivateChannel": { "description": "Input-type option" },
+
+  "ganaFormInputDm": "DM",
+  "@ganaFormInputDm": { "description": "Input-type option" },
+
+  "ganaFormInputUser": "A user's notes",
+  "@ganaFormInputUser": { "description": "Input-type option" },
+
+  "ganaFormInputFollowedNote": "Followed note thread",
+  "@ganaFormInputFollowedNote": { "description": "Input-type option" },
+
+  "ganaFormInputPickHint": "Pick a source",
+  "@ganaFormInputPickHint": { "description": "Hint in the input-ref picker" },
+
+  "ganaFormInputUserHint": "Paste a pubkey (hex or npub)",
+  "@ganaFormInputUserHint": { "description": "Hint when picking the user input ref" },
+
+  "ganaFormOutputSectionTitle": "OUTPUT",
+  "@ganaFormOutputSectionTitle": { "description": "Section title for the output destination" },
+
+  "ganaFormOutputFeed": "Main feed (Kind 1)",
+  "@ganaFormOutputFeed": { "description": "Output destination" },
+
+  "ganaFormOutputChannel": "Public channel",
+  "@ganaFormOutputChannel": { "description": "Output destination" },
+
+  "ganaFormOutputPrivateChannel": "Private channel",
+  "@ganaFormOutputPrivateChannel": { "description": "Output destination" },
+
+  "ganaFormOutputDm": "DM",
+  "@ganaFormOutputDm": { "description": "Output destination" },
+
+  "ganaFormOutputPickHint": "Pick a destination",
+  "@ganaFormOutputPickHint": { "description": "Hint in the output-ref picker" },
+
+  "ganaFormModelSectionTitle": "MODEL",
+  "@ganaFormModelSectionTitle": { "description": "Section title for model selection" },
+
+  "ganaFormModelUseActive": "Use whichever model is active",
+  "@ganaFormModelUseActive": { "description": "Default option when no specific model is pinned" },
+
+  "ganaFormTriggersSectionTitle": "TRIGGERS",
+  "@ganaFormTriggersSectionTitle": { "description": "Section title for trigger config" },
+
+  "ganaFormReactiveLabel": "React to new input",
+  "@ganaFormReactiveLabel": { "description": "Reactive trigger toggle label" },
+
+  "ganaFormReactiveHelp": "Fires within a few seconds of a new message on the input surface.",
+  "@ganaFormReactiveHelp": { "description": "Reactive trigger helper text" },
+
+  "ganaFormIntervalLabel": "Run every",
+  "@ganaFormIntervalLabel": { "description": "Interval trigger label" },
+
+  "ganaFormIntervalUnit": "minutes (min 5)",
+  "@ganaFormIntervalUnit": { "description": "Interval trigger unit hint" },
+
+  "ganaFormEnabledLabel": "Enabled",
+  "@ganaFormEnabledLabel": { "description": "Master switch label" },
+
+  "ganaFormEnabledHelp": "Off by default. Turn on once you've reviewed the config.",
+  "@ganaFormEnabledHelp": { "description": "Master switch helper text" },
+
+  "ganaFormRunsSectionTitle": "RECENT RUNS",
+  "@ganaFormRunsSectionTitle": { "description": "Section header for the run log in edit mode" },
+
+  "ganaFormRunsEmpty": "This Gana hasn't run yet.",
+  "@ganaFormRunsEmpty": { "description": "Empty state for the run log" },
+
+  "ganaFormDeleteConfirmTitle": "Delete this Gana?",
+  "@ganaFormDeleteConfirmTitle": { "description": "Delete confirmation title" },
+
+  "ganaFormDeleteConfirmBody": "This stops the worker and removes its run log. The Manases and notes it referenced are not affected.",
+  "@ganaFormDeleteConfirmBody": { "description": "Delete confirmation body" },
+
+  "ganaFormDeleteConfirmConfirm": "Delete",
+  "@ganaFormDeleteConfirmConfirm": { "description": "Destructive confirm" },
+
+  "ganaFormDeleteConfirmCancel": "Cancel",
+  "@ganaFormDeleteConfirmCancel": { "description": "Cancel action" },
+
+  "ganaRunStatusSucceeded": "Succeeded",
+  "@ganaRunStatusSucceeded": { "description": "Run-status label" },
+
+  "ganaRunStatusSkipped": "Skipped",
+  "@ganaRunStatusSkipped": { "description": "Run-status label" },
+
+  "ganaRunStatusFailed": "Failed",
+  "@ganaRunStatusFailed": { "description": "Run-status label" },
+
+  "ganaRunStatusRunning": "Running",
+  "@ganaRunStatusRunning": { "description": "Run-status label" }
 }

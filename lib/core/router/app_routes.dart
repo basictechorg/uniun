@@ -35,4 +35,6 @@ abstract class AppRoutes {
   static const mediaGallery = 'mediaGallery';
   static const mediaDetail = 'mediaDetail';
   static const brahmaManasForm = 'brahmaManasForm';
+  static const shivGanaForm = 'shivGanaForm';
+  static const shivGanaDetail = 'shivGanaDetail';
 }

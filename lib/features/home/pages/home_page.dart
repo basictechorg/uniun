@@ -6,6 +6,8 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_engine.dart';
+import 'package:uniun/features/shiv/gana/engine/gana_workmanager_bootstrap.dart';
 import 'package:uniun/features/shiv/pages/shiv_page.dart';
 import 'package:uniun/gateway/gateway.dart';
 
@@ -20,7 +22,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late final VishnuFeedBloc _vishnuFeedBloc;
 
   // 0 = Vishnu, 2 = Shiv — index 1 navigates away so it never lives in the stack.
@@ -31,12 +33,33 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
     GatewayBootstrap.start();
+    // Bring up the foreground Gana engine (main-isolate singleton — no
+    // separate isolate; see `gana_engine.dart` header for the rationale)
+    // and initialize WorkManager for the bg-tick path.
+    () async {
+      await getIt<GanaEngine>().start();
+      await GanaWorkmanagerBootstrap.initialize();
+    }();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _vishnuFeedBloc.close();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Foreground engine stays the source of truth while the app is alive.
+    // When backgrounded, schedule a one-shot WorkManager tick so interval
+    // Ganas don't drift indefinitely while the app is suspended.
+    if (state == AppLifecycleState.paused) {
+      GanaWorkmanagerBootstrap.scheduleBackground();
+    } else if (state == AppLifecycleState.resumed) {
+      GanaWorkmanagerBootstrap.cancelBackground();
+    }
   }
 
   Future<void> _switchTab(int i) async {

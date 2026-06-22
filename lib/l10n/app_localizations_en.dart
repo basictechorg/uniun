@@ -1796,6 +1796,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manasFormNoteUnavailable => '(note unavailable)';
 
   @override
+  String get manasFormKindSaved => 'Saved';
+
+  @override
+  String get manasFormKindOwn => 'Own';
+
+  @override
+  String get manasFormKindDraft => 'Draft';
+
+  @override
   String get manasFormDeleteConfirmTitle => 'Delete this Manas?';
 
   @override
@@ -1851,4 +1860,276 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manasIconPickerTitle => 'Pick an icon';
+
+  @override
+  String get ganaDrawerSectionTitle => 'GANAS';
+
+  @override
+  String get ganaDrawerEmptyTitle => 'No Ganas yet';
+
+  @override
+  String get ganaDrawerEmptyBody =>
+      'Create an AI worker that watches a surface and publishes for you.';
+
+  @override
+  String get ganaDrawerNewButton => '+ New Gana';
+
+  @override
+  String get ganaTileDisabled => 'Off';
+
+  @override
+  String get ganaTileTriggerReactive => 'Reactive';
+
+  @override
+  String ganaTileTriggerInterval(int n) {
+    return 'Every ${n}m';
+  }
+
+  @override
+  String ganaTileTriggerBoth(int n) {
+    return 'Reactive + every ${n}m';
+  }
+
+  @override
+  String get ganaTileTriggerOnceOnEnable => 'Once on enable';
+
+  @override
+  String get ganaTileTriggerOnceOnInput => 'Once on first input';
+
+  @override
+  String get ganaTileLastRunNever => 'No runs yet';
+
+  @override
+  String ganaTileLastRunSucceeded(String when) {
+    return 'Last run · $when';
+  }
+
+  @override
+  String ganaTileLastRunSkipped(String when) {
+    return 'Skipped · $when';
+  }
+
+  @override
+  String ganaTileLastRunFailed(String when) {
+    return 'Failed · $when';
+  }
+
+  @override
+  String get ganaFormCreateTitle => 'New Gana';
+
+  @override
+  String ganaFormEditTitle(String name) {
+    return 'Edit · $name';
+  }
+
+  @override
+  String get ganaFormEditTitleFallback => 'Edit Gana';
+
+  @override
+  String get ganaFormSaveAction => 'Save';
+
+  @override
+  String get ganaFormDeleteAction => 'Delete Gana';
+
+  @override
+  String get ganaFormNameLabel => 'Name';
+
+  @override
+  String get ganaFormNameHint => 'e.g. Life Lessons Replier';
+
+  @override
+  String get ganaFormDescriptionLabel => 'Description';
+
+  @override
+  String get ganaFormDescriptionHint => 'Optional. What is this Gana for?';
+
+  @override
+  String get ganaFormManasSectionTitle => 'MANASES';
+
+  @override
+  String get ganaFormManasSectionSubtitle =>
+      'Pick one or more Manases the Gana will use as knowledge.';
+
+  @override
+  String get ganaFormManasEmpty =>
+      'No Manases yet. A Gana needs a knowledge base to reason over — create one to continue.';
+
+  @override
+  String get ganaFormManasCreateNew => 'Create Manas';
+
+  @override
+  String get ganaFormModeRecurring => 'Recurring';
+
+  @override
+  String get ganaFormModeOneShot => 'One-shot';
+
+  @override
+  String get ganaFormModeRecurringHelp =>
+      'Keeps firing on every matching trigger until you disable it.';
+
+  @override
+  String get ganaFormModeOneShotHelp =>
+      'Fires once, then auto-disables itself. Re-enable to run again.';
+
+  @override
+  String get ganaFormBlockerName => 'Add a name to continue.';
+
+  @override
+  String get ganaFormBlockerManas =>
+      'Pick at least one Manas — a Gana needs knowledge to reason over.';
+
+  @override
+  String get ganaFormBlockerTask =>
+      'Write a task prompt so the Gana knows what to do.';
+
+  @override
+  String get ganaFormBlockerInputRef =>
+      'Pick the input source — channel, DM, user, or note.';
+
+  @override
+  String get ganaFormBlockerOutputRef =>
+      'Pick the output destination so the Gana knows where to publish.';
+
+  @override
+  String get ganaFormBlockerOneShotReactive =>
+      'One-shot Ganas with an input source need React to new input turned on.';
+
+  @override
+  String get ganaFormBlockerInterval =>
+      'Standalone recurring Ganas need an interval (≥ 5 min).';
+
+  @override
+  String get ganaFormBlockerTrigger =>
+      'Turn on React to new input, or set an interval (≥ 5 min).';
+
+  @override
+  String get ganaFormBlockerMaxOutputs =>
+      'Set a max-notes cap between 1 and 1000.';
+
+  @override
+  String get ganaFormMaxOutputsLabel => 'Max notes to produce';
+
+  @override
+  String get ganaFormMaxOutputsHelp =>
+      'Recurring Ganas auto-disable after publishing this many notes. 1–1000.';
+
+  @override
+  String get ganaFormOneShotStandaloneNote =>
+      'Will fire once when you enable this Gana, then auto-disable.';
+
+  @override
+  String get ganaFormReactiveRequiredNote =>
+      'Required for one-shot Ganas with an input source.';
+
+  @override
+  String get ganaFormTaskPromptLabel => 'Task prompt';
+
+  @override
+  String get ganaFormTaskPromptHint =>
+      'Tell the Gana what to do. e.g. \"When someone posts a question here, reply with the most relevant note from my Manas and add one line of commentary.\"';
+
+  @override
+  String get ganaFormInputSectionTitle => 'INPUT';
+
+  @override
+  String get ganaFormInputStandalone => 'Standalone (no input)';
+
+  @override
+  String get ganaFormInputChannel => 'Public channel';
+
+  @override
+  String get ganaFormInputPrivateChannel => 'Private channel';
+
+  @override
+  String get ganaFormInputDm => 'DM';
+
+  @override
+  String get ganaFormInputUser => 'A user\'s notes';
+
+  @override
+  String get ganaFormInputFollowedNote => 'Followed note thread';
+
+  @override
+  String get ganaFormInputPickHint => 'Pick a source';
+
+  @override
+  String get ganaFormInputUserHint => 'Paste a pubkey (hex or npub)';
+
+  @override
+  String get ganaFormOutputSectionTitle => 'OUTPUT';
+
+  @override
+  String get ganaFormOutputFeed => 'Main feed (Kind 1)';
+
+  @override
+  String get ganaFormOutputChannel => 'Public channel';
+
+  @override
+  String get ganaFormOutputPrivateChannel => 'Private channel';
+
+  @override
+  String get ganaFormOutputDm => 'DM';
+
+  @override
+  String get ganaFormOutputPickHint => 'Pick a destination';
+
+  @override
+  String get ganaFormModelSectionTitle => 'MODEL';
+
+  @override
+  String get ganaFormModelUseActive => 'Use whichever model is active';
+
+  @override
+  String get ganaFormTriggersSectionTitle => 'TRIGGERS';
+
+  @override
+  String get ganaFormReactiveLabel => 'React to new input';
+
+  @override
+  String get ganaFormReactiveHelp =>
+      'Fires within a few seconds of a new message on the input surface.';
+
+  @override
+  String get ganaFormIntervalLabel => 'Run every';
+
+  @override
+  String get ganaFormIntervalUnit => 'minutes (min 5)';
+
+  @override
+  String get ganaFormEnabledLabel => 'Enabled';
+
+  @override
+  String get ganaFormEnabledHelp =>
+      'Off by default. Turn on once you\'ve reviewed the config.';
+
+  @override
+  String get ganaFormRunsSectionTitle => 'RECENT RUNS';
+
+  @override
+  String get ganaFormRunsEmpty => 'This Gana hasn\'t run yet.';
+
+  @override
+  String get ganaFormDeleteConfirmTitle => 'Delete this Gana?';
+
+  @override
+  String get ganaFormDeleteConfirmBody =>
+      'This stops the worker and removes its run log. The Manases and notes it referenced are not affected.';
+
+  @override
+  String get ganaFormDeleteConfirmConfirm => 'Delete';
+
+  @override
+  String get ganaFormDeleteConfirmCancel => 'Cancel';
+
+  @override
+  String get ganaRunStatusSucceeded => 'Succeeded';
+
+  @override
+  String get ganaRunStatusSkipped => 'Skipped';
+
+  @override
+  String get ganaRunStatusFailed => 'Failed';
+
+  @override
+  String get ganaRunStatusRunning => 'Running';
 }

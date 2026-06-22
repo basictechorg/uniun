@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/local_inference_queue.dart';
 import 'package:uniun/data/datasources/llm/local_model_params.dart';
@@ -218,8 +219,13 @@ class AIModelRunner {
       }
       final tail = scrubber.flush();
       if (tail != null) buffer.write(tail);
-      debugPrint('🧪 generateOneShot: done (${buffer.length} chars)');
-      return buffer.toString();
+      // Sanitize once on the full buffer — strips tool-call envelopes,
+      // BPE `Ġ` markers, and repairs Latin-1-encoded UTF-8 mojibake
+      // (e.g. emojis arriving as `ðŁĮ±`). Mojibake repair MUST run on the
+      // whole string, not per-chunk, or we'd split UTF-8 byte sequences.
+      final cleaned = LlmTextSanitizer.clean(buffer.toString());
+      debugPrint('🧪 generateOneShot: done (${cleaned.length} chars)');
+      return cleaned;
     } catch (e, st) {
       debugPrint('⏭️ generateOneShot terminated: $e\n$st');
       return null;

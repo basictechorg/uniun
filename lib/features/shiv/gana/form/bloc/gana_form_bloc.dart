@@ -1,0 +1,285 @@
+import 'package:bloc/bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:injectable/injectable.dart';
+import 'package:uniun/core/enum/gana_input_type.dart';
+import 'package:uniun/core/enum/gana_output_type.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/domain/entities/channel/channel_entity.dart';
+import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
+import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
+import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/manas/manas_entity.dart';
+import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/usecases/dm_usecases.dart';
+import 'package:uniun/domain/usecases/followed_note_usecases.dart';
+import 'package:uniun/domain/usecases/gana_usecases.dart';
+import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/manas_usecases.dart';
+import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uuid/uuid.dart';
+
+part 'gana_form_event.dart';
+part 'gana_form_state.dart';
+
+@injectable
+class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
+  final UpsertGanaUseCase _upsert;
+  final GetGanaByIdUseCase _getById;
+  final DeleteGanaUseCase _delete;
+  final GetManasListUseCase _getManases;
+  final GetChannelsUseCase _getChannels;
+  final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetDmConversationsUseCase _getDms;
+  final GetAllFollowedNotesUseCase _getFollowed;
+  final GetDownloadedModelIdsUseCase _getModels;
+
+  GanaFormBloc(
+    this._upsert,
+    this._getById,
+    this._delete,
+    this._getManases,
+    this._getChannels,
+    this._getPrivateChannels,
+    this._getDms,
+    this._getFollowed,
+    this._getModels,
+  ) : super(const GanaFormState()) {
+    on<GanaFormLoadEvent>(_onLoad);
+    on<GanaFormNameChangedEvent>((e, em) =>
+        em(state.copyWith(name: e.value, clearError: true)));
+    on<GanaFormDescriptionChangedEvent>(
+        (e, em) => em(state.copyWith(description: e.value)));
+    on<GanaFormToggleManasEvent>(_onToggleManas);
+    on<GanaFormTaskPromptChangedEvent>(
+        (e, em) => em(state.copyWith(taskPrompt: e.value)));
+    on<GanaFormInputTypeChangedEvent>(_onInputType);
+    on<GanaFormInputRefChangedEvent>(
+        (e, em) => em(state.copyWith(inputRefId: e.value)));
+    on<GanaFormOutputTypeChangedEvent>(_onOutputType);
+    on<GanaFormOutputRefChangedEvent>(_onOutputRef);
+    on<GanaFormModelChangedEvent>(
+        (e, em) => em(state.copyWith(desiredModelId: e.value, clearModel: e.value == null)));
+    on<GanaFormReactiveToggleEvent>(
+        (e, em) => em(state.copyWith(triggerReactive: e.value)));
+    on<GanaFormIntervalChangedEvent>(
+        (e, em) => em(state.copyWith(triggerIntervalMinutes: e.value, clearInterval: e.value == null)));
+    on<GanaFormTriggerModeChangedEvent>((e, em) {
+      // Switching to one-shot voids the interval AND the maxOutputs cap
+      // — both are recurring-only. Persisting them misleads the UI.
+      if (e.value == GanaTriggerMode.oneShot) {
+        em(state.copyWith(
+          triggerMode: e.value,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
+      } else {
+        em(state.copyWith(triggerMode: e.value));
+      }
+    });
+    on<GanaFormMaxOutputsChangedEvent>(
+        (e, em) => em(state.copyWith(
+              maxOutputs: e.value,
+              clearMaxOutputs: e.value == null,
+            )));
+    on<GanaFormEnabledToggleEvent>(
+        (e, em) => em(state.copyWith(enabled: e.value)));
+    on<GanaFormSubmitEvent>(_onSubmit, transformer: droppable());
+    on<GanaFormDeleteEvent>(_onDelete, transformer: droppable());
+  }
+
+  Future<void> _onLoad(
+      GanaFormLoadEvent event, Emitter<GanaFormState> emit) async {
+    emit(state.copyWith(status: GanaFormStatus.loading));
+
+    // Load picker pools in parallel.
+    final manasFuture = _getManases.call();
+    final channelsFuture = _getChannels.call();
+    final dmsFuture = _getDms.call();
+    final followedFuture = _getFollowed.call();
+    final modelsFuture = _getModels.call();
+    // Private channels are a stream; take first emission.
+    final privateChannels =
+        await _getPrivateChannels.execute().first.catchError((_) =>
+            <PrivateChannelEntity>[]);
+
+    final manases = (await manasFuture)
+        .fold<List<ManasEntity>>((_) => const [], (l) => l);
+    final channels = (await channelsFuture)
+        .fold<List<ChannelEntity>>((_) => const [], (l) => l);
+    final dms = (await dmsFuture)
+        .fold<List<DmConversationEntity>>((_) => const [], (l) => l);
+    final followed = (await followedFuture)
+        .fold<List<FollowedNoteEntity>>((_) => const [], (l) => l);
+    final models = await modelsFuture;
+
+    if (event.ganaId == null) {
+      emit(state.copyWith(
+        status: GanaFormStatus.ready,
+        isEditMode: false,
+        ganaId: const Uuid().v4(),
+        createdAt: DateTime.now(),
+        manases: manases,
+        channels: channels,
+        privateChannels: privateChannels,
+        dmConversations: dms,
+        followedNotes: followed,
+        availableModels: models.map((m) => m.name).toList(),
+      ));
+      return;
+    }
+
+    final res = await _getById.call(event.ganaId!);
+    final gana = res.fold<GanaEntity?>((_) => null, (g) => g);
+    if (gana == null) {
+      emit(state.copyWith(
+        status: GanaFormStatus.error,
+        errorMessage: 'Gana not found',
+      ));
+      return;
+    }
+
+    emit(state.copyWith(
+      status: GanaFormStatus.ready,
+      isEditMode: true,
+      ganaId: gana.ganaId,
+      name: gana.name,
+      description: gana.description ?? '',
+      selectedManasIds: gana.manasIds.toSet(),
+      taskPrompt: gana.taskPrompt,
+      inputType: gana.inputType,
+      inputRefId: gana.inputRefId,
+      outputType: gana.outputType,
+      outputChannelId: gana.outputChannelId,
+      outputGroupId: gana.outputGroupId,
+      outputDmConversationId: gana.outputDmConversationId,
+      desiredModelId: gana.desiredModelId,
+      triggerReactive: gana.triggerReactive,
+      triggerIntervalMinutes: gana.triggerIntervalMinutes,
+      triggerMode: gana.triggerMode,
+      maxOutputs: gana.maxOutputs,
+      enabled: gana.enabled,
+      createdAt: gana.createdAt,
+      manases: manases,
+      channels: channels,
+      privateChannels: privateChannels,
+      dmConversations: dms,
+      followedNotes: followed,
+      availableModels: models.map((m) => m.name).toList(),
+    ));
+  }
+
+  void _onToggleManas(
+      GanaFormToggleManasEvent event, Emitter<GanaFormState> emit) {
+    final next = {...state.selectedManasIds};
+    if (next.contains(event.manasId)) {
+      next.remove(event.manasId);
+    } else {
+      next.add(event.manasId);
+    }
+    emit(state.copyWith(selectedManasIds: next));
+  }
+
+  void _onInputType(
+      GanaFormInputTypeChangedEvent event, Emitter<GanaFormState> emit) {
+    // Changing input type clears the ref (it's type-specific) and forces
+    // re-pick. Standalone (null) also clears reactive trigger.
+    emit(state.copyWith(
+      inputType: event.value,
+      clearInputType: event.value == null,
+      inputRefId: null,
+      clearInputRefId: true,
+      triggerReactive: event.value == null ? false : state.triggerReactive,
+    ));
+  }
+
+  void _onOutputType(
+      GanaFormOutputTypeChangedEvent event, Emitter<GanaFormState> emit) {
+    emit(state.copyWith(
+      outputType: event.value,
+      outputChannelId: null,
+      outputGroupId: null,
+      outputDmConversationId: null,
+      clearOutputChannelId: true,
+      clearOutputGroupId: true,
+      clearOutputDmConversationId: true,
+    ));
+  }
+
+  void _onOutputRef(
+      GanaFormOutputRefChangedEvent event, Emitter<GanaFormState> emit) {
+    // Set exactly the field that matches the current outputType.
+    switch (state.outputType) {
+      case GanaOutputType.feed:
+        // No ref for feed; clear all.
+        emit(state.copyWith(
+          clearOutputChannelId: true,
+          clearOutputGroupId: true,
+          clearOutputDmConversationId: true,
+        ));
+        return;
+      case GanaOutputType.channel:
+        emit(state.copyWith(outputChannelId: event.value as String?));
+        return;
+      case GanaOutputType.privateChannel:
+        emit(state.copyWith(outputGroupId: event.value as String?));
+        return;
+      case GanaOutputType.dm:
+        emit(state.copyWith(outputDmConversationId: event.value as int?));
+        return;
+    }
+  }
+
+  Future<void> _onSubmit(
+      GanaFormSubmitEvent event, Emitter<GanaFormState> emit) async {
+    if (!state.canSave) return;
+    emit(state.copyWith(status: GanaFormStatus.saving, clearError: true));
+
+    final now = DateTime.now();
+    final entity = GanaEntity(
+      ganaId: state.ganaId ?? const Uuid().v4(),
+      name: state.name.trim(),
+      description:
+          state.description.trim().isEmpty ? null : state.description.trim(),
+      manasIds: state.selectedManasIds.toList(),
+      taskPrompt: state.taskPrompt.trim(),
+      inputType: state.inputType,
+      inputRefId: state.inputRefId,
+      outputType: state.outputType,
+      outputChannelId: state.outputChannelId,
+      outputGroupId: state.outputGroupId,
+      outputDmConversationId: state.outputDmConversationId,
+      desiredModelId: state.desiredModelId,
+      triggerReactive: state.triggerReactive,
+      triggerIntervalMinutes: state.triggerIntervalMinutes,
+      triggerMode: state.triggerMode,
+      maxOutputs: state.triggerMode == GanaTriggerMode.recurring
+          ? state.maxOutputs
+          : null,
+      enabled: state.enabled,
+      createdAt: state.createdAt ?? now,
+      updatedAt: now,
+    );
+
+    final res = await _upsert.call(entity);
+    res.fold(
+      (f) => emit(state.copyWith(
+          status: GanaFormStatus.error, errorMessage: f.toString())),
+      (_) => emit(state.copyWith(status: GanaFormStatus.saved)),
+    );
+  }
+
+  Future<void> _onDelete(
+      GanaFormDeleteEvent event, Emitter<GanaFormState> emit) async {
+    final id = state.ganaId;
+    if (id == null) return;
+    emit(state.copyWith(status: GanaFormStatus.saving));
+    final r = await _delete.call(id);
+    r.fold(
+      (f) => emit(state.copyWith(
+          status: GanaFormStatus.error, errorMessage: f.toString())),
+      (_) => emit(state.copyWith(status: GanaFormStatus.deleted)),
+    );
+  }
+}

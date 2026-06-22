@@ -114,6 +114,7 @@ NostrEvent {
 |-------|---------------------|--------------------------------------------------|
 | 0     | User Metadata       | Profile (name, avatar, nip05, about)             |
 | 1     | Short Text Note     | Public note — the primary unit in UNIUN          |
+| 3     | Contact List        | NIP-02 follow list — drives Vishnu feed scope    |
 | 6     | Repost              | Repost of a Kind 1                               |
 | 7     | Reaction            | Like or emoji on any event                       |
 | 13    | Seal                | Layer 2 of encrypted DM (wraps Kind 14)          |
@@ -163,6 +164,7 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 | NIP    | Purpose                                                  |
 |--------|----------------------------------------------------------|
 | NIP-01 | Base event format, relay WebSocket protocol              |
+| NIP-02 | Contact list (Kind 3) — drives Vishnu feed `authors` filter |
 | NIP-05 | Human-readable identifiers (`user@domain.com`) in profiles |
 | NIP-10 | Reply threading via e-tag markers (root/reply/mention)   |
 | NIP-17 | Private DMs (Kind 14 rumor format)                       |
@@ -375,8 +377,9 @@ lib/gateway/
 
 **Relay subscriptions the Gateway opens:**
 ```dart
-// All Kind 1 notes (feed_notes subscription)
-{"kinds": [1]}
+// Kind 1 notes scoped to self + followed users (feed_notes subscription)
+// — see lib/gateway/subscriptions/providers/feed_notes_subscription.dart
+{"kinds": [1], "authors": ["selfPubkey", "followedPubkey1", ...]}
 
 // Followed note references — refreshed when FollowedNoteModel changes
 {"kinds": [1], "#e": ["followedNoteId1", "followedNoteId2", ...]}
@@ -560,15 +563,24 @@ On reinstall, Isar is wiped but `flutter_secure_storage` may survive on Android 
 
 `ProfileModel.lastSeenAt` is updated each time the profile appears in the UI. The `CleanupManager` evicts profiles where `lastSeenAt < now - 30 days`. Own profile uses `DateTime(3000, 6, 1)` so it is never evicted — there is no `isOwn` boolean field.
 
-### Followed Notes (NOT following people)
+### Following: two independent axes
 
-UNIUN does **not** implement a people-following / social graph in v1. There is no Kind 3 contact list, no follower count, no "following" list of users.
+UNIUN has **two** kinds of "follow", aimed at different things. They are not aliases.
 
-"Following a note" means subscribing to its **reference graph**: any new Kind 1 note that contains `["e", followedNoteId]` is captured and surfaced. This is implemented by:
-- `FollowedNoteModel` (Isar) — stores `eventId`, `contentPreview`, `followedAt`, `newReferenceCount`
-- `FollowedNoteRepository` — `followNote()`, `unfollowNote()`, `clearNewReferences()`, `isFollowed()`
-- The Gateway opens: `{"kinds":[1],"#e":["followedNoteId"]}` per followed note
-- `newReferenceCount` is incremented by SyncEngine on each new match; cleared when user opens the feed
+**1. Followed Users (people-following, NIP-02 Kind 3)**
+- `FollowedUserModel` (Isar) — local mirror of the user's contact list. Kept in sync with the published Kind 3 event by `Kind3ContactListHandler` (inbound) + `FollowUserUseCase` / `UnfollowUserUseCase` (outbound).
+- The Vishnu feed is scoped to `{kinds:[1], authors:[selfPubkey, ...followedPubkeys]}` — see `lib/gateway/subscriptions/providers/feed_notes_subscription.dart`. Empty follow list ⇒ feed shrinks to own notes only (relay does not firehose the public timeline at us).
+- When the follow set changes, `IsarWatcherHub` fires `onFollowedUsersChanged` → orchestrator `resubscribeAll('feed_notes')`.
+- Use cases: `FollowUserUseCase`, `UnfollowUserUseCase`, `IsFollowingUseCase`, `GetFollowedUsersUseCase`, `GetFollowedPubkeysUseCase`, `WatchFollowedUsersUseCase`.
+- UI: scan a user QR (`UniunQrPayload.user`) → `FollowUserUseCase` → drawer's "Followed" section lists them.
+
+**2. Followed Notes (note-graph subscription, unrelated to NIP-02)**
+- `FollowedNoteModel` (Isar) — `eventId`, `contentPreview`, `followedAt`, `newReferenceCount`.
+- Subscribes to a single note's **reference graph**, not its author. The Gateway opens `{kinds:[1], "#e":["followedNoteId"]}` per followed note — any new Kind-1 that e-tags the target surfaces, regardless of who wrote it.
+- `newReferenceCount` is incremented by the inbound handler on each new match; cleared when the user opens the followed-note detail page.
+- Use cases: `FollowedNoteRepository.followNote / unfollowNote / clearNewReferences / isFollowed`.
+
+These are orthogonal — following a user does not auto-follow their notes' graphs, and following a note does not imply following its author.
 
 ---
 

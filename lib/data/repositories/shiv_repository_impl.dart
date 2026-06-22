@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/models/shiv_conversation_model.dart';
 import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
@@ -136,12 +137,16 @@ class ShivRepositoryImpl implements ShivRepository {
   Future<Either<Failure, ShivMessageEntity>> saveMessage(
       ShivMessageEntity message) async {
     try {
+      // Same chokepoint discipline as LocalLlmRunner.generateOneShot:
+      // scrub Ġ markers, tool-call envelopes, and Latin-1 UTF-8 mojibake
+      // (emojis arriving as `ðŁĮ±` etc.) before persisting. Safe on user
+      // input too — clean text is unchanged.
       final model = ShivMessageModel()
         ..messageId = message.messageId
         ..conversationId = message.conversationId
         ..parentId = message.parentId
         ..role = message.role
-        ..content = message.content
+        ..content = LlmTextSanitizer.clean(message.content)
         ..createdAt = message.createdAt;
 
       await _isar.writeTxn(() async {
@@ -174,7 +179,11 @@ class ShivRepositoryImpl implements ShivRepository {
             .messageIdEqualTo(messageId)
             .findFirst();
         if (row != null) {
-          row.content = content;
+          // Sanitize the assistant's streaming content on every update.
+          // The mojibake repair is no-op on incomplete UTF-8 sequences,
+          // so mid-stream chunks stay intact; once the full sequence
+          // arrives, the emoji snaps to its proper rendering.
+          row.content = LlmTextSanitizer.clean(content);
           await _isar.shivMessageModels.put(row);
         }
       });

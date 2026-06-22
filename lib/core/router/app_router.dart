@@ -13,6 +13,8 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_compose_page.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
 import 'package:uniun/features/brahma/manas/pages/manas_form_page.dart';
+import 'package:uniun/features/shiv/gana/detail/pages/gana_detail_page.dart';
+import 'package:uniun/features/shiv/gana/form/pages/gana_form_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
 import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
@@ -219,6 +221,20 @@ final GoRouter appRouter = GoRouter(
         final args = _asMap(state.extra);
         return ManasFormPage(manasId: args?['manasId'] as String?);
       },
+    ),
+    GoRoute(
+      name: AppRoutes.shivGanaForm,
+      path: '/shiv/gana/form',
+      builder: (_, state) {
+        final args = _asMap(state.extra);
+        return GanaFormPage(ganaId: args?['ganaId'] as String?);
+      },
+    ),
+    GoRoute(
+      name: AppRoutes.shivGanaDetail,
+      path: '/shiv/gana/:ganaId',
+      builder: (_, state) =>
+          GanaDetailPage(ganaId: state.pathParameters['ganaId']!),
     ),
     GoRoute(
       name: AppRoutes.privateChannelEntry,
