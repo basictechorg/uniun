@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:uniun/common/locator.dart';
@@ -13,8 +14,10 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_compose_page.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
 import 'package:uniun/features/brahma/manas/pages/manas_form_page.dart';
+import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/gana/detail/pages/gana_detail_page.dart';
 import 'package:uniun/features/shiv/gana/form/pages/gana_form_page.dart';
+import 'package:uniun/features/shiv/manthan/pages/manthan_deck_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
 import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
@@ -235,6 +238,20 @@ final GoRouter appRouter = GoRouter(
       path: '/shiv/gana/:ganaId',
       builder: (_, state) =>
           GanaDetailPage(ganaId: state.pathParameters['ganaId']!),
+    ),
+    GoRoute(
+      name: AppRoutes.shivManthan,
+      path: '/manthan',
+      builder: (_, state) {
+        final manasIds =
+            (_asMap(state.extra)?['manasIds'] as List?)?.cast<String>() ??
+                const <String>[];
+        return BlocProvider(
+          create: (_) =>
+              getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
+          child: ManthanDeckPage(manasIds: manasIds),
+        );
+      },
     ),
     GoRoute(
       name: AppRoutes.privateChannelEntry,

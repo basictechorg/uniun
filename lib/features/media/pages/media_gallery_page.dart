@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_filter.dart';
@@ -216,7 +217,7 @@ class _Grid extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     if (state.status == MediaGalleryStatus.loading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: DropLoadingIndicator(color: AppColors.primary),
       );
     }
     if (state.blobs.isEmpty) {

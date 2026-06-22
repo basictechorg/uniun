@@ -5,6 +5,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/features/share/bloc/share_sheet_bloc.dart';
@@ -137,7 +138,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                   const Divider(height: 24),
                   Expanded(
                     child: state.loading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(child: DropLoadingIndicator())
                         : _DestinationList(
                             state: state,
                             scrollController: scrollController,

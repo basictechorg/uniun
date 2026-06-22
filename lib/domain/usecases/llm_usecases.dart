@@ -20,23 +20,14 @@ class HasActiveLlmModelUseCase extends NoParamsUseCase<bool> {
 
 // ── Session lifecycle ─────────────────────────────────────────────────────────
 
-class OpenLlmConversationInput {
-  const OpenLlmConversationInput({this.systemInstruction});
-  final String? systemInstruction;
-}
-
 @lazySingleton
 class OpenLlmConversationUseCase
-    extends UseCase<Either<Failure, Unit>, OpenLlmConversationInput> {
+    extends NoParamsUseCase<Either<Failure, Unit>> {
   final LlmRepository _repo;
   const OpenLlmConversationUseCase(this._repo);
 
   @override
-  Future<Either<Failure, Unit>> call(
-    OpenLlmConversationInput input, {
-    bool cached = false,
-  }) =>
-      _repo.openConversation(systemInstruction: input.systemInstruction);
+  Future<Either<Failure, Unit>> call() => _repo.openConversation();
 }
 
 @lazySingleton
@@ -54,9 +45,14 @@ class CloseLlmConversationUseCase
 class SendChatStreamInput {
   const SendChatStreamInput({
     required this.message,
+    this.systemInstruction,
     this.cleanHistory = const [],
   });
   final String message;
+
+  /// Persona + any branch/seed context, passed per turn (not stored on the
+  /// backend) so independent chat surfaces don't clobber each other.
+  final String? systemInstruction;
   final List<(String, String)> cleanHistory;
 }
 
@@ -66,16 +62,24 @@ class SendChatStreamUseCase extends StreamUseCase<String, SendChatStreamInput> {
   const SendChatStreamUseCase(this._repo);
 
   @override
-  Stream<String> call(SendChatStreamInput input) =>
-      _repo.sendChat(message: input.message, cleanHistory: input.cleanHistory);
+  Stream<String> call(SendChatStreamInput input) => _repo.sendChat(
+        message: input.message,
+        systemInstruction: input.systemInstruction,
+        cleanHistory: input.cleanHistory,
+      );
 }
 
 // ── One-shot extraction ───────────────────────────────────────────────────────
 
 class GenerateOneShotInput {
-  const GenerateOneShotInput({required this.prompt, this.maxTokens = 1024});
+  const GenerateOneShotInput({
+    required this.prompt,
+    this.maxTokens = 1024,
+    this.highPriority = false,
+  });
   final String prompt;
   final int maxTokens;
+  final bool highPriority;
 }
 
 @lazySingleton
@@ -89,7 +93,11 @@ class GenerateOneShotUseCase
     GenerateOneShotInput input, {
     bool cached = false,
   }) =>
-      _repo.generateOneShot(prompt: input.prompt, maxTokens: input.maxTokens);
+      _repo.generateOneShot(
+        prompt: input.prompt,
+        maxTokens: input.maxTokens,
+        highPriority: input.highPriority,
+      );
 }
 
 // ── Priority coordination ─────────────────────────────────────────────────────

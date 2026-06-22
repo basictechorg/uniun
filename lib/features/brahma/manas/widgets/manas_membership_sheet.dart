@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
@@ -153,8 +154,8 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                           child: SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                            child: DropLoadingIndicator(
+                              size: 22,
                               color: AppColors.primary,
                             ),
                           ),

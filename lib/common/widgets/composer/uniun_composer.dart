@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -38,6 +39,9 @@ class UniunComposer extends StatefulWidget {
     required this.hintText,
     this.avatarUrl,
     this.onAvatarTap,
+    this.avatarOverride,
+    this.onPickModel,
+    this.chatPanel,
     this.references = const [],
     this.onRemoveReference,
     this.onAddReference,
@@ -70,8 +74,19 @@ class UniunComposer extends StatefulWidget {
   final bool canSend;
   final String hintText;
 
-  /// Tap on the avatar. Reserved for the upcoming Shiv-mode toggle.
+  /// Tap on the avatar — opens the Manas-chat picker (WS4).
   final VoidCallback? onAvatarTap;
+
+  /// Replaces the user avatar while in chat mode — shows the picked Manas /
+  /// All-notes icon instead of the user's photo.
+  final Widget? avatarOverride;
+
+  /// When non-null (chat mode), shows a button that opens the AI model picker.
+  final VoidCallback? onPickModel;
+
+  /// When non-null, the composer is in chat mode: this panel (the Q&A + the
+  /// streamed answer) renders inside the card, above the text field.
+  final Widget? chatPanel;
 
   /// References currently attached, rendered as chips above the text.
   final List<ComposerReference> references;
@@ -177,6 +192,7 @@ class _UniunComposerState extends State<UniunComposer> {
               ),
               const SizedBox(height: 8),
             ],
+            if (widget.chatPanel != null) widget.chatPanel!,
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: TextField(
@@ -233,13 +249,21 @@ class _UniunComposerState extends State<UniunComposer> {
                 children: [
                   GestureDetector(
                     onTap: widget.onAvatarTap,
-                    child: UserAvatar(
-                      seed: widget.avatarSeed,
-                      photoUrl: widget.avatarUrl,
-                      size: 34,
-                      borderRadius: 17,
-                    ),
+                    child: widget.avatarOverride ??
+                        UserAvatar(
+                          seed: widget.avatarSeed,
+                          photoUrl: widget.avatarUrl,
+                          size: 34,
+                          borderRadius: 17,
+                        ),
                   ),
+                  if (widget.onPickModel != null) ...[
+                    const SizedBox(width: 8),
+                    _CircleButton(
+                      icon: Icons.smart_toy_rounded,
+                      onTap: widget.onPickModel!,
+                    ),
+                  ],
                   if (widget.onAddReference != null) ...[
                     const SizedBox(width: 8),
                     _CircleButton(
@@ -307,8 +331,9 @@ class _UniunComposerState extends State<UniunComposer> {
                           child: widget.isSending
                               ? const Padding(
                                   padding: EdgeInsets.all(11),
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2),
+                                  child: DropLoadingIndicator(
+                                    color: AppColors.onPrimary,
+                                  ),
                                 )
                               : const Icon(Icons.arrow_upward_rounded,
                                   size: 20, color: Colors.white),
@@ -352,9 +377,8 @@ class _CircleButton extends StatelessWidget {
         child: busy
             ? const Padding(
                 padding: EdgeInsets.all(9),
-                child: CircularProgressIndicator(
+                child: DropLoadingIndicator(
                   color: AppColors.primary,
-                  strokeWidth: 2,
                 ),
               )
             : Icon(
@@ -490,9 +514,9 @@ class _UploadingTile extends StatelessWidget {
         child: const SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(
+          child: DropLoadingIndicator(
+            size: 22,
             color: AppColors.primary,
-            strokeWidth: 2,
           ),
         ),
       ),

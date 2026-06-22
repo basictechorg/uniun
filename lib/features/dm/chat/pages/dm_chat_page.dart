@@ -8,12 +8,14 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
+import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -215,7 +217,7 @@ class _DmChatViewState extends State<_DmChatView> {
             children: [
               Expanded(
                 child: state.isLoading && state.messages.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: DropLoadingIndicator())
                     : ListView.builder(
                         controller: _scrollController,
                         reverse: true, // show latest at bottom
@@ -258,6 +260,7 @@ class _DmChatViewState extends State<_DmChatView> {
               ComposerHost(
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
+                entityContext: entityContextLines(state.messages),
                 replyingToName: _replyName(state),
                 replyingToPreview: state.replyingToNote?.content,
                 onClearReply: () =>

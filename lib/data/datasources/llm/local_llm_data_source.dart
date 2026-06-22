@@ -34,11 +34,11 @@ class LocalLlmDataSource implements LlmDataSource {
   // ── Conversation session ────────────────────────────────────────────────
 
   @override
-  Future<Either<Failure, Unit>> openConversation({
-    String? systemInstruction,
-  }) async {
+  Future<Either<Failure, Unit>> openConversation() async {
     try {
-      await _runner.initChat(systemInstruction: systemInstruction);
+      // Validate a model is active. The system instruction is no longer stored
+      // here — it rides on each [sendChat] turn (see [LlmDataSource.sendChat]).
+      await _runner.initChat();
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -60,9 +60,14 @@ class LocalLlmDataSource implements LlmDataSource {
   @override
   Stream<String> sendChat({
     required String message,
+    String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) {
-    return _runner.sendAndStream(message, cleanHistory: cleanHistory);
+    return _runner.sendAndStream(
+      message,
+      systemInstruction: systemInstruction ?? '',
+      cleanHistory: cleanHistory,
+    );
   }
 
   // ── Background one-shot ─────────────────────────────────────────────────
@@ -71,9 +76,14 @@ class LocalLlmDataSource implements LlmDataSource {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
+    bool highPriority = false,
   }) async {
     try {
-      final result = await _runner.generateOneShot(prompt, maxTokens: maxTokens);
+      final result = await _runner.generateOneShot(
+        prompt,
+        maxTokens: maxTokens,
+        highPriority: highPriority,
+      );
       return Right(result);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));

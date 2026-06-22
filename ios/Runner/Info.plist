@@ -32,6 +32,13 @@
 		<string>UNIUN needs access to your photo library so you can attach images to your notes.</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>UNIUN needs permission to save images to your photo library.</string>
+		<!-- flutter_gemma 1.0 iOS setup: file sharing lets the on-device model
+		     files be managed; local-network usage is requested by MediaPipe's
+		     inference services during development. -->
+		<key>UIFileSharingEnabled</key>
+		<true/>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>UNIUN uses the local network for on-device AI model inference services.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

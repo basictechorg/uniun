@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/blocked_user/blocked_user_entity.dart';
@@ -46,8 +47,7 @@ class _BlockedUsersView extends StatelessWidget {
           if (state.status == BlockedUsersStatus.initial ||
               state.status == BlockedUsersStatus.loading) {
             return const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 2),
+              child: DropLoadingIndicator(color: AppColors.primary),
             );
           }
           if (state.status == BlockedUsersStatus.error) {

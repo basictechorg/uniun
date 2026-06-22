@@ -10,6 +10,7 @@ import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/shiv_usecases.dart';
+import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/features/shiv/rag/pipeline/rag_pipeline.dart';
 import 'package:uuid/uuid.dart';
 
@@ -38,6 +39,12 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
   StreamSubscription<String>? _streamSub;
 
+  /// The active conversation's system instruction (persona + any branch
+  /// context), built in [_initChatSession] and passed into every send. Held
+  /// per-bloc-instance — NOT on the singleton runner — so independent chat
+  /// surfaces (Shiv tab, inline composer chat) never clobber each other.
+  String? _systemInstruction;
+
   ShivAIBloc(
     this._getConversations,
     this._createConversation,
@@ -64,6 +71,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     // actually disposes on tab change.
     on<_LoadConversations>(_onLoadConversations, transformer: droppable());
     on<_CreateConversation>(_onCreateConversation, transformer: droppable());
+    on<_CreateConversationSeeded>(_onCreateConversationSeeded, transformer: droppable());
     on<_OpenConversation>(_onOpenConversation, transformer: droppable());
     on<_CloseConversation>(_onCloseConversation);
     on<_DeleteConversation>(_onDeleteConversation, transformer: sequential());
@@ -116,6 +124,18 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         ));
       },
     );
+  }
+
+  Future<void> _onCreateConversationSeeded(
+      _CreateConversationSeeded event, Emitter<ShivAIState> emit) async {
+    // Step 1: create + open a fresh conversation (same path as _onCreateConversation).
+    await _onCreateConversation(
+        const ShivAIEvent.createConversation() as _CreateConversation, emit);
+    // Step 2: send the seed text through the normal RAG + inference pipeline.
+    // _onSendMessage reads state.activeConversation, which was set by the emit
+    // in step 1 — safe to call sequentially within the same handler/emitter.
+    await _onSendMessage(
+        ShivAIEvent.sendMessage(event.firstMessage) as _SendMessage, emit);
   }
 
   Future<void> _onOpenConversation(
@@ -231,7 +251,8 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     ));
 
     // 3 — RAG: embed query → retrieve notes → build per-turn user message.
-    final ragMsg = await _rag.buildMessage(userQuestion: text);
+    final ragMsg =
+        await _rag.buildMessage(userQuestion: text, manasIds: event.manasIds);
     emit(state.copyWith(
       ragContextCount: ragMsg.contextCount,
       lastTurnSourceNoteIds: ragMsg.sourceNoteIds,
@@ -240,7 +261,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     // 4 — Pair up prior turns as clean (Q, A) tuples. We exclude the
     //     placeholder we just appended; cap to last 3 pairs so the prompt
     //     stays small but the model still has continuity for follow-ups.
-    final cleanHistory = _pairCleanHistory(
+    final cleanHistory = pairCleanHistory(
       state.messages.where((m) => m.messageId != userMsgId && m.messageId != assistantMsgId).toList(),
       maxPairs: 3,
     );
@@ -251,6 +272,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     _streamSub = _sendChatStream
         .call(SendChatStreamInput(
           message: ragMsg.userMessage,
+          systemInstruction: _systemInstruction,
           cleanHistory: cleanHistory,
         ))
         .listen(
@@ -259,28 +281,6 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
       onError: (Object e) => add(ShivAIEvent.streamError(e.toString())),
       cancelOnError: true,
     );
-  }
-
-  /// Walk the message list in order and emit (user, assistant) pairs.
-  /// Skips empty assistant placeholders and orphan user turns at the tail.
-  List<(String, String)> _pairCleanHistory(
-    List<ShivMessageEntity> messages, {
-    required int maxPairs,
-  }) {
-    final pairs = <(String, String)>[];
-    String? pendingUser;
-    for (final m in messages) {
-      final content = m.content.trim();
-      if (content.isEmpty) continue;
-      if (m.role == MessageRole.user) {
-        pendingUser = content;
-      } else if (pendingUser != null) {
-        pairs.add((pendingUser, content));
-        pendingUser = null;
-      }
-    }
-    if (pairs.length <= maxPairs) return pairs;
-    return pairs.sublist(pairs.length - maxPairs);
   }
 
   /// User tapped stop during streaming. Cancel the native token stream, keep
@@ -293,7 +293,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     _streamSub = null;
 
     final msgId = state.streamingMessageId;
-    final partial = _stripThinking(state.streamingContent ?? '').trim();
+    final partial = stripThinking(state.streamingContent ?? '').trim();
     final finalContent = partial.isEmpty ? '(stopped)' : partial;
 
     if (msgId != null) {
@@ -337,7 +337,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     final msgId = state.streamingMessageId;
     // Strip <think>...</think> blocks before persisting — model reasoning is
     // never stored so it cannot leak back into RAG context or branch summaries.
-    final content = _stripThinking(state.streamingContent ?? '');
+    final content = stripThinking(state.streamingContent ?? '');
 
     if (msgId != null) {
       await _updateMessageContent.call((msgId, content));
@@ -385,7 +385,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     final conv = state.activeConversation;
     if (conv == null) return;
 
-    final branch = _buildBranch(event.leafMessageId, state.allMessages);
+    final branch = buildBranch(event.leafMessageId, state.allMessages);
     await _updateActiveLeaf.call((conv.conversationId, event.leafMessageId));
 
     // Reinit chat with a compact summary of the branch as context so the model
@@ -405,7 +405,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     final conv = state.activeConversation;
     if (conv == null) return;
 
-    final branch = _buildBranch(event.parentMessageId, state.allMessages);
+    final branch = buildBranch(event.parentMessageId, state.allMessages);
     await _updateActiveLeaf.call((conv.conversationId, event.parentMessageId));
 
     await _initChatSession(branchContext: branch);
@@ -421,31 +421,6 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   void _onSelectGraphNode(
       _SelectGraphNode event, Emitter<ShivAIState> emit) {
     emit(state.copyWith(selectedNodeMessageId: event.messageId));
-  }
-
-  /// Removes <think>...</think> blocks emitted by reasoning models (DeepSeek R1,
-  /// Qwen3) before content is persisted to Isar. This keeps model reasoning out
-  /// of branch context summaries and any future RAG lookups.
-  static String _stripThinking(String content) {
-    return content
-        .replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '')
-        .trim();
-  }
-
-  /// Walk the parentId chain from [leafId] up to the root.
-  /// Returns messages in chronological order (root first).
-  List<ShivMessageEntity> _buildBranch(
-      String leafId, List<ShivMessageEntity> all) {
-    final byId = {for (final m in all) m.messageId: m};
-    final branch = <ShivMessageEntity>[];
-    String? current = leafId;
-    while (current != null) {
-      final msg = byId[current];
-      if (msg == null) break;
-      branch.insert(0, msg);
-      current = msg.parentId;
-    }
-    return branch;
   }
 
   /// Called by [ShivPage] when the user navigates onto the AI tab. Pauses
@@ -486,14 +461,12 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   /// On branch switch, [branchContext] adds a compact conversation summary so
   /// the model understands what was discussed on the parent path.
   Future<void> _initChatSession({List<ShivMessageEntity>? branchContext}) async {
-    final systemInstruction = await _rag.buildSystemInstruction();
+    final base = await _rag.buildSystemInstruction();
     final contextSummary = branchContext != null && branchContext.isNotEmpty
         ? _rag.buildBranchContextSummary(branchContext)
         : '';
-    await _openConv.call(OpenLlmConversationInput(
-      systemInstruction: contextSummary.isEmpty
-          ? systemInstruction
-          : '$systemInstruction$contextSummary',
-    ));
+    // Hold the instruction on this bloc instance; it rides each send turn.
+    _systemInstruction = contextSummary.isEmpty ? base : '$base$contextSummary';
+    await _openConv.call();
   }
 }

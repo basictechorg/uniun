@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
@@ -68,9 +69,8 @@ class StorageCard extends StatelessWidget {
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
+                    child: DropLoadingIndicator(
                       color: AppColors.primary,
-                      strokeWidth: 2,
                     ),
                   ),
                 )
@@ -421,9 +421,9 @@ class _RemoveDataButton extends StatelessWidget {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
+                  child: DropLoadingIndicator(
+                    size: 20,
                     color: AppColors.error,
-                    strokeWidth: 2,
                   ),
                 )
               : const Icon(Icons.delete_outline_rounded,

@@ -2062,6 +2062,12 @@ abstract class AppLocalizations {
   /// **'Ask Shiv anything…'**
   String get shivInputHint;
 
+  /// Composer-chat input hint reflecting the grounding scope, e.g. 'Ask Brahma' (all notes) or 'Ask <manas name>'
+  ///
+  /// In en, this message translates to:
+  /// **'Ask {scope}'**
+  String composerAskScope(String scope);
+
   /// Empty state in the conversations history sheet
   ///
   /// In en, this message translates to:
@@ -3945,6 +3951,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Running'**
   String get ganaRunStatusRunning;
+
+  /// Manthan tile action button label
+  ///
+  /// In en, this message translates to:
+  /// **'Spark ideas'**
+  String get manthanTileAction;
+
+  /// Title of the Manthan deck side drawer
+  ///
+  /// In en, this message translates to:
+  /// **'Manthan'**
+  String get manthanDrawerTitle;
+
+  /// Manthan scope sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Select Manas'**
+  String get manthanScopeSheetTitle;
+
+  /// Manthan scope option — all notes (Brahma)
+  ///
+  /// In en, this message translates to:
+  /// **'Brahma'**
+  String get manthanScopeAllNotes;
+
+  /// Manthan scope pill label when multiple manas are selected
+  ///
+  /// In en, this message translates to:
+  /// **'{count} manas'**
+  String manthanScopeManasCount(int count);
+
+  /// Tooltip for new manthan chat button
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get manthanNewChatTooltip;
+
+  /// Manthan edge action — publish
+  ///
+  /// In en, this message translates to:
+  /// **'Publish'**
+  String get manthanEdgePublish;
+
+  /// Manthan edge action — save as draft
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get manthanEdgeDraft;
+
+  /// Manthan edge action — discard
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get manthanEdgeDiscard;
+
+  /// Manthan edge action — discuss
+  ///
+  /// In en, this message translates to:
+  /// **'Discuss'**
+  String get manthanEdgeDiscuss;
+
+  /// Manthan references section label
+  ///
+  /// In en, this message translates to:
+  /// **'References'**
+  String get manthanReferencesLabel;
+
+  /// Manthan references action — view
+  ///
+  /// In en, this message translates to:
+  /// **'View references'**
+  String get manthanReferencesView;
+
+  /// Manthan references helper text
+  ///
+  /// In en, this message translates to:
+  /// **'Publishing attaches the checked notes as references.'**
+  String get manthanReferencesAttach;
+
+  /// Manthan coach/onboarding title
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to explore ideas'**
+  String get manthanCoachTitle;
+
+  /// Manthan coach dismiss button
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get manthanCoachDismiss;
+
+  /// Manthan generating state label
+  ///
+  /// In en, this message translates to:
+  /// **'Finding connections…'**
+  String get manthanGenerating;
+
+  /// Manthan hint when revisiting older generated ideas
+  ///
+  /// In en, this message translates to:
+  /// **'Revisiting older sparks — add notes for fresh ideas'**
+  String get manthanRevisitingHint;
+
+  /// Manthan empty state title when scope lacks notes
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough notes yet'**
+  String get manthanEmptyNeedsMoreTitle;
+
+  /// Manthan empty state body when scope lacks notes
+  ///
+  /// In en, this message translates to:
+  /// **'This scope needs at least 2 notes to spark connections.'**
+  String get manthanEmptyNeedsMoreBody;
+
+  /// Manthan exhausted state title
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve seen them all'**
+  String get manthanExhaustedTitle;
+
+  /// Manthan exhausted state body
+  ///
+  /// In en, this message translates to:
+  /// **'Add more notes to spark new ideas.'**
+  String get manthanExhaustedBody;
+
+  /// Manthan error state title when the AI model fails to run
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t generate ideas'**
+  String get manthanModelErrorTitle;
+
+  /// Manthan error state body when the AI model fails to run
+  ///
+  /// In en, this message translates to:
+  /// **'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.'**
+  String get manthanModelErrorBody;
+
+  /// Snackbar after publishing a manthan idea
+  ///
+  /// In en, this message translates to:
+  /// **'Published as a note'**
+  String get manthanPublishedSnack;
+
+  /// Snackbar after saving a manthan idea as draft
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a draft'**
+  String get manthanDraftSavedSnack;
+
+  /// Snackbar when manthan generation fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t generate right now'**
+  String get manthanGenerateErrorSnack;
+
+  /// Author name shown on the synthesized root card in Manthan refs page
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get manthanYouName;
+
+  /// Handle/timestamp shown on the synthesized root card in Manthan refs page
+  ///
+  /// In en, this message translates to:
+  /// **'@you · now'**
+  String get manthanYouHandle;
+
+  /// Display name for unknown or resolved draft references in Manthan refs page
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get manthanDraftLabel;
+
+  /// Refs badge label on the synthesized root card action row in Manthan refs page
+  ///
+  /// In en, this message translates to:
+  /// **'{count} refs'**
+  String manthanRefsCount(int count);
+
+  /// Retry button label on the Manthan error state
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get manthanRetry;
 }
 
 class _AppLocalizationsDelegate

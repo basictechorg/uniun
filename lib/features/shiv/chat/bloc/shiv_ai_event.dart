@@ -8,6 +8,11 @@ abstract class ShivAIEvent with _$ShivAIEvent {
   /// Create a fresh conversation and open it.
   const factory ShivAIEvent.createConversation() = _CreateConversation;
 
+  /// Create a fresh conversation, open it, and immediately send [firstMessage]
+  /// as the first user turn. Used by Manthan's ↓-discuss action.
+  const factory ShivAIEvent.createConversationSeeded(String firstMessage) =
+      _CreateConversationSeeded;
+
   /// Open an existing conversation (loads its messages).
   const factory ShivAIEvent.openConversation(String conversationId) =
       _OpenConversation;
@@ -19,8 +24,12 @@ abstract class ShivAIEvent with _$ShivAIEvent {
   const factory ShivAIEvent.deleteConversation(String conversationId) =
       _DeleteConversation;
 
-  /// User submitted a message — triggers RAG + inference pipeline.
-  const factory ShivAIEvent.sendMessage(String text) = _SendMessage;
+  /// User submitted a message — triggers RAG + inference pipeline. [manasIds]
+  /// scopes the RAG to the selected Manas; empty = the whole library.
+  const factory ShivAIEvent.sendMessage(
+    String text, {
+    @Default(<String>[]) List<String> manasIds,
+  }) = _SendMessage;
 
   /// User tapped stop during a streaming response — cancel the native stream
   /// and persist whatever has already been generated.

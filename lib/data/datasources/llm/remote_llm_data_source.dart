@@ -67,10 +67,7 @@ class RemoteLlmDataSource implements LlmDataSource {
   // openConversation/closeConversation are no-ops here.
 
   @override
-  Future<Either<Failure, Unit>> openConversation({
-    String? systemInstruction,
-  }) async =>
-      const Right(unit);
+  Future<Either<Failure, Unit>> openConversation() async => const Right(unit);
 
   @override
   Future<Either<Failure, Unit>> closeConversation() async => const Right(unit);
@@ -80,6 +77,7 @@ class RemoteLlmDataSource implements LlmDataSource {
   @override
   Stream<String> sendChat({
     required String message,
+    String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) async* {
     // Preempt any in-flight extraction so its HTTP request doesn't keep
@@ -101,12 +99,19 @@ class RemoteLlmDataSource implements LlmDataSource {
       );
     }
 
+    // The OpenRouter wrapper exposes no system role here yet (Phase 3), so fold
+    // the per-turn system instruction into the leading user content — matching
+    // the local-backend fallback. TODO: use a real system message when the
+    // wrapper supports it.
+    final hasSystem =
+        systemInstruction != null && systemInstruction.isNotEmpty;
+    final leadingUser = hasSystem ? '$systemInstruction\n\n$message' : message;
     final messages = <LlmMessage>[
       for (final (q, a) in cleanHistory) ...[
         LlmMessage.user(LlmMessageContent.text(q)),
         LlmMessage.assistant(a),
       ],
-      LlmMessage.user(LlmMessageContent.text(message)),
+      LlmMessage.user(LlmMessageContent.text(leadingUser)),
     ];
 
     try {
@@ -130,6 +135,7 @@ class RemoteLlmDataSource implements LlmDataSource {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
+    bool highPriority = false, // no local queue — flag is ignored for remote
   }) async {
     final inference = await _client();
     if (inference == null) {

@@ -6,6 +6,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_button.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
@@ -13,6 +14,7 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart';
+import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -227,7 +229,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                   children: [
                     Expanded(
                       child: state.isLoading && state.messages.isEmpty
-                          ? const Center(child: CircularProgressIndicator())
+                          ? const Center(child: DropLoadingIndicator())
                           : ListView.builder(
                               controller: _scrollController,
                               reverse: false, // oldest at top, newest at bottom
@@ -254,6 +256,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                     ),
                     ComposerHost(
                       hintText: AppLocalizations.of(context)!.chatMessageHint,
+                      entityContext: entityContextLines(state.messages),
                       onSend: (text, refs, attachments) =>
                           context.read<PrivateChannelDetailBloc>().add(
                                 SendPrivateChannelMessageEvent(text,
@@ -495,8 +498,8 @@ class _JoinRequestsSheet extends StatelessWidget {
                                 ? const SizedBox(
                                     width: 14,
                                     height: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                    child: DropLoadingIndicator(
+                                      size: 14,
                                       color: AppColors.onPrimary,
                                     ),
                                   )

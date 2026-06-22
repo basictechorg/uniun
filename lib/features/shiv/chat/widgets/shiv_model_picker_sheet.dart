@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
@@ -175,8 +176,7 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(
-              strokeWidth: 2,
+            const DropLoadingIndicator(
               color: AppColors.primary,
             ),
             if (_backend == LlmBackendType.openRouter) ...[

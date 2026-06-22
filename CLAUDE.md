@@ -290,15 +290,22 @@ Note composition and publishing.
 On-device AI assistant using GraphRAG over the user's saved notes.
 
 - **Model selection** via `AIModelSelectionPage`/`SelectAIModelCubit`. Catalog: Qwen3 0.6B, DeepSeek R1, Gemma 4 E2B/E4B. Selection stored in `AppSettingsModel`. Downloads use `FlutterGemma.installModel().withCancelToken(...)` — `SelectAIModelCubit.cancelDownload()` aborts in-flight via a domain-side `DownloadCancellation` handle.
-- **RAG pipeline** (`lib/features/shiv/rag/`): Phase 1 — `RagPipeline.init()` + `AIModelRunner.initChat()` once per conversation (Qwen ignores `systemInstruction` in `createChat()`, so it's prepended to first user turn). Phase 2 — each turn: `EmbeddingService` → `VectorSearchService` (cosine top-K) → 1-hop graph expansion (`GetGraphNeighboursUseCase`) → memory lookup (`GetMemoriesByNoteIdsUseCase`) → `EnrichedContext` → `PromptBuilder` lays out within `PromptBudget`.
+- **RAG pipeline** (`lib/features/shiv/rag/`): Phase 1 — `RagPipeline.init()` (embedder) + `AIModelRunner.initChat()` (just validates a model is active — the runner stores NO per-conversation state). Phase 2 — each turn: embed query → `VectorSearchService` (cosine top-K, **scoped to the picked Manas** via `ManasContextLoader.merge` when one is selected, else the whole library) → 1-hop graph expansion (`GetGraphNeighboursUseCase`) → memory lookup (`GetMemoriesByNoteIdsUseCase`) → `EnrichedContext` → `PromptBuilder` within `PromptBudget`. The **system instruction is built per-conversation and passed PER TURN** into `sendAndStream` (NOT stored on the singleton runner), so independent chat surfaces (Shiv tab + inline composer-chat) never clobber and every use case carries its own.
 - **Conversation persistence**: `ShivConversationModel` + `ShivMessageModel`. `parentId` chain enables the branch tree view; `activeLeafMessageId` tracks which leaf the user reads. Auto-title: first 40 chars of first user message.
 - **Memory nodes**: `MemoryNodeModel` carries wiki-style summaries linked to graph nodes; loaded as additional RAG context.
-- **Thinking tag**: DeepSeek R1 emits `<think>...</think>` blocks. `ShivMessageBubble._parseThinking()` splits visible vs. collapsible. Known gap: NoteCard does not strip `<think>` from notes that contain raw AI text.
+- **Thinking tag**: DeepSeek R1 emits `<think>...</think>` blocks. `ShivMessageBubble._parseThinking()` splits visible vs. collapsible. Stored content is cleaned via `stripThinking` (in `generation/chat_helpers.dart`).
+- **Shared generation substrate** (`lib/features/shiv/generation/`): the context→prompt→invoke pieces every AI feature reuses. `context/manas_context_loader.dart` (relocated here from `gana/engine/` — an `@lazySingleton` packing a Manas/all-notes note pool: relevance-ranked `merge`/`searchAll`, or **static** newest-first `packNewest`/`loadPool`/`loadAll` for the DI-less background isolate, with `isar` passed as a param there); `prompt/prompt_parts.dart` + `prompt/composer_chat_prompt.dart` (shared `/no_think`/`<NOOP>` + per-use-case templates); `gana_run.dart` (the input→prompt Gana pipeline both Gana isolates delegate to); `chat_helpers.dart` (`stripThinking`/`buildBranch`/`pairCleanHistory`/`entityContextLines`).
+- **Gana** (`lib/features/shiv/gana/`): user-owned AI agents that watch an input surface, infer over selected Manas(es), and autonomously publish. Foreground `GanaEngine` (main isolate) + background `gana_workmanager.dart` (own isolate + own Isar, no DI) both call `generation/gana_run.dart` (`prepareGanaRun` + shared guard/log/cursor helpers); the divergent inference + publish stay per-isolate. See `docs/SHIVA/Ganas.md`.
+- **Manthan** (`lib/features/shiv/manthan/`): a swipe deck that synthesizes 2–3 of the user's own notes into one new note, reusing the generation substrate. Cards are a local cache (not Nostr events). See `docs/superpowers/specs/2026-06-21-manthan-design.md`.
+- **Composer-chat** (`lib/features/shiv/composer_chat/`): the shared `UniunComposer`/`ComposerHost` turns into an inline AI chat — tap the avatar → pick a Manas (or "All notes" → "Ask Brahma") → ask. `ComposerChatCubit` streams the answer via `SendChatStreamUseCase`, grounded in the surface's recent messages (`entityContextLines`) + the Manas (`merge`/`searchAll`), with its OWN distinct system instruction. Works in every surface using the composer (thread/channel/DM/private). The Shiv-tab input (`ShivInputComposer`) has the same Manas picker, which scopes `RagPipeline.buildMessage(manasIds:)`.
+- **On-device runner**: `AIModelRunner` lives at `lib/data/datasources/llm/local_llm_runner.dart` (NOT `shiv/services/`). flutter_gemma 1.0; prefers **GPU** with a CPU fallback (foreground + bg Gana + embedder); opens a throwaway `openChat` per turn and re-feeds system + trimmed history + RAG (stateless per turn — see the RAG bullet).
 
 Read these files for the full picture rather than expanding this section:
 - `lib/features/shiv/chat/bloc/shiv_ai_bloc.dart`
 - `lib/features/shiv/rag/pipeline/rag_pipeline.dart`
-- `lib/features/shiv/services/ai_model_runner.dart`
+- `lib/data/datasources/llm/local_llm_runner.dart` — `AIModelRunner` (moved out of `shiv/services/`)
+- `lib/features/shiv/generation/` — shared context / prompt / gana_run / chat_helpers substrate
+- `lib/features/shiv/composer_chat/cubit/composer_chat_cubit.dart`
 - `lib/domain/usecases/shiv_usecases.dart`
 
 ### Channels — Public Chat (NIP-28)
@@ -895,16 +902,16 @@ lib/
     ├── shiv/                      # AI Assistant tab
     │   ├── chat/bloc/             # ShivAIBloc (event, state, freezed)
     │   ├── chat/pages/            # ShivChatPage
-    │   ├── chat/tree/pages/       # ShivBranchTreePage (visual conv tree)
-    │   ├── chat/tree/widgets/     # BranchTreeGraph, NodeActionPanel
-    │   ├── chat/widgets/          # ShivHistoryDrawer, ConversationTile, InputComposer, MessageBubble
+    │   ├── chat/tree/...          # ShivBranchTreePage, BranchTreeGraph, NodeActionPanel
+    │   ├── chat/widgets/          # ShivHistoryDrawer, ConversationTile, ShivInputComposer (has Manas picker), MessageBubble
+    │   ├── composer_chat/         # ComposerChatCubit + Manas picker sheet + in-composer chat panel
+    │   ├── generation/            # SHARED substrate: context/ (ManasContextLoader), prompt/ (PromptParts + templates), gana_run.dart, chat_helpers.dart
+    │   ├── gana/                  # Autonomous agents: engine/ (GanaEngine, gana_workmanager) + form/ (bloc, pages, widgets)
+    │   ├── manthan/               # Swipe-deck idea generator (bloc, engine, pages, widgets)
     │   ├── model_select/          # SelectAIModelCubit, AIModelSelectionPage, widgets
     │   ├── pages/                 # ShivPage
-    │   ├── rag/embedding/         # EmbeddingService (TFLite)
-    │   ├── rag/pipeline/          # RagPipeline
-    │   ├── rag/prompt/            # PromptBuilder, PromptBudget
-    │   ├── rag/retrieval/         # VectorSearchService, EnrichedContext
-    │   └── services/              # AIModelRunner
+    │   └── rag/                   # embedding/ (EmbeddingService) · pipeline/ (RagPipeline) · prompt/ (PromptBuilder, PromptBudget) · retrieval/ (VectorSearchService, EnrichedContext)
+    │   #  AIModelRunner is at lib/data/datasources/llm/local_llm_runner.dart (NOT shiv/services/)
     ├── thread/                    # Thread view (BFS replies)
     │   ├── bloc/                  # ThreadBloc
     │   ├── pages/                 # ThreadPage

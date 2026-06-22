@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 /// so it auto-suggests for matching names.
 abstract class ManasIcons {
   /// Default icon when no name is set / unknown / no keyword matches.
-  static const IconData fallback = Icons.psychology_rounded;
+  static const IconData fallback = Icons.self_improvement_rounded;
 
   /// User-pickable icons, keyed by stable string name. The string is what
   /// lands in `ManasModel.iconName`, so any rename here is a data migration.

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/storage_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
@@ -14,14 +14,20 @@ class StorageCubit extends Cubit<StorageState> {
   final DeleteFeedNotesUseCase _deleteNotes;
   final DeleteAllChatHistoryUseCase _deleteChatHistory;
   final GetActiveUserUseCase _getUser;
-  final AppSettingsStore _settings;
+  final GetAutoDeleteOldNotesDaysUseCase _getAutoDelete;
+  final SetAutoDeleteOldNotesDaysUseCase _setAutoDelete;
+  final GetRecentSyncWindowDaysUseCase _getRecentSync;
+  final SetRecentSyncWindowDaysUseCase _setRecentSync;
 
   StorageCubit(
     this._getStats,
     this._deleteNotes,
     this._deleteChatHistory,
     this._getUser,
-    this._settings,
+    this._getAutoDelete,
+    this._setAutoDelete,
+    this._getRecentSync,
+    this._setRecentSync,
   ) : super(const StorageState()) {
     // Defer until after the current frame so the Settings page open animation
     // is not competing with the filesystem scan on the main thread.
@@ -37,6 +43,10 @@ class StorageCubit extends Cubit<StorageState> {
       return;
     }
     final result = await _getStats.call(pubkey);
+    final autoDelete =
+        (await _getAutoDelete.call()).fold((_) => null, (v) => v);
+    final recentSync =
+        (await _getRecentSync.call()).fold((_) => 7, (v) => v);
     result.fold(
       (f) => emit(state.copyWith(isLoading: false, error: f.toString())),
       (stats) => emit(state.copyWith(
@@ -51,8 +61,8 @@ class StorageCubit extends Cubit<StorageState> {
         deletableFeedNoteCount: stats.deletableFeedNoteCount,
         conversationCount: stats.conversationCount,
         ownPubkey: pubkey,
-        autoDeleteOldNotesDays: _settings.autoDeleteOldNotesDays,
-        recentSyncWindowDays: _settings.recentSyncWindowDays,
+        autoDeleteOldNotesDays: autoDelete,
+        recentSyncWindowDays: recentSync,
       )),
     );
   }
@@ -61,7 +71,7 @@ class StorageCubit extends Cubit<StorageState> {
   /// next app launch (CleanupManager reads it at Gateway boot time and
   /// SharedPreferences is unavailable in the Gateway isolate).
   Future<void> setAutoDeleteOldNotesDays(int? days) async {
-    await _settings.setAutoDeleteOldNotesDays(days);
+    await _setAutoDelete.call(days);
     emit(state.copyWith(autoDeleteOldNotesDays: days));
   }
 
@@ -69,7 +79,7 @@ class StorageCubit extends Cubit<StorageState> {
   /// surfaces pull). Takes effect on next app launch — the Gateway isolate
   /// reads it at boot and SharedPreferences is unavailable in that isolate.
   Future<void> setRecentSyncWindowDays(int days) async {
-    await _settings.setRecentSyncWindowDays(days);
+    await _setRecentSync.call(days);
     emit(state.copyWith(recentSyncWindowDays: days));
   }
 

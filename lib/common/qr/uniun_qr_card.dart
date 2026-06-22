@@ -16,10 +16,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// `showDialog(builder: (_) => UniunQrCard.xxx(...))`. Always copies the FULL
 /// underlying id to the clipboard — never a truncated display string.
 class UniunQrCard extends StatefulWidget {
-  const UniunQrCard._({
-    required this.entries,
-    required this.titleLeading,
-  });
+  const UniunQrCard._({required this.entries, required this.titleLeading});
 
   /// Tabs/entries shown in the card. Single-entry cards render without a
   /// toggle; multi-entry cards (DM) show a [ToggleButtons] header.
@@ -175,113 +172,115 @@ class _UniunQrCardState extends State<UniunQrCard> {
     return Dialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (hasToggle) ...[
-              _ToggleHeader(
-                labels: [
-                  for (final e in widget.entries) e.tabLabel ?? e.label,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (hasToggle) ...[
+                _ToggleHeader(
+                  labels: [
+                    for (final e in widget.entries) e.tabLabel ?? e.label,
+                  ],
+                  selectedIndex: _selected,
+                  onChanged: (i) => setState(() => _selected = i),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (widget.titleLeading != null) ...[
+                    widget.titleLeading!,
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(
+                      entry.label,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                  ),
                 ],
-                selectedIndex: _selected,
-                onChanged: (i) => setState(() => _selected = i),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                shortSubtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: RepaintBoundary(
+                  key: _qrBoundaryKey,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: QrImageView(
+                      data: entry.payload.encode(),
+                      version: QrVersions.auto,
+                      size: 220,
+                      backgroundColor: Colors.white,
+                      eyeStyle: const QrEyeStyle(
+                        eyeShape: QrEyeShape.square,
+                        color: AppColors.primary,
+                      ),
+                      dataModuleStyle: const QrDataModuleStyle(
+                        dataModuleShape: QrDataModuleShape.square,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => _shareEntry(entry),
+                icon: const Icon(Icons.ios_share_rounded, size: 18),
+                label: Text(AppLocalizations.of(context)!.qrShareAction),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: () {
+                  // Always copy the FULL id — never the truncated display.
+                  Clipboard.setData(ClipboardData(text: entry.copyValue));
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                    SnackBar(
+                      content: Text('${entry.copyLabel} • copied to clipboard'),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.copy_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                label: Text(
+                  entry.copyLabel,
+                  style: const TextStyle(color: AppColors.primary),
+                ),
+              ),
             ],
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.titleLeading != null) ...[
-                  widget.titleLeading!,
-                  const SizedBox(width: 6),
-                ],
-                Flexible(
-                  child: Text(
-                    entry.label,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              shortSubtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: RepaintBoundary(
-                key: _qrBoundaryKey,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: QrImageView(
-                    data: entry.payload.encode(),
-                    version: QrVersions.auto,
-                    size: 220,
-                    backgroundColor: Colors.white,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: AppColors.primary,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => _shareEntry(entry),
-              icon: const Icon(Icons.ios_share_rounded, size: 18),
-              label: Text(AppLocalizations.of(context)!.qrShareAction),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            TextButton.icon(
-              onPressed: () {
-                // Always copy the FULL id — never the truncated display.
-                Clipboard.setData(ClipboardData(text: entry.copyValue));
-                ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                  SnackBar(
-                    content: Text('${entry.copyLabel} • copied to clipboard'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-              icon: const Icon(
-                Icons.copy_rounded,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              label: Text(
-                entry.copyLabel,
-                style: const TextStyle(color: AppColors.primary),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -293,12 +292,14 @@ class _UniunQrCardState extends State<UniunQrCard> {
   Future<void> _shareEntry(_QrEntry entry) async {
     // Anchor the iPad share popover to this card — read before any await.
     final box = context.findRenderObject() as RenderBox?;
-    final origin =
-        box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
     File? file;
     try {
-      final boundary = _qrBoundaryKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _qrBoundaryKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return;
       // 2.0 keeps the QR crisp and scannable while rasterising ~4x fewer
       // pixels than 3.0.
@@ -309,7 +310,9 @@ class _UniunQrCardState extends State<UniunQrCard> {
 
       final dir = await getTemporaryDirectory();
       // Fixed filename — overwritten each share, so temp files never pile up.
-      file = await File('${dir.path}/uniun_qr_share.png').writeAsBytes(pngBytes);
+      file = await File(
+        '${dir.path}/uniun_qr_share.png',
+      ).writeAsBytes(pngBytes);
 
       await Share.shareXFiles(
         [XFile(file.path)],
@@ -334,13 +337,18 @@ class _UniunQrCardState extends State<UniunQrCard> {
 
   /// Maps a QR payload to its shareable `https://www.uniun.in/...` deep link.
   Uri _deepLinkFor(UniunQrPayload p) => switch (p.kind) {
-        UniunQrKind.user =>
-          DeepLink.user(p.id, relays: p.relays),
-        UniunQrKind.publicChannel =>
-          DeepLink.channel(p.id, name: p.name, relays: p.relays),
-        UniunQrKind.privateChannel =>
-          DeepLink.privateChannel(p.id, name: p.name, relays: p.relays),
-      };
+    UniunQrKind.user => DeepLink.user(p.id, relays: p.relays),
+    UniunQrKind.publicChannel => DeepLink.channel(
+      p.id,
+      name: p.name,
+      relays: p.relays,
+    ),
+    UniunQrKind.privateChannel => DeepLink.privateChannel(
+      p.id,
+      name: p.name,
+      relays: p.relays,
+    ),
+  };
 
   String _truncateMiddle(String s, int side) {
     if (s.length <= side * 2 + 3) return s;

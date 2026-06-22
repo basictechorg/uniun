@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -58,7 +59,7 @@ class _UserProfileView extends StatelessWidget {
           builder: (context, state) {
             if (state.loading) {
               return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+                child: DropLoadingIndicator(color: AppColors.primary),
               );
             }
             return CustomScrollView(

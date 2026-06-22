@@ -45,11 +45,14 @@ class AIModelRunner {
   final ModelTaskQueue _queue;
   final AppSettingsStore _settings;
 
-  String? _systemInstruction;
-
   /// In-flight extraction chat, if any. Held so [sendAndStream] can call
   /// [InferenceChat.stopGeneration] on it. Cleared in extraction's finally.
   InferenceChat? _activeExtraction;
+
+  /// The model instance last handed out by [_openActiveModel]. Held so a failed
+  /// invoke can [_resetModel] it — closing the native model frees its
+  /// accumulated sessions/cache so the next open rebuilds a fresh one.
+  InferenceModel? _activeModel;
 
   AIModelRunner(this._queue, this._settings);
 
@@ -74,29 +77,45 @@ class AIModelRunner {
       _backend = PreferredBackend.gpu;
     }
     try {
-      return await FlutterGemma.getActiveModel(
+      return _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: maxTokens,
         preferredBackend: _backend,
       );
     } catch (e) {
       if (_backend == PreferredBackend.cpu) rethrow;
       debugPrint('⚠️ GPU backend failed to open model ($e) — retrying on CPU');
-      return FlutterGemma.getActiveModel(
+      return _activeModel = await FlutterGemma.getActiveModel(
         maxTokens: maxTokens,
       );
     }
   }
 
-  bool get hasActiveModel => FlutterGemma.hasActiveModel();
-  bool get hasChatSession => _systemInstruction != null;
+  /// Close the cached native model so the next [_openActiveModel] rebuilds a
+  /// fresh one. Used to recover when an invoke fails after the native runtime
+  /// has degraded over many open/close session cycles (common on the
+  /// resource-limited iOS simulator). flutter_gemma's close-listener resets its
+  /// singleton, so a later getActiveModel re-creates the model.
+  Future<void> _resetModel() async {
+    final m = _activeModel;
+    _activeModel = null;
+    if (m == null) return;
+    try {
+      await m.close();
+    } catch (_) {
+      // Already closing / closed — fine.
+    }
+  }
 
-  /// Initialise a chat *session* by remembering the system instruction.
-  /// No native chat is opened here — each turn opens its own.
-  Future<void> initChat({String? systemInstruction}) async {
+  bool get hasActiveModel => FlutterGemma.hasActiveModel();
+
+  /// Validate that a model is active before a conversation opens. The runner
+  /// holds NO per-conversation state — the system instruction is passed into
+  /// [sendAndStream] per turn so independent chat surfaces (e.g. the Shiv tab
+  /// and an inline composer chat) can't clobber each other.
+  Future<void> initChat() async {
     if (!FlutterGemma.hasActiveModel()) {
       throw StateError('No AI model is active. Please select a model first.');
     }
-    _systemInstruction = systemInstruction;
   }
 
   /// Send the current user [message] (question + RAG context if any) and
@@ -108,10 +127,11 @@ class AIModelRunner {
   /// without the bloat.
   Stream<String> sendAndStream(
     String message, {
+    required String systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) async* {
-    if (_systemInstruction == null) {
-      throw StateError('Call initChat() before sending messages.');
+    if (!FlutterGemma.hasActiveModel()) {
+      throw StateError('No AI model is active. Please select a model first.');
     }
 
     // Preempt any in-flight extraction. Safe in 0.16 because openChat sessions
@@ -141,7 +161,7 @@ class AIModelRunner {
         );
 
         final prompt = _composePrompt(
-          systemInstruction: _systemInstruction!,
+          systemInstruction: systemInstruction,
           cleanHistory: cleanHistory,
           currentMessage: message,
           historyBudget: _historyBudgetTokens(params),
@@ -170,34 +190,60 @@ class AIModelRunner {
     yield* tokens.stream;
   }
 
-  /// Dispose the current chat session (just forgets the system instruction).
-  Future<void> close() async {
-    _systemInstruction = null;
-  }
+  /// No-op: chat opens a throwaway session per turn, so there is no long-lived
+  /// per-conversation state to tear down. Kept for the datasource lifecycle.
+  Future<void> close() async {}
 
-  /// Stateless one-shot completion. Goes through the low-priority lane so
-  /// chat turns always cut in front. May return null if preempted by chat
-  /// or if no model is active — callers must tolerate null.
-  Future<String?> generateOneShot(String prompt, {int maxTokens = 1024}) {
+  /// Stateless one-shot completion. By default goes through the low-priority
+  /// lane so chat turns always cut in front. Pass [highPriority] = true for
+  /// foreground user work (e.g. Manthan deck generation) so it runs even
+  /// while the Shiv tab holds the low lane paused. May return null if
+  /// preempted by chat or if no model is active — callers must tolerate null.
+  Future<String?> generateOneShot(
+    String prompt, {
+    int maxTokens = 1024,
+    bool highPriority = false,
+  }) {
     if (!FlutterGemma.hasActiveModel()) {
       debugPrint('⏭️ generateOneShot: no active model');
       return Future.value(null);
     }
-    return _queue.runLow<String?>(
+    return (highPriority ? _queue.runHigh<String?> : _queue.runLow<String?>)(
       () => _doGenerateOneShot(prompt, maxTokens),
-      label: 'extract',
+      label: highPriority ? 'manthan' : 'extract',
     );
   }
 
   Future<String?> _doGenerateOneShot(String prompt, int maxTokens) async {
+    final (result, ok) = await _attemptOneShot(prompt, maxTokens);
+    if (ok) return result;
+    // The invoke failed. After many open/close session cycles the native
+    // runtime can degrade — invoke starts failing even though it worked
+    // moments ago (seen heavily on the resource-limited iOS simulator). Drop
+    // the cached model so a fresh one is rebuilt, then retry once. If it still
+    // fails, the caller treats null as "skip this combo".
+    debugPrint('⚠️ generateOneShot: invoke failed — resetting model + retry');
+    await _resetModel();
+    final (retryResult, _) = await _attemptOneShot(prompt, maxTokens);
+    return retryResult;
+  }
+
+  /// One open → generate → close attempt. Returns `(text, true)` on success or
+  /// `(null, false)` when the native invoke threw, so the caller can decide
+  /// whether to reset the model and retry.
+  Future<(String?, bool)> _attemptOneShot(String prompt, int maxTokens) async {
     InferenceChat? oneShot;
     try {
       debugPrint('🧪 generateOneShot: opening throwaway chat…');
       final params = _activeParams;
-      // Never exceed the model's hard cache size — the requested [maxTokens] is
-      // only a ceiling for this task, capped by what the engine can open.
-      final cap = params?.maxTokens ?? maxTokens;
-      final model = await _openActiveModel(maxTokens < cap ? maxTokens : cap);
+      // Open at the model's baked-in KV-cache size (see [LocalModelParams.
+      // maxTokens]) — exactly like chat does. It is NOT a free choice: opening
+      // SMALLER than the baked size (e.g. a caller's 512) makes the compiled
+      // graph fail at invoke ("Failed to invoke the compiled model"), which
+      // strands the Manthan deck. The requested [maxTokens] is only a fallback
+      // for an unknown model with no params.
+      final cacheSize = params?.maxTokens ?? maxTokens;
+      final model = await _openActiveModel(cacheSize);
       oneShot = await model.openChat(
         temperature: 0.2,
         topK: 20,
@@ -225,10 +271,10 @@ class AIModelRunner {
       // whole string, not per-chunk, or we'd split UTF-8 byte sequences.
       final cleaned = LlmTextSanitizer.clean(buffer.toString());
       debugPrint('🧪 generateOneShot: done (${cleaned.length} chars)');
-      return cleaned;
+      return (cleaned, true);
     } catch (e, st) {
-      debugPrint('⏭️ generateOneShot terminated: $e\n$st');
-      return null;
+      debugPrint('⏭️ generateOneShot attempt failed: $e\n$st');
+      return (null, false);
     } finally {
       if (identical(_activeExtraction, oneShot)) {
         _activeExtraction = null;

@@ -259,11 +259,23 @@ class _TrimurtiPillars extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _Pillar(deity: l10n.welcomePillarBrahma, role: l10n.welcomeRoleCreate),
+            _Pillar(
+              deity: l10n.welcomePillarBrahma,
+              role: l10n.welcomeRoleCreate,
+              iconAsset: 'assets/images/tabs/brahma.svg',
+            ),
             divider,
-            _Pillar(deity: l10n.welcomePillarVishnu, role: l10n.welcomeRoleReflect),
+            _Pillar(
+              deity: l10n.welcomePillarVishnu,
+              role: l10n.welcomeRoleReflect,
+              iconAsset: 'assets/images/tabs/vishnu.svg',
+            ),
             divider,
-            _Pillar(deity: l10n.welcomePillarShiv, role: l10n.welcomeRoleTransform),
+            _Pillar(
+              deity: l10n.welcomePillarShiv,
+              role: l10n.welcomeRoleTransform,
+              iconAsset: 'assets/images/tabs/shiva.svg',
+            ),
           ],
         ),
       ),
@@ -272,10 +284,15 @@ class _TrimurtiPillars extends StatelessWidget {
 }
 
 class _Pillar extends StatelessWidget {
-  const _Pillar({required this.deity, required this.role});
+  const _Pillar({
+    required this.deity,
+    required this.role,
+    required this.iconAsset,
+  });
 
   final String deity;
   final String role;
+  final String iconAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -285,19 +302,13 @@ class _Pillar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primary,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.5),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+            SvgPicture.asset(
+              iconAsset,
+              width: 30,
+              height: 30,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
               ),
             ),
             const SizedBox(height: 9),

@@ -1030,6 +1030,14 @@
   "shivInputHint": "Ask Shiv anything…",
   "@shivInputHint": { "description": "Hint text inside the Shiv chat input field" },
 
+  "composerAskScope": "Ask {scope}",
+  "@composerAskScope": {
+    "description": "Composer-chat input hint reflecting the grounding scope, e.g. 'Ask Brahma' (all notes) or 'Ask <manas name>'",
+    "placeholders": {
+      "scope": { "type": "String" }
+    }
+  },
+
   "shivNoConversations": "No conversations yet",
   "@shivNoConversations": { "description": "Empty state in the conversations history sheet" },
 
@@ -1995,5 +2003,104 @@
   "@ganaRunStatusFailed": { "description": "Run-status label" },
 
   "ganaRunStatusRunning": "Running",
-  "@ganaRunStatusRunning": { "description": "Run-status label" }
+  "@ganaRunStatusRunning": { "description": "Run-status label" },
+
+  "manthanTileAction": "Spark ideas",
+  "@manthanTileAction": { "description": "Manthan tile action button label" },
+
+  "manthanDrawerTitle": "Manthan",
+  "@manthanDrawerTitle": { "description": "Title of the Manthan deck side drawer" },
+
+  "manthanScopeSheetTitle": "Select Manas",
+  "@manthanScopeSheetTitle": { "description": "Manthan scope sheet title" },
+
+  "manthanScopeAllNotes": "Brahma",
+  "@manthanScopeAllNotes": { "description": "Manthan scope option — all notes (Brahma)" },
+
+  "manthanScopeManasCount": "{count} manas",
+  "@manthanScopeManasCount": {
+    "description": "Manthan scope pill label when multiple manas are selected",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "manthanNewChatTooltip": "New chat",
+  "@manthanNewChatTooltip": { "description": "Tooltip for new manthan chat button" },
+
+  "manthanEdgePublish": "Publish",
+  "@manthanEdgePublish": { "description": "Manthan edge action — publish" },
+
+  "manthanEdgeDraft": "Draft",
+  "@manthanEdgeDraft": { "description": "Manthan edge action — save as draft" },
+
+  "manthanEdgeDiscard": "Discard",
+  "@manthanEdgeDiscard": { "description": "Manthan edge action — discard" },
+
+  "manthanEdgeDiscuss": "Discuss",
+  "@manthanEdgeDiscuss": { "description": "Manthan edge action — discuss" },
+
+  "manthanReferencesLabel": "References",
+  "@manthanReferencesLabel": { "description": "Manthan references section label" },
+
+  "manthanReferencesView": "View references",
+  "@manthanReferencesView": { "description": "Manthan references action — view" },
+
+  "manthanReferencesAttach": "Publishing attaches the checked notes as references.",
+  "@manthanReferencesAttach": { "description": "Manthan references helper text" },
+
+  "manthanCoachTitle": "Swipe to explore ideas",
+  "@manthanCoachTitle": { "description": "Manthan coach/onboarding title" },
+
+  "manthanCoachDismiss": "Got it",
+  "@manthanCoachDismiss": { "description": "Manthan coach dismiss button" },
+
+  "manthanGenerating": "Finding connections…",
+  "@manthanGenerating": { "description": "Manthan generating state label" },
+
+  "manthanRevisitingHint": "Revisiting older sparks — add notes for fresh ideas",
+  "@manthanRevisitingHint": { "description": "Manthan hint when revisiting older generated ideas" },
+
+  "manthanEmptyNeedsMoreTitle": "Not enough notes yet",
+  "@manthanEmptyNeedsMoreTitle": { "description": "Manthan empty state title when scope lacks notes" },
+
+  "manthanEmptyNeedsMoreBody": "This scope needs at least 2 notes to spark connections.",
+  "@manthanEmptyNeedsMoreBody": { "description": "Manthan empty state body when scope lacks notes" },
+
+  "manthanExhaustedTitle": "You've seen them all",
+  "@manthanExhaustedTitle": { "description": "Manthan exhausted state title" },
+
+  "manthanExhaustedBody": "Add more notes to spark new ideas.",
+  "@manthanExhaustedBody": { "description": "Manthan exhausted state body" },
+
+  "manthanModelErrorTitle": "Couldn't generate ideas",
+  "@manthanModelErrorTitle": { "description": "Manthan error state title when the AI model fails to run" },
+
+  "manthanModelErrorBody": "The AI model couldn't run on this device. Try a different (smaller) model, or tap retry.",
+  "@manthanModelErrorBody": { "description": "Manthan error state body when the AI model fails to run" },
+
+  "manthanPublishedSnack": "Published as a note",
+  "@manthanPublishedSnack": { "description": "Snackbar after publishing a manthan idea" },
+
+  "manthanDraftSavedSnack": "Saved as a draft",
+  "@manthanDraftSavedSnack": { "description": "Snackbar after saving a manthan idea as draft" },
+
+  "manthanGenerateErrorSnack": "Couldn't generate right now",
+  "@manthanGenerateErrorSnack": { "description": "Snackbar when manthan generation fails" },
+
+  "manthanYouName": "You",
+  "@manthanYouName": { "description": "Author name shown on the synthesized root card in Manthan refs page" },
+
+  "manthanYouHandle": "@you · now",
+  "@manthanYouHandle": { "description": "Handle/timestamp shown on the synthesized root card in Manthan refs page" },
+
+  "manthanDraftLabel": "Draft",
+  "@manthanDraftLabel": { "description": "Display name for unknown or resolved draft references in Manthan refs page" },
+
+  "manthanRefsCount": "{count} refs",
+  "@manthanRefsCount": {
+    "description": "Refs badge label on the synthesized root card action row in Manthan refs page",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "manthanRetry": "Try again",
+  "@manthanRetry": { "description": "Retry button label on the Manthan error state" }
 }

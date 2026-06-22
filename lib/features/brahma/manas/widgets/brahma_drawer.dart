@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
@@ -83,6 +84,17 @@ class _BrahmaDrawerView extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   _openForm(context, manasId: manas.manasId);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.air, color: AppColors.primary),
+                title: Text(l10n.manthanTileAction),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  context.pushNamed(
+                    AppRoutes.shivManthan,
+                    extra: {'manasIds': [manas.manasId]},
+                  );
                 },
               ),
               ListTile(
@@ -177,8 +189,8 @@ class _BrahmaDrawerView extends StatelessWidget {
                           child: SizedBox(
                             width: 22,
                             height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                            child: DropLoadingIndicator(
+                              size: 22,
                               color: AppColors.primary,
                             ),
                           ),

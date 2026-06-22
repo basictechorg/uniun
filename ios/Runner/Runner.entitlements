@@ -9,5 +9,14 @@
 	<array>
 		<string>applinks:www.uniun.in</string>
 	</array>
+	<!-- flutter_gemma: large on-device LLMs (Gemma 4 E2B/E4B) need expanded
+	     virtual addressing + raised memory limits, or the compiled model fails
+	     to invoke on device. Required by the flutter_gemma 1.0 iOS setup. -->
+	<key>com.apple.developer.kernel.extended-virtual-addressing</key>
+	<true/>
+	<key>com.apple.developer.kernel.increased-memory-limit</key>
+	<true/>
+	<key>com.apple.developer.kernel.increased-debugging-memory-limit</key>
+	<true/>
 </dict>
 </plist>

@@ -8,7 +8,9 @@ class ThreadEmptyReplies extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.chat_bubble_outline_rounded,
@@ -28,6 +30,7 @@ class ThreadEmptyReplies extends StatelessWidget {
           style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
         ),
       ],
+      ),
     );
   }
 }
