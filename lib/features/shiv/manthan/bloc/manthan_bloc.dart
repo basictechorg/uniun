@@ -117,6 +117,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     // `ready` with a null card, or the deck body's `currentCard!` crashes
     // before _fillAndShow re-emits.
     final nextE = await _next.call(_scopeId);
+    if (isClosed) return; // page closed while we were awaiting; bail
     final next = nextE.getOrElse(() => null);
     emit(state.copyWith(
       status: next == null ? ManthanStatus.loading : state.status,
@@ -128,7 +129,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     if (next == null) {
       await _fillAndShow(emit);
     } else {
-      add(const ManthanEvent.loadMore());
+      if (!isClosed) add(const ManthanEvent.loadMore());
     }
   }
 
@@ -186,7 +187,11 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     // Generate one card first so the user sees something immediately.
     final result = await _generator.fillBuffer(
         manasIds: state.manasIds, count: _kInitialFill);
+    // LLM generation can take 30+ seconds — page may have been closed in the
+    // meantime. Bail rather than emit/add to a dead bloc.
+    if (isClosed) return;
     final card = (await _next.call(_scopeId)).getOrElse(() => null);
+    if (isClosed) return;
 
     if (card != null) {
       emit(state.copyWith(
@@ -196,7 +201,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
       ));
       // Top the buffer up to _kBufferTarget in the background while the
       // user reads the first card.
-      add(const ManthanEvent.loadMore());
+      if (!isClosed) add(const ManthanEvent.loadMore());
       return;
     }
     emit(state.copyWith(
