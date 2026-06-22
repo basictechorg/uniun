@@ -337,7 +337,7 @@ class Nip17EncryptionService {
         await _isar.eventQueueModels.put(eventQueueModel);
       });
       print('DEBUG sendDm: Success!');
-    } catch (e, stack) {
+    } catch (e) {
        print('DEBUG sendDm: CRASH at step $step. Error: $e');
        rethrow;
     }

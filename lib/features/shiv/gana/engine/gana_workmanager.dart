@@ -353,7 +353,7 @@ Future<void> _runOneGana({
           firstTokenAt ??= DateTime.now();
           if (tokenCount == 0) {
             _log('  first token in '
-                '${firstTokenAt!.difference(infStart).inMilliseconds}ms '
+                '${firstTokenAt.difference(infStart).inMilliseconds}ms '
                 '(prefill done)');
           }
           buf.write(response.token);
