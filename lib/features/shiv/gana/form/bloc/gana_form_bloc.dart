@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
@@ -83,6 +84,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
               maxOutputs: e.value,
               clearMaxOutputs: e.value == null,
             )));
+    on<GanaFormTriggerPresetChangedEvent>(_onTriggerPreset);
     on<GanaFormEnabledToggleEvent>(
         (e, em) => em(state.copyWith(enabled: e.value)));
     on<GanaFormSubmitEvent>(_onSubmit, transformer: droppable());
@@ -228,6 +230,46 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       case GanaOutputType.dm:
         emit(state.copyWith(outputDmConversationId: event.value as int?));
         return;
+    }
+  }
+
+  /// Fold a preset back into the raw (mode, reactive, interval) triple.
+  /// Interval / maxOutputs are preserved when switching between recurring
+  /// presets so a half-filled value isn't lost mid-edit; one-shot presets
+  /// void both because they're recurring-only.
+  void _onTriggerPreset(GanaFormTriggerPresetChangedEvent event,
+      Emitter<GanaFormState> emit) {
+    switch (event.value) {
+      case GanaTriggerPreset.onceOnEnable:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.oneShot,
+          triggerReactive: false,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
+      case GanaTriggerPreset.onceOnFirstMessage:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.oneShot,
+          triggerReactive: true,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
+      case GanaTriggerPreset.everyMessage:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: true,
+          clearInterval: true,
+        ));
+      case GanaTriggerPreset.onSchedule:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: false,
+        ));
+      case GanaTriggerPreset.messageOrSchedule:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: true,
+        ));
     }
   }
 

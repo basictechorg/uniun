@@ -3856,6 +3856,42 @@ abstract class AppLocalizations {
   /// **'TRIGGERS'**
   String get ganaFormTriggersSectionTitle;
 
+  /// Header above the trigger preset radio group
+  ///
+  /// In en, this message translates to:
+  /// **'When should this run?'**
+  String get ganaFormTriggerQuestion;
+
+  /// Preset: standalone one-shot — fires on enable
+  ///
+  /// In en, this message translates to:
+  /// **'Once, when I enable it'**
+  String get ganaFormPresetOnceOnEnable;
+
+  /// Preset: one-shot + reactive
+  ///
+  /// In en, this message translates to:
+  /// **'Once, on the first new message'**
+  String get ganaFormPresetOnceOnFirstMessage;
+
+  /// Preset: recurring + reactive (no interval)
+  ///
+  /// In en, this message translates to:
+  /// **'On every new message'**
+  String get ganaFormPresetEveryMessage;
+
+  /// Preset: recurring + interval only
+  ///
+  /// In en, this message translates to:
+  /// **'On a schedule (every N minutes)'**
+  String get ganaFormPresetOnSchedule;
+
+  /// Preset: recurring + reactive + interval
+  ///
+  /// In en, this message translates to:
+  /// **'On every new message AND on a timer'**
+  String get ganaFormPresetMessageOrSchedule;
+
   /// Reactive trigger toggle label
   ///
   /// In en, this message translates to:

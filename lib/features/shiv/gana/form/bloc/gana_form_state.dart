@@ -74,6 +74,16 @@ class GanaFormState {
 
   final String? errorMessage;
 
+  /// Folds the raw (mode, reactive, interval) triple into the single preset
+  /// the UI radio displays. Returns `null` mid-edit when the triple doesn't
+  /// map cleanly to a preset (e.g. mode switched but interval not set yet).
+  GanaTriggerPreset? get triggerPreset => GanaTriggerPreset.fromFields(
+        mode: triggerMode,
+        reactive: triggerReactive,
+        intervalMinutes: triggerIntervalMinutes,
+        inputType: inputType,
+      );
+
   /// Save gating — minimum config the engine needs to make sense of the Gana.
   bool get canSave {
     if (name.trim().isEmpty) return false;

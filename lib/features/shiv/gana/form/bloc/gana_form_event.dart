@@ -71,6 +71,14 @@ class GanaFormTriggerModeChangedEvent extends GanaFormEvent {
   final GanaTriggerMode value;
 }
 
+/// User picked a single trigger preset from the form's "When should this
+/// run?" radio. Bloc folds it back into the raw (mode, reactive, interval)
+/// triple — see [GanaTriggerPreset] for the mapping.
+class GanaFormTriggerPresetChangedEvent extends GanaFormEvent {
+  const GanaFormTriggerPresetChangedEvent(this.value);
+  final GanaTriggerPreset value;
+}
+
 class GanaFormMaxOutputsChangedEvent extends GanaFormEvent {
   const GanaFormMaxOutputsChangedEvent(this.value);
   final int? value;

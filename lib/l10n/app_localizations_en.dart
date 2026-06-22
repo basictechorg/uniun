@@ -2088,6 +2088,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormTriggersSectionTitle => 'TRIGGERS';
 
   @override
+  String get ganaFormTriggerQuestion => 'When should this run?';
+
+  @override
+  String get ganaFormPresetOnceOnEnable => 'Once, when I enable it';
+
+  @override
+  String get ganaFormPresetOnceOnFirstMessage =>
+      'Once, on the first new message';
+
+  @override
+  String get ganaFormPresetEveryMessage => 'On every new message';
+
+  @override
+  String get ganaFormPresetOnSchedule => 'On a schedule (every N minutes)';
+
+  @override
+  String get ganaFormPresetMessageOrSchedule =>
+      'On every new message AND on a timer';
+
+  @override
   String get ganaFormReactiveLabel => 'React to new input';
 
   @override

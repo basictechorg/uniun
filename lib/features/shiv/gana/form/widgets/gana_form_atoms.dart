@@ -98,68 +98,6 @@ class _SaveBlockerHint extends StatelessWidget {
   }
 }
 
-/// Recurring vs one-shot segmented selector.
-class _ModeSegmented extends StatelessWidget {
-  const _ModeSegmented({required this.mode, required this.onChanged});
-  final GanaTriggerMode mode;
-  final ValueChanged<GanaTriggerMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          _modePill(
-            label: l10n.ganaFormModeRecurring,
-            active: mode == GanaTriggerMode.recurring,
-            onTap: () => onChanged(GanaTriggerMode.recurring),
-          ),
-          _modePill(
-            label: l10n.ganaFormModeOneShot,
-            active: mode == GanaTriggerMode.oneShot,
-            onTap: () => onChanged(GanaTriggerMode.oneShot),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _modePill({
-    required String label,
-    required bool active,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: active ? Colors.white : AppColors.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Empty-state for the Manas section when the user has zero Manases.
 /// Pushes to the Brahma Manas form and reloads on return so the user
 /// can keep creating the Gana without losing what they typed.

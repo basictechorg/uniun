@@ -350,78 +350,40 @@ class _TriggersSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasInput = state.inputType != null;
-    final oneShot = state.triggerMode == GanaTriggerMode.oneShot;
-
-    // Per-mode UI:
-    //   one-shot + standalone : no triggers — fires on enable
-    //   one-shot + input      : reactive only (required)
-    //   recurring + standalone: interval only (required)
-    //   recurring + input     : reactive + interval (either)
-    final showReactive = hasInput; // reactive is meaningless without input
-    final showInterval = !oneShot; // one-shot has no notion of "every Nm"
+    final presets = GanaTriggerPreset.validFor(state.inputType);
+    final selected = state.triggerPreset;
+    final needsInterval = selected == GanaTriggerPreset.onSchedule ||
+        selected == GanaTriggerPreset.messageOrSchedule;
+    final isRecurring = state.triggerMode == GanaTriggerMode.recurring;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Run mode — recurring (cron) vs one-shot (fire once, auto-disable).
-        _ModeSegmented(
-          mode: state.triggerMode,
-          onChanged: (m) => context
-              .read<GanaFormBloc>()
-              .add(GanaFormTriggerModeChangedEvent(m)),
-        ),
-        const SizedBox(height: 4),
         Text(
-          oneShot
-              ? l10n.ganaFormModeOneShotHelp
-              : l10n.ganaFormModeRecurringHelp,
+          l10n.ganaFormTriggerQuestion,
           style: const TextStyle(
-              fontSize: 12, color: AppColors.onSurfaceVariant),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.onSurfaceVariant,
+          ),
         ),
-        // Standalone + one-shot has no trigger UI: it fires once when the
-        // user flips `enabled` on. Show a single explanatory note instead.
-        if (oneShot && !hasInput) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.bolt_rounded,
-                    size: 18, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.ganaFormOneShotStandaloneNote,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.onSurface),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        if (showReactive) ...[
-          const SizedBox(height: 16),
-          SwitchListTile(
-            value: state.triggerReactive,
-            onChanged: (v) => context
-                .read<GanaFormBloc>()
-                .add(GanaFormReactiveToggleEvent(v)),
-            title: Text(l10n.ganaFormReactiveLabel),
-            subtitle: Text(
-              oneShot
-                  ? l10n.ganaFormReactiveRequiredNote
-                  : l10n.ganaFormReactiveHelp,
-            ),
+        const SizedBox(height: 8),
+        for (final p in presets)
+          RadioListTile<GanaTriggerPreset>(
+            value: p,
+            groupValue: selected,
+            onChanged: (v) {
+              if (v == null) return;
+              context
+                  .read<GanaFormBloc>()
+                  .add(GanaFormTriggerPresetChangedEvent(v));
+            },
+            title: Text(_presetLabel(l10n, p)),
             contentPadding: EdgeInsets.zero,
+            dense: true,
+            visualDensity: VisualDensity.compact,
           ),
-        ],
-        if (showInterval) ...[
+        if (needsInterval) ...[
           const SizedBox(height: 8),
           Row(
             children: [
@@ -448,8 +410,8 @@ class _TriggersSection extends StatelessWidget {
             style: const TextStyle(
                 fontSize: 12, color: AppColors.onSurfaceVariant),
           ),
-          // Recurring-only safety cap. Without this the Gana could keep
-          // publishing forever if the user forgets about it.
+        ],
+        if (isRecurring) ...[
           const SizedBox(height: 14),
           Row(
             children: [
@@ -479,6 +441,21 @@ class _TriggersSection extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  String _presetLabel(AppLocalizations l10n, GanaTriggerPreset p) {
+    switch (p) {
+      case GanaTriggerPreset.onceOnEnable:
+        return l10n.ganaFormPresetOnceOnEnable;
+      case GanaTriggerPreset.onceOnFirstMessage:
+        return l10n.ganaFormPresetOnceOnFirstMessage;
+      case GanaTriggerPreset.everyMessage:
+        return l10n.ganaFormPresetEveryMessage;
+      case GanaTriggerPreset.onSchedule:
+        return l10n.ganaFormPresetOnSchedule;
+      case GanaTriggerPreset.messageOrSchedule:
+        return l10n.ganaFormPresetMessageOrSchedule;
+    }
   }
 }
 

@@ -47,9 +47,12 @@ Ganas are **purely local config** — they never broadcast as Nostr events. Two 
 | `inputType` + `inputRefId` | input surface — `channel`, `privateChannel`, `dm`, `user`, `followedNote`, or `null` (standalone) |
 | `outputType` + ref | destination — `feed`, `channel`, `privateChannel`, `dm` (exactly one is published per run) |
 | `desiredModelId` | `null` ⇒ "use whichever model is active"; otherwise skip-on-mismatch |
+| `triggerMode` | `recurring` (cron-style, fires forever until disabled) OR `oneShot` (fires once, auto-disables) |
 | `triggerReactive` | fires within ~3s of a new note on the input surface |
 | `triggerIntervalMinutes` | `Timer.periodic` clamped ≥5 min (≥30 min in background) |
 | `enabled` | master switch (defaults to `false` — opt-in after review) |
+
+The form UI folds these three trigger fields behind a single **"When should this run?"** radio (`GanaTriggerPreset`, `lib/core/enum/gana_trigger_preset.dart`). Five presets map onto the matrix: `onceOnEnable`, `onceOnFirstMessage`, `everyMessage`, `onSchedule`, `messageOrSchedule`. `GanaTriggerPreset.validFor(inputType)` hides options that can't fire (e.g. `everyMessage` with no input). The raw fields stay in Isar — the preset is a UI fold only — so legacy rows continue working with no migration.
 | Cursor | `lastProcessedEventId`, `lastProcessedCreated`, `lastRunAt` |
 
 ### 1.2 The "Life Lessons Replier" example

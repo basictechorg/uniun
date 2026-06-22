@@ -1957,6 +1957,24 @@
   "ganaFormTriggersSectionTitle": "TRIGGERS",
   "@ganaFormTriggersSectionTitle": { "description": "Section title for trigger config" },
 
+  "ganaFormTriggerQuestion": "When should this run?",
+  "@ganaFormTriggerQuestion": { "description": "Header above the trigger preset radio group" },
+
+  "ganaFormPresetOnceOnEnable": "Once, when I enable it",
+  "@ganaFormPresetOnceOnEnable": { "description": "Preset: standalone one-shot — fires on enable" },
+
+  "ganaFormPresetOnceOnFirstMessage": "Once, on the first new message",
+  "@ganaFormPresetOnceOnFirstMessage": { "description": "Preset: one-shot + reactive" },
+
+  "ganaFormPresetEveryMessage": "On every new message",
+  "@ganaFormPresetEveryMessage": { "description": "Preset: recurring + reactive (no interval)" },
+
+  "ganaFormPresetOnSchedule": "On a schedule (every N minutes)",
+  "@ganaFormPresetOnSchedule": { "description": "Preset: recurring + interval only" },
+
+  "ganaFormPresetMessageOrSchedule": "On every new message AND on a timer",
+  "@ganaFormPresetMessageOrSchedule": { "description": "Preset: recurring + reactive + interval" },
+
   "ganaFormReactiveLabel": "React to new input",
   "@ganaFormReactiveLabel": { "description": "Reactive trigger toggle label" },
 

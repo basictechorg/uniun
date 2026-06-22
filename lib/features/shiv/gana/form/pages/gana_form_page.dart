@@ -7,6 +7,7 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
