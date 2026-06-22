@@ -4,7 +4,7 @@
 # BadgerDB data — mounted as a volume at runtime, not baked in.
 db/
 
-# Logs from the host PM2 deployment.
+# Stray host logs from the old PM2 deployment.
 *.log
 uniun.log
 

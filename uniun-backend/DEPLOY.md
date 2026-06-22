@@ -13,7 +13,7 @@ to a Docker container, and ongoing operations once we're on Docker.
 | Port | `127.0.0.1:8082` | Same — `127.0.0.1:8082` |
 | nginx vhost | Unchanged | Unchanged |
 | Env | Set inline via PM2 | Set in shell or `.env` next to `docker-compose.yml` |
-| Logs | PM2 file logs | `docker logs uniun-relay` (json-file driver, 5 × 10 MB rotation) |
+| Logs | PM2 file logs | `uniun-logs` named docker volume (`uniun.log`, persists across rebuilds) + `docker logs uniun-relay` for live tail |
 | BadgerDB | `./db/` | Same — bind-mounted as `./db:/data/db` |
 
 ## Prerequisites on the VM
@@ -64,8 +64,9 @@ chmod 600 .env
 #    cached (only changed Go files are recompiled).
 docker-compose build
 
-# 4. Fix permissions on the BadgerDB directory so the nonroot uid in
+# 4. Fix permissions on the BadgerDB bind-mount so the nonroot uid in
 #    the container can write to it. nonroot in distroless is uid 65532.
+#    (Logs use a named docker volume — no host-side prep needed.)
 sudo chown -R 65532:65532 ./db
 
 # 5. Stop the PM2 process (this is the only downtime window — a few
