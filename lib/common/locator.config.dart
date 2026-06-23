@@ -18,6 +18,7 @@ import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart'
     as _i734;
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart'
     as _i226;
+import 'package:uniun/core/share_intent/share_intent_service.dart' as _i794;
 import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
 import 'package:uniun/data/datasources/blossom_client.dart' as _i706;
 import 'package:uniun/data/datasources/feed_read_state_store.dart' as _i752;
@@ -201,6 +202,8 @@ import 'package:uniun/features/private_channels/detail/bloc/private_channel_deta
 import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart'
     as _i926;
 import 'package:uniun/features/profile/bloc/user_profile_bloc.dart' as _i959;
+import 'package:uniun/features/receive_share/bloc/receive_share_bloc.dart'
+    as _i939;
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart' as _i859;
 import 'package:uniun/features/settings/cubit/settings_cubit.dart' as _i331;
 import 'package:uniun/features/settings/cubit/storage_cubit.dart' as _i13;
@@ -256,6 +259,10 @@ extension GetItInjectableX on _i174.GetIt {
     await gh.singletonAsync<_i789.ToStore>(
       () => tostoreModule.createTostore(),
       preResolve: true,
+    );
+    gh.lazySingleton<_i794.ShareIntentService>(
+      () => _i794.ShareIntentService(),
+      dispose: (i) => i.dispose(),
     );
     gh.lazySingleton<_i706.BlossomClient>(() => _i706.BlossomClient());
     gh.lazySingleton<_i393.ModelTaskQueue>(() => _i393.ModelTaskQueue());
@@ -1276,6 +1283,22 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i587.EmbeddingService>(),
         gh<_i739.VectorRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.factory<_i939.ReceiveShareBloc>(
+      () => _i939.ReceiveShareBloc(
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i537.SaveDraftUseCase>(),
       ),
     );
     gh.factory<_i886.BrahmaCreateBloc>(

@@ -96,6 +96,81 @@ Future<PickedMedia?> showMediaPickSheet(BuildContext context) async {
   }
 }
 
+/// Converts a file shared INTO the app (from the OS share sheet, via
+/// `receive_sharing_intent`) into a [PickedMedia] ready for `UploadMediaUseCase`.
+///
+/// Reuses the same compression + upload-cap rules as the in-app picker so an
+/// imported photo/video is treated identically to a user-picked one. The kind
+/// is inferred from [mimeType] (falling back to the path extension). Returns
+/// null when the file is missing/unreadable or still exceeds the cap after
+/// compression — the caller surfaces a generic message (no snackbar here, since
+/// there is no widget context during an inbound share).
+Future<PickedMedia?> sharedFileToPicked({
+  required String path,
+  String? mimeType,
+}) async {
+  final file = File(path);
+  if (!await file.exists()) return null;
+  final mime = mimeType ?? lookupMimeType(path) ?? 'application/octet-stream';
+
+  // ── Image: compress to the upload budget, then decode dimensions. ──────────
+  if (mime.startsWith('image/')) {
+    final raw = await file.readAsBytes();
+    final budget = Platform.isWindows
+        ? AppConstants.kMaxUploadBytesWindows
+        : AppConstants.kMaxUploadBytes;
+    final compressed = await ImageCompressor.compressToTarget(
+      source: raw,
+      targetBytes: budget,
+    );
+    if (compressed == null || compressed.length > budget) return null;
+    final outMime = Platform.isWindows ? mime : 'image/jpeg';
+    final filename = Platform.isWindows
+        ? p.basename(path)
+        : '${p.basenameWithoutExtension(path)}.jpg';
+    final dim = await _decodeImageDim(compressed);
+    return PickedMedia(
+      bytes: compressed,
+      mime: outMime,
+      filename: filename,
+      width: dim?.$1,
+      height: dim?.$2,
+    );
+  }
+
+  // ── Video: compress, then size-check. ──────────────────────────────────────
+  if (mime.startsWith('video/')) {
+    final compressed = await VideoCompressor.compressToTarget(
+      sourcePath: path,
+      targetBytes: AppConstants.kMaxBinaryUploadBytes,
+    );
+    final upload = compressed ?? file;
+    if (!await _withinUploadCap(upload)) return null;
+    return PickedMedia(
+      bytes: await upload.readAsBytes(),
+      mime: lookupMimeType(upload.path) ?? mime,
+      filename: p.basename(path),
+    );
+  }
+
+  // ── Arbitrary file: size-check only. ───────────────────────────────────────
+  if (!await _withinUploadCap(file)) return null;
+  return PickedMedia(
+    bytes: await file.readAsBytes(),
+    mime: mime,
+    filename: p.basename(path),
+  );
+}
+
+/// Silent upload-cap check (no snackbar) for the inbound-share path.
+Future<bool> _withinUploadCap(File file) async {
+  try {
+    return (await file.length()) <= AppConstants.kMaxBinaryUploadBytes;
+  } catch (_) {
+    return true;
+  }
+}
+
 class _PickTile extends StatelessWidget {
   const _PickTile({
     required this.icon,

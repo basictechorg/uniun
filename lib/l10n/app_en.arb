@@ -153,6 +153,12 @@
   "drawerNoMessages": "No messages yet",
   "@drawerNoMessages": { "description": "Empty state for DMs in drawer" },
 
+  "drawerSearchHint": "Search",
+  "@drawerSearchHint": { "description": "Placeholder for the drawer search field" },
+
+  "drawerSearchNoResults": "No matches",
+  "@drawerSearchNoResults": { "description": "Shown in the drawer when a search query has no matching items" },
+
   "drawerCopyNpub": "Copy npub",
   "@drawerCopyNpub": { "description": "QR sheet action button" },
 
@@ -2114,5 +2120,26 @@
   },
 
   "manthanRetry": "Try again",
-  "@manthanRetry": { "description": "Retry button label on the Manthan error state" }
+  "@manthanRetry": { "description": "Retry button label on the Manthan error state" },
+
+  "receiveShareTitle": "Add to UNIUN",
+  "@receiveShareTitle": { "description": "Title of the sheet shown when content is shared into UNIUN from another app" },
+
+  "receiveShareCommentHint": "Say something… (optional)",
+  "@receiveShareCommentHint": { "description": "Composer hint on the receive-share sheet" },
+
+  "receiveShareSaveDraft": "Save to draft",
+  "@receiveShareSaveDraft": { "description": "Draft button label on the receive-share sheet" },
+
+  "receiveShareDraftSaved": "Saved to drafts",
+  "@receiveShareDraftSaved": { "description": "Snackbar after saving shared content as a draft" },
+
+  "receiveShareIngesting": "Preparing attachments…",
+  "@receiveShareIngesting": { "description": "Shown while shared images/videos/files are being uploaded" },
+
+  "receiveShareDraftNeedsText": "Add some text to save a draft",
+  "@receiveShareDraftNeedsText": { "description": "Error when trying to save a draft with no text (drafts are text-only)" },
+
+  "receiveShareNothingToShare": "Add text or media first",
+  "@receiveShareNothingToShare": { "description": "Error when trying to publish with no text and no attachments" }
 }

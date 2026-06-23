@@ -32,6 +32,7 @@ abstract class AppRoutes {
   static const privateChannelDetail = 'privateChannelDetail';
   static const scanQr = 'scanQr';
   static const userProfile = 'userProfile';
+  static const receiveShare = 'receiveShare';
   static const mediaGallery = 'mediaGallery';
   static const mediaDetail = 'mediaDetail';
   static const brahmaManasForm = 'brahmaManasForm';

@@ -162,6 +162,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerNoMessages => 'No messages yet';
 
   @override
+  String get drawerSearchHint => 'Search';
+
+  @override
+  String get drawerSearchNoResults => 'No matches';
+
+  @override
   String get drawerCopyNpub => 'Copy npub';
 
   @override
@@ -2252,4 +2258,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manthanRetry => 'Try again';
+
+  @override
+  String get receiveShareTitle => 'Add to UNIUN';
+
+  @override
+  String get receiveShareCommentHint => 'Say something… (optional)';
+
+  @override
+  String get receiveShareSaveDraft => 'Save to draft';
+
+  @override
+  String get receiveShareDraftSaved => 'Saved to drafts';
+
+  @override
+  String get receiveShareIngesting => 'Preparing attachments…';
+
+  @override
+  String get receiveShareDraftNeedsText => 'Add some text to save a draft';
+
+  @override
+  String get receiveShareNothingToShare => 'Add text or media first';
 }

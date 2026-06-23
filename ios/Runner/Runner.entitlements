@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Inbound share: shared App Group container the Share Extension writes
+	     into and the host app reads from (receive_sharing_intent). Must match
+	     the value on ShareExtension.entitlements. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.in.uniun.app</string>
+	</array>
 	<!-- Universal links. Requires
 	     https://www.uniun.in/.well-known/apple-app-site-association
 	     listing this app's <TeamID>.<bundleId> and the matched paths. -->

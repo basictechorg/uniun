@@ -13,11 +13,75 @@ import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
+import 'package:uniun/features/vishnu/drawer/utils/drawer_search.dart';
 
-class VishnuDrawer extends StatelessWidget {
+class VishnuDrawer extends StatefulWidget {
   const VishnuDrawer({super.key});
 
+  @override
+  State<VishnuDrawer> createState() => _VishnuDrawerState();
+}
+
+class _VishnuDrawerState extends State<VishnuDrawer> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _close(BuildContext context) => Navigator.pop(context);
+
+  // Reuses the exact per-surface navigation of the sectioned rows, switched on
+  // the result's kind. Keeps the unified search list free of nav branching.
+  Future<void> _onResultTap(
+    BuildContext context,
+    DrawerSearchResult result,
+  ) async {
+    switch (result.kind) {
+      case DrawerSearchKind.channel:
+        _close(context);
+        context.pushNamed(
+          AppRoutes.channelDetail,
+          pathParameters: {'channelId': result.id},
+        );
+      case DrawerSearchKind.privateChannel:
+        _close(context);
+        context.pushNamed(
+          AppRoutes.privateChannelDetail,
+          pathParameters: {'groupId': result.id},
+        );
+      case DrawerSearchKind.dm:
+        _close(context);
+        context.pushNamed(
+          AppRoutes.chatDm,
+          pathParameters: {'id': result.id},
+        );
+      case DrawerSearchKind.followedUser:
+        _close(context);
+        context.pushNamed(
+          AppRoutes.userProfile,
+          extra: UserProfileArgs(pubkeyHex: result.id),
+        );
+      case DrawerSearchKind.followedNote:
+        _close(context);
+        getIt<ClearNewReferencesUseCase>().call(result.id);
+        await openEventThread(
+          context,
+          result.id,
+          openAsNote: () => context.pushNamed(
+            AppRoutes.thread,
+            pathParameters: {'noteId': result.id},
+          ),
+        );
+        // ignore: use_build_context_synchronously
+        if (context.mounted) {
+          context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
+        }
+    }
+  }
 
   void _showComingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
@@ -49,7 +113,14 @@ class VishnuDrawer extends StatelessWidget {
               ),
 
               Expanded(
-                child: ListView(
+                child: _query.trim().isNotEmpty
+                    ? _SearchResultsList(
+                        results: loaded == null
+                            ? const <DrawerSearchResult>[]
+                            : buildDrawerSearchResults(loaded, _query),
+                        onTap: (r) => _onResultTap(context, r),
+                      )
+                    : ListView(
                   padding:
                       const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                   children: [
@@ -73,6 +144,7 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Following Notes (collapsible) ─────────────────────
                     _CollapsibleSection(
+                      icon: Icons.notifications_none_rounded,
                       title: l10n.drawerFollowingNotes,
                       itemCount: (loaded?.followedNotes ?? []).length,
                       emptyHint: l10n.drawerNoFollowedNotes,
@@ -107,6 +179,7 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Following Users (collapsible) ─────────────────────
                     _CollapsibleSection(
+                      icon: Icons.person_outline_rounded,
                       title: l10n.drawerFollowingSectionTitle,
                       itemCount: (loaded?.followedUsers ?? []).length,
                       emptyHint: l10n.drawerFollowingEmpty,
@@ -136,6 +209,7 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Channels (collapsible) ────────────────────────────
                     _CollapsibleSection(
+                      icon: Icons.tag_rounded,
                       title: l10n.drawerChannels,
                       itemCount: (loaded?.channels ?? []).length,
                       emptyHint: l10n.drawerNoChannels,
@@ -162,6 +236,7 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Private Channels (collapsible) ────────────────────
                     _CollapsibleSection(
+                      icon: Icons.lock_outline_rounded,
                       title: l10n.drawerPrivateChannels,
                       itemCount: (loaded?.privateChannels ?? []).length,
                       emptyHint: l10n.drawerNoPrivateChannels,
@@ -188,6 +263,7 @@ class VishnuDrawer extends StatelessWidget {
 
                     // ── Direct Messages (collapsible) ─────────────────────
                     _CollapsibleSection(
+                      icon: Icons.chat_bubble_outline_rounded,
                       title: l10n.drawerDirectMessages,
                       itemCount: (loaded?.dms ?? []).length,
                       emptyHint: l10n.drawerNoMessages,
@@ -211,6 +287,15 @@ class VishnuDrawer extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+
+              _DrawerSearchField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _query = v),
+                onClear: () => setState(() {
+                  _searchController.clear();
+                  _query = '';
+                }),
               ),
 
               _DrawerFooter(
@@ -326,6 +411,7 @@ class _DrawerHeader extends StatelessWidget {
 
 class _CollapsibleSection extends StatefulWidget {
   const _CollapsibleSection({
+    required this.icon,
     required this.title,
     required this.itemCount,
     required this.emptyHint,
@@ -333,6 +419,7 @@ class _CollapsibleSection extends StatefulWidget {
     this.onAdd,
   });
 
+  final IconData icon;
   final String title;
   final int itemCount;
   final String emptyHint;
@@ -360,6 +447,8 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               children: [
+                Icon(widget.icon, size: 14, color: AppColors.primary),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.title,
@@ -367,7 +456,7 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
-                      color: AppColors.outline,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -475,7 +564,8 @@ class _FollowedNoteRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
           children: [
-            const Icon(Icons.notifications, size: 16, color: AppColors.outline),
+            const Icon(Icons.notifications_none_rounded,
+                size: 16, color: AppColors.outline),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -555,11 +645,13 @@ class _PrivateChannelRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         child: Row(
           children: [
-            const Icon(Icons.lock_rounded, size: 16, color: AppColors.outline),
+            const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.outline),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 channel.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight:
@@ -605,6 +697,8 @@ class _ChannelRow extends StatelessWidget {
             Expanded(
               child: Text(
                 channel.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight:
@@ -683,7 +777,171 @@ class _DmRow extends StatelessWidget {
   }
 }
 
-// ── App row ────────────────────────────────────────────────────────────────────
+// ── Search field ───────────────────────────────────────────────────────────────
+//
+// Pinned at the bottom of the drawer, above the Settings footer. While it holds
+// text the body above swaps to a unified result list (_SearchResultsList).
+
+class _DrawerSearchField extends StatelessWidget {
+  const _DrawerSearchField({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: color),
+        );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        style: const TextStyle(fontSize: 14, color: AppColors.onSurface),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: l10n.drawerSearchHint,
+          hintStyle: const TextStyle(fontSize: 14, color: AppColors.outline),
+          prefixIcon: const Icon(Icons.search_rounded,
+              size: 18, color: AppColors.outline),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 36, minHeight: 36),
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : GestureDetector(
+                  onTap: onClear,
+                  child: const Icon(Icons.close_rounded,
+                      size: 18, color: AppColors.outline),
+                ),
+          suffixIconConstraints:
+              const BoxConstraints(minWidth: 36, minHeight: 36),
+          filled: true,
+          fillColor: AppColors.surfaceContainerLow,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          border: border(Colors.transparent),
+          enabledBorder: border(Colors.transparent),
+          focusedBorder: border(AppColors.primary.withValues(alpha: 0.5)),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Search results ─────────────────────────────────────────────────────────────
+//
+// Flat, mixed list of matches across every drawer surface. Each row carries a
+// leading type icon so intermixed kinds stay identifiable at a glance.
+
+IconData _searchIconFor(DrawerSearchKind kind) {
+  switch (kind) {
+    case DrawerSearchKind.channel:
+      return Icons.tag_rounded;
+    case DrawerSearchKind.privateChannel:
+      return Icons.lock_outline_rounded;
+    case DrawerSearchKind.dm:
+      return Icons.chat_bubble_outline_rounded;
+    case DrawerSearchKind.followedNote:
+      return Icons.notifications_none_rounded;
+    case DrawerSearchKind.followedUser:
+      return Icons.person_outline_rounded;
+  }
+}
+
+class _SearchResultsList extends StatelessWidget {
+  const _SearchResultsList({required this.results, required this.onTap});
+
+  final List<DrawerSearchResult> results;
+  final void Function(DrawerSearchResult result) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    if (results.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Text(
+          l10n.drawerSearchNoResults,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.outlineVariant,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      itemCount: results.length,
+      itemBuilder: (_, i) => _SearchResultRow(
+        result: results[i],
+        onTap: () => onTap(results[i]),
+      ),
+    );
+  }
+}
+
+class _SearchResultRow extends StatelessWidget {
+  const _SearchResultRow({required this.result, required this.onTap});
+
+  final DrawerSearchResult result;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Icon(_searchIconFor(result.kind),
+                size: 18, color: AppColors.outline),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                result.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight:
+                      result.hasUnread ? FontWeight.w600 : FontWeight.w400,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (result.hasUnread)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // ── Empty hint ─────────────────────────────────────────────────────────────────
 
