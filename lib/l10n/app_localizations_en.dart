@@ -1943,17 +1943,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormNameHint => 'e.g. Life Lessons Replier';
 
   @override
-  String get ganaFormDescriptionLabel => 'Description';
-
-  @override
-  String get ganaFormDescriptionHint => 'Optional. What is this Gana for?';
-
-  @override
-  String get ganaFormManasSectionTitle => 'MANASES';
+  String get ganaFormManasSectionTitle => 'KNOWLEDGE';
 
   @override
   String get ganaFormManasSectionSubtitle =>
-      'Pick one or more Manases the Gana will use as knowledge.';
+      'The Manas this Gana reasons over.';
 
   @override
   String get ganaFormManasEmpty =>

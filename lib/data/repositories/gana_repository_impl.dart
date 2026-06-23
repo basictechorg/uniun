@@ -22,7 +22,6 @@ class GanaRepositoryImpl extends GanaRepository {
       final model = GanaModel()
         ..ganaId = g.ganaId
         ..name = g.name
-        ..description = g.description
         ..manasIds = g.manasIds
         ..taskPrompt = g.taskPrompt
         ..inputType = g.inputType

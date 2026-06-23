@@ -20,11 +20,10 @@ class GanaModel {
   late String ganaId;
 
   late String name;
-  String? description;
 
-  /// One or more Manases backing the Gana's knowledge. Set semantics —
-  /// duplicates are dedup'd by the engine before context packing. Stored as
-  /// a free list because Isar does not support set columns.
+  /// The Manas backing the Gana's knowledge. Stored as a list (Isar has no
+  /// set columns); the form selects exactly one, but the engine still treats
+  /// it as a union so legacy multi-Manas rows keep working.
   List<String> manasIds = const [];
 
   /// User-authored instructions injected into every prompt.
@@ -120,7 +119,6 @@ extension GanaModelExtension on GanaModel {
   GanaEntity toDomain() => GanaEntity(
         ganaId: ganaId,
         name: name,
-        description: description,
         manasIds: manasIds,
         taskPrompt: taskPrompt,
         inputType: inputType,

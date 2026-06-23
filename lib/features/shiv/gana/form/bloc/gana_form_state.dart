@@ -8,8 +8,7 @@ class GanaFormState {
     this.isEditMode = false,
     this.ganaId,
     this.name = '',
-    this.description = '',
-    this.selectedManasIds = const <String>{},
+    this.selectedManasId,
     this.taskPrompt = '',
     this.inputType,
     this.inputRefId,
@@ -38,8 +37,10 @@ class GanaFormState {
   final String? ganaId;
 
   final String name;
-  final String description;
-  final Set<String> selectedManasIds;
+
+  /// Single Manas backing the Gana (null until picked). Persisted as a
+  /// one-element `manasIds` list on the entity.
+  final String? selectedManasId;
   final String taskPrompt;
 
   final GanaInputType? inputType;
@@ -88,7 +89,7 @@ class GanaFormState {
   bool get canSave {
     if (name.trim().isEmpty) return false;
     if (taskPrompt.trim().isEmpty) return false;
-    if (selectedManasIds.isEmpty) return false;
+    if (selectedManasId == null) return false;
     if (inputType != null && (inputRefId == null || inputRefId!.isEmpty)) {
       return false;
     }
@@ -141,7 +142,7 @@ class GanaFormState {
   /// "no reason; save should be possible".
   String? saveBlocker(AppLocalizations l10n) {
     if (name.trim().isEmpty) return l10n.ganaFormBlockerName;
-    if (selectedManasIds.isEmpty) return l10n.ganaFormBlockerManas;
+    if (selectedManasId == null) return l10n.ganaFormBlockerManas;
     if (taskPrompt.trim().isEmpty) return l10n.ganaFormBlockerTask;
     if (inputType != null && (inputRefId == null || inputRefId!.isEmpty)) {
       return l10n.ganaFormBlockerInputRef;
@@ -187,8 +188,8 @@ class GanaFormState {
     bool? isEditMode,
     String? ganaId,
     String? name,
-    String? description,
-    Set<String>? selectedManasIds,
+    String? selectedManasId,
+    bool clearSelectedManasId = false,
     String? taskPrompt,
     GanaInputType? inputType,
     bool clearInputType = false,
@@ -225,8 +226,9 @@ class GanaFormState {
       isEditMode: isEditMode ?? this.isEditMode,
       ganaId: ganaId ?? this.ganaId,
       name: name ?? this.name,
-      description: description ?? this.description,
-      selectedManasIds: selectedManasIds ?? this.selectedManasIds,
+      selectedManasId: clearSelectedManasId
+          ? null
+          : (selectedManasId ?? this.selectedManasId),
       taskPrompt: taskPrompt ?? this.taskPrompt,
       inputType: clearInputType ? null : (inputType ?? this.inputType),
       inputRefId: clearInputRefId ? null : (inputRefId ?? this.inputRefId),

@@ -4,7 +4,6 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.state,
     required this.nameCtrl,
-    required this.descCtrl,
     required this.taskCtrl,
     required this.userRefCtrl,
     required this.intervalCtrl,
@@ -13,7 +12,6 @@ class _Body extends StatelessWidget {
 
   final GanaFormState state;
   final TextEditingController nameCtrl;
-  final TextEditingController descCtrl;
   final TextEditingController taskCtrl;
   final TextEditingController userRefCtrl;
   final TextEditingController intervalCtrl;
@@ -23,152 +21,288 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
-        _FieldLabel(l10n.ganaFormNameLabel),
-        const SizedBox(height: 6),
-        TextField(
-          controller: nameCtrl,
-          decoration: _inputDeco(l10n.ganaFormNameHint),
-          onChanged: (v) =>
-              context.read<GanaFormBloc>().add(GanaFormNameChangedEvent(v)),
-          maxLength: 60,
-        ),
-        const SizedBox(height: 12),
-        _FieldLabel(l10n.ganaFormDescriptionLabel),
-        const SizedBox(height: 6),
-        TextField(
-          controller: descCtrl,
-          decoration: _inputDeco(l10n.ganaFormDescriptionHint),
-          onChanged: (v) => context
-              .read<GanaFormBloc>()
-              .add(GanaFormDescriptionChangedEvent(v)),
-          minLines: 2,
-          maxLines: 4,
-        ),
-        const SizedBox(height: 24),
-        _SectionTitle(l10n.ganaFormManasSectionTitle),
-        const SizedBox(height: 4),
-        _SectionSubtitle(l10n.ganaFormManasSectionSubtitle),
-        const SizedBox(height: 10),
-        if (state.manases.isEmpty)
-          _NoManasesCta()
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+        // ── Identity ──────────────────────────────────────────────────────
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final m in state.manases)
-                FilterChip(
-                  label: Text(m.name),
-                  selected: state.selectedManasIds.contains(m.manasId),
-                  onSelected: (_) => context
-                      .read<GanaFormBloc>()
-                      .add(GanaFormToggleManasEvent(m.manasId)),
-                  showCheckmark: true,
-                  selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                ),
-              // "+ Create" trailing affordance — opens Brahma's Manas form
-              // and reloads picker pools on return.
-              ActionChip(
-                avatar: const Icon(Icons.add, size: 16,
-                    color: AppColors.primary),
-                label: Text(l10n.ganaFormManasCreateNew,
-                    style: const TextStyle(color: AppColors.primary)),
-                onPressed: () async {
-                  final created = await context.pushNamed<bool>(
-                      AppRoutes.brahmaManasForm);
-                  if (created == true && context.mounted) {
-                    context
-                        .read<GanaFormBloc>()
-                        .add(GanaFormLoadEvent(state.ganaId));
-                  }
-                },
+              _FieldLabel(l10n.ganaFormNameLabel),
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameCtrl,
+                decoration: _inputDeco(l10n.ganaFormNameHint),
+                onChanged: (v) => context
+                    .read<GanaFormBloc>()
+                    .add(GanaFormNameChangedEvent(v)),
+                maxLength: 60,
+                buildCounter: _noCounter,
               ),
             ],
           ),
-        const SizedBox(height: 24),
-        _FieldLabel(l10n.ganaFormTaskPromptLabel),
-        const SizedBox(height: 6),
-        TextField(
-          controller: taskCtrl,
-          decoration: _inputDeco(l10n.ganaFormTaskPromptHint),
-          onChanged: (v) => context
-              .read<GanaFormBloc>()
-              .add(GanaFormTaskPromptChangedEvent(v)),
-          minLines: 4,
-          maxLines: 10,
         ),
-        const SizedBox(height: 24),
-        _SectionTitle(l10n.ganaFormInputSectionTitle),
-        const SizedBox(height: 10),
-        _InputSection(state: state, userRefCtrl: userRefCtrl),
-        const SizedBox(height: 24),
-        _SectionTitle(l10n.ganaFormOutputSectionTitle),
-        const SizedBox(height: 10),
-        _OutputSection(state: state),
-        const SizedBox(height: 24),
-        _SectionTitle(l10n.ganaFormModelSectionTitle),
-        const SizedBox(height: 10),
-        _ModelDropdown(state: state),
-        const SizedBox(height: 24),
-        _SectionTitle(l10n.ganaFormTriggersSectionTitle),
-        const SizedBox(height: 10),
-        _TriggersSection(
-          state: state,
-          intervalCtrl: intervalCtrl,
-          maxOutputsCtrl: maxOutputsCtrl,
+        const SizedBox(height: 14),
+        // ── Task ──────────────────────────────────────────────────────────
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionTitle(l10n.ganaFormTaskPromptLabel),
+              const SizedBox(height: 10),
+              TextField(
+                controller: taskCtrl,
+                decoration: _inputDeco(l10n.ganaFormTaskPromptHint),
+                onChanged: (v) => context
+                    .read<GanaFormBloc>()
+                    .add(GanaFormTaskPromptChangedEvent(v)),
+                minLines: 4,
+                maxLines: 10,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        _EnabledSwitch(state: state),
+        const SizedBox(height: 14),
+        // ── Knowledge (single Manas) ──────────────────────────────────────
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionTitle(l10n.ganaFormManasSectionTitle),
+              const SizedBox(height: 4),
+              _SectionSubtitle(l10n.ganaFormManasSectionSubtitle),
+              const SizedBox(height: 12),
+              if (state.manases.isEmpty)
+                _NoManasesCta()
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final m in state.manases)
+                      FilterChip(
+                        label: Text(m.name),
+                        selected: state.selectedManasId == m.manasId,
+                        onSelected: (_) => context
+                            .read<GanaFormBloc>()
+                            .add(GanaFormToggleManasEvent(m.manasId)),
+                        showCheckmark: true,
+                        selectedColor:
+                            AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    // "+ Create" trailing affordance — opens Brahma's Manas
+                    // form and reloads picker pools on return.
+                    ActionChip(
+                      avatar: const Icon(Icons.add,
+                          size: 16, color: AppColors.primary),
+                      label: Text(l10n.ganaFormManasCreateNew,
+                          style: const TextStyle(color: AppColors.primary)),
+                      onPressed: () async {
+                        final created = await context
+                            .pushNamed<bool>(AppRoutes.brahmaManasForm);
+                        if (created == true && context.mounted) {
+                          context
+                              .read<GanaFormBloc>()
+                              .add(GanaFormLoadEvent(state.ganaId));
+                        }
+                      },
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // ── Connections (input · output · model) ──────────────────────────
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionTitle(l10n.ganaFormInputSectionTitle),
+              const SizedBox(height: 10),
+              _InputSection(state: state, userRefCtrl: userRefCtrl),
+              const _CardDivider(),
+              _SectionTitle(l10n.ganaFormOutputSectionTitle),
+              const SizedBox(height: 10),
+              _OutputSection(state: state),
+              const _CardDivider(),
+              _SectionTitle(l10n.ganaFormModelSectionTitle),
+              const SizedBox(height: 10),
+              _ModelDropdown(state: state),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // ── Schedule ──────────────────────────────────────────────────────
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionTitle(l10n.ganaFormTriggersSectionTitle),
+              const SizedBox(height: 10),
+              _TriggersSection(
+                state: state,
+                intervalCtrl: intervalCtrl,
+                maxOutputsCtrl: maxOutputsCtrl,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // ── Enable ────────────────────────────────────────────────────────
+        _Card(child: _EnabledSwitch(state: state)),
         // Save-blocker hint — only shows when canSave is false. Tells the
         // user exactly what's missing so they don't have to guess why the
-        // top-right Save button is greyed out.
+        // Save button is greyed out.
         if (!state.canSave) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           _SaveBlockerHint(reason: state.saveBlocker(l10n) ?? ''),
-        ],
-        if (state.isEditMode) ...[
-          const SizedBox(height: 32),
-          OutlinedButton.icon(
-            onPressed: () => _confirmDelete(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
-              side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: Text(l10n.ganaFormDeleteAction),
-          ),
         ],
       ],
     );
   }
+}
 
-  Future<void> _confirmDelete(BuildContext context) async {
+/// Rounded white container that groups one logical section. The page sits on
+/// a tinted [AppColors.surfaceContainerLow] background so these cards pop.
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: child,
+      );
+}
+
+/// Hairline separator between sub-sections inside a single [_Card].
+class _CardDivider extends StatelessWidget {
+  const _CardDivider();
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Divider(
+          height: 1,
+          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        ),
+      );
+}
+
+/// Sticky bottom action bar — primary Save plus, in edit mode, a destructive
+/// delete affordance. Replaces the easy-to-miss greyed AppBar action.
+class _SaveBar extends StatelessWidget {
+  const _SaveBar({required this.state});
+  final GanaFormState state;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(l10n.ganaFormDeleteConfirmTitle),
-        content: Text(l10n.ganaFormDeleteConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: Text(l10n.ganaFormDeleteConfirmCancel),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: Text(l10n.ganaFormDeleteConfirmConfirm),
-          ),
-        ],
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            if (state.isEditMode) ...[
+              SizedBox(
+                width: 54,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: () => _confirmDeleteGana(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(
+                        color: AppColors.error.withValues(alpha: 0.4)),
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded, size: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: state.canSave
+                      ? () => context
+                          .read<GanaFormBloc>()
+                          .add(const GanaFormSubmitEvent())
+                      : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor:
+                        AppColors.outlineVariant.withValues(alpha: 0.5),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(
+                    l10n.ganaFormSaveAction,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
-    if (ok != true) return;
-    if (context.mounted) {
-      context.read<GanaFormBloc>().add(const GanaFormDeleteEvent());
-    }
+  }
+}
+
+/// Counter-suppressing builder for the name field — keeps the card tidy.
+Widget? _noCounter(
+  BuildContext context, {
+  required int currentLength,
+  required bool isFocused,
+  int? maxLength,
+}) =>
+    null;
+
+Future<void> _confirmDeleteGana(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      title: Text(l10n.ganaFormDeleteConfirmTitle),
+      content: Text(l10n.ganaFormDeleteConfirmBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(false),
+          child: Text(l10n.ganaFormDeleteConfirmCancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: Text(l10n.ganaFormDeleteConfirmConfirm),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return;
+  if (context.mounted) {
+    context.read<GanaFormBloc>().add(const GanaFormDeleteEvent());
   }
 }
 

@@ -93,14 +93,6 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   children: [
-                    if (g.description != null && g.description!.isNotEmpty) ...[
-                      Text(
-                        g.description!,
-                        style: const TextStyle(
-                            fontSize: 14, color: AppColors.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                     _StatusRow(gana: g),
                     const SizedBox(height: 24),
                     Text(

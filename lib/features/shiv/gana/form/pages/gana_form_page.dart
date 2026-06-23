@@ -42,7 +42,6 @@ class _GanaFormView extends StatefulWidget {
 
 class _GanaFormViewState extends State<_GanaFormView> {
   final _nameCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
   final _taskCtrl = TextEditingController();
   final _userRefCtrl = TextEditingController();
   final _intervalCtrl = TextEditingController();
@@ -52,7 +51,6 @@ class _GanaFormViewState extends State<_GanaFormView> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _descCtrl.dispose();
     _taskCtrl.dispose();
     _userRefCtrl.dispose();
     _intervalCtrl.dispose();
@@ -74,7 +72,6 @@ class _GanaFormViewState extends State<_GanaFormView> {
         if (state.status == GanaFormStatus.ready && !_seeded) {
           _seeded = true;
           _nameCtrl.text = state.name;
-          _descCtrl.text = state.description;
           _taskCtrl.text = state.taskPrompt;
           _userRefCtrl.text = state.inputType == GanaInputType.user
               ? (state.inputRefId ?? '')
@@ -98,9 +95,9 @@ class _GanaFormViewState extends State<_GanaFormView> {
         final isEdit = state.isEditMode;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.surfaceContainerLow,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.surfaceContainerLow,
             scrolledUnderElevation: 0,
             leading:
                 UniunBackButton(onPressed: () => Navigator.of(context).pop()),
@@ -116,31 +113,6 @@ class _GanaFormViewState extends State<_GanaFormView> {
                 color: AppColors.onSurface,
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: state.canSave
-                    ? () => context
-                        .read<GanaFormBloc>()
-                        .add(const GanaFormSubmitEvent())
-                    : null,
-                child: Text(
-                  l10n.ganaFormSaveAction,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: state.canSave
-                        ? AppColors.primary
-                        : AppColors.outlineVariant,
-                  ),
-                ),
-              ),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(
-                height: 1,
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
           ),
           body: loading
               ? const Center(
@@ -149,12 +121,12 @@ class _GanaFormViewState extends State<_GanaFormView> {
               : _Body(
                   state: state,
                   nameCtrl: _nameCtrl,
-                  descCtrl: _descCtrl,
                   taskCtrl: _taskCtrl,
                   userRefCtrl: _userRefCtrl,
                   intervalCtrl: _intervalCtrl,
                   maxOutputsCtrl: _maxOutputsCtrl,
                 ),
+          bottomNavigationBar: loading ? null : _SaveBar(state: state),
         );
       },
     );

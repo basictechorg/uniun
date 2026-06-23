@@ -14,11 +14,6 @@ class GanaFormNameChangedEvent extends GanaFormEvent {
   final String value;
 }
 
-class GanaFormDescriptionChangedEvent extends GanaFormEvent {
-  const GanaFormDescriptionChangedEvent(this.value);
-  final String value;
-}
-
 class GanaFormToggleManasEvent extends GanaFormEvent {
   const GanaFormToggleManasEvent(this.manasId);
   final String manasId;

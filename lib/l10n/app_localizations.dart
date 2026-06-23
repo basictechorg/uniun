@@ -3598,28 +3598,16 @@ abstract class AppLocalizations {
   /// **'e.g. Life Lessons Replier'**
   String get ganaFormNameHint;
 
-  /// Field label
+  /// Section title above the Manas picker
   ///
   /// In en, this message translates to:
-  /// **'Description'**
-  String get ganaFormDescriptionLabel;
-
-  /// Description placeholder
-  ///
-  /// In en, this message translates to:
-  /// **'Optional. What is this Gana for?'**
-  String get ganaFormDescriptionHint;
-
-  /// Section title above the Manas multi-select
-  ///
-  /// In en, this message translates to:
-  /// **'MANASES'**
+  /// **'KNOWLEDGE'**
   String get ganaFormManasSectionTitle;
 
   /// Helper text under the section title
   ///
   /// In en, this message translates to:
-  /// **'Pick one or more Manases the Gana will use as knowledge.'**
+  /// **'The Manas this Gana reasons over.'**
   String get ganaFormManasSectionSubtitle;
 
   /// Empty-state when the user has no Manases

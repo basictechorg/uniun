@@ -1828,16 +1828,10 @@
   "ganaFormNameHint": "e.g. Life Lessons Replier",
   "@ganaFormNameHint": { "description": "Name field placeholder" },
 
-  "ganaFormDescriptionLabel": "Description",
-  "@ganaFormDescriptionLabel": { "description": "Field label" },
+  "ganaFormManasSectionTitle": "KNOWLEDGE",
+  "@ganaFormManasSectionTitle": { "description": "Section title above the Manas picker" },
 
-  "ganaFormDescriptionHint": "Optional. What is this Gana for?",
-  "@ganaFormDescriptionHint": { "description": "Description placeholder" },
-
-  "ganaFormManasSectionTitle": "MANASES",
-  "@ganaFormManasSectionTitle": { "description": "Section title above the Manas multi-select" },
-
-  "ganaFormManasSectionSubtitle": "Pick one or more Manases the Gana will use as knowledge.",
+  "ganaFormManasSectionSubtitle": "The Manas this Gana reasons over.",
   "@ganaFormManasSectionSubtitle": { "description": "Helper text under the section title" },
 
   "ganaFormManasEmpty": "No Manases yet. A Gana needs a knowledge base to reason over — create one to continue.",
