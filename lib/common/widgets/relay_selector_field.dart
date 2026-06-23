@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
@@ -192,7 +193,7 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_loading)
-          const Center(child: CircularProgressIndicator())
+          const Center(child: DropLoadingIndicator())
         else
           InkWell(
             onTap: _openPicker,

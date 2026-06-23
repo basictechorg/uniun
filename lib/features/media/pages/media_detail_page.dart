@@ -6,6 +6,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/save_to_device.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
@@ -47,7 +48,7 @@ class _MediaDetailView extends StatelessWidget {
           ),
           body: blob == null
               ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child: DropLoadingIndicator(color: AppColors.primary),
                 )
               : _DetailBody(blob: blob),
         );

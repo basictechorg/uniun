@@ -1,0 +1,27 @@
+import 'package:dartz/dartz.dart';
+import 'package:uniun/core/error/failures.dart';
+
+/// Device-local app settings (shared-preferences backed). Presentation reads
+/// these through use cases → this repository, never the datasource directly.
+abstract class AppSettingsRepository {
+  /// Whether the Manthan first-run coach overlay ("Swipe to explore ideas")
+  /// has been dismissed. Shown only once, ever.
+  Future<Either<Failure, bool>> getManthanCoachSeen();
+
+  /// Persist that the Manthan coach overlay has been seen/dismissed.
+  Future<Either<Failure, Unit>> setManthanCoachSeen(bool seen);
+
+  /// Days after which short-lived public notes (Kind 1 / Kind 42) auto-evict;
+  /// `null` = disabled. Read by CleanupManager at Gateway boot.
+  Future<Either<Failure, int?>> getAutoDeleteOldNotesDays();
+
+  /// Persist the auto-delete retention window (`null` = off).
+  Future<Either<Failure, Unit>> setAutoDeleteOldNotesDays(int? days);
+
+  /// Days of history the capped sync surfaces (feed / channel / private-channel
+  /// messages) pull; defaults to 7. Read by the Gateway at boot.
+  Future<Either<Failure, int>> getRecentSyncWindowDays();
+
+  /// Persist the recent-sync window (days of history the capped surfaces pull).
+  Future<Either<Failure, Unit>> setRecentSyncWindowDays(int days);
+}

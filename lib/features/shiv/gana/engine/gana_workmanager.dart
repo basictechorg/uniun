@@ -10,19 +10,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
-import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
-import 'package:uniun/data/models/gana_run_model.dart';
-import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
-import 'package:uniun/features/shiv/gana/engine/gana_input_filter.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
-import 'package:uniun/features/shiv/gana/engine/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/gana_run.dart';
 import 'package:uuid/uuid.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -275,28 +272,24 @@ Future<void> _runOneGana({
       'mode=${gana.triggerMode.name}');
 
   // Self-output guard set.
-  _log('  loading self-output guard set');
-  final selfOutputs = (await isar.ganaRunModels
-          .filter()
-          .ganaIdEqualTo(gana.ganaId)
-          .outputEventIdIsNotNull()
-          .outputEventIdProperty()
-          .findAll())
-      .cast<String>()
-      .toSet();
+  final selfOutputs = await ganaSelfOutputs(isar, gana.ganaId);
   _log('  self-outputs: ${selfOutputs.length} eventIds');
 
-  // Input filter.
-  _log('  fetching input via GanaInputFilter');
-  final inputs = await GanaInputFilter.fetch(
+  // Input → ancestry → knowledge (newest-first in bg) → prompt. Shared with the
+  // foreground engine via [prepareGanaRun]; bg injects the no-DI newest-first
+  // Manas pool (ignores the relevance query).
+  final prepared = await prepareGanaRun(
     isar: isar,
     gana: gana,
     selfPubkeyHex: selfPubkeyHex,
-    selfOutputEventIds: selfOutputs,
+    selfOutputs: selfOutputs,
+    loadKnowledge: (_) => ManasContextLoader.packNewest(
+      isar: isar,
+      manasIds: gana.manasIds,
+      budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
+    ),
   );
-  _log('  input: ${inputs.length} note(s) past cursor');
-
-  if (gana.inputType != null && inputs.isEmpty) {
+  if (prepared == null) {
     _log('  SKIPPED: noNewInput (cursor caught up, nothing to do)');
     await _writeRun(
       isar: isar,
@@ -308,46 +301,11 @@ Future<void> _runOneGana({
     );
     return;
   }
-
-  // Reply ancestry per input.
-  final ancestry = <String, List<NoteModel>>{};
-  for (final n in inputs) {
-    if (n.replyToEventId != null) {
-      ancestry[n.eventId] =
-          await GanaInputFilter.ancestry(isar: isar, note: n);
-    }
-  }
-  if (ancestry.isNotEmpty) {
-    _log('  reply ancestry walked for ${ancestry.length} input(s)');
-  }
-
-  // Manas context.
-  _log('  resolving ${gana.manasIds.length} Manas name(s)');
-  final manasNames = <String>[];
-  for (final id in gana.manasIds) {
-    final m = await isar.manasModels.filter().manasIdEqualTo(id).findFirst();
-    if (m != null) manasNames.add(m.name);
-  }
-  _log('  Manas names: ${manasNames.join(", ")}');
-
-  _log('  packing Manas context '
-      '(budget=${GanaPromptBuilder.defaultMaxTokens ~/ 2} tokens)');
-  final knowledge = await ManasContextLoader.merge(
-    isar: isar,
-    manasIds: gana.manasIds,
-    budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
-  );
-  _log('  knowledge: ${knowledge.length} note(s) packed');
-
-  _log('  building prompt');
-  final prompt = GanaPromptBuilder.build(
-    taskPrompt: gana.taskPrompt,
-    manasNames: manasNames,
-    knowledge: knowledge,
-    inputMessagesByOldestFirst: inputs,
-    replyAncestry: ancestry,
-  );
-  _log('  prompt size: ${prompt.length} chars (~${prompt.length ~/ 4} tokens)');
+  final inputs = prepared.inputs;
+  final prompt = prepared.prompt;
+  _log('  input: ${inputs.length} note(s); Manas: '
+      '${prepared.manasNames.join(", ")}; prompt: ${prompt.length} chars '
+      '(~${prompt.length ~/ 4} tokens)');
 
   if (DateTime.now().isAfter(budgetEnd)) {
     _log('  ABORT: budget exhausted before inference');
@@ -362,10 +320,23 @@ Future<void> _runOneGana({
   var tokenCount = 0;
   DateTime? firstTokenAt;
   try {
-    _log('  opening model handle');
-    final model = await FlutterGemma.getActiveModel(
-      maxTokens: kBackgroundMaxTokens,
-    );
+    _log('  opening model handle (GPU preferred)');
+    // Prefer GPU, fall back to CPU on engine-creation failure — mirrors the
+    // foreground AIModelRunner so a device without a usable GPU delegate still
+    // runs the bg tick instead of failing the whole run.
+    InferenceModel model;
+    try {
+      model = await FlutterGemma.getActiveModel(
+        maxTokens: kBackgroundMaxTokens,
+        preferredBackend: PreferredBackend.gpu,
+      );
+    } catch (e) {
+      _log('  GPU open failed ($e) — retrying on CPU');
+      model = await FlutterGemma.getActiveModel(
+        maxTokens: kBackgroundMaxTokens,
+        preferredBackend: PreferredBackend.cpu,
+      );
+    }
     _log('  opening chat session');
     final chat = await model.openChat(
       temperature: 0.6,
@@ -382,7 +353,7 @@ Future<void> _runOneGana({
           firstTokenAt ??= DateTime.now();
           if (tokenCount == 0) {
             _log('  first token in '
-                '${firstTokenAt!.difference(infStart).inMilliseconds}ms '
+                '${firstTokenAt.difference(infStart).inMilliseconds}ms '
                 '(prefill done)');
           }
           buf.write(response.token);
@@ -443,7 +414,7 @@ Future<void> _runOneGana({
   // If the model was cut off mid-thought (open <think> with no close),
   // the sanitizer returns '' and we treat it as a NOOP skip.
   final trimmed = LlmTextSanitizer.clean(body);
-  if (trimmed.isEmpty || trimmed.toUpperCase() == '<NOOP>') {
+  if (isGanaNoop(trimmed)) {
     _log('  SKIPPED: noopReturned '
         '(body=${trimmed.isEmpty ? "empty/think-only" : "<NOOP>"})');
     await _writeRun(
@@ -643,6 +614,9 @@ Future<String?> _publishInBg({
   return null;
 }
 
+// Run log + cursor advance delegate to the shared, isolate-agnostic
+// [gana_run.dart] helpers so foreground and background can't drift.
+
 Future<void> _writeRun({
   required Isar isar,
   required String runId,
@@ -653,49 +627,28 @@ Future<void> _writeRun({
   List<String> inputEventIds = const [],
   String? outputEventId,
   String? error,
-}) async {
-  await isar.writeTxn(() async {
-    await isar.ganaRunModels.put(
-      GanaRunModel()
-        ..runId = runId
-        ..ganaId = ganaId
-        ..startedAt = startedAt
-        ..status = status
-        ..skipReason = skipReason
-        ..inputEventIds = inputEventIds
-        ..outputEventId = outputEventId
-        ..error = error,
+}) =>
+    writeGanaRun(
+      isar: isar,
+      runId: runId,
+      ganaId: ganaId,
+      startedAt: startedAt,
+      status: status,
+      skipReason: skipReason,
+      inputEventIds: inputEventIds,
+      outputEventId: outputEventId,
+      error: error,
     );
-  });
-}
 
 Future<void> _advanceCursor({
   required Isar isar,
   required GanaModel ganaRow,
   required List<NoteModel> inputs,
   bool publishedOutput = false,
-}) async {
-  // Re-fetch by ganaId so we don't trample a concurrent write from
-  // foreground (Isar's last-write-wins on the same row is fine, but we
-  // want to preserve any cursor updates that happened during inference).
-  final fresh = await isar.ganaModels
-      .filter()
-      .ganaIdEqualTo(ganaRow.ganaId)
-      .findFirst();
-  if (fresh == null) return;
-  if (inputs.isNotEmpty) {
-    final last = inputs.last; // oldest-first → last is newest
-    fresh
-      ..lastProcessedEventId = last.eventId
-      ..lastProcessedCreated = last.created;
-  }
-  fresh.lastRunAt = DateTime.now();
-  // Mirror the foreground engine: one-shot Ganas auto-disable on a real
-  // publish (not on NOOP — caller passes publishedOutput=false then).
-  if (publishedOutput && fresh.triggerMode == GanaTriggerMode.oneShot) {
-    fresh.enabled = false;
-  }
-  await isar.writeTxn(() async {
-    await isar.ganaModels.put(fresh);
-  });
-}
+}) =>
+    advanceGanaCursor(
+      isar: isar,
+      ganaId: ganaRow.ganaId,
+      inputs: inputs,
+      publishedOutput: publishedOutput,
+    );

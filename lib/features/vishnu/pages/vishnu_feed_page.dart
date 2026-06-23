@@ -13,6 +13,7 @@ import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/widgets/new_notes_banner.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -182,9 +183,8 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                 if (feedState.status == VishnuFeedStatus.loading &&
                     feedState.items.isEmpty) {
                   return const Center(
-                    child: CircularProgressIndicator(
+                    child: DropLoadingIndicator(
                       color: AppColors.primary,
-                      strokeWidth: 2,
                     ),
                   );
                 }
@@ -230,9 +230,8 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                                   return const Padding(
                                     padding: EdgeInsets.all(20),
                                     child: Center(
-                                      child: CircularProgressIndicator(
+                                      child: DropLoadingIndicator(
                                         color: AppColors.primary,
-                                        strokeWidth: 2,
                                       ),
                                     ),
                                   );

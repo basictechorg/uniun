@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -141,8 +142,7 @@ class _GraphBody extends StatelessWidget {
               GraphHeader(),
               Expanded(
                 child: Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 2),
+                  child: DropLoadingIndicator(color: AppColors.primary),
                 ),
               ),
             ],

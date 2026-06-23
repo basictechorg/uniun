@@ -11,24 +11,29 @@ abstract class LlmDataSource {
   /// Remote: an API key is configured.
   Future<bool> hasActiveModel();
 
-  /// Open or reuse a long-lived conversation context. Local backend uses
-  /// this to hold a persistent `InferenceChat` (Phase 2+); the remote
-  /// backend is stateless so this is a no-op there.
-  Future<Either<Failure, Unit>> openConversation({String? systemInstruction});
+  /// Validate / open a conversation session (local: model-active check;
+  /// remote: no-op). Holds NO per-conversation state — the system instruction
+  /// rides on each [sendChat] turn so independent chat surfaces don't clobber.
+  Future<Either<Failure, Unit>> openConversation();
 
   /// Tear down the conversation context.
   Future<Either<Failure, Unit>> closeConversation();
 
-  /// Stream tokens for a chat turn.
+  /// Stream tokens for a chat turn. [systemInstruction] is passed per turn
+  /// (persona + any branch/seed context) rather than stored on the backend.
   Stream<String> sendChat({
     required String message,
+    String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   });
 
   /// One-shot completion for background extraction.
+  /// Pass [highPriority] = true for foreground user work (e.g. Manthan deck)
+  /// so the task runs even while the low lane is paused.
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
+    bool highPriority = false,
   });
 
   /// Backend-specific coordination — local pauses its low-priority queue;

@@ -1096,6 +1096,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shivInputHint => 'Ask Shiv anything…';
 
   @override
+  String composerAskScope(String scope) {
+    return 'Ask $scope';
+  }
+
+  @override
   String get shivNoConversations => 'No conversations yet';
 
   @override
@@ -1938,17 +1943,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormNameHint => 'e.g. Life Lessons Replier';
 
   @override
-  String get ganaFormDescriptionLabel => 'Description';
-
-  @override
-  String get ganaFormDescriptionHint => 'Optional. What is this Gana for?';
-
-  @override
-  String get ganaFormManasSectionTitle => 'MANASES';
+  String get ganaFormManasSectionTitle => 'KNOWLEDGE';
 
   @override
   String get ganaFormManasSectionSubtitle =>
-      'Pick one or more Manases the Gana will use as knowledge.';
+      'The Manas this Gana reasons over.';
 
   @override
   String get ganaFormManasEmpty =>
@@ -2083,6 +2082,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormTriggersSectionTitle => 'TRIGGERS';
 
   @override
+  String get ganaFormTriggerQuestion => 'When should this run?';
+
+  @override
+  String get ganaFormPresetOnceOnEnable => 'Once, when I enable it';
+
+  @override
+  String get ganaFormPresetOnceOnFirstMessage =>
+      'Once, on the first new message';
+
+  @override
+  String get ganaFormPresetEveryMessage => 'On every new message';
+
+  @override
+  String get ganaFormPresetOnSchedule => 'On a schedule (every N minutes)';
+
+  @override
+  String get ganaFormPresetMessageOrSchedule =>
+      'On every new message AND on a timer';
+
+  @override
   String get ganaFormReactiveLabel => 'React to new input';
 
   @override
@@ -2132,4 +2151,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ganaRunStatusRunning => 'Running';
+
+  @override
+  String get manthanTileAction => 'Spark ideas';
+
+  @override
+  String get manthanDrawerTitle => 'Manthan';
+
+  @override
+  String get manthanScopeSheetTitle => 'Select Manas';
+
+  @override
+  String get manthanScopeAllNotes => 'Brahma';
+
+  @override
+  String manthanScopeManasCount(int count) {
+    return '$count manas';
+  }
+
+  @override
+  String get manthanNewChatTooltip => 'New chat';
+
+  @override
+  String get manthanEdgePublish => 'Publish';
+
+  @override
+  String get manthanEdgeDraft => 'Draft';
+
+  @override
+  String get manthanEdgeDiscard => 'Discard';
+
+  @override
+  String get manthanEdgeDiscuss => 'Discuss';
+
+  @override
+  String get manthanReferencesLabel => 'References';
+
+  @override
+  String get manthanReferencesView => 'View references';
+
+  @override
+  String get manthanReferencesAttach =>
+      'Publishing attaches the checked notes as references.';
+
+  @override
+  String get manthanCoachTitle => 'Swipe to explore ideas';
+
+  @override
+  String get manthanCoachDismiss => 'Got it';
+
+  @override
+  String get manthanGenerating => 'Finding connections…';
+
+  @override
+  String get manthanRevisitingHint =>
+      'Revisiting older sparks — add notes for fresh ideas';
+
+  @override
+  String get manthanEmptyNeedsMoreTitle => 'Not enough notes yet';
+
+  @override
+  String get manthanEmptyNeedsMoreBody =>
+      'This scope needs at least 2 notes to spark connections.';
+
+  @override
+  String get manthanExhaustedTitle => 'You\'ve seen them all';
+
+  @override
+  String get manthanExhaustedBody => 'Add more notes to spark new ideas.';
+
+  @override
+  String get manthanModelErrorTitle => 'Couldn\'t generate ideas';
+
+  @override
+  String get manthanModelErrorBody =>
+      'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.';
+
+  @override
+  String get manthanPublishedSnack => 'Published as a note';
+
+  @override
+  String get manthanDraftSavedSnack => 'Saved as a draft';
+
+  @override
+  String get manthanGenerateErrorSnack => 'Couldn\'t generate right now';
+
+  @override
+  String get manthanYouName => 'You';
+
+  @override
+  String get manthanYouHandle => '@you · now';
+
+  @override
+  String get manthanDraftLabel => 'Draft';
+
+  @override
+  String manthanRefsCount(int count) {
+    return '$count refs';
+  }
+
+  @override
+  String get manthanRetry => 'Try again';
 }

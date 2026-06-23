@@ -18,11 +18,16 @@ import 'package:uniun/features/share/pages/share_sheet_page.dart';
 /// note in a thread. Self-contained: owns profile, saved, and follow via an
 /// internal [NoteCardCubit] (follow state is watched reactively from Isar).
 /// Callers only pass the note (and optionally an explicit reply count).
+///
+/// Set [showActions] to `false` to hide the ⋮ menu, divider, and action chips.
+/// Useful for unpublished preview cards (e.g. Manthan) where there is no real
+/// event id to act on.
 class LargeNoteCard extends StatelessWidget {
   const LargeNoteCard({
     super.key,
     required this.note,
     this.replyCount,
+    this.showActions = true,
   });
 
   final NoteEntity note;
@@ -31,20 +36,33 @@ class LargeNoteCard extends StatelessWidget {
   /// rather than the entity's cached edge-table count.
   final int? replyCount;
 
+  /// When false, the ⋮ menu, divider, and action-chip row are omitted.
+  /// Defaults to true so all existing callers are unaffected.
+  final bool showActions;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<NoteCardCubit>(param1: note),
-      child: _LargeNoteCardView(note: note, replyCount: replyCount),
+      child: _LargeNoteCardView(
+        note: note,
+        replyCount: replyCount,
+        showActions: showActions,
+      ),
     );
   }
 }
 
 class _LargeNoteCardView extends StatelessWidget {
-  const _LargeNoteCardView({required this.note, this.replyCount});
+  const _LargeNoteCardView({
+    required this.note,
+    this.replyCount,
+    this.showActions = true,
+  });
 
   final NoteEntity note;
   final int? replyCount;
+  final bool showActions;
 
   @override
   Widget build(BuildContext context) {
@@ -128,11 +146,12 @@ class _LargeNoteCardView extends StatelessWidget {
                 ),
               ),
               // ── Overflow menu (Delete / Block) ──────────────────────────
-              NoteCardMenu(
-                cubit: cubit,
-                isOwnNote: cardState.isOwnNote,
-                displayName: displayName,
-              ),
+              if (showActions)
+                NoteCardMenu(
+                  cubit: cubit,
+                  isOwnNote: cardState.isOwnNote,
+                  displayName: displayName,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -169,59 +188,61 @@ class _LargeNoteCardView extends StatelessWidget {
                   .toList(),
             ),
           ],
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Divider(
-              color: AppColors.outlineVariant.withValues(alpha: 0.15),
-              height: 1,
+          if (showActions) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Divider(
+                color: AppColors.outlineVariant.withValues(alpha: 0.15),
+                height: 1,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 32),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _LargeActionChip(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  label: '${replyCount ?? note.cachedReplyCount}',
-                  color: AppColors.onSurfaceVariant,
-                  onTap: () {},
-                ),
-                _LargeActionChip(
-                  icon: Icons.link_rounded,
-                  label: '${note.referenceCount}',
-                  color: AppColors.onSurfaceVariant,
-                  onTap: () {},
-                ),
-                // Save hidden on own notes (kept forever already; saving is
-                // for others' notes).
-                if (!cardState.isOwnNote)
+            Padding(
+              padding: const EdgeInsets.only(right: 32),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   _LargeActionChip(
-                    icon: cardState.isSaved
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: cardState.isSaved
+                    icon: Icons.chat_bubble_outline_rounded,
+                    label: '${replyCount ?? note.cachedReplyCount}',
+                    color: AppColors.onSurfaceVariant,
+                    onTap: () {},
+                  ),
+                  _LargeActionChip(
+                    icon: Icons.link_rounded,
+                    label: '${note.referenceCount}',
+                    color: AppColors.onSurfaceVariant,
+                    onTap: () {},
+                  ),
+                  // Save hidden on own notes (kept forever already; saving is
+                  // for others' notes).
+                  if (!cardState.isOwnNote)
+                    _LargeActionChip(
+                      icon: cardState.isSaved
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      color: cardState.isSaved
+                          ? AppColors.primary
+                          : AppColors.onSurfaceVariant,
+                      onTap: () => handleSaveToggle(context, cubit),
+                    ),
+                  _LargeActionChip(
+                    icon: isFollowed
+                        ? Icons.notifications
+                        : Icons.notifications_none,
+                    color: isFollowed
                         ? AppColors.primary
                         : AppColors.onSurfaceVariant,
-                    onTap: () => handleSaveToggle(context, cubit),
+                    onTap: () => cubit.toggleFollow(),
                   ),
-                _LargeActionChip(
-                  icon: isFollowed
-                      ? Icons.notifications
-                      : Icons.notifications_none,
-                  color: isFollowed
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
-                  onTap: () => cubit.toggleFollow(),
-                ),
-                _LargeActionChip(
-                  icon: Icons.share_outlined,
-                  color: AppColors.onSurfaceVariant,
-                  onTap: () => ShareSheetPage.show(context, note.id),
-                ),
-              ],
+                  _LargeActionChip(
+                    icon: Icons.share_outlined,
+                    color: AppColors.onSurfaceVariant,
+                    onTap: () => ShareSheetPage.show(context, note.id),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

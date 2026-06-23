@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -79,8 +80,8 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
           if (state.status == SavedNotesStatus.initial ||
               state.status == SavedNotesStatus.loading) {
             return const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 2),
+              child: DropLoadingIndicator(
+                  color: AppColors.primary),
             );
           }
           if (state.status == SavedNotesStatus.error) {

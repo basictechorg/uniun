@@ -11,8 +11,6 @@ import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
-import 'package:uniun/data/models/gana_run_model.dart';
-import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
@@ -22,9 +20,9 @@ import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
-import 'package:uniun/features/shiv/gana/engine/gana_input_filter.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
-import 'package:uniun/features/shiv/gana/engine/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/gana_run.dart';
 import 'package:uuid/uuid.dart';
 
 /// Scheduler + runner for enabled Ganas, running in the main isolate.
@@ -63,6 +61,7 @@ class GanaEngine {
     this._dm,
     this._privateChannel,
     this._embedAndStore,
+    this._manasLoader,
   );
 
   final Isar _isar;
@@ -74,6 +73,7 @@ class GanaEngine {
   final SendDmUseCase _dm;
   final SendPrivateChannelMessageUsecase _privateChannel;
   final EmbedAndStoreNoteUseCase _embedAndStore;
+  final ManasContextLoader _manasLoader;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -274,7 +274,7 @@ class GanaEngine {
     }
 
     // Fetch input + self-output history.
-    final selfOutputs = await _selfOutputs(g.ganaId);
+    final selfOutputs = await ganaSelfOutputs(_isar, g.ganaId);
     debugPrint('[gana]   self-outputs guard set: ${selfOutputs.length}');
 
     // Recurring cap — count this run BEFORE doing inference work so we
@@ -310,15 +310,21 @@ class GanaEngine {
       return;
     }
 
-    final inputs = await GanaInputFilter.fetch(
+    // Input → ancestry → knowledge (relevance-ranked) → prompt. Shared with the
+    // background dispatcher via [prepareGanaRun]; foreground injects the
+    // relevance-ranked Manas merge (query = the joined input text).
+    final prepared = await prepareGanaRun(
       isar: _isar,
       gana: g,
       selfPubkeyHex: keys.pubkeyHex,
-      selfOutputEventIds: selfOutputs,
+      selfOutputs: selfOutputs,
+      loadKnowledge: (query) => _manasLoader.merge(
+        manasIds: g.manasIds,
+        budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
+        relevanceQuery: query,
+      ),
     );
-    debugPrint('[gana]   input filter: ${inputs.length} note(s)');
-
-    if (g.inputType != null && inputs.isEmpty) {
+    if (prepared == null) {
       debugPrint('[gana]   SKIPPED: noNewInput');
       await _logRun(
         runId: runId,
@@ -329,42 +335,11 @@ class GanaEngine {
       );
       return;
     }
-
-    // Reply ancestry per input.
-    final ancestry = <String, List<NoteModel>>{};
-    for (final n in inputs) {
-      if (n.replyToEventId != null) {
-        ancestry[n.eventId] =
-            await GanaInputFilter.ancestry(isar: _isar, note: n);
-      }
-    }
-
-    // Knowledge pack. When input is present we use it as the relevance
-    // query; otherwise fall back to newest-first packing.
-    final manasNames = await _resolveManasNames(g.manasIds);
-    debugPrint('[gana]   Manas: ${manasNames.join(", ")}');
-    final queryText = inputs.isEmpty
-        ? null
-        : inputs.map((n) => n.content).join('\n').trim();
-    final knowledge = await ManasContextLoader.merge(
-      isar: _isar,
-      manasIds: g.manasIds,
-      budget: GanaPromptBuilder.defaultMaxTokens ~/ 2,
-      relevanceQuery: queryText,
-    );
-    debugPrint('[gana]   knowledge packed: ${knowledge.length} note(s)'
-        '${queryText == null ? "" : " (by-relevance)"}');
-
-    // Assemble prompt.
-    final prompt = GanaPromptBuilder.build(
-      taskPrompt: g.taskPrompt,
-      manasNames: manasNames,
-      knowledge: knowledge,
-      inputMessagesByOldestFirst: inputs,
-      replyAncestry: ancestry,
-    );
-    debugPrint('[gana]   prompt: ${prompt.length} chars '
-        '(~${prompt.length ~/ 4} tokens)');
+    final inputs = prepared.inputs;
+    final prompt = prepared.prompt;
+    debugPrint('[gana]   input filter: ${inputs.length} note(s); '
+        'Manas: ${prepared.manasNames.join(", ")}; '
+        'prompt: ${prompt.length} chars (~${prompt.length ~/ 4} tokens)');
 
     // Inference — direct call, no SendPort.
     final modelBefore = _settings.activeModelId?.name;
@@ -409,8 +384,7 @@ class GanaEngine {
     // Already sanitized at AIModelRunner.generateOneShot (the chokepoint).
     final body = text.trim();
     debugPrint('[gana]   inference OK in ${infMs}ms (${body.length} chars)');
-    if (body.isEmpty ||
-        body.toUpperCase() == GanaPromptBuilder.noopSentinel) {
+    if (isGanaNoop(body)) {
       debugPrint('[gana]   SKIPPED: noopReturned');
       await _logRun(
         runId: runId,
@@ -615,6 +589,9 @@ class GanaEngine {
 
   // ── Run log + cursor advance ───────────────────────────────────────────
 
+  // Run log + cursor advance delegate to the shared, isolate-agnostic
+  // [gana_run.dart] helpers so foreground and background can't drift.
+
   Future<void> _logRun({
     required String runId,
     required String ganaId,
@@ -624,46 +601,31 @@ class GanaEngine {
     List<String> inputEventIds = const [],
     String? outputEventId,
     String? error,
-  }) async {
-    final row = GanaRunModel()
-      ..runId = runId
-      ..ganaId = ganaId
-      ..startedAt = startedAt
-      ..status = status
-      ..skipReason = skipReason
-      ..inputEventIds = inputEventIds
-      ..outputEventId = outputEventId
-      ..error = error;
-    await _isar.writeTxn(() async {
-      await _isar.ganaRunModels.put(row);
-    });
-  }
+  }) =>
+      writeGanaRun(
+        isar: _isar,
+        runId: runId,
+        ganaId: ganaId,
+        startedAt: startedAt,
+        status: status,
+        skipReason: skipReason,
+        inputEventIds: inputEventIds,
+        outputEventId: outputEventId,
+        error: error,
+      );
 
   Future<void> _advanceCursor(
     GanaEntity g,
     List<NoteModel> inputs, {
     required DateTime lastRunAt,
     bool publishedOutput = false,
-  }) async {
-    final row =
-        await _isar.ganaModels.filter().ganaIdEqualTo(g.ganaId).findFirst();
-    if (row == null) return;
-    if (inputs.isNotEmpty) {
-      final last = inputs.last; // oldest-first → last is newest
-      row
-        ..lastProcessedEventId = last.eventId
-        ..lastProcessedCreated = last.created;
-    }
-    row.lastRunAt = lastRunAt;
-    // One-shot Ganas auto-disable after a real publish. NOOP runs don't
-    // burn the one-shot; the user can retry.
-    if (publishedOutput && row.triggerMode == GanaTriggerMode.oneShot) {
-      row.enabled = false;
-    }
-    await _isar.writeTxn(() async {
-      await _isar.ganaModels.put(row);
-    });
-  }
+  }) =>
+      advanceGanaCursor(
+        isar: _isar,
+        ganaId: g.ganaId,
+        inputs: inputs,
+        publishedOutput: publishedOutput,
+      );
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -675,27 +637,6 @@ class GanaEngine {
     await _isar.writeTxn(() async {
       await _isar.ganaModels.put(row);
     });
-  }
-
-  Future<Set<String>> _selfOutputs(String ganaId) async {
-    final ids = await _isar.ganaRunModels
-        .filter()
-        .ganaIdEqualTo(ganaId)
-        .outputEventIdIsNotNull()
-        .outputEventIdProperty()
-        .findAll();
-    return ids.cast<String>().toSet();
-  }
-
-  Future<List<String>> _resolveManasNames(List<String> manasIds) async {
-    if (manasIds.isEmpty) return const [];
-    final names = <String>[];
-    for (final id in manasIds) {
-      final row =
-          await _isar.manasModels.filter().manasIdEqualTo(id).findFirst();
-      if (row != null) names.add(row.name);
-    }
-    return names;
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart';
@@ -320,7 +321,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
                     ),
                     const SizedBox(height: 16),
                     if (state.isLoadingRelays)
-                      const Center(child: CircularProgressIndicator())
+                      const Center(child: DropLoadingIndicator())
                     else
                       InkWell(
                         onTap: () => _showRelaySelectorDialog(state.availableRelays),
@@ -410,9 +411,9 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                                child: DropLoadingIndicator(
+                                  size: 20,
+                                  color: AppColors.onPrimary,
                                 ),
                               )
                             : Text(

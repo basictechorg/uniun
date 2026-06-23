@@ -5,11 +5,13 @@ import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
 import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
+import 'package:uniun/domain/entities/shiv/scored_note.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/domain/usecases/knowledge_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
 import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
 import 'package:uniun/features/shiv/rag/prompt/prompt_budget.dart';
 import 'package:uniun/features/shiv/rag/prompt/prompt_builder.dart';
@@ -46,14 +48,15 @@ class RagMessage {
 /// **Phase 1 — session open** (once per conversation):
 ///   ```dart
 ///   await rag.init();
+///   await runner.initChat();                 // validate a model is active
 ///   final sysInstruction = await rag.buildSystemInstruction();
-///   await runner.initChat(systemInstruction: sysInstruction);
 ///   ```
 ///
-/// **Phase 2 — each user message**:
+/// **Phase 2 — each user message** (the system instruction rides each turn, so
+/// each consumer/surface supplies its OWN — nothing is stored on the runner):
 ///   ```dart
 ///   final msg = await rag.buildMessage(userQuestion: text);
-///   runner.sendAndStream(msg.userMessage);
+///   runner.sendAndStream(msg.userMessage, systemInstruction: sysInstruction);
 ///   ```
 @lazySingleton
 class RagPipeline {
@@ -66,6 +69,7 @@ class RagPipeline {
   final GetGraphNeighboursUseCase _getNeighbours;
   final GetGraphNodesByKeysUseCase _getNodesByKeys;
   final GetActiveLlmModelUseCase _getActiveModel;
+  final ManasContextLoader _manasLoader;
 
   PersonalizationContext? _personalization;
 
@@ -79,6 +83,7 @@ class RagPipeline {
     this._getNeighbours,
     this._getNodesByKeys,
     this._getActiveModel,
+    this._manasLoader,
   );
 
   // ── Phase 1 ────────────────────────────────────────────────────────────────
@@ -88,9 +93,10 @@ class RagPipeline {
     await _embedding.init();
   }
 
-  /// Returns the static system instruction for this session.
-  /// Includes Shiv persona + user name/bio + interests.
-  /// Pass to [AIModelRunner.initChat(systemInstruction:)].
+  /// Returns the **Shiv-chat** system instruction for this session (persona +
+  /// user name/bio). This is one of several distinct, per-use-case system
+  /// instructions — Gana, Manthan, extraction, and composer-chat each build
+  /// their own. Pass the result into [AIModelRunner.sendAndStream] per turn.
   Future<String> buildSystemInstruction() async {
     _personalization ??= await _loadPersonalization();
     return _promptBuilder.buildSystemInstruction(_personalization!);
@@ -102,16 +108,28 @@ class RagPipeline {
   /// Steps: vector seed → 1-hop graph expansion → memory retrieval →
   /// budget-aware assembly. Do NOT pass conversation history —
   /// [InferenceChat] manages it internally.
-  Future<RagMessage> buildMessage({required String userQuestion}) async {
+  Future<RagMessage> buildMessage({
+    required String userQuestion,
+    List<String> manasIds = const [],
+  }) async {
     // Budget scales with the active backend: small local models get a tight
     // 2k window with topK=3; bigger local models get 4-8k with topK=5-10;
     // cloud models get 16k with topK=15 + 2-hop graph expansion.
     final budget = PromptBudget.forActiveModel(await _activeModel());
-    final context = await _retrieveContext(userQuestion, topK: budget.topK, maxHops: budget.maxHops);
+    // [manasIds] (from the composer's scope picker) confines retrieval to the
+    // selected Manas; empty = the whole library.
+    final context = await _retrieveContext(
+      userQuestion,
+      topK: budget.topK,
+      maxHops: budget.maxHops,
+      manasIds: manasIds,
+    );
+    _personalization ??= await _loadPersonalization();
     final userMessage = _promptBuilder.buildUserMessage(
       userQuestion: userQuestion,
       context: context,
       budget: budget,
+      userName: _personalization?.userName,
     );
     final count =
         context.seedNotes.length + context.graphEdges.length + context.memories.length;
@@ -132,13 +150,31 @@ class RagPipeline {
 
   // ── Internals ──────────────────────────────────────────────────────────────
 
-  Future<EnrichedContext> _retrieveContext(String query, {int topK = 5, int maxHops = 1}) async {
+  Future<EnrichedContext> _retrieveContext(
+    String query, {
+    int topK = 5,
+    int maxHops = 1,
+    List<String> manasIds = const [],
+  }) async {
     try {
-      final vec = await _embedding.embed(query);
-      if (vec.isEmpty) return EnrichedContext.empty;
-
-      // 1. Vector seed.
-      final seedNotes = await _vectorSearch.search(queryVector: vec, topK: topK);
+      // 1. Vector seed — confined to the selected Manas, or the whole library.
+      final List<ScoredNote> seedNotes;
+      if (manasIds.isNotEmpty) {
+        // Manas-scoped: relevance-rank within the picked Manas's notes.
+        final packed = await _manasLoader.merge(
+          manasIds: manasIds,
+          budget: topK * 200, // ~topK notes' worth of tokens
+          relevanceQuery: query,
+        );
+        seedNotes = [
+          for (final p in packed.take(topK))
+            ScoredNote(noteId: p.id, score: 1.0, content: p.content),
+        ];
+      } else {
+        final vec = await _embedding.embed(query);
+        if (vec.isEmpty) return EnrichedContext.empty;
+        seedNotes = await _vectorSearch.search(queryVector: vec, topK: topK);
+      }
       if (seedNotes.isEmpty) return EnrichedContext.empty;
 
       // 2. Memory for seeds → collect concept keys.

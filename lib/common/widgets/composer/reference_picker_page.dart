@@ -4,6 +4,7 @@ import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -179,8 +180,8 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
               child: rows.isEmpty
                   ? Center(
                       child: pickerState.loading
-                          ? const CircularProgressIndicator(
-                              color: AppColors.primary, strokeWidth: 2)
+                          ? const DropLoadingIndicator(
+                              color: AppColors.primary)
                           : Text(
                               widget.emptyLabel,
                               style: const TextStyle(

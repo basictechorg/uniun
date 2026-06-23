@@ -16,6 +16,7 @@ class AppSettingsStore {
   static const _kAutoDeleteOldNotesDays =
       'app_settings.auto_delete_old_notes_days';
   static const _kRecentSyncWindowDays = 'app_settings.recent_sync_window_days';
+  static const _kManthanCoachSeen = 'app_settings.manthan_coach_seen';
 
   final SharedPreferences _prefs;
 
@@ -66,6 +67,13 @@ class AppSettingsStore {
 
   Future<void> setRecentSyncWindowDays(int days) =>
       _prefs.setInt(_kRecentSyncWindowDays, days);
+
+  /// Whether the Manthan first-run coach overlay ("Swipe to explore ideas")
+  /// has been dismissed. Shown only once, ever — persists across launches.
+  bool get manthanCoachSeen => _prefs.getBool(_kManthanCoachSeen) ?? false;
+
+  Future<void> setManthanCoachSeen(bool seen) =>
+      _prefs.setBool(_kManthanCoachSeen, seen);
 }
 
 /// Holds the logged-in user's public identity (pubkeyHex, npub, createdAt).

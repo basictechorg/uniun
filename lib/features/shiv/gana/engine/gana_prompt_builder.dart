@@ -1,5 +1,6 @@
 import 'package:uniun/data/models/notes/note_model.dart';
-import 'package:uniun/features/shiv/gana/engine/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
+import 'package:uniun/features/shiv/generation/prompt/prompt_parts.dart';
 
 /// Assembles the prompt sent to the on-device LLM for a single Gana run.
 ///
@@ -19,8 +20,8 @@ class GanaPromptBuilder {
 
   /// Output sentinel — the model emits this exact string (case-insensitive,
   /// trimmed) when it has nothing meaningful to add. Engine treats it as a
-  /// skip with `noopReturned` and advances the cursor.
-  static const String noopSentinel = '<NOOP>';
+  /// skip with `noopReturned` and advances the cursor. Shared via [PromptParts].
+  static const String noopSentinel = PromptParts.noopSentinel;
 
   /// [inputMessagesByOldestFirst] is rendered in chronological order
   /// (oldest first). [replyAncestry] maps
@@ -40,7 +41,7 @@ class GanaPromptBuilder {
     // and if maxTokens runs out mid-thought we end up with no answer at all.
     // The token is parsed by Qwen3's chat template; non-Qwen models simply
     // ignore unknown directives at the top.
-    buf.writeln('/no_think');
+    buf.writeln(PromptParts.noThink);
 
     // ── SYSTEM role ────────────────────────────────────────────────────────
     buf
@@ -72,8 +73,8 @@ class GanaPromptBuilder {
       final manasLabel = manasNames.isEmpty ? '—' : manasNames.join(', ');
       buf.writeln('KNOWLEDGE — the user\'s own notes (Manas: $manasLabel):');
       for (final k in knowledge) {
-        final preview = k.content.replaceAll(RegExp(r'\s+'), ' ').trim();
-        final dateStr = _isoDate(k.created);
+        final preview = PromptParts.collapse(k.content);
+        final dateStr = PromptParts.isoDate(k.created);
         buf.writeln('- ($dateStr) $preview');
       }
       buf.writeln();
@@ -85,14 +86,13 @@ class GanaPromptBuilder {
       for (final m in inputMessagesByOldestFirst) {
         final author = _shortPubkey(m.authorPubkey);
         final when = _relativeWhen(m.created);
-        final preview = m.content.replaceAll(RegExp(r'\s+'), ' ').trim();
+        final preview = PromptParts.collapse(m.content);
         buf.writeln('- @$author · $when: $preview');
 
         final parents = replyAncestry[m.eventId] ?? const [];
         for (final p in parents) {
           final pAuthor = _shortPubkey(p.authorPubkey);
-          final pPreview =
-              p.content.replaceAll(RegExp(r'\s+'), ' ').trim();
+          final pPreview = PromptParts.collapse(p.content);
           buf.writeln('    ↳ reply context · @$pAuthor: $pPreview');
         }
       }
@@ -111,17 +111,12 @@ class GanaPromptBuilder {
     return '${pubkey.substring(0, 8)}…${pubkey.substring(pubkey.length - 4)}';
   }
 
-  static String _isoDate(DateTime t) =>
-      '${t.year.toString().padLeft(4, '0')}-'
-      '${t.month.toString().padLeft(2, '0')}-'
-      '${t.day.toString().padLeft(2, '0')}';
-
   static String _relativeWhen(DateTime t) {
     final delta = DateTime.now().difference(t);
     if (delta.inSeconds < 60) return 'just now';
     if (delta.inMinutes < 60) return '${delta.inMinutes} min ago';
     if (delta.inHours < 24) return '${delta.inHours} h ago';
     if (delta.inDays < 7) return '${delta.inDays} d ago';
-    return _isoDate(t);
+    return PromptParts.isoDate(t);
   }
 }

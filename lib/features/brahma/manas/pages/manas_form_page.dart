@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/manas/bloc/manas_form_bloc.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
@@ -126,8 +127,7 @@ class _ManasFormViewState extends State<_ManasFormView> {
           ),
           body: loading
               ? const Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 2),
+                  child: DropLoadingIndicator(color: AppColors.primary),
                 )
               : _Body(
                   state: state,
@@ -252,8 +252,8 @@ class _Body extends StatelessWidget {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.primary),
+                child: DropLoadingIndicator(
+                    size: 20, color: AppColors.primary),
               ),
             ),
           )

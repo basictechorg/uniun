@@ -29,17 +29,20 @@ abstract class LlmRepository {
 
   // ── Conversation session ────────────────────────────────────────────────
 
-  Future<Either<Failure, Unit>> openConversation({String? systemInstruction});
+  Future<Either<Failure, Unit>> openConversation();
   Future<Either<Failure, Unit>> closeConversation();
 
   // ── Per-turn inference ──────────────────────────────────────────────────
 
-  /// Streams tokens for [message]. [cleanHistory] is the previous turns of
-  /// the same conversation as bare (user, assistant) text pairs.
+  /// Streams tokens for [message]. [systemInstruction] (persona + any branch/
+  /// seed context) is passed per turn, not stored on the backend, so independent
+  /// chat surfaces don't clobber each other. [cleanHistory] is the previous
+  /// turns of the same conversation as bare (user, assistant) text pairs.
   ///
   /// Cancellation: cancel the returned StreamSubscription to abort.
   Stream<String> sendChat({
     required String message,
+    String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   });
 
@@ -48,6 +51,7 @@ abstract class LlmRepository {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
+    bool highPriority = false,
   });
 
   // ── Priority coordination ───────────────────────────────────────────────

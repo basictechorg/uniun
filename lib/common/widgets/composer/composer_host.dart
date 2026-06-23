@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
+import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
+import 'package:uniun/features/shiv/composer_chat/cubit/composer_chat_cubit.dart';
+import 'package:uniun/features/shiv/composer_chat/cubit/composer_chat_state.dart';
+import 'package:uniun/features/shiv/composer_chat/widgets/composer_chat_panel.dart';
+import 'package:uniun/features/shiv/composer_chat/widgets/manas_picker_sheet.dart';
+import 'package:uniun/features/shiv/chat/widgets/shiv_model_picker_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Stateful owner for [UniunComposer]: holds the text controller, focus node,
@@ -25,10 +32,17 @@ class ComposerHost extends StatefulWidget {
     this.replyingToName,
     this.replyingToPreview,
     this.onClearReply,
+    this.entityContext = const [],
   });
 
   final String hintText;
   final bool isSending;
+
+  /// Recent messages of the surface this composer lives in (thread / channel /
+  /// DM / private channel), already flattened to short `"author: text"` lines.
+  /// Fed to the Manas-chat (WS4) so Shiv can answer about THIS conversation.
+  /// Empty for surfaces with no conversation context (e.g. Brahma compose).
+  final List<String> entityContext;
 
   /// Reply context shown as a strip above the input. When [replyingToName] is
   /// null the strip is hidden. [replyingToPreview] is an optional one-line
@@ -61,6 +75,14 @@ class _ComposerHostState extends State<ComposerHost> {
   final List<MediaBlobEntity> _attachments = [];
   bool _isAttaching = false;
 
+  /// Manas-chat engine (WS4). A fresh factory instance per composer, so two
+  /// chat surfaces never share state. Created lazily-but-eagerly here.
+  late final ComposerChatCubit _chatCubit = getIt<ComposerChatCubit>();
+
+  /// The scope picked for the current chat — drives the avatar icon shown
+  /// while chatting. Null when not in chat mode.
+  ManasChatScope? _activeScope;
+
   @override
   void initState() {
     super.initState();
@@ -85,13 +107,47 @@ class _ComposerHostState extends State<ComposerHost> {
 
   @override
   void dispose() {
+    _chatCubit.close();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  /// Tap the avatar → pick a Manas scope → enter (or re-scope) chat mode.
+  Future<void> _openManasChatPicker() async {
+    final scope = await showManasChatPicker(context);
+    if (scope == null || !mounted) return;
+    setState(() => _activeScope = scope);
+    _chatCubit.start(
+      manasIds: scope.manasIds,
+      manasName: scope.name,
+      entityContext: widget.entityContext,
+    );
+    _focusNode.requestFocus();
+  }
+
+  /// The avatar shown while chatting: the picked Manas / All-notes icon.
+  Widget _chatAvatar(IconData icon) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.14),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: 18, color: AppColors.primary),
+    );
+  }
+
   void _send() {
     final text = _controller.text.trim();
+    // Chat mode: route the turn to the Manas-chat engine instead of publishing.
+    if (_chatCubit.state.active) {
+      if (text.isEmpty) return;
+      _chatCubit.send(text);
+      _controller.clear();
+      return;
+    }
     // Allow attachment-only sends when there's no text — useful for sharing
     // a single image/file with no caption.
     if (text.isEmpty && _attachments.isEmpty) return;
@@ -163,29 +219,58 @@ class _ComposerHostState extends State<ComposerHost> {
 
   @override
   Widget build(BuildContext context) {
-    return UniunComposer(
-      controller: _controller,
-      focusNode: _focusNode,
-      avatarSeed: _pubkeySeed,
-      avatarUrl: _avatarUrl,
-      hintText: widget.hintText,
-      canSend: _hasText || _attachments.isNotEmpty,
-      isSending: widget.isSending,
-      replyingToName: widget.replyingToName,
-      replyingToPreview: widget.replyingToPreview,
-      onClearReply: widget.onClearReply,
-      references: _mentionRefs,
-      markdownEnabled: true,
-      applyBottomInset: widget.applyBottomInset,
-      onRemoveReference: (id) =>
-          setState(() => _mentionRefs.removeWhere((r) => r.id == id)),
-      onAddReference: _openReferencePicker,
-      onAttachMedia: _attachMedia,
-      attachments: _attachments,
-      isAttachingMedia: _isAttaching,
-      onRemoveAttachment: (sha) => setState(
-          () => _attachments.removeWhere((b) => b.sha256 == sha)),
-      onSend: _send,
+    return BlocBuilder<ComposerChatCubit, ComposerChatState>(
+      bloc: _chatCubit,
+      builder: (context, chat) {
+        final inChat = chat.active;
+        return UniunComposer(
+          controller: _controller,
+          focusNode: _focusNode,
+          avatarSeed: _pubkeySeed,
+          avatarUrl: _avatarUrl,
+          hintText: inChat
+              ? AppLocalizations.of(context)!
+                  .composerAskScope(chat.manasName ?? 'Brahma')
+              : widget.hintText,
+          canSend: inChat
+              ? (_hasText && chat.status != ComposerChatStatus.streaming)
+              : (_hasText || _attachments.isNotEmpty),
+          isSending:
+              inChat ? chat.status == ComposerChatStatus.streaming : widget.isSending,
+          onAvatarTap: _openManasChatPicker,
+          avatarOverride: inChat && _activeScope != null
+              ? _chatAvatar(_activeScope!.icon)
+              : null,
+          onPickModel: inChat ? () => showModelPickerSheet(context) : null,
+          chatPanel: inChat
+              ? ComposerChatPanel(
+                  state: chat,
+                  onExit: _chatCubit.exit,
+                  onStop: _chatCubit.stop,
+                )
+              : null,
+          // In chat mode the publish-only affordances are hidden.
+          replyingToName: inChat ? null : widget.replyingToName,
+          replyingToPreview: inChat ? null : widget.replyingToPreview,
+          onClearReply: inChat ? null : widget.onClearReply,
+          references: inChat ? const [] : _mentionRefs,
+          markdownEnabled: !inChat,
+          applyBottomInset: widget.applyBottomInset,
+          onRemoveReference: inChat
+              ? null
+              : (id) =>
+                  setState(() => _mentionRefs.removeWhere((r) => r.id == id)),
+          onAddReference: inChat ? null : _openReferencePicker,
+          onAttachMedia: inChat ? null : _attachMedia,
+          attachments: inChat ? const [] : _attachments,
+          isAttachingMedia: inChat ? false : _isAttaching,
+          onRemoveAttachment: inChat
+              ? null
+              : (sha) => setState(
+                  () => _attachments.removeWhere((b) => b.sha256 == sha)),
+          onSend: _send,
+        );
+      },
     );
   }
 }

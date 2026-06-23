@@ -45,10 +45,16 @@ class _GraphCanvasState extends State<GraphCanvas> {
   final Set<Node> _pinned = {};
 
   // ── d3-force-style simulation state ────────────────────────────────────────
-  static const double _linkDistance = 240;
-  static const double _chargeStrength = -4000;
-  static const double _centerStrength = 0.025;
-  static const double _collidePadding = 6;
+  // These four scale with node count (see _tuneForces) so a dense graph spreads
+  // out instead of compressing into a tangled hairball; defaults match the feel
+  // at small N. Everything below them stays fixed.
+  double _linkDistance = 240;
+  double _chargeStrength = -4000;
+  double _centerStrength = 0.025;
+  double _collidePadding = 6;
+  // sqrt-of-density scale factor (1.0 at small N), also used to widen the
+  // initial seed ring. Set by _tuneForces before the first tick.
+  double _spreadScale = 1.0;
   // Each node widget is a circle + 5px gap + a 2-line label (~26px tall, 88px wide).
   // Inflate the collision disc so the label of one node never overlaps the
   // circle or label of another.
@@ -117,19 +123,44 @@ class _GraphCanvasState extends State<GraphCanvas> {
     return g;
   }
 
+  // Scale the spreading forces with node count so per-node area grows ∝ N
+  // (constant visual density) and the dense core de-densifies as the graph
+  // grows, instead of compressing into a tangled hairball.
+  void _tuneForces(int n) {
+    // 12 ≈ the node count at which the original fixed constants looked good.
+    final t = (n / 12).clamp(1.0, 6.0); // grows with N, capped at N≈72
+    _spreadScale = math.sqrt(t); // 1.0 .. ~2.45
+
+    // Link distance and repulsion scale together → spacing ∝ spread,
+    // area ∝ spread² ∝ N ⇒ density stays constant as the graph grows.
+    _linkDistance = 190.0 * _spreadScale;
+    _chargeStrength = -4200.0 * _spreadScale;
+
+    // Weaken global gravity as N grows so the core expands instead of
+    // compressing; the floor keeps large graphs bounded (and disconnected
+    // nodes from drifting off forever).
+    _centerStrength = (0.03 / _spreadScale).clamp(0.008, 0.03);
+
+    // A touch more whitespace when dense so labels clear edges/each other.
+    _collidePadding = 6.0 + 6.0 * (_spreadScale - 1.0);
+  }
+
   void _initPhysics(double w, double h) {
     _graphW = w;
     _graphH = h;
+    _tuneForces(_graph.nodes.length);
     final rng = math.Random(42);
     final cx = w / 2;
     final cy = h / 2;
-    // Seed positions in a small random cluster near center so forces can spread.
+    // Seed positions in a random ring around center so forces can spread.
+    // Widen the ring with _spreadScale so large graphs don't start as a tight
+    // knot that settles into a tangled local minimum.
     for (final node in _graph.nodes) {
       final nodeId = node.key!.value as String;
       final sz = _sizeFor(nodeId);
       node.size = Size(sz, sz);
-      final spread = math.min(w, h) * 1.0;
-      final r = spread * (0.6 + rng.nextDouble() * 0.5);
+      final seedRadius = math.min(w, h) * _spreadScale;
+      final r = seedRadius * (0.6 + rng.nextDouble() * 0.5);
       final a = rng.nextDouble() * 2 * math.pi;
       node.position = Offset(cx + r * math.cos(a), cy + r * math.sin(a));
       _velocity[node] = Offset.zero;

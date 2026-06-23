@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -174,10 +175,14 @@ class _TreeHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Icon(
-            Icons.account_tree_rounded,
-            size: 20,
-            color: AppColors.primary.withValues(alpha: 0.6),
+          SvgPicture.asset(
+            'assets/images/network_node.svg',
+            width: 20,
+            height: 20,
+            colorFilter: ColorFilter.mode(
+              AppColors.primary.withValues(alpha: 0.6),
+              BlendMode.srcIn,
+            ),
           ),
         ],
       ),
@@ -204,10 +209,14 @@ class _EmptyTree extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.account_tree_outlined,
-              size: 28,
-              color: AppColors.primary,
+            child: SvgPicture.asset(
+              'assets/images/network_node.svg',
+              width: 28,
+              height: 28,
+              colorFilter: const ColorFilter.mode(
+                AppColors.primary,
+                BlendMode.srcIn,
+              ),
             ),
           ),
           const SizedBox(height: 14),

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';

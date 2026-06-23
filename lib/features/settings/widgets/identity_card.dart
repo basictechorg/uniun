@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/relay/relay_entity.dart';
@@ -208,8 +209,8 @@ class _KeysSheetState extends State<_KeysSheet> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                        child: DropLoadingIndicator(
+                          size: 16,
                           color: AppColors.primary,
                         ),
                       )
@@ -538,8 +539,8 @@ class _RelaysSheetState extends State<_RelaysSheet> {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.primary),
+                  child: DropLoadingIndicator(
+                      size: 24, color: AppColors.primary),
                 ),
               ),
             )

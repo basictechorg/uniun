@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
@@ -44,7 +45,7 @@ class _SettingsContent extends StatelessWidget {
         builder: (context, state) {
           if (state.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: DropLoadingIndicator(color: AppColors.primary),
             );
           }
           final l10n = AppLocalizations.of(context)!;

@@ -10,7 +10,6 @@ abstract class GanaEntity with _$GanaEntity {
   const factory GanaEntity({
     required String ganaId,
     required String name,
-    String? description,
     @Default(<String>[]) List<String> manasIds,
     required String taskPrompt,
 

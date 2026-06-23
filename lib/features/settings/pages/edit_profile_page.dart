@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart';
@@ -79,7 +80,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
           return const Scaffold(
             backgroundColor: AppColors.surface,
             body: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: DropLoadingIndicator(color: AppColors.primary),
             ),
           );
         }
@@ -170,9 +171,9 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                     ? const SizedBox(
                         height: 18,
                         width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                        child: DropLoadingIndicator(
+                          size: 18,
+                          color: AppColors.onPrimary,
                         ),
                       )
                     : Text(

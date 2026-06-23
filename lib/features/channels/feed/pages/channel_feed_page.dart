@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_bloc.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_event.dart';
 import 'package:uniun/features/channels/feed/bloc/channel_feed_state.dart';
@@ -12,6 +13,7 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 
@@ -228,6 +230,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
               ComposerHost(
                 hintText: l10n.channelMessageHint,
                 isSending: state.isSending,
+                entityContext: entityContextLines(state.messages),
                 onSend: (text, refs, attachments) =>
                     context.read<ChannelFeedBloc>().add(SendChannelMessageEvent(
                           channelId: widget.channelId,
@@ -250,7 +253,7 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   ) {
     if (state.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: DropLoadingIndicator(color: AppColors.primary),
       );
     }
 
@@ -349,9 +352,9 @@ class _EdgeSpinner extends StatelessWidget {
           child: SizedBox(
             width: 18,
             height: 18,
-            child: CircularProgressIndicator(
+            child: DropLoadingIndicator(
+              size: 18,
               color: AppColors.primary,
-              strokeWidth: 2,
             ),
           ),
         ),

@@ -47,9 +47,12 @@ Ganas are **purely local config** — they never broadcast as Nostr events. Two 
 | `inputType` + `inputRefId` | input surface — `channel`, `privateChannel`, `dm`, `user`, `followedNote`, or `null` (standalone) |
 | `outputType` + ref | destination — `feed`, `channel`, `privateChannel`, `dm` (exactly one is published per run) |
 | `desiredModelId` | `null` ⇒ "use whichever model is active"; otherwise skip-on-mismatch |
+| `triggerMode` | `recurring` (cron-style, fires forever until disabled) OR `oneShot` (fires once, auto-disables) |
 | `triggerReactive` | fires within ~3s of a new note on the input surface |
 | `triggerIntervalMinutes` | `Timer.periodic` clamped ≥5 min (≥30 min in background) |
 | `enabled` | master switch (defaults to `false` — opt-in after review) |
+
+The form UI folds these three trigger fields behind a single **"When should this run?"** radio (`GanaTriggerPreset`, `lib/core/enum/gana_trigger_preset.dart`). Five presets map onto the matrix: `onceOnEnable`, `onceOnFirstMessage`, `everyMessage`, `onSchedule`, `messageOrSchedule`. `GanaTriggerPreset.validFor(inputType)` hides options that can't fire (e.g. `everyMessage` with no input). The raw fields stay in Isar — the preset is a UI fold only — so legacy rows continue working with no migration.
 | Cursor | `lastProcessedEventId`, `lastProcessedCreated`, `lastRunAt` |
 
 ### 1.2 The "Life Lessons Replier" example
@@ -207,11 +210,18 @@ What we kept:
 
 ## 3. Manas Context Loader
 
-`lib/features/shiv/gana/engine/manas_context_loader.dart`
+`lib/features/shiv/generation/context/manas_context_loader.dart`
+
+> Relocated 2026-06-21 from `gana/engine/` into the shared `generation/` substrate
+> (also used by Manthan, Shiv chat, and the composer-chat). Now an
+> `@lazySingleton`: the **main-isolate instance** `merge` / `searchAll` use the
+> injected `Isar`, while the **static** `packNewest` / `loadPool` / `loadAll`
+> take an `isar` param so the DI-less background WorkManager isolate can call
+> them. `searchAll(query:)` ranks over the whole vector index (the "All notes"
+> scope).
 
 ```
-ManasContextLoader.merge({
-  required Isar isar,
+ManasContextLoader.merge({            // main-isolate instance method
   required List<String> manasIds,
   required int budget,                  // tokens
   String? relevanceQuery,               // optional — usually the input text
@@ -673,14 +683,16 @@ lib/
 ├── features/shiv/gana/
 │   ├── engine/                         MAIN ISOLATE (post-refactor)
 │   │   ├── gana_engine.dart            @lazySingleton — scheduler + run loop +
-│   │   │                               direct publish (NO SendPort, NO bridge)
+│   │   │                               direct publish; delegates the run to
+│   │   │                               ../../generation/gana_run.dart
 │   │   ├── gana_input_filter.dart      per-type Isar queries + self-guards
 │   │   ├── gana_prompt_builder.dart    SYSTEM rules + USER instruction +
 │   │   │                               KNOWLEDGE + INPUT + NOOP sentinel
-│   │   ├── manas_context_loader.dart   by-relevance (embed + vector) OR
-│   │   │                               newest-first fallback
-│   │   ├── gana_workmanager.dart       top-level OS-dispatched bg tick
+│   │   ├── gana_workmanager.dart       top-level OS-dispatched bg tick (also
+│   │   │                               delegates to ../../generation/gana_run.dart)
 │   │   └── gana_workmanager_bootstrap.dart  initialize + schedule/cancel bg
+│   │   #  manas_context_loader.dart MOVED → ../../generation/context/
+│   │   #  gana_run.dart (shared fg/bg run pipeline) → ../../generation/
 │   │
 │   │   DELETED 2026-06-20 (moved into main isolate as @lazySingleton):
 │   │     gana_bootstrap.dart, gana_isolate.dart, gana_init_message.dart,

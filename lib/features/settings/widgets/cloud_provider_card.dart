@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
@@ -136,8 +137,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
           borderRadius: BorderRadius.circular(24),
         ),
         alignment: Alignment.center,
-        child: const CircularProgressIndicator(
-          strokeWidth: 2,
+        child: const DropLoadingIndicator(
           color: AppColors.primary,
         ),
       );

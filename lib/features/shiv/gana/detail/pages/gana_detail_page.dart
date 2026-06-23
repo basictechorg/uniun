@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/router/app_routes.dart';
@@ -80,8 +81,8 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
       ),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 2))
+              child: DropLoadingIndicator(
+                  color: AppColors.primary))
           : g == null
               ? Center(
                   child: Text(
@@ -92,14 +93,6 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   children: [
-                    if (g.description != null && g.description!.isNotEmpty) ...[
-                      Text(
-                        g.description!,
-                        style: const TextStyle(
-                            fontSize: 14, color: AppColors.onSurfaceVariant),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                     _StatusRow(gana: g),
                     const SizedBox(height: 24),
                     Text(

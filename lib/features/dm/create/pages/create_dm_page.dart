@@ -5,6 +5,7 @@ import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -180,7 +181,7 @@ class _CreateDmViewState extends State<_CreateDmView> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: state.isSubmitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(width: 20, height: 20, child: DropLoadingIndicator(size: 20, color: AppColors.onPrimary))
                           : const Text('Start Chat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),

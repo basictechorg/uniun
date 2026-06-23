@@ -6,6 +6,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// The single thread screen used by every surface (feed, channel, private
@@ -72,6 +73,8 @@ class MessageThreadPage extends StatelessWidget {
         hintText: AppLocalizations.of(context)!.threadReplyToThis,
         isSending: isSending,
         onSend: onSendReply,
+        // Manas-chat (WS4) context: the thread, oldest-first.
+        entityContext: entityContextLines([...parentNotes, root, ...replies]),
       ),
     );
   }

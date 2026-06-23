@@ -68,7 +68,9 @@ class _ShivChatPageState extends State<ShivChatPage> {
               children: [
                 _ShivChatHeader(
                   threadTitle: conv?.title ?? l10n.shivDefaultConversationTitle,
-                  ragContextCount: state.ragContextCount,
+                  onManthanTap: () => context
+                      .read<ShivAIBloc>()
+                      .add(const ShivAIEvent.closeConversation()),
                   onHistoryTap: () => Scaffold.of(ctx).openDrawer(),
                   onTreeTap: () {
                     Navigator.push(
@@ -113,9 +115,9 @@ class _ShivChatPageState extends State<ShivChatPage> {
                 ),
                 ShivInputComposer(
                   isStreaming: isStreaming,
-                  onSend: (text) => context
+                  onSend: (text, manasIds) => context
                       .read<ShivAIBloc>()
-                      .add(ShivAIEvent.sendMessage(text)),
+                      .add(ShivAIEvent.sendMessage(text, manasIds: manasIds)),
                   onStop: () => context
                       .read<ShivAIBloc>()
                       .add(const ShivAIEvent.stopStreaming()),
@@ -135,13 +137,13 @@ class _ShivChatPageState extends State<ShivChatPage> {
 class _ShivChatHeader extends StatelessWidget {
   const _ShivChatHeader({
     required this.threadTitle,
-    required this.ragContextCount,
+    required this.onManthanTap,
     required this.onHistoryTap,
     required this.onTreeTap,
   });
 
   final String threadTitle;
-  final int ragContextCount;
+  final VoidCallback onManthanTap;
   final VoidCallback onHistoryTap;
   final VoidCallback onTreeTap;
 
@@ -191,25 +193,12 @@ class _ShivChatHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (ragContextCount > 0) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text(
-                '● $ragContextCount notes',
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ),
-          ],
+          // Manthan — back to the spark deck (Shiv home).
+          _HeaderIcon(
+            icon: Icons.air,
+            onTap: onManthanTap,
+            tooltip: l10n.manthanTileAction,
+          ),
           // Tree — branch graph for this conversation
           _HeaderIcon(
             assetPath: 'assets/images/network_node.svg',

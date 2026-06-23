@@ -43,7 +43,18 @@ class EmbeddingService {
     if (isReady) return;
     try {
       await ensureInstalled();
-      _model = await FlutterGemma.getActiveEmbedder();
+      // Prefer GPU, fall back to CPU on load failure (e.g. no GPU delegate on
+      // the iOS simulator or a low-end device) so RAG still works everywhere.
+      try {
+        _model = await FlutterGemma.getActiveEmbedder(
+          preferredBackend: PreferredBackend.gpu,
+        );
+      } on Object catch (e) {
+        debugPrint('🧠 Embedding: GPU load failed ($e) — retrying on CPU');
+        _model = await FlutterGemma.getActiveEmbedder(
+          preferredBackend: PreferredBackend.cpu,
+        );
+      }
     } catch (e) {
       debugPrint('🧠 Embedding: model load failed — $e');
       _model = null;

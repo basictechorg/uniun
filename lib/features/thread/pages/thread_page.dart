@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/thread/bloc/thread_bloc.dart';
@@ -109,8 +110,8 @@ class _ThreadViewState extends State<_ThreadView> {
             backgroundColor: AppColors.surface,
             appBar: ThreadAppBar(),
             body: Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 2),
+              child: DropLoadingIndicator(
+                  color: AppColors.primary),
             ),
           );
         }

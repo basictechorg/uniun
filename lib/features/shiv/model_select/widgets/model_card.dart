@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -111,9 +112,8 @@ class ModelCard extends StatelessWidget {
                                   child: isDeleting
                                       ? const Padding(
                                           padding: EdgeInsets.all(6),
-                                          child: CircularProgressIndicator(
+                                          child: DropLoadingIndicator(
                                             color: AppColors.error,
-                                            strokeWidth: 1.5,
                                           ),
                                         )
                                       : const Icon(

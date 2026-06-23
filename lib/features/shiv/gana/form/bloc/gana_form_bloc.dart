@@ -4,6 +4,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
@@ -49,8 +50,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     on<GanaFormLoadEvent>(_onLoad);
     on<GanaFormNameChangedEvent>((e, em) =>
         em(state.copyWith(name: e.value, clearError: true)));
-    on<GanaFormDescriptionChangedEvent>(
-        (e, em) => em(state.copyWith(description: e.value)));
     on<GanaFormToggleManasEvent>(_onToggleManas);
     on<GanaFormTaskPromptChangedEvent>(
         (e, em) => em(state.copyWith(taskPrompt: e.value)));
@@ -83,6 +82,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
               maxOutputs: e.value,
               clearMaxOutputs: e.value == null,
             )));
+    on<GanaFormTriggerPresetChangedEvent>(_onTriggerPreset);
     on<GanaFormEnabledToggleEvent>(
         (e, em) => em(state.copyWith(enabled: e.value)));
     on<GanaFormSubmitEvent>(_onSubmit, transformer: droppable());
@@ -145,8 +145,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       isEditMode: true,
       ganaId: gana.ganaId,
       name: gana.name,
-      description: gana.description ?? '',
-      selectedManasIds: gana.manasIds.toSet(),
+      selectedManasId: gana.manasIds.isEmpty ? null : gana.manasIds.first,
       taskPrompt: gana.taskPrompt,
       inputType: gana.inputType,
       inputRefId: gana.inputRefId,
@@ -172,13 +171,13 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
 
   void _onToggleManas(
       GanaFormToggleManasEvent event, Emitter<GanaFormState> emit) {
-    final next = {...state.selectedManasIds};
-    if (next.contains(event.manasId)) {
-      next.remove(event.manasId);
+    // Single-select: tapping the active Manas clears it; tapping another
+    // replaces the selection.
+    if (state.selectedManasId == event.manasId) {
+      emit(state.copyWith(clearSelectedManasId: true));
     } else {
-      next.add(event.manasId);
+      emit(state.copyWith(selectedManasId: event.manasId));
     }
-    emit(state.copyWith(selectedManasIds: next));
   }
 
   void _onInputType(
@@ -231,6 +230,46 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     }
   }
 
+  /// Fold a preset back into the raw (mode, reactive, interval) triple.
+  /// Interval / maxOutputs are preserved when switching between recurring
+  /// presets so a half-filled value isn't lost mid-edit; one-shot presets
+  /// void both because they're recurring-only.
+  void _onTriggerPreset(GanaFormTriggerPresetChangedEvent event,
+      Emitter<GanaFormState> emit) {
+    switch (event.value) {
+      case GanaTriggerPreset.onceOnEnable:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.oneShot,
+          triggerReactive: false,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
+      case GanaTriggerPreset.onceOnFirstMessage:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.oneShot,
+          triggerReactive: true,
+          clearInterval: true,
+          clearMaxOutputs: true,
+        ));
+      case GanaTriggerPreset.everyMessage:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: true,
+          clearInterval: true,
+        ));
+      case GanaTriggerPreset.onSchedule:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: false,
+        ));
+      case GanaTriggerPreset.messageOrSchedule:
+        emit(state.copyWith(
+          triggerMode: GanaTriggerMode.recurring,
+          triggerReactive: true,
+        ));
+    }
+  }
+
   Future<void> _onSubmit(
       GanaFormSubmitEvent event, Emitter<GanaFormState> emit) async {
     if (!state.canSave) return;
@@ -240,9 +279,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     final entity = GanaEntity(
       ganaId: state.ganaId ?? const Uuid().v4(),
       name: state.name.trim(),
-      description:
-          state.description.trim().isEmpty ? null : state.description.trim(),
-      manasIds: state.selectedManasIds.toList(),
+      manasIds:
+          state.selectedManasId == null ? const [] : [state.selectedManasId!],
       taskPrompt: state.taskPrompt.trim(),
       inputType: state.inputType,
       inputRefId: state.inputRefId,

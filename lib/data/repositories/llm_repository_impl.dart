@@ -49,8 +49,8 @@ class LlmRepositoryImpl implements LlmRepository {
   Future<bool> hasActiveModel() => _active.hasActiveModel();
 
   @override
-  Future<Either<Failure, Unit>> openConversation({String? systemInstruction}) =>
-      _active.openConversation(systemInstruction: systemInstruction);
+  Future<Either<Failure, Unit>> openConversation() =>
+      _active.openConversation();
 
   @override
   Future<Either<Failure, Unit>> closeConversation() =>
@@ -59,16 +59,26 @@ class LlmRepositoryImpl implements LlmRepository {
   @override
   Stream<String> sendChat({
     required String message,
+    String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) =>
-      _active.sendChat(message: message, cleanHistory: cleanHistory);
+      _active.sendChat(
+        message: message,
+        systemInstruction: systemInstruction,
+        cleanHistory: cleanHistory,
+      );
 
   @override
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
+    bool highPriority = false,
   }) =>
-      _active.generateOneShot(prompt: prompt, maxTokens: maxTokens);
+      _active.generateOneShot(
+        prompt: prompt,
+        maxTokens: maxTokens,
+        highPriority: highPriority,
+      );
 
   @override
   Future<Either<Failure, Unit>> preemptBackgroundWork() =>

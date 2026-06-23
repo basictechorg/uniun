@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_model_picker_sheet.dart';
+import 'package:uniun/features/shiv/composer_chat/widgets/manas_picker_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Bottom input bar.
-/// Sits inside a Scaffold with resizeToAvoidBottomInset: true — the scaffold
-/// handles keyboard avoidance. We only add safe-area bottom padding (home bar).
+/// Shiv chat input bar — same visual language as the Vishnu/thread AI composer
+/// (rounded card, text field on top, a control row of circular buttons below):
+///   [scope-avatar → Manas picker] [model picker] … [send / stop]
+///
+/// The scope avatar lets the user ground the chat in a specific Manas (or the
+/// whole library); the picked `manasIds` ride each send and scope the RAG.
 class ShivInputComposer extends StatefulWidget {
   const ShivInputComposer({
     super.key,
@@ -14,7 +18,7 @@ class ShivInputComposer extends StatefulWidget {
     required this.isStreaming,
   });
 
-  final void Function(String text) onSend;
+  final void Function(String text, List<String> manasIds) onSend;
   final VoidCallback onStop;
   final bool isStreaming;
 
@@ -25,6 +29,12 @@ class ShivInputComposer extends StatefulWidget {
 class _ShivInputComposerState extends State<ShivInputComposer> {
   final _controller = TextEditingController();
   bool _hasText = false;
+
+  /// The Manas the chat is grounded in. Defaults to the whole library.
+  ManasChatScope _scope = const ManasChatScope(
+    manasIds: [],
+    icon: kAllNotesIcon,
+  );
 
   @override
   void initState() {
@@ -45,7 +55,13 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final text = _controller.text.trim();
     if (text.isEmpty || widget.isStreaming) return;
     _controller.clear();
-    widget.onSend(text);
+    widget.onSend(text, _scope.manasIds);
+  }
+
+  Future<void> _pickScope() async {
+    final scope = await showManasChatPicker(context);
+    if (scope == null || !mounted) return;
+    setState(() => _scope = scope);
   }
 
   @override
@@ -54,94 +70,69 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final isStreaming = widget.isStreaming;
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // When keyboard is open: pad by keyboard height + 10px gap so input sits above keyboard.
-    // When keyboard is closed: clear the floating nav. The nav's height grows by
-    // the home-indicator safe area, so add that inset too — otherwise the input
-    // collides with the nav on devices with a home indicator.
     final safeBottom = MediaQuery.of(context).padding.bottom;
-    final bottomPad = keyboardHeight > 0 ? keyboardHeight + 10.0 : 80.0 + safeBottom;
+    final bottomPad = keyboardHeight > 0
+        ? keyboardHeight + 10.0
+        : 80.0 + safeBottom;
+    final scopeLabel = _scope.name ?? 'All notes';
 
+    // Full-width, rounded-top, surfaceContainerLow — same as the Vishnu/thread
+    // composer. The card colour matches the global input fill so the text field
+    // is seamless with its surround, and there is no side margin.
     return Container(
-      color: AppColors.surfaceContainerLowest,
-      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPad),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: canSend
-                ? AppColors.primary.withValues(alpha: 0.3)
-                : AppColors.outlineVariant,
-            width: canSend ? 1 : 0.5,
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16, 10, 12, bottomPad),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            minLines: 1,
+            maxLines: 6,
+            textInputAction: TextInputAction.newline,
+            style: const TextStyle(fontSize: 15, color: AppColors.onSurface),
+            decoration: InputDecoration(
+              hintText: l10n.composerAskScope(_scope.name ?? 'Brahma'),
+              hintStyle: const TextStyle(
+                color: AppColors.outline,
+                fontSize: 15,
+              ),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 4,
+              ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+            ),
           ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // + icon → opens the model picker sheet. Disabled while
-            // streaming so the user can't swap the model mid-turn (would
-            // be ambiguous about which model owns the response).
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 6, 0, 6),
-              child: Tooltip(
-                message: l10n.chatInputPickModelTooltip,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: isStreaming
-                      ? null
-                      : () => showModelPickerSheet(context),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      Icons.add_rounded,
-                      size: 22,
-                      color: isStreaming
-                          ? AppColors.outline
-                          : AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Scope avatar → Manas picker. Shows the picked scope's icon.
+              _CircleButton(
+                icon: _scope.icon,
+                onTap: _pickScope,
+                tooltip: 'Grounded in $scopeLabel',
+                filled: true,
               ),
-            ),
-            // Text field
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                maxLines: null,
-                textInputAction: TextInputAction.newline,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: AppColors.onSurface,
-                  fontWeight: FontWeight.w400,
-                ),
-                decoration: InputDecoration(
-                  hintText: l10n.shivInputHint,
-                  hintStyle: const TextStyle(
-                    color: AppColors.outline,
-                    fontSize: 15,
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  filled: false,
-                ),
+              const SizedBox(width: 8),
+              // AI model picker. Disabled mid-stream (ambiguous ownership).
+              _CircleButton(
+                icon: Icons.smart_toy_rounded,
+                onTap: isStreaming ? null : () => showModelPickerSheet(context),
+                tooltip: l10n.chatInputPickModelTooltip,
               ),
-            ),
-            // Send / Stop button — swaps while streaming so the user can
-            // interrupt long responses.
-            Padding(
-              padding: const EdgeInsets.all(6),
-              child: GestureDetector(
-                onTap: isStreaming
-                    ? widget.onStop
-                    : (canSend ? _submit : null),
+              const Spacer(),
+              // Send / Stop — swaps while streaming so the user can interrupt.
+              GestureDetector(
+                onTap: isStreaming ? widget.onStop : (canSend ? _submit : null),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   width: 40,
@@ -150,21 +141,12 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
                     color: isStreaming || canSend
                         ? AppColors.primary
                         : AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: (isStreaming || canSend)
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.25),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            )
-                          ]
-                        : null,
+                    shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isStreaming
                         ? Icons.stop_rounded
-                        : Icons.send_rounded,
+                        : Icons.arrow_upward_rounded,
                     size: isStreaming ? 20 : 18,
                     color: (isStreaming || canSend)
                         ? AppColors.onPrimary
@@ -172,10 +154,49 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+}
+
+/// Circular control button matching the Vishnu AI composer's buttons.
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  /// Primary-tinted (used for the active scope avatar).
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = onTap == null
+        ? AppColors.outline
+        : (filled ? AppColors.primary : AppColors.onSurfaceVariant);
+    final btn = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: filled
+              ? AppColors.primary.withValues(alpha: 0.14)
+              : AppColors.surfaceContainerHigh,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+    return tooltip == null ? btn : Tooltip(message: tooltip!, child: btn);
   }
 }
