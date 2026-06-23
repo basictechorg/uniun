@@ -35,6 +35,8 @@ import 'package:uniun/features/private_channels/detail/pages/private_channel_det
 import 'package:uniun/features/private_channels/entry/pages/private_channel_entry_page.dart';
 import 'package:uniun/features/private_channels/join/pages/join_private_channel_page.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
+import 'package:uniun/features/receive_share/pages/receive_share_sheet_page.dart';
+import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
 import 'package:uniun/features/media/pages/media_detail_page.dart';
 import 'package:uniun/features/media/pages/media_gallery_page.dart';
 import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
@@ -301,6 +303,16 @@ final GoRouter appRouter = GoRouter(
         intent: state.extra is UniunQrScanIntent
             ? state.extra as UniunQrScanIntent
             : UniunQrScanIntent.generic,
+      ),
+    ),
+    // In-app only — landing surface for content shared INTO UNIUN from another
+    // app. Not universal-linkable; reached via pushNamed from the share-intent
+    // listener with a SharedIncoming payload in `extra`.
+    GoRoute(
+      name: AppRoutes.receiveShare,
+      path: '/receive-share',
+      builder: (_, state) => ReceiveShareSheetPage(
+        incoming: state.extra as SharedIncoming,
       ),
     ),
     // In-app profile route (args passed via `extra`).

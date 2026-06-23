@@ -45,6 +45,11 @@ dependencies:
   flutter_native_splash: ^2.3.10
   qr_flutter: ^4.1.0
   share_plus: ^10.1.4
+  # Inbound share: lets other apps (WhatsApp, Photos, Files, browsers) push
+  # text/links/images/videos/files INTO UNIUN via the OS share sheet. Android
+  # reads ACTION_SEND off the singleTop MainActivity; iOS needs a Share
+  # Extension target + App Group (group.in.uniun.app) — see ios/ShareExtension/.
+  receive_sharing_intent: ^1.8.1
   # Direct save to Photos / Files (Android / iOS / macOS). On Windows we
   # fall back to copying the file to the user's Downloads directory via
   # path_provider.

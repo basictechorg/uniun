@@ -388,6 +388,18 @@ abstract class AppLocalizations {
   /// **'No messages yet'**
   String get drawerNoMessages;
 
+  /// Placeholder for the drawer search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get drawerSearchHint;
+
+  /// Shown in the drawer when a search query has no matching items
+  ///
+  /// In en, this message translates to:
+  /// **'No matches'**
+  String get drawerSearchNoResults;
+
   /// QR sheet action button
   ///
   /// In en, this message translates to:
@@ -4161,6 +4173,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get manthanRetry;
+
+  /// Title of the sheet shown when content is shared into UNIUN from another app
+  ///
+  /// In en, this message translates to:
+  /// **'Add to UNIUN'**
+  String get receiveShareTitle;
+
+  /// Composer hint on the receive-share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Say something… (optional)'**
+  String get receiveShareCommentHint;
+
+  /// Draft button label on the receive-share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Save to draft'**
+  String get receiveShareSaveDraft;
+
+  /// Snackbar after saving shared content as a draft
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to drafts'**
+  String get receiveShareDraftSaved;
+
+  /// Shown while shared images/videos/files are being uploaded
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing attachments…'**
+  String get receiveShareIngesting;
+
+  /// Error when trying to save a draft with no text (drafts are text-only)
+  ///
+  /// In en, this message translates to:
+  /// **'Add some text to save a draft'**
+  String get receiveShareDraftNeedsText;
+
+  /// Error when trying to publish with no text and no attachments
+  ///
+  /// In en, this message translates to:
+  /// **'Add text or media first'**
+  String get receiveShareNothingToShare;
 }
 
 class _AppLocalizationsDelegate

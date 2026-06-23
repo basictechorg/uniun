@@ -26,6 +26,17 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_ios_podfile_setup
 
+# Inbound-share Share Extension (ios/ShareExtension) has NO CocoaPods
+# integration on purpose. It is not a Flutter target, so it cannot resolve the
+# Flutter engine framework that receive_sharing_intent's ObjC umbrella imports
+# (<Flutter/Flutter.h>) — every attempt to link the pod into the extension
+# failed to build the module. Instead the extension VENDORS the Flutter-free
+# pieces it needs (RSIShareViewController.swift + SharedMedia.swift, copied from
+# receive_sharing_intent 1.8.1) directly into its file-system-synchronized
+# source folder, so they compile into the .appex with zero Flutter dependency.
+# The receive_sharing_intent pod stays on Runner only, for the Dart plugin side.
+# Hence there is intentionally no `target 'ShareExtension'` block here.
+
 target 'Runner' do
   use_frameworks! :linkage => :static
   use_modular_headers!
@@ -52,6 +63,24 @@ end
 isar_dynamic_framework = ['isar_community_flutter_libs']
 
 pre_install do |installer|
+  # xcodeproj objectVersion 70 shim.
+  # Xcode 26 writes `objectVersion = 70` into Runner.xcodeproj (it converts
+  # folders to file-system-synchronized groups). CocoaPods builds the Pods
+  # project at that same objectVersion, but the bundled xcodeproj 1.27.0 map
+  # (COMPATIBILITY_VERSION_BY_OBJECT_VERSION) jumps 63 → 77 with no 70, so
+  # `Xcodeproj::Project.new(..., 70)` raises "Unable to find compatibility
+  # version string for object version `70`" and `pod install` dies. pre_install
+  # runs before Pods-project generation, so inject the missing entry here. Kept
+  # in the Podfile (not a local gem patch) so teammates / CI on CocoaPods
+  # ≤1.16.2 don't hit the same crash. Remove once the bundled xcodeproj maps 70.
+  require 'xcodeproj'
+  unless Xcodeproj::Constants::COMPATIBILITY_VERSION_BY_OBJECT_VERSION.key?(70)
+    patched = Xcodeproj::Constants::COMPATIBILITY_VERSION_BY_OBJECT_VERSION
+                .merge(70 => 'Xcode 16.0').freeze
+    Xcodeproj::Constants.send(:remove_const, :COMPATIBILITY_VERSION_BY_OBJECT_VERSION)
+    Xcodeproj::Constants.const_set(:COMPATIBILITY_VERSION_BY_OBJECT_VERSION, patched)
+  end
+
   # Allow a single dynamic framework among otherwise-static pods.
   Pod::Installer::Xcode::TargetValidator.send(:define_method, :verify_no_static_framework_transitive_dependencies) {}
   installer.pod_targets.each do |pod|

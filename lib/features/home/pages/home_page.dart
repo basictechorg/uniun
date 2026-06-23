@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/core/router/app_router.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/core/share_intent/share_intent_service.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_engine.dart';
@@ -24,6 +28,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late final VishnuFeedBloc _vishnuFeedBloc;
+  late final ShareIntentService _shareIntent;
 
   // 0 = Vishnu, 2 = Shiv — index 1 navigates away so it never lives in the stack.
   int _currentIndex = 0;
@@ -33,6 +38,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.initState();
     _vishnuFeedBloc = getIt<VishnuFeedBloc>()..add(const FeedOpenedEvent());
     GatewayBootstrap.start();
+    // Inbound share: HomePage only mounts for an authenticated user with a live
+    // navigator, so this is where we listen for warm-start shares and drain the
+    // cold-start payload the app may have been launched with.
+    _shareIntent = getIt<ShareIntentService>()..listen(_handleIncomingShare);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final initial = await _shareIntent.consumeInitial();
+      if (initial.isNotEmpty) _handleIncomingShare(initial);
+    });
     // Bring up the foreground Gana engine (main-isolate singleton — no
     // separate isolate; see `gana_engine.dart` header for the rationale)
     // and initialize WorkManager for the bg-tick path.
@@ -60,6 +73,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     } else if (state == AppLifecycleState.resumed) {
       GanaWorkmanagerBootstrap.cancelBackground();
     }
+  }
+
+  /// Routes an inbound OS share to the receive-share sheet. Navigates via the
+  /// root navigator so it works from this lifecycle callback.
+  void _handleIncomingShare(List<SharedMediaFile> files) {
+    final incoming = SharedIncoming.fromFiles(files);
+    if (incoming.isEmpty) return;
+    rootNavigatorKey.currentContext?.pushNamed(
+      AppRoutes.receiveShare,
+      extra: incoming,
+    );
   }
 
   Future<void> _switchTab(int i) async {

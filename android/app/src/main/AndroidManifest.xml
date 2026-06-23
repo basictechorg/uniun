@@ -69,6 +69,27 @@
                 <data android:pathPrefix="/private"/>
                 <data android:pathPrefix="/user"/>
             </intent-filter>
+            <!-- Inbound share from other apps (receive_sharing_intent).
+                 singleTop + onNewIntent delivers warm-start shares to this
+                 running activity; cold-start shares arrive on launch. -->
+            <!-- Single text / link share. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/*"/>
+            </intent-filter>
+            <!-- Single image / video / arbitrary file share. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+            <!-- Multiple files share. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
