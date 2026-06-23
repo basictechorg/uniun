@@ -1,0 +1,31 @@
+# Anything not needed for `go build`. Smaller build context = faster
+# `docker build`, no accidental secrets in image layers.
+
+# BadgerDB data — mounted as a volume at runtime, not baked in.
+db/
+
+# Stray host logs from the old PM2 deployment.
+*.log
+uniun.log
+
+# Existing pre-built binary on the host VM.
+uniun
+
+# VCS + editor.
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Docs (image doesn't need them).
+*.md
+README*
+DEPLOY*
+
+# Local env files — secrets stay outside the image.
+.env
+.env.*
+
+# OS clutter.
+.DS_Store
+Thumbs.db
