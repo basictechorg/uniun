@@ -22,7 +22,7 @@ class OnboardingAppBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SvgPicture.asset(
-                    'assets/images/uniun-logo.svg',
+                    'assets/images/uniun-logo-mark.svg',
                     height: 24,
                     width: 24,
                   ),

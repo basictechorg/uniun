@@ -439,6 +439,11 @@ class _MarkdownText extends StatelessWidget {
     fontWeight: FontWeight.w400,
   );
 
+  // Compiled once and reused for every line of every build — re-creating these
+  // inside the loop recompiled the pattern per line per token while streaming.
+  static final RegExp _heading = RegExp(r'^(#{1,3})\s+(.+)');
+  static final RegExp _bullet = RegExp(r'^[\-\*]\s+(.+)');
+
   @override
   Widget build(BuildContext context) {
     final lines = text.split('\n');
@@ -448,7 +453,7 @@ class _MarkdownText extends StatelessWidget {
       final line = lines[i];
 
       // Heading: # / ## / ###
-      final headMatch = RegExp(r'^(#{1,3})\s+(.+)').firstMatch(line);
+      final headMatch = _heading.firstMatch(line);
       if (headMatch != null) {
         final level = headMatch.group(1)!.length;
         final content = headMatch.group(2)!;
@@ -466,7 +471,7 @@ class _MarkdownText extends StatelessWidget {
       }
 
       // Bullet: - item or * item
-      final bulletMatch = RegExp(r'^[\-\*]\s+(.+)').firstMatch(line);
+      final bulletMatch = _bullet.firstMatch(line);
       if (bulletMatch != null) {
         widgets.add(Padding(
           padding: const EdgeInsets.only(top: 3),
@@ -504,18 +509,32 @@ class _InlineText extends StatelessWidget {
   final String text;
   final TextStyle base;
 
+  // **bold**, *italic*, `code` — compiled once, reused for every call.
+  static final RegExp _pattern = RegExp(r'\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`');
+
+  // Bounded parse cache keyed by input line. While streaming, [_MarkdownText]
+  // rebuilds every line widget each token, but only the last line's text
+  // actually changes — caching means the unchanged earlier lines hit instead
+  // of re-parsing. `base` is invariant (always [_MarkdownText._base]), so the
+  // input string alone is a sufficient key. Capped so a long stream's growing
+  // last line can't grow the cache unbounded.
+  static final Map<String, TextSpan> _cache = {};
+  static const _cacheCap = 128;
+
   @override
   Widget build(BuildContext context) {
     return Text.rich(_parseInline(text, base));
   }
 
   static TextSpan _parseInline(String input, TextStyle base) {
+    final cached = _cache[input];
+    if (cached != null) return cached;
+
     // Pattern priority: **bold**, *italic*, `code`
     final spans = <InlineSpan>[];
-    final pattern = RegExp(r'\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`');
     int cursor = 0;
 
-    for (final m in pattern.allMatches(input)) {
+    for (final m in _pattern.allMatches(input)) {
       if (m.start > cursor) {
         spans.add(TextSpan(text: input.substring(cursor, m.start), style: base));
       }
@@ -542,7 +561,10 @@ class _InlineText extends StatelessWidget {
       spans.add(TextSpan(text: input.substring(cursor), style: base));
     }
 
-    return TextSpan(children: spans);
+    final span = TextSpan(children: spans);
+    if (_cache.length >= _cacheCap) _cache.remove(_cache.keys.first);
+    _cache[input] = span;
+    return span;
   }
 }
 

@@ -9,6 +9,7 @@ abstract class AppRoutes {
   static const importIdentity = 'importIdentity';
   static const yourIdentityKeys = 'yourIdentityKeys';
   static const aboutYou = 'aboutYou';
+  static const howItWorks = 'howItWorks';
   static const home = 'home';
   static const settings = 'settings';
   static const editProfile = 'editProfile';

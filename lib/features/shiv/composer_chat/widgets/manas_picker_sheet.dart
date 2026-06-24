@@ -53,7 +53,7 @@ class _ManasPickerSheet extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: Text(
-                'Ask Shiv grounded in…',
+                'Select your manas',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

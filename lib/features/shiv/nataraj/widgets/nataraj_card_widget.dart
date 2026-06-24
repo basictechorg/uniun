@@ -58,7 +58,9 @@ class NatarajCardWidget extends StatefulWidget {
 
 class _NatarajCardWidgetState extends State<NatarajCardWidget>
     with TickerProviderStateMixin {
-  Offset _drag = Offset.zero;
+  // Drag offset as a ValueNotifier (not setState) so per-frame drag / spring /
+  // exit ticks re-apply the card transform without rebuilding the card body.
+  final ValueNotifier<Offset> _drag = ValueNotifier<Offset>(Offset.zero);
   static const double _threshold = 90;
 
   late final AnimationController _springController;
@@ -90,7 +92,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
     // Register listener once — reads _springAnimation which is set before forward().
     _springController.addListener(() {
       if (_springAnimation != null) {
-        setState(() => _drag = _springAnimation!.value);
+        _drag.value = _springAnimation!.value;
       }
     });
 
@@ -100,7 +102,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
     );
     _exitController.addListener(() {
       if (_exitAnimation != null) {
-        setState(() => _drag = _exitAnimation!.value);
+        _drag.value = _exitAnimation!.value;
       }
     });
     // Once the card has flown off-screen, advance the deck. The transforms are
@@ -133,7 +135,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
       _exitController.stop();
       _exiting = false;
       _pendingDir = null;
-      _drag = Offset.zero;
+      _drag.value = Offset.zero;
       _resolve();
     }
   }
@@ -141,6 +143,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
   @override
   void dispose() {
     widget.controller?._unbind(_animateSwipe);
+    _drag.dispose();
     _springController.dispose();
     _exitController.dispose();
     super.dispose();
@@ -154,8 +157,10 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
     final pubkey = keysResult.fold((_) => '', (k) => k.pubkeyHex);
 
     // 2. Resolve up to 2 references (cap to fit the card).
-    final resolved =
-        await _resolveNatarajNotes(widget.card.noteIds.take(2).toList(), pubkey);
+    final resolved = await _resolveNatarajNotes(
+      widget.card.noteIds.take(2).toList(),
+      pubkey,
+    );
 
     if (!mounted) return;
     setState(() {
@@ -182,10 +187,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
         selfPubkey: _selfPubkey,
         onOpenThread: (id) {
           Navigator.of(context).pop();
-          context.pushNamed(
-            AppRoutes.thread,
-            pathParameters: {'noteId': id},
-          );
+          context.pushNamed(AppRoutes.thread, pathParameters: {'noteId': id});
         },
       ),
     );
@@ -198,22 +200,23 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
   void _onPanUpdate(DragUpdateDetails d) {
     if (_exiting) return;
     _springController.stop();
-    final next = _drag + d.delta;
+    final next = _drag.value + d.delta;
     // Tick once each time the drag crosses the commit threshold, so the user
     // feels when a release will fire a swipe (vs. spring back).
-    if (_past(next) && !_past(_drag)) HapticFeedback.selectionClick();
-    setState(() => _drag = next);
+    if (_past(next) && !_past(_drag.value)) HapticFeedback.selectionClick();
+    _drag.value = next;
   }
 
   void _onPanEnd(DragEndDetails _) {
     if (_exiting) return;
-    final dx = _drag.dx;
-    final dy = _drag.dy;
+    final dx = _drag.value.dx;
+    final dy = _drag.value.dy;
     if (dx.abs() < _threshold && dy.abs() < _threshold) {
       // Spring back to center.
-      _springAnimation = Tween<Offset>(begin: _drag, end: Offset.zero).animate(
-        CurvedAnimation(parent: _springController, curve: Curves.easeOut),
-      );
+      _springAnimation = Tween<Offset>(begin: _drag.value, end: Offset.zero)
+          .animate(
+            CurvedAnimation(parent: _springController, curve: Curves.easeOut),
+          );
       _springController.forward(from: 0);
       return;
     }
@@ -231,15 +234,17 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
     _springController.stop();
     HapticFeedback.lightImpact();
     final size = MediaQuery.of(context).size;
+    final drag = _drag.value;
     final target = switch (dir) {
-      NatarajDirection.left => Offset(-size.width * 1.4, _drag.dy),
-      NatarajDirection.right => Offset(size.width * 1.4, _drag.dy),
-      NatarajDirection.up => Offset(_drag.dx, -size.height * 1.2),
-      NatarajDirection.down => Offset(_drag.dx, size.height * 1.2),
+      NatarajDirection.left => Offset(-size.width * 1.4, drag.dy),
+      NatarajDirection.right => Offset(size.width * 1.4, drag.dy),
+      NatarajDirection.up => Offset(drag.dx, -size.height * 1.2),
+      NatarajDirection.down => Offset(drag.dx, size.height * 1.2),
     };
-    _exitAnimation = Tween<Offset>(begin: _drag, end: target).animate(
-      CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
-    );
+    _exitAnimation = Tween<Offset>(
+      begin: drag,
+      end: target,
+    ).animate(CurvedAnimation(parent: _exitController, curve: Curves.easeIn));
     _pendingDir = dir;
     setState(() => _exiting = true);
     _exitController.forward(from: 0);
@@ -247,27 +252,42 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
 
   @override
   Widget build(BuildContext context) {
-    final angle = _drag.dx * 0.0004;
-    // During the fly-off, the front card fades out and the peek rises into its
-    // place. Both are driven by _exitController; 0 when idle.
-    final t = _exiting ? _exitController.value : 0.0;
-    final frontOpacity = (1.0 - Curves.easeIn.transform(t)).clamp(0.0, 1.0);
-    final rise = Curves.easeOut.transform(t);
-    return Stack(
-      children: [
-        if (widget.peek != null) _PeekCard(card: widget.peek!, rise: rise),
-        Opacity(
-          opacity: frontOpacity,
-          child: GestureDetector(
-            onPanUpdate: _onPanUpdate,
-            onPanEnd: _onPanEnd,
-            child: Transform.translate(
-              offset: _drag,
-              child: Transform.rotate(angle: angle, child: _card(context)),
+    // The card body is built here (and re-built only when the card data or a
+    // resolved profile changes), then handed to AnimatedBuilder as a cached
+    // `child`. Per-frame drag / spring / exit updates flow through _drag +
+    // _exitController, so the builder below only re-applies the transforms — it
+    // never rebuilds the body. RepaintBoundary caches the card (incl. its blur
+    // shadow) as a layer, so the transforms re-composite that texture instead of
+    // re-rasterizing the shadow every frame.
+    final front = RepaintBoundary(child: _card(context));
+    return AnimatedBuilder(
+      animation: Listenable.merge([_drag, _exitController]),
+      child: front,
+      builder: (context, child) {
+        final drag = _drag.value;
+        final angle = drag.dx * 0.0004;
+        // During the fly-off, the front card fades out and the peek rises into
+        // its place. Both are driven by _exitController; 0 when idle.
+        final t = _exiting ? _exitController.value : 0.0;
+        final frontOpacity = (1.0 - Curves.easeIn.transform(t)).clamp(0.0, 1.0);
+        final rise = Curves.easeOut.transform(t);
+        return Stack(
+          children: [
+            if (widget.peek != null) _PeekCard(card: widget.peek!, rise: rise),
+            Opacity(
+              opacity: frontOpacity,
+              child: GestureDetector(
+                onPanUpdate: _onPanUpdate,
+                onPanEnd: _onPanEnd,
+                child: Transform.translate(
+                  offset: drag,
+                  child: Transform.rotate(angle: angle, child: child),
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -357,9 +377,9 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                 // published) have no thread, so they stay non-tappable.
                 onTap: _references[i].id.length == 64
                     ? () => context.pushNamed(
-                          AppRoutes.thread,
-                          pathParameters: {'noteId': _references[i].id},
-                        )
+                        AppRoutes.thread,
+                        pathParameters: {'noteId': _references[i].id},
+                      )
                     : null,
               ),
               if (i < _references.length - 1)
@@ -378,8 +398,10 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                   icon: const Icon(Icons.unfold_more_rounded, size: 16),
                   label: Text(l10n.natarajReferencesView),
                   style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     foregroundColor: AppColors.primary,
@@ -473,7 +495,9 @@ class _PeekCard extends StatelessWidget {
 /// source (uuid id) is fabricated into a minimal NoteEntity authored by
 /// [selfPubkey]; unknown ids are skipped silently.
 Future<List<NoteEntity>> _resolveNatarajNotes(
-    List<String> ids, String selfPubkey) async {
+  List<String> ids,
+  String selfPubkey,
+) async {
   final noteUseCase = getIt<GetNoteByIdUseCase>();
   final draftUseCase = getIt<GetDraftByIdUseCase>();
   final resolved = <NoteEntity>[];
@@ -509,7 +533,8 @@ Future<List<NoteEntity>> _resolveNatarajNotes(
 /// Resolves each note author's profile so the cards render a name/avatar
 /// instead of a raw pubkey hash. Missing profiles trigger a relay fetch.
 Future<Map<String, ProfileEntity>> _resolveNatarajProfiles(
-    List<NoteEntity> notes) async {
+  List<NoteEntity> notes,
+) async {
   final getProfile = getIt<GetProfileUseCase>();
   final fetchProfile = getIt<RequestProfileFetchUseCase>();
   final profiles = <String, ProfileEntity>{};
@@ -599,8 +624,11 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.link_rounded,
-                    size: 16, color: AppColors.primary),
+                const Icon(
+                  Icons.link_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   l10n.natarajReferencesLabel,

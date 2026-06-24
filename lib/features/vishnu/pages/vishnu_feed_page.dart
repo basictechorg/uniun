@@ -6,7 +6,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
-import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
@@ -33,7 +32,9 @@ class VishnuFeedPage extends StatefulWidget {
 
 class _VishnuFeedPageState extends State<VishnuFeedPage> {
   late final app_drawer.DrawerBloc _drawerBloc;
-  bool _navVisible = true;
+  // Bottom-nav visibility is a ValueNotifier (not setState) so scroll-driven
+  // hide/show animates only the FloatingNav and never rebuilds the feed list.
+  final ValueNotifier<bool> _navVisible = ValueNotifier<bool>(true);
 
   @override
   void initState() {
@@ -44,15 +45,18 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
 
   @override
   void dispose() {
+    _navVisible.dispose();
     _drawerBloc.close();
     super.dispose();
   }
 
   void _onScrollDirection(ScrollDirection direction) {
-    if (direction == ScrollDirection.reverse && _navVisible) {
-      setState(() => _navVisible = false);
-    } else if (direction == ScrollDirection.forward && !_navVisible) {
-      setState(() => _navVisible = true);
+    // ValueNotifier ignores no-op writes, so no equality guard is needed and
+    // ScrollDirection.idle leaves the last value untouched.
+    if (direction == ScrollDirection.reverse) {
+      _navVisible.value = false;
+    } else if (direction == ScrollDirection.forward) {
+      _navVisible.value = true;
     }
   }
 
@@ -75,13 +79,17 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: AnimatedSlide(
-                offset: _navVisible ? Offset.zero : const Offset(0, 1.5),
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _navVisible,
                 child: FloatingNav(
                   currentIndex: widget.currentIndex,
                   onTap: widget.onSwitchTab,
+                ),
+                builder: (context, visible, child) => AnimatedSlide(
+                  offset: visible ? Offset.zero : const Offset(0, 1.5),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: child,
                 ),
               ),
             ),
@@ -105,7 +113,9 @@ class _VishnuFeedView extends StatefulWidget {
 class _VishnuFeedViewState extends State<_VishnuFeedView> {
   final _scrollController = ScrollController();
   final Set<String> _everVisible = <String>{};
-  bool _scrollingUp = false;
+  // New-notes banner visibility — ValueNotifier so scroll updates rebuild only
+  // the banner, not the ListView.
+  final ValueNotifier<bool> _scrollingUp = ValueNotifier<bool>(false);
 
   @override
   void initState() {
@@ -118,6 +128,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _scrollingUp.dispose();
     super.dispose();
   }
 
@@ -125,11 +136,12 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
     final dir = _scrollController.position.userScrollDirection;
     widget.onScrollDirection(dir);
     // The "new notes" button only surfaces while scrolling up toward the top;
-    // it stays hidden while reading/scrolling down. Idle keeps the last state.
-    if (dir == ScrollDirection.forward && !_scrollingUp) {
-      setState(() => _scrollingUp = true);
-    } else if (dir == ScrollDirection.reverse && _scrollingUp) {
-      setState(() => _scrollingUp = false);
+    // it stays hidden while reading/scrolling down. Idle keeps the last state
+    // (ValueNotifier ignores no-op writes).
+    if (dir == ScrollDirection.forward) {
+      _scrollingUp.value = true;
+    } else if (dir == ScrollDirection.reverse) {
+      _scrollingUp.value = false;
     }
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -265,10 +277,11 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                             top: 4,
                             left: 0,
                             right: 0,
-                            child: Builder(
-                              builder: (context) {
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: _scrollingUp,
+                              builder: (context, scrollingUp, _) {
                                 final showBanner =
-                                    _scrollingUp && feedState.newCount > 0;
+                                    scrollingUp && feedState.newCount > 0;
                                 return IgnorePointer(
                                   ignoring: !showBanner,
                                   child: NewNotesBanner(
@@ -323,29 +336,6 @@ class _FeedHeader extends StatelessWidget {
                   width: 32,
                 ),
               ],
-            ),
-          ),
-          const Spacer(),
-          // Notifications bell
-          const SizedBox(width: 4),
-          // Avatar — shows logged-in user's actual profile picture
-          GestureDetector(
-            onTap: () => Scaffold.of(context).openDrawer(),
-            child: BlocBuilder<app_drawer.DrawerBloc, app_drawer.DrawerState>(
-              builder: (context, drawerState) {
-                String? avatarUrl;
-                String seed = '';
-                if (drawerState is app_drawer.DrawerLoaded) {
-                  avatarUrl = drawerState.avatarUrl;
-                  seed = drawerState.pubkeyHex;
-                }
-                return UserAvatar(
-                  seed: seed,
-                  photoUrl: avatarUrl,
-                  size: 32,
-                  borderRadius: 10,
-                );
-              },
             ),
           ),
         ],

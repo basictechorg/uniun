@@ -64,9 +64,13 @@ class _SplashPageState extends State<SplashPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Sized to match the native launch splash icon (the Android 12
+              // system shrinks/masks android12splash well below its authored
+              // 256dp). The mark glyph fills ~82% of its box, so 150 → ~123px
+              // visible. Nudge this single value if it still doesn't line up.
               SvgPicture.asset(
-                'assets/images/uniun-logo.svg',
-                width: 200,
+                'assets/images/uniun-logo-mark.svg',
+                width: 150,
               ),
             ],
           ),

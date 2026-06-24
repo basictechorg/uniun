@@ -18,11 +18,7 @@ import 'package:uniun/features/share/pages/share_sheet_page.dart';
 /// flag via an internal [NoteCardCubit] (follow state is watched reactively
 /// from Isar). Callers only pass the note and a tap handler.
 class NoteCard extends StatelessWidget {
-  const NoteCard({
-    super.key,
-    required this.note,
-    required this.onTap,
-  });
+  const NoteCard({super.key, required this.note, required this.onTap});
 
   final NoteEntity note;
   final VoidCallback onTap;
@@ -37,233 +33,284 @@ class NoteCard extends StatelessWidget {
 }
 
 class _NoteCardView extends StatelessWidget {
-  const _NoteCardView({
-    required this.note,
-    required this.onTap,
-  });
+  const _NoteCardView({required this.note, required this.onTap});
 
   final NoteEntity note;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final cubit = context.watch<NoteCardCubit>();
-    final cardState = cubit.state;
-
-    // Locally deleted — collapse the card. It's already gone from Isar and
-    // won't return on the next feed load.
-    if (cardState.isRemoved) return const SizedBox.shrink();
-
-    final profile = cardState.profile;
-
-    final isFollowed = cardState.isFollowed;
-
-    final displayName = profile?.name ??
-        profile?.username ??
-        _shortName(note.authorPubkey);
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Avatar ──────────────────────────────────────────────────
-            UserAvatar(
-              seed: note.authorPubkey,
-              photoUrl: profile?.avatarUrl,
-              size: 40,
-              borderRadius: 20,
-              onTap: () => openUserProfile(
-                context,
-                note.authorPubkey,
-                hintName: displayName,
+    final cubit = context.read<NoteCardCubit>();
+    // Only collapse-on-delete needs the whole card to rebuild. Everything else
+    // is scoped to the dynamic leaves below (avatar / name / menu / action row)
+    // via BlocSelector, so the markdown body, media and embed — all derived
+    // purely from the immutable note — build once per item instead of on every
+    // profile/saved/follow/own emit.
+    return BlocSelector<NoteCardCubit, NoteCardState, bool>(
+      selector: (s) => s.isRemoved,
+      builder: (context, isRemoved) {
+        if (isRemoved) return const SizedBox.shrink();
+        return InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(
+                bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
               ),
             ),
-            const SizedBox(width: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Avatar ──────────────────────────────────────────────────
+                BlocSelector<
+                  NoteCardCubit,
+                  NoteCardState,
+                  ({String? photo, String name})
+                >(
+                  selector: (s) => (
+                    photo: s.profile?.avatarUrl,
+                    name: _displayName(
+                      s.profile?.name,
+                      s.profile?.username,
+                      note.authorPubkey,
+                    ),
+                  ),
+                  builder: (context, a) => UserAvatar(
+                    seed: note.authorPubkey,
+                    photoUrl: a.photo,
+                    size: 40,
+                    borderRadius: 20,
+                    onTap: () => openUserProfile(
+                      context,
+                      note.authorPubkey,
+                      hintName: a.name,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
 
-            // ── Content ─────────────────────────────────────────────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Author row
-                  Row(
+                // ── Content ─────────────────────────────────────────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              displayName,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              formatTimeAgo(note.created),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.outline,
-                              ),
-                            ),
-                            if (note.sourceLabel != null) ...[
-                              const SizedBox(width: 6),
-                              Icon(
-                                note.sourcePrivateGroupId != null
-                                    ? Icons.lock_outline
-                                    : Icons.tag_rounded,
-                                size: 13,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(width: 2),
-                              Flexible(
-                                child: Text(
-                                  note.sourceLabel!,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
+                      // Author row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                BlocSelector<
+                                  NoteCardCubit,
+                                  NoteCardState,
+                                  String
+                                >(
+                                  selector: (s) => _displayName(
+                                    s.profile?.name,
+                                    s.profile?.username,
+                                    note.authorPubkey,
+                                  ),
+                                  builder: (context, name) => Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.onSurface,
+                                    ),
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  formatTimeAgo(note.created),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.outline,
+                                  ),
+                                ),
+                                if (note.sourceLabel != null) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    note.sourcePrivateGroupId != null
+                                        ? Icons.lock_outline
+                                        : Icons.tag_rounded,
+                                    size: 13,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Flexible(
+                                    child: Text(
+                                      note.sourceLabel!,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          // ── Overflow menu (Delete / Block) ──────────────────
+                          BlocSelector<
+                            NoteCardCubit,
+                            NoteCardState,
+                            ({bool isOwn, String name})
+                          >(
+                            selector: (s) => (
+                              isOwn: s.isOwnNote,
+                              name: _displayName(
+                                s.profile?.name,
+                                s.profile?.username,
+                                note.authorPubkey,
+                              ),
+                            ),
+                            builder: (context, m) => NoteCardMenu(
+                              cubit: cubit,
+                              isOwnNote: m.isOwn,
+                              displayName: m.name,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      if (note.content.isNotEmpty)
+                        ExpandableNoteText(
+                          text: note.content,
+                          // Body text is selectable (long-press), but a simple tap
+                          // is forwarded to the card's onTap so it still opens the
+                          // thread — SelectableText would otherwise swallow it.
+                          onTap: onTap,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF1E293B),
+                            height: 1.55,
+                          ),
+                        ),
+                      if (note.quotedNote != null) ...[
+                        if (note.content.isNotEmpty) const SizedBox(height: 8),
+                        EmbeddedNoteCard(note: note.quotedNote),
+                      ],
+
+                      // ── Media attachments (NIP-92 imeta) ────────────────────
+                      if (note.hasMedia) MediaAttachmentView(note: note),
+
+                      // Hashtag chips
+                      if (note.tTags.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: note.tTags
+                              .take(3)
+                              .map(
+                                (t) => Text(
+                                  '#$t',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+
+                      const SizedBox(height: 12),
+
+                      // ── Action row ────────────────────────────────────────
+                      // Scoped to save / follow / own so toggling those updates the
+                      // row without rebuilding the body above.
+                      BlocSelector<
+                        NoteCardCubit,
+                        NoteCardState,
+                        ({bool isOwn, bool saved, bool followed})
+                      >(
+                        selector: (s) => (
+                          isOwn: s.isOwnNote,
+                          saved: s.isSaved,
+                          followed: s.isFollowed,
+                        ),
+                        builder: (context, a) => Padding(
+                          padding: const EdgeInsets.only(right: 32),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Reply count
+                              _ActionChip(
+                                icon: Icons.chat_bubble_outline_rounded,
+                                label: '${note.cachedReplyCount}',
+                                color: AppColors.onSurfaceVariant,
+                                onTap: onTap,
+                              ),
+
+                              // Reference count — outgoing refs from the edge table
+                              _ActionChip(
+                                icon: Icons.link_rounded,
+                                label: '${note.referenceCount}',
+                                color: AppColors.onSurfaceVariant,
+                                onTap: onTap,
+                              ),
+
+                              // Save toggle — hidden on own notes (kept forever
+                              // already; saving is for others').
+                              if (!a.isOwn)
+                                _ActionChip(
+                                  icon: a.saved
+                                      ? Icons.bookmark_rounded
+                                      : Icons.bookmark_border_rounded,
+                                  color: a.saved
+                                      ? AppColors.primary
+                                      : AppColors.onSurfaceVariant,
+                                  onTap: () => handleSaveToggle(context, cubit),
+                                ),
+
+                              // Follow / Following — owned by the cubit
+                              _ActionChip(
+                                icon: a.followed
+                                    ? Icons.notifications
+                                    : Icons.notifications_none,
+                                color: a.followed
+                                    ? AppColors.primary
+                                    : AppColors.onSurfaceVariant,
+                                onTap: () => cubit.toggleFollow(),
+                              ),
+                              _ActionChip(
+                                icon: Icons.share_outlined,
+                                color: AppColors.onSurfaceVariant,
+                                onTap: () =>
+                                    ShareSheetPage.show(context, note.id),
                               ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                      // ── Overflow menu (Delete / Block) ──────────────────
-                      NoteCardMenu(
-                        cubit: cubit,
-                        isOwnNote: cardState.isOwnNote,
-                        displayName: displayName,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-
-                  if (note.content.isNotEmpty)
-                    ExpandableNoteText(
-                      text: note.content,
-                      // Body text is selectable (long-press), but a simple tap
-                      // is forwarded to the card's onTap so it still opens the
-                      // thread — SelectableText would otherwise swallow it.
-                      onTap: onTap,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF1E293B),
-                        height: 1.55,
-                      ),
-                    ),
-                  if (note.quotedNote != null) ...[
-                    if (note.content.isNotEmpty) const SizedBox(height: 8),
-                    EmbeddedNoteCard(note: note.quotedNote),
-                  ],
-
-                  // ── Media attachments (NIP-92 imeta) ────────────────────
-                  if (note.hasMedia) MediaAttachmentView(note: note),
-
-                  // Hashtag chips
-                  if (note.tTags.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: note.tTags
-                          .take(3)
-                          .map(
-                            (t) => Text(
-                              '#$t',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-
-                  const SizedBox(height: 12),
-
-                  // ── Action row ────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.only(right: 32),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Reply count
-                        _ActionChip(
-                          icon: Icons.chat_bubble_outline_rounded,
-                          label: '${note.cachedReplyCount}',
-                          color: AppColors.onSurfaceVariant,
-                          onTap: onTap,
-                        ),
-
-                        // Reference count — outgoing refs from the edge table
-                        _ActionChip(
-                          icon: Icons.link_rounded,
-                          label: '${note.referenceCount}',
-                          color: AppColors.onSurfaceVariant,
-                          onTap: onTap,
-                        ),
-
-                        // Save toggle — owned by the cubit. Hidden on own notes
-                        // (they're kept forever already; saving is for others').
-                        if (!cardState.isOwnNote)
-                          _ActionChip(
-                            icon: cardState.isSaved
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            color: cardState.isSaved
-                                ? AppColors.primary
-                                : AppColors.onSurfaceVariant,
-                            onTap: () => handleSaveToggle(context, cubit),
-                          ),
-
-                        // Follow / Following — owned by the cubit
-                        _ActionChip(
-                          icon: isFollowed
-                              ? Icons.notifications
-                              : Icons.notifications_none,
-                          color: isFollowed
-                              ? AppColors.primary
-                              : AppColors.onSurfaceVariant,
-                          onTap: () => cubit.toggleFollow(),
-                        ),
-                        _ActionChip(
-                          icon: Icons.share_outlined,
-                          color: AppColors.onSurfaceVariant,
-                          onTap: () =>
-                              ShareSheetPage.show(context, note.id),
-                        )
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
+}
 
-  String _shortName(String pubkey) {
-    if (pubkey.length <= 16) return pubkey;
-    return '${pubkey.substring(0, 8)}...${pubkey.substring(pubkey.length - 4)}';
-  }
+/// Author display name from the (reactive) profile, falling back to a short
+/// form of the pubkey. Top-level so the per-leaf [BlocSelector]s can call it.
+String _displayName(String? name, String? username, String pubkey) =>
+    name ?? username ?? _shortName(pubkey);
+
+String _shortName(String pubkey) {
+  if (pubkey.length <= 16) return pubkey;
+  return '${pubkey.substring(0, 8)}...${pubkey.substring(pubkey.length - 4)}';
 }
 
 class _ActionChip extends StatelessWidget {

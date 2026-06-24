@@ -430,10 +430,54 @@ class _CollapsibleSection extends StatefulWidget {
   State<_CollapsibleSection> createState() => _CollapsibleSectionState();
 }
 
-class _CollapsibleSectionState extends State<_CollapsibleSection> {
+class _CollapsibleSectionState extends State<_CollapsibleSection>
+    with SingleTickerProviderStateMixin {
   bool? _userExpanded;
+  late final AnimationController _controller;
+  late final Animation<double> _sizeFactor;
 
   bool get _expanded => _userExpanded ?? widget.itemCount <= 3;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+      value: _expanded ? 1 : 0,
+    );
+    _sizeFactor =
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  }
+
+  // itemCount can change after an async reload; if the user hasn't toggled, the
+  // count-derived default may flip, so re-sync the controller to it.
+  @override
+  void didUpdateWidget(covariant _CollapsibleSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  void _sync() {
+    final target = _expanded ? 1.0 : 0.0;
+    if (_controller.value == target) return;
+    if (_expanded) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _toggle() {
+    setState(() => _userExpanded = !_expanded);
+    _sync();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +485,7 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () => setState(() => _userExpanded = !_expanded),
+          onTap: _toggle,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -477,11 +521,12 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
             ),
           ),
         ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-              _expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: Column(
+        // Vertical accordion — clip height only. AnimatedCrossFade animated both
+        // axes, which made rows appear to grow horizontally from center.
+        SizeTransition(
+          alignment: Alignment.topCenter,
+          sizeFactor: _sizeFactor,
+          child: Column(
             children: [
               const SizedBox(height: 4),
               if (widget.itemCount == 0)
@@ -490,8 +535,8 @@ class _CollapsibleSectionState extends State<_CollapsibleSection> {
                 ...widget.children,
             ],
           ),
-          secondChild: const SizedBox.shrink(),
         ),
+
       ],
     );
   }

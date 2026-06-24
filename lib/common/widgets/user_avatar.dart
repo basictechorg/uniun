@@ -1,8 +1,29 @@
 import 'package:avatar_plus/avatar_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+
+// AvatarPlus regenerates its SVG string AND re-parses it via SvgPicture on every
+// build. A feed card rebuilds several times as its cubit's async profile/saved/
+// follow queries resolve, so the same deterministic avatar was being rebuilt
+// dozens of times per scroll — a major source of main-thread jank. Memoize the
+// generated SVG per seed (FIFO-capped); flutter_svg's own picture cache then
+// dedupes the parse, so a repeat seed costs only a map lookup.
+const int _kAvatarSvgCacheCap = 256;
+final Map<String, String> _avatarSvgCache = <String, String>{};
+
+String _avatarSvg(String seed) {
+  final cached = _avatarSvgCache[seed];
+  if (cached != null) return cached;
+  final svg = AvatarPlusGen.instance.generate(seed, trBackground: false);
+  if (_avatarSvgCache.length >= _kAvatarSvgCacheCap) {
+    _avatarSvgCache.remove(_avatarSvgCache.keys.first);
+  }
+  _avatarSvgCache[seed] = svg;
+  return svg;
+}
 
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
@@ -29,6 +50,8 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? size / 2;
+    // Decode network avatars at display resolution, not the source's full size.
+    final decodePx = (size * MediaQuery.devicePixelRatioOf(context)).round();
 
     // 'generated:<seed>' prefix means the user picked an avatar variant during
     // onboarding. Use that seed directly for AvatarPlus instead of the pubkey.
@@ -64,6 +87,8 @@ class UserAvatar extends StatelessWidget {
               fit: BoxFit.cover,
               width: size,
               height: size,
+              memCacheWidth: decodePx,
+              memCacheHeight: decodePx,
               placeholder: (_, __) => _generated(generatedSeed),
               errorWidget: (_, __, ___) => _generated(generatedSeed),
             )
@@ -77,10 +102,9 @@ class UserAvatar extends StatelessWidget {
     );
   }
 
-  Widget _generated(String s) => AvatarPlus(
-        s,
+  Widget _generated(String s) => SvgPicture.string(
+        _avatarSvg(s),
         width: size,
         height: size,
-        trBackground: false,
       );
 }
