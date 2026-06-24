@@ -34,7 +34,10 @@ void main() {
       (tester) async {
     var taps = 0;
     await tester.pumpWidget(host(onTap: () => taps++));
-    await tester.tapAt(tester.getCenter(find.byType(ExpandableNoteText)));
+    // Tap directly on the SelectableText — for short content, the
+    // ExpandableNoteText widget's centre is in the empty space to the right
+    // of the left-aligned column child, which would miss the hit target.
+    await tester.tap(find.byType(SelectableText));
     await tester.pump();
     expect(taps, 1);
   });

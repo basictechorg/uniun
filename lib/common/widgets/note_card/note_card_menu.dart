@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/manas/widgets/manas_membership_sheet.dart';
+import 'package:uniun/features/moderation/pages/report_sheet_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Top-right overflow menu shared by [NoteCard] and [LargeNoteCard].
@@ -24,6 +25,21 @@ class NoteCardMenu extends StatelessWidget {
   final NoteCardCubit cubit;
   final bool isOwnNote;
   final String displayName;
+
+  Future<void> _onReport(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ReportSheetPage.show(
+      context,
+      targetEventId: cubit.note.id,
+      targetPubkey: cubit.note.authorPubkey,
+    );
+    if (result == true) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.reportSentSnackbar)),
+      );
+    }
+  }
 
   Future<void> _onBlock(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
@@ -93,6 +109,7 @@ class NoteCardMenu extends StatelessWidget {
       menuPadding: const EdgeInsets.symmetric(vertical: 4),
       onSelected: (value) {
         if (value == 'manas') _onManas(context);
+        if (value == 'report') _onReport(context);
         if (value == 'block') _onBlock(context);
         if (value == 'delete') _onDelete(context);
       },
@@ -107,9 +124,12 @@ class NoteCardMenu extends StatelessWidget {
         const PopupMenuDivider(),
         _destructiveItem('delete', Icons.delete_outline_rounded,
             l10n.noteCardDeleteNote),
-        if (!isOwnNote)
+        if (!isOwnNote) ...[
+          _destructiveItem(
+              'report', Icons.flag_outlined, l10n.noteCardReport),
           _destructiveItem(
               'block', Icons.block_rounded, l10n.noteCardBlockUser),
+        ],
       ],
     );
   }

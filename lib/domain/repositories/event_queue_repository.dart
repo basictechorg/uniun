@@ -29,5 +29,6 @@ abstract class EventQueueRepository {
     int? expirationSec,
     List<String> serverTags,
     List<MediaBlobEntity> imeta,
+    String? reportType,
   });
 }

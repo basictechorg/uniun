@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// UNIUN design system colors — sourced directly from the design HTML.
 ///
-/// PRIMARY: #319BED — the single brand blue used on all buttons, active states,
+/// PRIMARY: #0075F2 — the single brand blue used on all buttons, active states,
 /// icons, and text highlights. Change only this const to retheme the entire app.
 abstract class AppColors {
   static const primary = Color(0xFF0075f2);
@@ -37,7 +37,7 @@ abstract class AppColors {
 
   static const outline = Color(0xFF727785);
   static const outlineVariant = Color(0xFFC1C6D5);
-  static const someColor = Color(0xFFcaccce);
+  static const iconInactive = Color(0xFFcaccce);
 
   static const inverseSurface = Color(0xFF2E3132);
   static const inverseOnSurface = Color(0xFFF0F1F3);
@@ -48,9 +48,43 @@ abstract class AppColors {
   static const graphDraft = Color(0xFFD97706);
 }
 
+/// UNIUN typography scale. Used via `Theme.of(context).textTheme.<role>` so a
+/// future font swap (or weight tweak) lands in one place.
+abstract class AppTextStyles {
+  static const TextTheme textTheme = TextTheme(
+    displayLarge:
+        TextStyle(fontSize: 32, fontWeight: FontWeight.w700, height: 1.2),
+    displayMedium:
+        TextStyle(fontSize: 28, fontWeight: FontWeight.w700, height: 1.2),
+    headlineLarge:
+        TextStyle(fontSize: 24, fontWeight: FontWeight.w600, height: 1.3),
+    headlineMedium:
+        TextStyle(fontSize: 22, fontWeight: FontWeight.w600, height: 1.3),
+    titleLarge:
+        TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.35),
+    titleMedium:
+        TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.4),
+    titleSmall:
+        TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
+    bodyLarge:
+        TextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5),
+    bodyMedium:
+        TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5),
+    bodySmall:
+        TextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.5),
+    labelLarge:
+        TextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
+    labelMedium:
+        TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4),
+    labelSmall:
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.4),
+  );
+}
+
 class AppTheme {
   static ThemeData get light => ThemeData(
         useMaterial3: true,
+        textTheme: AppTextStyles.textTheme,
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
           primary: AppColors.primary,

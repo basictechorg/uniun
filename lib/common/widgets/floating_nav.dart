@@ -77,7 +77,7 @@ class _NavTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.someColor;
+    final color = selected ? AppColors.primary : AppColors.iconInactive;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,

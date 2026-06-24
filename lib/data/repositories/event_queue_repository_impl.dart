@@ -32,6 +32,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
     int? expirationSec,
     List<String> serverTags = const [],
     List<MediaBlobEntity> imeta = const [],
+    String? reportType,
   }) async {
     try {
       final existing = await isar.eventQueueModels
@@ -71,6 +72,7 @@ class EventQueueRepositoryImpl extends EventQueueRepository {
               ..blurhash = b.blurhash
               ..filename = b.filename)
             .toList()
+        ..reportType = reportType
         ..sentCount = 0
         ..enqueuedAt = DateTime.now();
 

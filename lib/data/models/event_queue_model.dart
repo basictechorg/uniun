@@ -62,6 +62,17 @@ class EventQueueModel {
   /// NIP-92 media attachments → one `["imeta", ...]` per entry.
   List<MediaAttachment> imeta = const [];
 
+  /// NIP-56 report type (one of [ReportType] names: `nudity`/`malware`/etc).
+  ///
+  /// When non-null the canonical serializer emits report-shaped tags:
+  ///   `["e", id, "", reportType]` instead of NIP-10 root/reply/mention markers
+  ///   `["p", pubkey, reportType]` instead of bare `["p", pubkey]`
+  ///
+  /// Reports never carry NIP-10 threading semantics, so `rootEventId` /
+  /// `replyToEventId` must be null when `reportType` is set. The publisher
+  /// (`ReportRepositoryImpl`) signs in this exact shape.
+  String? reportType;
+
   /// Number of write-relay connections that have received ["OK", id, true].
   /// Incremented atomically by each WebSocketService on successful ACK.
   late int sentCount = 0;
@@ -144,13 +155,21 @@ extension EventQueueModelExtension on EventQueueModel {
   /// Tag order MUST match the canonical order documented above; signing
   /// publishers must follow the same order.
   String toSerializedRelayMessage() {
+    // NIP-56 report shape — flat e/p tags with report type as the trailing
+    // positional entry. Pre-empts the NIP-10 marker branch entirely.
+    final isReport = reportType != null;
     final tags = <List<String>>[
-      if (rootEventId != null) ['e', rootEventId!, '', 'root'],
-      if (replyToEventId != null) ['e', replyToEventId!, '', 'reply'],
-      for (final ref in eTagRefs)
-        if (ref != rootEventId && ref != replyToEventId)
-          ['e', ref, '', 'mention'],
-      for (final p in pTagRefs) ['p', p],
+      if (isReport)
+        for (final ref in eTagRefs) ['e', ref, '', reportType!]
+      else ...[
+        if (rootEventId != null) ['e', rootEventId!, '', 'root'],
+        if (replyToEventId != null) ['e', replyToEventId!, '', 'reply'],
+        for (final ref in eTagRefs)
+          if (ref != rootEventId && ref != replyToEventId)
+            ['e', ref, '', 'mention'],
+      ],
+      for (final p in pTagRefs)
+        if (isReport) ['p', p, reportType!] else ['p', p],
       for (final t in tTags) ['t', t],
       if (hTag != null) ['h', hTag!],
       if (dTag != null) ['d', dTag!],

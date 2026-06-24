@@ -1636,6 +1636,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionUnblock => 'Unblock';
 
   @override
+  String get noteCardReport => 'Report note';
+
+  @override
+  String get reportSheetTitle => 'Report this content';
+
+  @override
+  String get reportSheetReasonHint =>
+      'Optional — add any context (max 280 chars)';
+
+  @override
+  String get reportSheetSubmit => 'Submit report';
+
+  @override
+  String get reportSheetOutcomeHint =>
+      'This note will be hidden from your feed. Your report is sent to the network.';
+
+  @override
+  String get reportSheetAlsoBlock =>
+      'Also block this user (you won\'t see any of their posts)';
+
+  @override
+  String get reportSentSnackbar =>
+      'Report sent. Thanks for keeping UNIUN safe.';
+
+  @override
+  String get reportTypeNudity => 'Nudity';
+
+  @override
+  String get reportTypeNudityDescription =>
+      'Sexually explicit material or nudity';
+
+  @override
+  String get reportTypeMalware => 'Malware';
+
+  @override
+  String get reportTypeMalwareDescription =>
+      'Links or files that could harm devices';
+
+  @override
+  String get reportTypeProfanity => 'Profanity';
+
+  @override
+  String get reportTypeProfanityDescription =>
+      'Hateful or extremely vulgar language';
+
+  @override
+  String get reportTypeIllegal => 'Illegal';
+
+  @override
+  String get reportTypeIllegalDescription =>
+      'Content that is illegal in the reporter\'s jurisdiction';
+
+  @override
+  String get reportTypeSpam => 'Spam';
+
+  @override
+  String get reportTypeSpamDescription => 'Unwanted or repetitive promotion';
+
+  @override
+  String get reportTypeImpersonation => 'Impersonation';
+
+  @override
+  String get reportTypeImpersonationDescription =>
+      'Pretending to be someone they are not';
+
+  @override
+  String get reportTypeOther => 'Other';
+
+  @override
+  String get reportTypeOtherDescription =>
+      'Something else that violates community standards';
+
+  @override
   String get actionReadMore => 'Read more';
 
   @override
