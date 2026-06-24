@@ -13,4 +13,10 @@ abstract class ShivRepository {
   Future<Either<Failure, List<ShivMessageEntity>>> getMessages(String conversationId);
   Future<Either<Failure, ShivMessageEntity>> saveMessage(ShivMessageEntity message);
   Future<Either<Failure, Unit>> updateMessageContent(String messageId, String content);
+
+  /// Fires every time the conversation collection changes (added / deleted /
+  /// bulk-cleared). The stream emits void — consumers should re-call
+  /// [getConversations] to fetch the fresh list. Used by the chat bloc to keep
+  /// the drawer list in sync when the user wipes chat history from Settings.
+  Stream<void> watchConversations();
 }

@@ -447,6 +447,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i604.GetConversationsUseCase>(
       () => _i604.GetConversationsUseCase(gh<_i266.ShivRepository>()),
     );
+    gh.lazySingleton<_i604.WatchConversationsUseCase>(
+      () => _i604.WatchConversationsUseCase(gh<_i266.ShivRepository>()),
+    );
     gh.lazySingleton<_i604.CreateConversationUseCase>(
       () => _i604.CreateConversationUseCase(gh<_i266.ShivRepository>()),
     );
@@ -1433,19 +1436,10 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserUseCase>(),
       ),
     );
-    gh.factory<_i807.ThreadBloc>(
-      () => _i807.ThreadBloc(
-        gh<_i789.NoteResolverRepository>(),
-        gh<_i924.PostReplyUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i858.GetSavedRepliesUseCase>(),
-        gh<_i858.GetSavedReferencesUseCase>(),
-      ),
-    );
     gh.factory<_i190.ShivAIBloc>(
       () => _i190.ShivAIBloc(
         gh<_i604.GetConversationsUseCase>(),
+        gh<_i604.WatchConversationsUseCase>(),
         gh<_i604.CreateConversationUseCase>(),
         gh<_i604.DeleteConversationUseCase>(),
         gh<_i604.GetMessagesUseCase>(),
@@ -1461,6 +1455,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.ResumeBackgroundWorkUseCase>(),
         gh<_i681.RagPipeline>(),
         gh<_i179.DrainPendingExtractionsUseCase>(),
+      ),
+    );
+    gh.factory<_i807.ThreadBloc>(
+      () => _i807.ThreadBloc(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i924.PostReplyUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i858.GetSavedRepliesUseCase>(),
+        gh<_i858.GetSavedReferencesUseCase>(),
       ),
     );
     return this;

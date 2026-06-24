@@ -192,4 +192,8 @@ class ShivRepositoryImpl implements ShivRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Stream<void> watchConversations() =>
+      _isar.shivConversationModels.watchLazy(fireImmediately: false);
 }

@@ -34,11 +34,21 @@ class NoteCardMenu extends StatelessWidget {
       targetEventId: cubit.note.id,
       targetPubkey: cubit.note.authorPubkey,
     );
-    if (result == true) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.reportSentSnackbar)),
-      );
+    if (result == null) return;
+
+    // Always hide the reported note locally — this collapses the card
+    // immediately via NoteCardState.isRemoved (same path as the "Delete note"
+    // menu item). The published Kind-1984 event keeps existing on the relay;
+    // this is purely the reporter's local view.
+    await cubit.deleteNote();
+    // Optional escalation: drop every future event from this pubkey at the
+    // gateway. Best-effort — a failure here doesn't undo the report.
+    if (result.alsoBlock) {
+      await cubit.blockUser();
     }
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.reportSentSnackbar)),
+    );
   }
 
   Future<void> _onBlock(BuildContext context) async {
