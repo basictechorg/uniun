@@ -17,7 +17,7 @@ import 'package:uniun/features/brahma/manas/pages/manas_form_page.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/gana/detail/pages/gana_detail_page.dart';
 import 'package:uniun/features/shiv/gana/form/pages/gana_form_page.dart';
-import 'package:uniun/features/shiv/manthan/pages/manthan_deck_page.dart';
+import 'package:uniun/features/shiv/nataraj/pages/nataraj_deck_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
 import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
@@ -242,8 +242,8 @@ final GoRouter appRouter = GoRouter(
           GanaDetailPage(ganaId: state.pathParameters['ganaId']!),
     ),
     GoRoute(
-      name: AppRoutes.shivManthan,
-      path: '/manthan',
+      name: AppRoutes.shivNataraj,
+      path: '/nataraj',
       builder: (_, state) {
         final manasIds =
             (_asMap(state.extra)?['manasIds'] as List?)?.cast<String>() ??
@@ -251,7 +251,7 @@ final GoRouter appRouter = GoRouter(
         return BlocProvider(
           create: (_) =>
               getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
-          child: ManthanDeckPage(manasIds: manasIds),
+          child: NatarajDeckPage(manasIds: manasIds),
         );
       },
     ),

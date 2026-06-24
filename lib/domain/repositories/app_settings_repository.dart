@@ -4,12 +4,12 @@ import 'package:uniun/core/error/failures.dart';
 /// Device-local app settings (shared-preferences backed). Presentation reads
 /// these through use cases → this repository, never the datasource directly.
 abstract class AppSettingsRepository {
-  /// Whether the Manthan first-run coach overlay ("Swipe to explore ideas")
+  /// Whether the Nataraj first-run coach overlay ("Swipe to explore ideas")
   /// has been dismissed. Shown only once, ever.
-  Future<Either<Failure, bool>> getManthanCoachSeen();
+  Future<Either<Failure, bool>> getNatarajCoachSeen();
 
-  /// Persist that the Manthan coach overlay has been seen/dismissed.
-  Future<Either<Failure, Unit>> setManthanCoachSeen(bool seen);
+  /// Persist that the Nataraj coach overlay has been seen/dismissed.
+  Future<Either<Failure, Unit>> setNatarajCoachSeen(bool seen);
 
   /// Days after which short-lived public notes (Kind 1 / Kind 42) auto-evict;
   /// `null` = disabled. Read by CleanupManager at Gateway boot.

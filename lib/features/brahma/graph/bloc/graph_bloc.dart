@@ -114,6 +114,13 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
           content: d.content,
           eTagRefs: d.eTagRefs,
           type: GraphNodeType.draft,
+          // Drafts are always the user's own — seed the author so the panel
+          // renders the avatar/name and resolves the own profile.
+          authorPubkey: pubkeyHex,
+          created: d.updatedAt,
+          tTags: d.tTags,
+          pTagRefs: d.pTagRefs,
+          attachments: d.attachments,
         ));
       }
     });

@@ -115,8 +115,11 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
 
   void _saveDraft(BrahmaCreateState state) {
     final content = _controller.text.trim();
-    if (content.isEmpty) return;
-    context.read<BrahmaCreateBloc>().add(SaveDraftEvent(content: content));
+    if (content.isEmpty && state.pendingMedia.isEmpty) return;
+    context.read<BrahmaCreateBloc>().add(SaveDraftEvent(
+          content: content,
+          draftId: widget.initialDraftId,
+        ));
   }
 
   void _publish(BrahmaCreateState state) {
@@ -154,6 +157,13 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
               context
                   .read<BrahmaCreateBloc>()
                   .add(RestoreDraftMentionsEvent(draft.eTagRefs));
+            }
+            // Restore staged media so the composer shows it (and re-save /
+            // publish carry it).
+            if (draft.attachments.isNotEmpty) {
+              context
+                  .read<BrahmaCreateBloc>()
+                  .add(RestoreDraftMediaEvent(draft.attachments));
             }
           } catch (_) {}
 
@@ -215,10 +225,9 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                       avatarUrl: _avatarUrl,
                       avatarSeed: _pubkeySeed,
                       hintText: l10n.brahmaHintText,
-                      // Block publish while an upload is still in flight —
-                      // otherwise the submit captures an empty
-                      // attachedMedia and the note ships without imeta.
-                      canSend: _hasText && !state.isAttachingMedia,
+                      // Upload now happens at submit time, so `isSubmitting`
+                      // (which spans upload + publish) is what disables Send.
+                      canSend: _hasText,
                       isSending: state.isSubmitting,
                       references: state.selectedMentions
                           .map((n) =>
@@ -229,7 +238,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                           .add(RemoveMentionEvent(id)),
                       onAddReference: () => _openReferencePicker(state),
                       onAttachMedia: () => showComposeMediaSheet(context),
-                      attachments: state.attachedMedia,
+                      attachments: state.pendingMedia,
                       isAttachingMedia: state.isAttachingMedia,
                       onRemoveAttachment: (sha) => context
                           .read<BrahmaCreateBloc>()

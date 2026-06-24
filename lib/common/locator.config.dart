@@ -65,9 +65,9 @@ import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
     as _i147;
 import 'package:uniun/data/repositories/llm_repository_impl.dart' as _i19;
 import 'package:uniun/data/repositories/manas_repository_impl.dart' as _i395;
-import 'package:uniun/data/repositories/manthan_repository_impl.dart' as _i931;
 import 'package:uniun/data/repositories/media_repository_impl.dart' as _i980;
 import 'package:uniun/data/repositories/memory_repository_impl.dart' as _i849;
+import 'package:uniun/data/repositories/nataraj_repository_impl.dart' as _i455;
 import 'package:uniun/data/repositories/note_attachments_enricher.dart'
     as _i182;
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart'
@@ -122,9 +122,9 @@ import 'package:uniun/domain/repositories/llm_credentials_repository.dart'
     as _i819;
 import 'package:uniun/domain/repositories/llm_repository.dart' as _i205;
 import 'package:uniun/domain/repositories/manas_repository.dart' as _i699;
-import 'package:uniun/domain/repositories/manthan_repository.dart' as _i491;
 import 'package:uniun/domain/repositories/media_repository.dart' as _i683;
 import 'package:uniun/domain/repositories/memory_repository.dart' as _i331;
+import 'package:uniun/domain/repositories/nataraj_repository.dart' as _i125;
 import 'package:uniun/domain/repositories/note_relation_repository.dart'
     as _i1017;
 import 'package:uniun/domain/repositories/note_repository.dart' as _i47;
@@ -169,8 +169,8 @@ import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
 import 'package:uniun/domain/usecases/llm_usecases.dart' as _i918;
 import 'package:uniun/domain/usecases/manas_usecases.dart' as _i977;
-import 'package:uniun/domain/usecases/manthan_usecases.dart' as _i880;
 import 'package:uniun/domain/usecases/media_usecases.dart' as _i629;
+import 'package:uniun/domain/usecases/nataraj_usecases.dart' as _i812;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
 import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
@@ -218,11 +218,11 @@ import 'package:uniun/features/shiv/gana/list/bloc/gana_list_bloc.dart'
     as _i174;
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart'
     as _i651;
-import 'package:uniun/features/shiv/manthan/bloc/manthan_bloc.dart' as _i51;
-import 'package:uniun/features/shiv/manthan/engine/manthan_generator.dart'
-    as _i1000;
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart'
     as _i687;
+import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart' as _i395;
+import 'package:uniun/features/shiv/nataraj/engine/nataraj_generator.dart'
+    as _i638;
 import 'package:uniun/features/shiv/rag/embedding/embedding_model_downloader.dart'
     as _i850;
 import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart'
@@ -329,6 +329,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i775.DeletedNoteRepository>(
       () => _i438.DeletedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i125.NatarajRepository>(
+      () => _i455.NatarajRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.lazySingleton<_i182.NoteAttachmentsEnricher>(
       () => _i182.NoteAttachmentsEnricher(isar: gh<_i214.Isar>()),
     );
@@ -402,9 +405,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i103.UserRepository>(),
         gh<_i967.ProfileRepository>(),
       ),
-    );
-    gh.factory<_i491.ManthanRepository>(
-      () => _i931.ManthanRepositoryImpl(isar: gh<_i214.Isar>()),
     );
     gh.factory<_i160.GanaRepository>(
       () => _i899.GanaRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -553,6 +553,14 @@ extension GetItInjectableX on _i174.GetIt {
         attachments: gh<_i182.NoteAttachmentsEnricher>(),
       ),
     );
+    gh.factory<_i170.DraftRepository>(
+      () => _i640.DraftRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        eventQueue: gh<_i1039.EventQueueRepository>(),
+        getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
+        attachments: gh<_i182.NoteAttachmentsEnricher>(),
+      ),
+    );
     gh.lazySingleton<_i232.DeleteNoteUseCase>(
       () => _i232.DeleteNoteUseCase(gh<_i775.DeletedNoteRepository>()),
     );
@@ -562,23 +570,6 @@ extension GetItInjectableX on _i174.GetIt {
         eventQueue: gh<_i1039.EventQueueRepository>(),
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
       ),
-    );
-    gh.factory<_i170.DraftRepository>(
-      () => _i640.DraftRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        eventQueue: gh<_i1039.EventQueueRepository>(),
-        getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i880.GetNextManthanCardUseCase>(
-      () => _i880.GetNextManthanCardUseCase(gh<_i491.ManthanRepository>()),
-    );
-    gh.lazySingleton<_i880.RecordManthanSwipeUseCase>(
-      () => _i880.RecordManthanSwipeUseCase(gh<_i491.ManthanRepository>()),
-    );
-    gh.lazySingleton<_i880.CountBufferedManthanCardsUseCase>(
-      () =>
-          _i880.CountBufferedManthanCardsUseCase(gh<_i491.ManthanRepository>()),
     );
     gh.factory<_i43.SavedNoteRepository>(
       () => _i669.SavedNoteRepositoryImpl(
@@ -631,6 +622,16 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i117.AppSettingsRepository>(
       () => _i913.AppSettingsRepositoryImpl(gh<_i107.AppSettingsStore>()),
+    );
+    gh.lazySingleton<_i812.GetNextNatarajCardUseCase>(
+      () => _i812.GetNextNatarajCardUseCase(gh<_i125.NatarajRepository>()),
+    );
+    gh.lazySingleton<_i812.RecordNatarajSwipeUseCase>(
+      () => _i812.RecordNatarajSwipeUseCase(gh<_i125.NatarajRepository>()),
+    );
+    gh.lazySingleton<_i812.CountBufferedNatarajCardsUseCase>(
+      () =>
+          _i812.CountBufferedNatarajCardsUseCase(gh<_i125.NatarajRepository>()),
     );
     gh.lazySingleton<_i278.GetBlockedUsersUseCase>(
       () => _i278.GetBlockedUsersUseCase(gh<_i756.BlockedUserRepository>()),
@@ -971,11 +972,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i977.DeleteManasUseCase>(),
       ),
     );
-    gh.lazySingleton<_i907.GetManthanCoachSeenUseCase>(
-      () => _i907.GetManthanCoachSeenUseCase(gh<_i117.AppSettingsRepository>()),
+    gh.lazySingleton<_i907.GetNatarajCoachSeenUseCase>(
+      () => _i907.GetNatarajCoachSeenUseCase(gh<_i117.AppSettingsRepository>()),
     );
-    gh.lazySingleton<_i907.SetManthanCoachSeenUseCase>(
-      () => _i907.SetManthanCoachSeenUseCase(gh<_i117.AppSettingsRepository>()),
+    gh.lazySingleton<_i907.SetNatarajCoachSeenUseCase>(
+      () => _i907.SetNatarajCoachSeenUseCase(gh<_i117.AppSettingsRepository>()),
     );
     gh.lazySingleton<_i907.GetAutoDeleteOldNotesDaysUseCase>(
       () => _i907.GetAutoDeleteOldNotesDaysUseCase(
@@ -1179,6 +1180,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i837.MarkFeedItemSeenUseCase>(
       () => _i837.MarkFeedItemSeenUseCase(gh<_i250.FeedRepository>()),
     );
+    gh.lazySingleton<_i638.NatarajGenerator>(
+      () => _i638.NatarajGenerator(
+        gh<_i214.Isar>(),
+        gh<_i125.NatarajRepository>(),
+        gh<_i918.GenerateOneShotUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
     gh.factory<_i959.UserProfileBloc>(
       () => _i959.UserProfileBloc(
         gh<_i475.GetOwnNotesUseCase>(),
@@ -1233,16 +1242,25 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.GetAllSavedNotesUseCase>(),
       ),
     );
-    gh.lazySingleton<_i1000.ManthanGenerator>(
-      () => _i1000.ManthanGenerator(
-        gh<_i214.Isar>(),
-        gh<_i491.ManthanRepository>(),
-        gh<_i918.GenerateOneShotUseCase>(),
+    gh.factory<_i395.NatarajBloc>(
+      () => _i395.NatarajBloc(
+        gh<_i638.NatarajGenerator>(),
+        gh<_i812.GetNextNatarajCardUseCase>(),
+        gh<_i812.RecordNatarajSwipeUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i537.SaveDraftUseCase>(),
       ),
     );
     gh.lazySingleton<_i629.UploadMediaUseCase>(
       () => _i629.UploadMediaUseCase(gh<_i683.MediaRepository>()),
+    );
+    gh.lazySingleton<_i629.SaveLocalMediaUseCase>(
+      () => _i629.SaveLocalMediaUseCase(gh<_i683.MediaRepository>()),
+    );
+    gh.lazySingleton<_i629.ReadLocalMediaUseCase>(
+      () => _i629.ReadLocalMediaUseCase(gh<_i683.MediaRepository>()),
     );
     gh.lazySingleton<_i629.DownloadMediaUseCase>(
       () => _i629.DownloadMediaUseCase(gh<_i683.MediaRepository>()),
@@ -1285,21 +1303,8 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
-    gh.factory<_i939.ReceiveShareBloc>(
-      () => _i939.ReceiveShareBloc(
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i629.UploadMediaUseCase>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i537.SaveDraftUseCase>(),
-      ),
+    gh.lazySingleton<_i1.ShareNoteUseCase>(
+      () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
     );
     gh.factory<_i886.BrahmaCreateBloc>(
       () => _i886.BrahmaCreateBloc(
@@ -1307,16 +1312,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i475.PublishNoteUseCase>(),
         gh<_i629.PublishMediaNoteUseCase>(),
         gh<_i629.UploadMediaUseCase>(),
+        gh<_i629.SaveLocalMediaUseCase>(),
+        gh<_i629.ReadLocalMediaUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
         gh<_i537.SaveDraftUseCase>(),
         gh<_i537.GetDraftsUseCase>(),
+        gh<_i537.GetDraftByIdUseCase>(),
         gh<_i537.DeleteDraftUseCase>(),
         gh<_i475.SearchNotesUseCase>(),
         gh<_i475.GetNoteByIdUseCase>(),
       ),
-    );
-    gh.lazySingleton<_i1.ShareNoteUseCase>(
-      () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
     );
     gh.factory<_i1039.VishnuFeedBloc>(
       () => _i1039.VishnuFeedBloc(
@@ -1368,21 +1373,27 @@ extension GetItInjectableX on _i174.GetIt {
         note,
       ),
     );
-    gh.factory<_i51.ManthanBloc>(
-      () => _i51.ManthanBloc(
-        gh<_i1000.ManthanGenerator>(),
-        gh<_i880.GetNextManthanCardUseCase>(),
-        gh<_i880.RecordManthanSwipeUseCase>(),
-        gh<_i977.GetManasListUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i537.SaveDraftUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i179.DrainPendingExtractionsUseCase>(
       () => _i179.DrainPendingExtractionsUseCase(
         gh<_i1000.PendingExtractionRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.factory<_i939.ReceiveShareBloc>(
+      () => _i939.ReceiveShareBloc(
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i629.SaveLocalMediaUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i537.SaveDraftUseCase>(),
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(

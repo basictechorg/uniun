@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Full-screen coach overlay shown once when the user first opens Manthan.
+/// Full-screen coach overlay shown once when the user first opens Nataraj.
 ///
 /// Renders a 3×3 grid illustrating the four swipe directions around a central
-/// card placeholder. Tapping [l10n.manthanCoachDismiss] calls [onDismiss].
-class ManthanCoachOverlay extends StatelessWidget {
-  const ManthanCoachOverlay({super.key, required this.onDismiss});
+/// card placeholder. Tapping [l10n.natarajCoachDismiss] calls [onDismiss].
+class NatarajCoachOverlay extends StatelessWidget {
+  const NatarajCoachOverlay({super.key, required this.onDismiss});
 
   final VoidCallback onDismiss;
 
@@ -25,7 +25,7 @@ class ManthanCoachOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  l10n.manthanCoachTitle,
+                  l10n.natarajCoachTitle,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -36,7 +36,7 @@ class ManthanCoachOverlay extends StatelessWidget {
                 const SizedBox(height: 24),
                 _DirectionGrid(l10n: l10n),
                 const SizedBox(height: 28),
-                _GotItButton(onTap: onDismiss, label: l10n.manthanCoachDismiss),
+                _GotItButton(onTap: onDismiss, label: l10n.natarajCoachDismiss),
               ],
             ),
           ),
@@ -60,19 +60,19 @@ class _DirectionGrid extends StatelessWidget {
           // Row 1: empty | Publish | empty
           TableRow(children: [
             const SizedBox.shrink(),
-            _Cell(icon: '↑', label: l10n.manthanEdgePublish),
+            _Cell(icon: '↑', label: l10n.natarajEdgePublish),
             const SizedBox.shrink(),
           ]),
           // Row 2: Discard | Card | Draft
           TableRow(children: [
-            _Cell(icon: '←', label: l10n.manthanEdgeDiscard),
+            _Cell(icon: '←', label: l10n.natarajEdgeDiscard),
             _CenterCard(),
-            _Cell(icon: '→', label: l10n.manthanEdgeDraft),
+            _Cell(icon: '→', label: l10n.natarajEdgeDraft),
           ]),
           // Row 3: empty | Discuss | empty
           TableRow(children: [
             const SizedBox.shrink(),
-            _Cell(icon: '↓', label: l10n.manthanEdgeDiscuss),
+            _Cell(icon: '↓', label: l10n.natarajEdgeDiscuss),
             const SizedBox.shrink(),
           ]),
         ],

@@ -256,3 +256,18 @@ extension MediaAttachmentMapper on MediaAttachment {
         downloadedAt: null,
       );
 }
+
+extension MediaBlobEntityMapper on MediaBlobEntity {
+  /// Domain entity → embedded row. Inverse of [MediaAttachmentMapper.toEntity].
+  /// Only the imeta metadata is persisted (the first server URL); cache state
+  /// lives in `MediaCacheModel`, keyed by sha256.
+  MediaAttachment toAttachment() => MediaAttachment()
+    ..sha256 = sha256
+    ..mime = mime
+    ..sizeBytes = sizeBytes
+    ..url = serverUrls.isNotEmpty ? serverUrls.first : null
+    ..width = dim?.width
+    ..height = dim?.height
+    ..blurhash = blurhash
+    ..filename = filename;
+}

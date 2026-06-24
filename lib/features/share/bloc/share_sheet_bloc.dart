@@ -1,8 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
@@ -46,8 +45,8 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
         )));
     on<AttachMedia>(_onAttachMedia);
     on<RemoveMedia>((e, emit) => emit(state.copyWith(
-          attachments:
-              state.attachments.where((a) => a.sha256 != e.sha256).toList(),
+          pending:
+              state.pending.where((m) => m.sha256 != e.sha256).toList(),
         )));
     on<SubmitShare>(_onSubmit);
   }
@@ -85,35 +84,44 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
     ));
   }
 
-  Future<void> _onAttachMedia(
-      AttachMedia event, Emitter<ShareSheetState> emit) async {
-    emit(state.copyWith(uploading: true, error: null));
-    final result = await _uploadMedia(UploadMediaInput(
-      bytes: event.bytes,
-      mime: event.mime,
-      filename: event.filename,
-      width: event.width,
-      height: event.height,
-    ));
-    result.fold(
-      (f) => emit(state.copyWith(uploading: false, error: f.toString())),
-      (blob) => emit(state.copyWith(
-        uploading: false,
-        attachments: [...state.attachments, blob],
-      )),
-    );
+  void _onAttachMedia(AttachMedia event, Emitter<ShareSheetState> emit) {
+    // No upload here — pushed to Blossom on submit. Hold the prepared pick.
+    if (state.pending.any((m) => m.sha256 == event.media.sha256)) return;
+    emit(state.copyWith(pending: [...state.pending, event.media]));
   }
 
   Future<void> _onSubmit(SubmitShare event, Emitter<ShareSheetState> emit) async {
     if (state.submitting) return;
     emit(state.copyWith(submitting: true, error: null));
+
+    // Upload pending attachments now (deferred from attach time). A failure
+    // aborts the share but keeps the picks so the user can retry.
+    final attachments = <MediaBlobEntity>[];
+    for (final media in state.pending) {
+      final up = await _uploadMedia(UploadMediaInput(
+        bytes: media.bytes,
+        mime: media.mime,
+        filename: media.filename,
+        blurhash: media.blurhash,
+        width: media.width,
+        height: media.height,
+      ));
+      final blob = up.fold((_) => null, (b) => b);
+      if (blob == null) {
+        emit(state.copyWith(
+            submitting: false, error: up.fold((f) => f.toString(), (_) => '')));
+        return;
+      }
+      attachments.add(blob);
+    }
+
     final result = await _shareNote(
       ShareNoteInput(
         sourceEventId: event.sourceEventId,
         destination: event.destination,
         content: state.content,
         referenceIds: [for (final r in state.references) r.id],
-        attachments: state.attachments,
+        attachments: attachments,
       ),
     );
     result.fold(

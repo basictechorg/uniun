@@ -38,5 +38,5 @@ abstract class AppRoutes {
   static const brahmaManasForm = 'brahmaManasForm';
   static const shivGanaForm = 'shivGanaForm';
   static const shivGanaDetail = 'shivGanaDetail';
-  static const shivManthan = 'shivManthan';
+  static const shivNataraj = 'shivNataraj';
 }

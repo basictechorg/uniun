@@ -11,18 +11,18 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
   AppSettingsRepositoryImpl(this._store);
 
   @override
-  Future<Either<Failure, bool>> getManthanCoachSeen() async {
+  Future<Either<Failure, bool>> getNatarajCoachSeen() async {
     try {
-      return Right(_store.manthanCoachSeen);
+      return Right(_store.natarajCoachSeen);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
 
   @override
-  Future<Either<Failure, Unit>> setManthanCoachSeen(bool seen) async {
+  Future<Either<Failure, Unit>> setNatarajCoachSeen(bool seen) async {
     try {
-      await _store.setManthanCoachSeen(seen);
+      await _store.setNatarajCoachSeen(seen);
       return const Right(unit);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));

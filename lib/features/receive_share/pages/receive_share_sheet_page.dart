@@ -115,11 +115,11 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
                     onRemoveReference: (id) =>
                         bloc.add(ReceiveShareEvent.removeReference(id)),
                     onAddReference: () => _pickReferences(context, bloc, state),
-                    attachments: state.attachments,
+                    attachments: state.pending,
                     onRemoveAttachment: (sha) =>
                         bloc.add(ReceiveShareEvent.removeMedia(sha)),
                     onAttachMedia: () => _pickMedia(context, bloc, state),
-                    isAttachingMedia: state.uploading || state.ingesting,
+                    isAttachingMedia: state.ingesting,
                     onDraft: () => bloc.add(const ReceiveShareEvent.saveToDraft()),
                     draftLabel: l10n.receiveShareSaveDraft,
                   ),
@@ -196,16 +196,10 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
     ReceiveShareBloc bloc,
     ReceiveShareState state,
   ) async {
-    if (state.uploading || state.ingesting) return;
+    if (state.ingesting) return;
     final picked = await showMediaPickSheet(context);
     if (picked == null) return;
-    bloc.add(ReceiveShareEvent.attachMedia(
-      bytes: picked.bytes,
-      mime: picked.mime,
-      filename: picked.filename,
-      width: picked.width,
-      height: picked.height,
-    ));
+    bloc.add(ReceiveShareEvent.attachMedia(picked));
   }
 }
 

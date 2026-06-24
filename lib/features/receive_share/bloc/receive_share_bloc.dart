@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -48,6 +46,7 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
   final GetActiveUserUseCase _getActiveUser;
   final GetActiveUserKeysUseCase _getKeys;
   final UploadMediaUseCase _uploadMedia;
+  final SaveLocalMediaUseCase _saveLocalMedia;
   final PublishNoteUseCase _publishNote;
   final PublishMediaNoteUseCase _publishMediaNote;
   final CreateChannelMessageUseCase _publishChannel;
@@ -62,6 +61,7 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
     this._getActiveUser,
     this._getKeys,
     this._uploadMedia,
+    this._saveLocalMedia,
     this._publishNote,
     this._publishMediaNote,
     this._publishChannel,
@@ -74,8 +74,7 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
         (e, emit) => emit(state.copyWith(content: e.value)));
     on<AttachReceiveMedia>(_onAttachMedia, transformer: sequential());
     on<RemoveReceiveMedia>((e, emit) => emit(state.copyWith(
-          attachments:
-              state.attachments.where((a) => a.sha256 != e.sha256).toList(),
+          pending: state.pending.where((m) => m.sha256 != e.sha256).toList(),
         )));
     on<SetReceiveReferences>(
         (e, emit) => emit(state.copyWith(references: e.references)));
@@ -125,69 +124,61 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
       ingesting: incoming.files.isNotEmpty,
     ));
 
-    // Ingest shared media: read → compress → upload to Blossom. Sequential so
-    // we don't thrash the upload server with a large multi-file share.
+    // Ingest shared media: read → compress into PickedMedia. No upload here —
+    // pushed to Blossom on submit. Sequential to bound peak memory on a large
+    // multi-file share.
     for (final f in incoming.files) {
       final picked = await sharedFileToPicked(path: f.path, mimeType: f.mimeType);
       if (picked == null) continue;
-      final result = await _uploadMedia(UploadMediaInput(
-        bytes: picked.bytes,
-        mime: picked.mime,
-        filename: picked.filename,
-        width: picked.width,
-        height: picked.height,
-      ));
-      result.fold(
-        (_) {},
-        (blob) {
-          if (state.attachments.any((a) => a.sha256 == blob.sha256)) return;
-          emit(state.copyWith(attachments: [...state.attachments, blob]));
-        },
-      );
+      if (state.pending.any((m) => m.sha256 == picked.sha256)) continue;
+      emit(state.copyWith(pending: [...state.pending, picked]));
     }
 
     emit(state.copyWith(ingesting: false));
   }
 
-  Future<void> _onAttachMedia(
-      AttachReceiveMedia event, Emitter<ReceiveShareState> emit) async {
-    emit(state.copyWith(uploading: true, error: null));
-    final result = await _uploadMedia(UploadMediaInput(
-      bytes: event.bytes,
-      mime: event.mime,
-      filename: event.filename,
-      width: event.width,
-      height: event.height,
-    ));
-    result.fold(
-      (f) => emit(state.copyWith(uploading: false, error: f.toString())),
-      (blob) {
-        if (state.attachments.any((a) => a.sha256 == blob.sha256)) {
-          emit(state.copyWith(uploading: false));
-          return;
-        }
-        emit(state.copyWith(
-          uploading: false,
-          attachments: [...state.attachments, blob],
-        ));
-      },
-    );
+  void _onAttachMedia(
+      AttachReceiveMedia event, Emitter<ReceiveShareState> emit) {
+    // No upload here — pushed to Blossom on submit. Hold the prepared pick.
+    if (state.pending.any((m) => m.sha256 == event.media.sha256)) return;
+    emit(state.copyWith(pending: [...state.pending, event.media]));
   }
 
   Future<void> _onSaveDraft(
       SaveReceiveDraft event, Emitter<ReceiveShareState> emit) async {
     final content = state.content.trim();
-    // Drafts are text-only (DraftEntity carries no media). Require text.
-    if (content.isEmpty) {
+    if (content.isEmpty && state.pending.isEmpty) {
       emit(state.copyWith(error: 'draft-needs-text'));
       return;
     }
+
+    // Stage attached media on-device only — the bytes are uploaded to Blossom
+    // when the draft is published, not now. A staging failure aborts the save.
+    final staged = <MediaBlobEntity>[];
+    for (final media in state.pending) {
+      final res = await _saveLocalMedia(SaveLocalMediaInput(
+        bytes: media.bytes,
+        mime: media.mime,
+        filename: media.filename,
+        blurhash: media.blurhash,
+        width: media.width,
+        height: media.height,
+      ));
+      final blob = res.fold((_) => null, (b) => b);
+      if (blob == null) {
+        emit(state.copyWith(error: res.fold((f) => f.toString(), (_) => '')));
+        return;
+      }
+      staged.add(blob);
+    }
+
     final draft = DraftEntity(
       draftId: const Uuid().v4(),
       content: content,
-      eTagRefs: const [],
+      eTagRefs: [for (final r in state.references) r.id],
       pTagRefs: const [],
       tTags: extractHashtags(content),
+      attachments: staged,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -202,7 +193,7 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
       SubmitReceiveShare event, Emitter<ReceiveShareState> emit) async {
     if (state.submitting) return;
     final content = state.content.trim();
-    if (content.isEmpty && state.attachments.isEmpty) {
+    if (content.isEmpty && state.pending.isEmpty) {
       emit(state.copyWith(error: 'nothing-to-share'));
       return;
     }
@@ -217,19 +208,40 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
       return;
     }
 
+    // Upload pending attachments now (deferred from attach time). A failure
+    // aborts the share but keeps the picks so the user can retry.
+    final attachments = <MediaBlobEntity>[];
+    for (final media in state.pending) {
+      final up = await _uploadMedia(UploadMediaInput(
+        bytes: media.bytes,
+        mime: media.mime,
+        filename: media.filename,
+        blurhash: media.blurhash,
+        width: media.width,
+        height: media.height,
+      ));
+      final blob = up.fold((_) => null, (b) => b);
+      if (blob == null) {
+        emit(state.copyWith(
+            submitting: false, error: up.fold((f) => f.toString(), (_) => '')));
+        return;
+      }
+      attachments.add(blob);
+    }
+
     final referenceIds = [for (final r in state.references) r.id];
 
     try {
       switch (event.destination) {
         case ShareToFeed():
-          await _publishFeed(keys, content, referenceIds);
+          await _publishFeed(keys, content, referenceIds, attachments);
         case ShareToPublicChannel(channelId: final id):
           await _publishChannel(CreateChannelMessageInput(
             channelId: id,
             content: content,
             privateKey: keys.privkeyHex,
             mentionRefs: referenceIds,
-            attachments: state.attachments,
+            attachments: attachments,
           ));
         case ShareToPrivateChannel(groupId: final id):
           await _publishPrivateChannel.execute(
@@ -238,15 +250,15 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
             authorPubkey: keys.pubkeyHex,
             privkeyHex: keys.privkeyHex,
             mentionRefs: referenceIds,
-            attachments: state.attachments,
+            attachments: attachments,
           );
         case ShareToDm(otherPubkeyHex: final pubkey):
           await _publishDm(SendDmParams(
             otherPubkey: pubkey,
             content: content,
-            type: _typeFor(state.attachments),
+            type: _typeFor(attachments),
             mentionRefs: referenceIds,
-            attachments: state.attachments,
+            attachments: attachments,
           ));
       }
       emit(state.copyWith(submitting: false, submitted: true));
@@ -258,14 +270,18 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
   /// Publishes a brand-new Kind 1 note on the user's feed — the Brahma path.
   /// No `embeddedNoteJson`: this is fresh content, not a quote.
   Future<void> _publishFeed(
-      UserSigningKeys keys, String content, List<String> referenceIds) async {
+    UserSigningKeys keys,
+    String content,
+    List<String> referenceIds,
+    List<MediaBlobEntity> attachments,
+  ) async {
     final hashtags = extractHashtags(content);
     final tags = buildNoteTags(
       mentionIds: referenceIds,
       hashtags: hashtags,
     );
-    if (state.attachments.isNotEmpty) {
-      tags.addAll(buildImetaTags(state.attachments));
+    if (attachments.isNotEmpty) {
+      tags.addAll(buildImetaTags(attachments));
     }
     final signed = signNostrEvent(
       content: content,
@@ -278,13 +294,13 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
       eTagRefs: referenceIds,
       tTags: hashtags,
     ).copyWith(
-      type: _typeFor(state.attachments),
-      attachments: state.attachments,
+      type: _typeFor(attachments),
+      attachments: attachments,
     );
-    final result = state.attachments.isEmpty
+    final result = attachments.isEmpty
         ? await _publishNote.call(note)
         : await _publishMediaNote.call(
-            PublishMediaNoteInput(note: note, attachments: state.attachments),
+            PublishMediaNoteInput(note: note, attachments: attachments),
           );
     result.fold((f) => throw Exception(f.toString()), (_) {});
   }

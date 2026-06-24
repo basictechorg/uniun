@@ -1,5 +1,5 @@
 /// Shared building blocks for the on-device LLM prompts used by the autonomous
-/// generators (Gana, Manthan). Keeps the small-but-easy-to-drift conventions —
+/// generators (Gana, Nataraj). Keeps the small-but-easy-to-drift conventions —
 /// the Qwen `/no_think` switch, the `<NOOP>` skip sentinel, and note-content
 /// normalisation — in ONE place so the two builders can't diverge.
 ///

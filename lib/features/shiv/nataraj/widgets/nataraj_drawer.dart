@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_model_drawer_section.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_scope_drawer_section.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_model_drawer_section.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_scope_drawer_section.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Side drawer for the Manthan deck. Two sections only:
+/// Side drawer for the Nataraj deck. Two sections only:
 ///   1. AI MODEL — the active on-device model + open model selection.
 ///   2. MANAS — the scope list ("All notes" + each Manas) the deck draws from.
 ///
 /// Deliberately has NO conversations or Ganas — those belong to the chat
-/// drawer ([ShivHistoryDrawer]). Set as `drawer:` on the Manthan deck Scaffold
-/// (reads the ambient [ManthanBloc] for the scope list).
-class ManthanDrawer extends StatelessWidget {
-  const ManthanDrawer({super.key});
+/// drawer ([ShivHistoryDrawer]). Set as `drawer:` on the Nataraj deck Scaffold
+/// (reads the ambient [NatarajBloc] for the scope list).
+class NatarajDrawer extends StatelessWidget {
+  const NatarajDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class ManthanDrawer extends StatelessWidget {
             ),
             color: AppColors.surface,
             child: Text(
-              l10n.manthanDrawerTitle,
+              l10n.natarajDrawerTitle,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -47,11 +47,11 @@ class ManthanDrawer extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: const [
-                ManthanModelDrawerSection(),
+                NatarajModelDrawerSection(),
                 SizedBox(height: 12),
                 Divider(height: 1, color: AppColors.outlineVariant),
                 SizedBox(height: 12),
-                ManthanScopeDrawerSection(),
+                NatarajScopeDrawerSection(),
               ],
             ),
           ),

@@ -1,38 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/features/shiv/manthan/bloc/manthan_bloc.dart';
+import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Centered empty / terminal state widget for the Manthan deck area.
+/// Centered empty / terminal state widget for the Nataraj deck area.
 ///
-/// Renders different copy for [ManthanStatus.needsMoreNotes] and
-/// [ManthanStatus.exhausted]. [onAddNotes] is fired when the CTA is tapped.
-class ManthanEmptyState extends StatelessWidget {
-  const ManthanEmptyState({
+/// Renders different copy for [NatarajStatus.needsMoreNotes] and
+/// [NatarajStatus.exhausted]. [onAddNotes] is fired when the CTA is tapped.
+class NatarajEmptyState extends StatelessWidget {
+  const NatarajEmptyState({
     super.key,
     required this.status,
     required this.onAddNotes,
   });
 
-  final ManthanStatus status;
+  final NatarajStatus status;
   final VoidCallback onAddNotes;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return switch (status) {
-      ManthanStatus.needsMoreNotes => _EmptyStateBody(
+      NatarajStatus.needsMoreNotes => _EmptyStateBody(
           emoji: '✦',
-          title: l10n.manthanEmptyNeedsMoreTitle,
-          body: l10n.manthanEmptyNeedsMoreBody,
-          ctaLabel: l10n.manthanEdgePublish, // reuses "Publish" action label
+          title: l10n.natarajEmptyNeedsMoreTitle,
+          body: l10n.natarajEmptyNeedsMoreBody,
+          ctaLabel: l10n.natarajEdgePublish, // reuses "Publish" action label
           onCta: onAddNotes,
         ),
-      ManthanStatus.exhausted => _EmptyStateBody(
+      NatarajStatus.exhausted => _EmptyStateBody(
           emoji: '✦',
-          title: l10n.manthanExhaustedTitle,
-          body: l10n.manthanExhaustedBody,
-          ctaLabel: l10n.manthanEdgePublish,
+          title: l10n.natarajExhaustedTitle,
+          body: l10n.natarajExhaustedBody,
+          ctaLabel: l10n.natarajEdgePublish,
           onCta: onAddNotes,
         ),
       _ => const SizedBox.shrink(),

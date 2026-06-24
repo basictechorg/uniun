@@ -628,6 +628,12 @@ abstract class AppLocalizations {
   /// **'Publish'**
   String get brahmaPublish;
 
+  /// Snackbar confirmation after a draft is published from the graph
+  ///
+  /// In en, this message translates to:
+  /// **'Published as a note'**
+  String get brahmaDraftPublished;
+
   /// Tag count display in draft item
   ///
   /// In en, this message translates to:
@@ -3988,191 +3994,191 @@ abstract class AppLocalizations {
   /// **'Running'**
   String get ganaRunStatusRunning;
 
-  /// Manthan tile action button label
+  /// Nataraj tile action button label
   ///
   /// In en, this message translates to:
   /// **'Spark ideas'**
-  String get manthanTileAction;
+  String get natarajTileAction;
 
-  /// Title of the Manthan deck side drawer
+  /// Title of the Nataraj deck side drawer
   ///
   /// In en, this message translates to:
-  /// **'Manthan'**
-  String get manthanDrawerTitle;
+  /// **'Nataraj'**
+  String get natarajDrawerTitle;
 
-  /// Manthan scope sheet title
+  /// Nataraj scope sheet title
   ///
   /// In en, this message translates to:
   /// **'Select Manas'**
-  String get manthanScopeSheetTitle;
+  String get natarajScopeSheetTitle;
 
-  /// Manthan scope option — all notes (Brahma)
+  /// Nataraj scope option — all notes (Brahma)
   ///
   /// In en, this message translates to:
   /// **'Brahma'**
-  String get manthanScopeAllNotes;
+  String get natarajScopeAllNotes;
 
-  /// Manthan scope pill label when multiple manas are selected
+  /// Nataraj scope pill label when multiple manas are selected
   ///
   /// In en, this message translates to:
   /// **'{count} manas'**
-  String manthanScopeManasCount(int count);
+  String natarajScopeManasCount(int count);
 
-  /// Tooltip for new manthan chat button
+  /// Tooltip for new nataraj chat button
   ///
   /// In en, this message translates to:
   /// **'New chat'**
-  String get manthanNewChatTooltip;
+  String get natarajNewChatTooltip;
 
-  /// Manthan edge action — publish
+  /// Nataraj edge action — publish
   ///
   /// In en, this message translates to:
   /// **'Publish'**
-  String get manthanEdgePublish;
+  String get natarajEdgePublish;
 
-  /// Manthan edge action — save as draft
+  /// Nataraj edge action — save as draft
   ///
   /// In en, this message translates to:
   /// **'Draft'**
-  String get manthanEdgeDraft;
+  String get natarajEdgeDraft;
 
-  /// Manthan edge action — discard
+  /// Nataraj edge action — discard
   ///
   /// In en, this message translates to:
   /// **'Discard'**
-  String get manthanEdgeDiscard;
+  String get natarajEdgeDiscard;
 
-  /// Manthan edge action — discuss
+  /// Nataraj edge action — discuss
   ///
   /// In en, this message translates to:
   /// **'Discuss'**
-  String get manthanEdgeDiscuss;
+  String get natarajEdgeDiscuss;
 
-  /// Manthan references section label
+  /// Nataraj references section label
   ///
   /// In en, this message translates to:
   /// **'References'**
-  String get manthanReferencesLabel;
+  String get natarajReferencesLabel;
 
-  /// Manthan references action — view
+  /// Nataraj references action — view
   ///
   /// In en, this message translates to:
   /// **'View references'**
-  String get manthanReferencesView;
+  String get natarajReferencesView;
 
-  /// Manthan references helper text
+  /// Nataraj references helper text
   ///
   /// In en, this message translates to:
   /// **'Publishing attaches the checked notes as references.'**
-  String get manthanReferencesAttach;
+  String get natarajReferencesAttach;
 
-  /// Manthan coach/onboarding title
+  /// Nataraj coach/onboarding title
   ///
   /// In en, this message translates to:
   /// **'Swipe to explore ideas'**
-  String get manthanCoachTitle;
+  String get natarajCoachTitle;
 
-  /// Manthan coach dismiss button
+  /// Nataraj coach dismiss button
   ///
   /// In en, this message translates to:
   /// **'Got it'**
-  String get manthanCoachDismiss;
+  String get natarajCoachDismiss;
 
-  /// Manthan generating state label
+  /// Nataraj generating state label
   ///
   /// In en, this message translates to:
   /// **'Finding connections…'**
-  String get manthanGenerating;
+  String get natarajGenerating;
 
-  /// Manthan hint when revisiting older generated ideas
+  /// Nataraj hint when revisiting older generated ideas
   ///
   /// In en, this message translates to:
   /// **'Revisiting older sparks — add notes for fresh ideas'**
-  String get manthanRevisitingHint;
+  String get natarajRevisitingHint;
 
-  /// Manthan empty state title when scope lacks notes
+  /// Nataraj empty state title when scope lacks notes
   ///
   /// In en, this message translates to:
   /// **'Not enough notes yet'**
-  String get manthanEmptyNeedsMoreTitle;
+  String get natarajEmptyNeedsMoreTitle;
 
-  /// Manthan empty state body when scope lacks notes
+  /// Nataraj empty state body when scope lacks notes
   ///
   /// In en, this message translates to:
   /// **'This scope needs at least 2 notes to spark connections.'**
-  String get manthanEmptyNeedsMoreBody;
+  String get natarajEmptyNeedsMoreBody;
 
-  /// Manthan exhausted state title
+  /// Nataraj exhausted state title
   ///
   /// In en, this message translates to:
   /// **'You\'ve seen them all'**
-  String get manthanExhaustedTitle;
+  String get natarajExhaustedTitle;
 
-  /// Manthan exhausted state body
+  /// Nataraj exhausted state body
   ///
   /// In en, this message translates to:
   /// **'Add more notes to spark new ideas.'**
-  String get manthanExhaustedBody;
+  String get natarajExhaustedBody;
 
-  /// Manthan error state title when the AI model fails to run
+  /// Nataraj error state title when the AI model fails to run
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate ideas'**
-  String get manthanModelErrorTitle;
+  String get natarajModelErrorTitle;
 
-  /// Manthan error state body when the AI model fails to run
+  /// Nataraj error state body when the AI model fails to run
   ///
   /// In en, this message translates to:
   /// **'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.'**
-  String get manthanModelErrorBody;
+  String get natarajModelErrorBody;
 
-  /// Snackbar after publishing a manthan idea
+  /// Snackbar after publishing a nataraj idea
   ///
   /// In en, this message translates to:
   /// **'Published as a note'**
-  String get manthanPublishedSnack;
+  String get natarajPublishedSnack;
 
-  /// Snackbar after saving a manthan idea as draft
+  /// Snackbar after saving a nataraj idea as draft
   ///
   /// In en, this message translates to:
   /// **'Saved as a draft'**
-  String get manthanDraftSavedSnack;
+  String get natarajDraftSavedSnack;
 
-  /// Snackbar when manthan generation fails
+  /// Snackbar when nataraj generation fails
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t generate right now'**
-  String get manthanGenerateErrorSnack;
+  String get natarajGenerateErrorSnack;
 
-  /// Author name shown on the synthesized root card in Manthan refs page
+  /// Author name shown on the synthesized root card in Nataraj refs page
   ///
   /// In en, this message translates to:
   /// **'You'**
-  String get manthanYouName;
+  String get natarajYouName;
 
-  /// Handle/timestamp shown on the synthesized root card in Manthan refs page
+  /// Handle/timestamp shown on the synthesized root card in Nataraj refs page
   ///
   /// In en, this message translates to:
   /// **'@you · now'**
-  String get manthanYouHandle;
+  String get natarajYouHandle;
 
-  /// Display name for unknown or resolved draft references in Manthan refs page
+  /// Display name for unknown or resolved draft references in Nataraj refs page
   ///
   /// In en, this message translates to:
   /// **'Draft'**
-  String get manthanDraftLabel;
+  String get natarajDraftLabel;
 
-  /// Refs badge label on the synthesized root card action row in Manthan refs page
+  /// Refs badge label on the synthesized root card action row in Nataraj refs page
   ///
   /// In en, this message translates to:
   /// **'{count} refs'**
-  String manthanRefsCount(int count);
+  String natarajRefsCount(int count);
 
-  /// Retry button label on the Manthan error state
+  /// Retry button label on the Nataraj error state
   ///
   /// In en, this message translates to:
   /// **'Try again'**
-  String get manthanRetry;
+  String get natarajRetry;
 
   /// Title of the sheet shown when content is shared into UNIUN from another app
   ///

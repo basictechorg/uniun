@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
+import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// A lightweight reference shown as a chip above the composer text.
@@ -130,14 +129,15 @@ class UniunComposer extends StatefulWidget {
   /// renders the button and the resulting thumbnail row.
   final VoidCallback? onAttachMedia;
 
-  /// Blobs the user has already attached to this draft. Rendered as a
-  /// thumbnail strip above the text field with a × on each.
-  final List<MediaBlobEntity> attachments;
+  /// Pending media the user has attached to this draft — held locally and
+  /// uploaded to Blossom only on Send. Rendered as a thumbnail strip above the
+  /// text field (preview straight from the in-memory bytes) with a × on each.
+  final List<PickedMedia> attachments;
   final void Function(String sha256)? onRemoveAttachment;
 
-  /// True while a freshly-picked file is being uploaded. Renders a spinner
-  /// placeholder in the attachment strip and disables the attach button so
-  /// double-picks don't queue a second upload behind the first.
+  /// True while a freshly-picked file is being prepared (blurhash + dimensions
+  /// computed off-thread). Renders a spinner placeholder in the attachment
+  /// strip and disables the attach button so double-picks don't race.
   final bool isAttachingMedia;
 
   @override
@@ -475,7 +475,7 @@ class _AttachmentRow extends StatelessWidget {
     this.isAttaching = false,
   });
 
-  final List<MediaBlobEntity> attachments;
+  final List<PickedMedia> attachments;
   final void Function(String sha256)? onRemove;
   final bool isAttaching;
 
@@ -490,7 +490,7 @@ class _AttachmentRow extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           if (i < attachments.length) {
-            return _AttachmentTile(blob: attachments[i], onRemove: onRemove);
+            return _AttachmentTile(media: attachments[i], onRemove: onRemove);
           }
           return const _UploadingTile();
         },
@@ -525,15 +525,13 @@ class _UploadingTile extends StatelessWidget {
 }
 
 class _AttachmentTile extends StatelessWidget {
-  const _AttachmentTile({required this.blob, this.onRemove});
+  const _AttachmentTile({required this.media, this.onRemove});
 
-  final MediaBlobEntity blob;
+  final PickedMedia media;
   final void Function(String sha256)? onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final isImage = blob.mime.startsWith('image/');
-    final cached = blob.localPath != null;
     return Stack(
       children: [
         ClipRRect(
@@ -541,21 +539,22 @@ class _AttachmentTile extends StatelessWidget {
           child: SizedBox(
             width: 72,
             height: 72,
-            child: (isImage && cached)
-                ? Image.file(
-                    File(blob.localPath!),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _icon(),
-                  )
-                : _icon(),
+            child: _preview(),
           ),
         ),
+        if (media.isVideo)
+          const Positioned.fill(
+            child: Center(
+              child: Icon(Icons.play_circle_outline,
+                  size: 26, color: Colors.white),
+            ),
+          ),
         if (onRemove != null)
           Positioned(
             top: 2,
             right: 2,
             child: GestureDetector(
-              onTap: () => onRemove!(blob.sha256),
+              onTap: () => onRemove!(media.sha256),
               child: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
@@ -571,12 +570,29 @@ class _AttachmentTile extends StatelessWidget {
     );
   }
 
+  /// Preview straight from the in-memory bytes — images render directly;
+  /// videos show their first-frame blurhash (decoding a frame inline would be
+  /// heavy); everything else falls back to a type icon.
+  Widget _preview() {
+    if (media.isImage) {
+      return Image.memory(
+        media.bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _icon(),
+      );
+    }
+    if (media.isVideo && media.blurhash != null) {
+      return BlurHash(hash: media.blurhash!);
+    }
+    return _icon();
+  }
+
   Widget _icon() {
-    final IconData icon = blob.mime.startsWith('video/')
+    final IconData icon = media.isVideo
         ? Icons.movie_outlined
-        : blob.mime.startsWith('audio/')
+        : media.mime.startsWith('audio/')
             ? Icons.audiotrack_outlined
-            : blob.mime.startsWith('image/')
+            : media.isImage
                 ? Icons.image_outlined
                 : Icons.insert_drive_file_outlined;
     return Container(

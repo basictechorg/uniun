@@ -7,7 +7,7 @@ import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/manthan/manthan_card_entity.dart';
+import 'package:uniun/domain/entities/nataraj/nataraj_card_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
@@ -15,26 +15,26 @@ import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
-import 'package:uniun/features/shiv/manthan/bloc/manthan_bloc.dart';
+import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Imperative handle that lets an outside widget (e.g. the deck's fallback
 /// action buttons) trigger the same fly-off animation as a real swipe, instead
 /// of advancing the deck instantly. Bound to the card's state while mounted.
-class ManthanCardController {
-  void Function(ManthanDirection dir)? _swipe;
+class NatarajCardController {
+  void Function(NatarajDirection dir)? _swipe;
 
-  void _bind(void Function(ManthanDirection dir) fn) => _swipe = fn;
-  void _unbind(void Function(ManthanDirection dir) fn) {
+  void _bind(void Function(NatarajDirection dir) fn) => _swipe = fn;
+  void _unbind(void Function(NatarajDirection dir) fn) {
     if (_swipe == fn) _swipe = null;
   }
 
   /// Fly the current card off in [dir] (no-op if no card is mounted).
-  void swipe(ManthanDirection dir) => _swipe?.call(dir);
+  void swipe(NatarajDirection dir) => _swipe?.call(dir);
 }
 
-class ManthanCardWidget extends StatefulWidget {
-  const ManthanCardWidget({
+class NatarajCardWidget extends StatefulWidget {
+  const NatarajCardWidget({
     super.key,
     required this.card,
     this.peek,
@@ -42,21 +42,21 @@ class ManthanCardWidget extends StatefulWidget {
     this.controller,
   });
 
-  final ManthanCardEntity card;
+  final NatarajCardEntity card;
 
   /// Optional next card shown peeking behind this one (scaled + offset).
-  final ManthanCardEntity? peek;
+  final NatarajCardEntity? peek;
 
-  final void Function(ManthanDirection) onSwipe;
+  final void Function(NatarajDirection) onSwipe;
 
   /// Optional handle so the deck's action buttons can trigger the same fly-off.
-  final ManthanCardController? controller;
+  final NatarajCardController? controller;
 
   @override
-  State<ManthanCardWidget> createState() => _ManthanCardWidgetState();
+  State<NatarajCardWidget> createState() => _NatarajCardWidgetState();
 }
 
-class _ManthanCardWidgetState extends State<ManthanCardWidget>
+class _NatarajCardWidgetState extends State<NatarajCardWidget>
     with TickerProviderStateMixin {
   Offset _drag = Offset.zero;
   static const double _threshold = 90;
@@ -70,7 +70,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
   // onSwipe (which advances the bloc) only fires once the card is off-screen.
   late final AnimationController _exitController;
   Animation<Offset>? _exitAnimation;
-  ManthanDirection? _pendingDir;
+  NatarajDirection? _pendingDir;
   bool _exiting = false;
 
   // Resolved state — populated in initState / didUpdateWidget.
@@ -119,7 +119,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
   }
 
   @override
-  void didUpdateWidget(ManthanCardWidget old) {
+  void didUpdateWidget(NatarajCardWidget old) {
     super.didUpdateWidget(old);
     if (old.controller != widget.controller) {
       old.controller?._unbind(_animateSwipe);
@@ -155,7 +155,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
 
     // 2. Resolve up to 2 references (cap to fit the card).
     final resolved =
-        await _resolveManthanNotes(widget.card.noteIds.take(2).toList(), pubkey);
+        await _resolveNatarajNotes(widget.card.noteIds.take(2).toList(), pubkey);
 
     if (!mounted) return;
     setState(() {
@@ -165,7 +165,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
 
     // 3. Resolve each reference author's profile as a second phase (after the
     //    cards are already shown) so a slow profile lookup never delays them.
-    final profiles = await _resolveManthanProfiles(resolved);
+    final profiles = await _resolveNatarajProfiles(resolved);
     if (!mounted || profiles.isEmpty) return;
     setState(() => _profiles = profiles);
   }
@@ -218,24 +218,24 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
       return;
     }
     final dir = dx.abs() > dy.abs()
-        ? (dx > 0 ? ManthanDirection.right : ManthanDirection.left)
-        : (dy > 0 ? ManthanDirection.down : ManthanDirection.up);
+        ? (dx > 0 ? NatarajDirection.right : NatarajDirection.left)
+        : (dy > 0 ? NatarajDirection.down : NatarajDirection.up);
     _animateSwipe(dir);
   }
 
   /// Flies the card off-screen in [dir], then advances the deck once it's gone.
   /// Shared by the swipe gesture and the deck's fallback action buttons (via
-  /// [ManthanCardController]), so both paths feel identical.
-  void _animateSwipe(ManthanDirection dir) {
+  /// [NatarajCardController]), so both paths feel identical.
+  void _animateSwipe(NatarajDirection dir) {
     if (_exiting) return;
     _springController.stop();
     HapticFeedback.lightImpact();
     final size = MediaQuery.of(context).size;
     final target = switch (dir) {
-      ManthanDirection.left => Offset(-size.width * 1.4, _drag.dy),
-      ManthanDirection.right => Offset(size.width * 1.4, _drag.dy),
-      ManthanDirection.up => Offset(_drag.dx, -size.height * 1.2),
-      ManthanDirection.down => Offset(_drag.dx, size.height * 1.2),
+      NatarajDirection.left => Offset(-size.width * 1.4, _drag.dy),
+      NatarajDirection.right => Offset(size.width * 1.4, _drag.dy),
+      NatarajDirection.up => Offset(_drag.dx, -size.height * 1.2),
+      NatarajDirection.down => Offset(_drag.dx, size.height * 1.2),
     };
     _exitAnimation = Tween<Offset>(begin: _drag, end: target).animate(
       CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
@@ -324,7 +324,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  l10n.manthanReferencesLabel.toUpperCase(),
+                  l10n.natarajReferencesLabel.toUpperCase(),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -335,7 +335,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
                 if (extraCount > 0) ...[
                   const SizedBox(width: 6),
                   Text(
-                    '+${l10n.manthanRefsCount(extraCount)}',
+                    '+${l10n.natarajRefsCount(extraCount)}',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -376,7 +376,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
                 child: TextButton.icon(
                   onPressed: _showAllReferences,
                   icon: const Icon(Icons.unfold_more_rounded, size: 16),
-                  label: Text(l10n.manthanReferencesView),
+                  label: Text(l10n.natarajReferencesView),
                   style: TextButton.styleFrom(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -424,7 +424,7 @@ class _ManthanCardWidgetState extends State<ManthanCardWidget>
 class _PeekCard extends StatelessWidget {
   const _PeekCard({required this.card, this.rise = 0});
 
-  final ManthanCardEntity card;
+  final NatarajCardEntity card;
 
   /// 0 = resting behind the front card; 1 = risen flush into the front slot
   /// (driven by the front card's fly-off so the next card slides up smoothly).
@@ -472,7 +472,7 @@ class _PeekCard extends StatelessWidget {
 /// Resolves [ids] to NoteEntities (published note → draft fallback). A draft
 /// source (uuid id) is fabricated into a minimal NoteEntity authored by
 /// [selfPubkey]; unknown ids are skipped silently.
-Future<List<NoteEntity>> _resolveManthanNotes(
+Future<List<NoteEntity>> _resolveNatarajNotes(
     List<String> ids, String selfPubkey) async {
   final noteUseCase = getIt<GetNoteByIdUseCase>();
   final draftUseCase = getIt<GetDraftByIdUseCase>();
@@ -508,7 +508,7 @@ Future<List<NoteEntity>> _resolveManthanNotes(
 
 /// Resolves each note author's profile so the cards render a name/avatar
 /// instead of a raw pubkey hash. Missing profiles trigger a relay fetch.
-Future<Map<String, ProfileEntity>> _resolveManthanProfiles(
+Future<Map<String, ProfileEntity>> _resolveNatarajProfiles(
     List<NoteEntity> notes) async {
   final getProfile = getIt<GetProfileUseCase>();
   final fetchProfile = getIt<RequestProfileFetchUseCase>();
@@ -526,7 +526,7 @@ Future<Map<String, ProfileEntity>> _resolveManthanProfiles(
   return profiles;
 }
 
-/// Bottom sheet listing every reference behind a Manthan card. Resolves the
+/// Bottom sheet listing every reference behind a Nataraj card. Resolves the
 /// full [noteIds] set (the card itself only shows the first two), with the
 /// same two-phase note → profile load.
 class _AllReferencesSheet extends StatefulWidget {
@@ -558,13 +558,13 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
   }
 
   Future<void> _load() async {
-    final notes = await _resolveManthanNotes(widget.noteIds, widget.selfPubkey);
+    final notes = await _resolveNatarajNotes(widget.noteIds, widget.selfPubkey);
     if (!mounted) return;
     setState(() {
       _refs = notes;
       _loading = false;
     });
-    final profiles = await _resolveManthanProfiles(notes);
+    final profiles = await _resolveNatarajProfiles(notes);
     if (!mounted || profiles.isEmpty) return;
     setState(() => _profiles = profiles);
   }
@@ -603,7 +603,7 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
                     size: 16, color: AppColors.primary),
                 const SizedBox(width: 6),
                 Text(
-                  l10n.manthanReferencesLabel,
+                  l10n.natarajReferencesLabel,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

@@ -11,6 +11,11 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/markdown/note_markdown_body.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
+import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/common/widgets/user_avatar.dart';
+import 'package:uniun/core/utils/formatters.dart';
+import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 
 /// Slides up from the bottom when a graph node is tapped.
 class GraphNodePanel extends StatelessWidget {
@@ -34,7 +39,9 @@ class GraphNodePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDraft = node.type == GraphNodeType.draft;
-    final noteEntity = node.created != null
+    // Drafts render through their own card (note look + draft actions); only
+    // saved/own nodes feed a NoteCard.
+    final noteEntity = (!isDraft && node.created != null)
         ? NoteEntity(
             id: node.eventId,
             sig: node.sig ?? '',
@@ -108,8 +115,22 @@ class GraphNodePanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            // Note content — NoteCard for saved/own, styled preview for drafts
-            if (noteEntity != null)
+            // Draft → note-look card + draft actions; saved/own → NoteCard.
+            if (isDraft)
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                  child: _DraftPreview(
+                    node: node,
+                    profile: profile,
+                    onClose: onClose,
+                    onEditTap: onEditTap,
+                    onPublishTap: onPublishTap,
+                    l10n: l10n,
+                  ),
+                ),
+              )
+            else if (noteEntity != null)
               Flexible(
                 child: SingleChildScrollView(
                   child: NoteCard(
@@ -118,22 +139,6 @@ class GraphNodePanel extends StatelessWidget {
                       AppRoutes.thread,
                       pathParameters: {'noteId': node.eventId},
                     ),
-                  ),
-                ),
-              )
-            else if (isDraft)
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-                  child: _DraftPreview(
-                    content: node.content,
-                    draftId: node.eventId,
-                    eTagRefs: node.eTagRefs,
-                    tTags: node.tTags,
-                    onClose: onClose,
-                    onEditTap: onEditTap,
-                    onPublishTap: onPublishTap,
-                    l10n: l10n,
                   ),
                 ),
               ),
@@ -188,82 +193,73 @@ class _TypeBadge extends StatelessWidget {
   }
 }
 
-// ── Draft preview (content + actions) ──────────────────────────────────────
+// ── Draft preview — default note look (avatar/name/media) + draft actions ──
 class _DraftPreview extends StatelessWidget {
   const _DraftPreview({
-    required this.content,
-    required this.draftId,
-    required this.eTagRefs,
-    required this.tTags,
+    required this.node,
+    required this.profile,
     required this.onClose,
     required this.l10n,
     this.onEditTap,
     this.onPublishTap,
   });
-  final String content;
-  final String draftId;
-  final List<String> eTagRefs;
-  final List<String> tTags;
+  final GraphNodeData node;
+  final ProfileEntity? profile;
   final VoidCallback onClose;
   final void Function(String)? onEditTap;
   final void Function(String)? onPublishTap;
   final AppLocalizations l10n;
 
+  String _shortName(String pubkey) {
+    if (pubkey.length <= 16) return pubkey;
+    return '${pubkey.substring(0, 8)}...${pubkey.substring(pubkey.length - 4)}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final draftId = node.eventId;
+    final content = node.content;
     final isEmpty = content.trim().isEmpty;
-    final refCount = eTagRefs.toSet().length;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        color: AppColors.graphDraft.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.graphDraft.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Draft icon in place of avatar
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.graphDraft.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.edit_note_rounded,
-                  size: 22,
-                  color: AppColors.graphDraft,
-                ),
-              ),
-              const SizedBox(width: 12),
+    final hasMedia = node.attachments.isNotEmpty;
+    final displayName = profile?.name ??
+        profile?.username ??
+        _shortName(node.authorPubkey ?? '');
 
-              // Title + body
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          l10n.graphLegendDraft,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Author row — same shape as a NoteCard header ──────────────────
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            UserAvatar(
+              seed: node.authorPubkey ?? draftId,
+              photoUrl: profile?.avatarUrl,
+              size: 40,
+              borderRadius: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displayName,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: AppColors.onSurface,
                           ),
                         ),
+                      ),
+                      if (node.created != null) ...[
                         const SizedBox(width: 8),
                         Text(
-                          l10n.brahmaDraftSaved,
+                          formatTimeAgo(node.created!),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -271,113 +267,131 @@ class _DraftPreview extends StatelessWidget {
                           ),
                         ),
                       ],
+                      const SizedBox(width: 8),
+                      _DraftChip(label: l10n.graphLegendDraft),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (isEmpty && !hasMedia)
+                    Text(
+                      '—',
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.55,
+                        color: AppColors.outline.withValues(alpha: 0.6),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  else if (!isEmpty)
+                    NoteMarkdownBody(
+                      content: content,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.55,
+                        color: AppColors.onSurface,
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    if (isEmpty)
-                      Text(
-                        '—',
-                        style: TextStyle(
-                          fontSize: 15,
-                          height: 1.55,
-                          color: AppColors.outline.withValues(alpha: 0.6),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      )
-                    else
-                      NoteMarkdownBody(
-                        content: content,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.55,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    if (tTags.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: tTags
-                            .take(3)
-                            .map(
-                              (t) => Text(
-                                '#$t',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+
+                  // ── Media (NIP-92, staged locally on this device) ──────
+                  if (hasMedia)
+                    MediaAttachmentView.fromBlobs(
+                      attachments: node.attachments,
+                    ),
+
+                  // Hashtag chips
+                  if (node.tTags.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: node.tTags
+                          .take(3)
+                          .map(
+                            (t) => Text(
+                              '#$t',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
                               ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                    if (refCount > 0) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.link_rounded,
-                            size: 18,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '$refCount',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.onSurfaceVariant,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          )
+                          .toList(),
+                    ),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _ActionBtn(
-                label: l10n.graphDraftEdit,
-                color: AppColors.onSurfaceVariant,
-                bgColor: AppColors.surfaceContainerLow,
-                onTap: () {
-                  onClose();
-                  onEditTap?.call(draftId);
-                },
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _ActionBtn(
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // ── Draft actions ─────────────────────────────────────────────────
+        Row(
+          children: [
+            _ActionBtn(
+              label: l10n.graphDraftEdit,
+              color: AppColors.onSurfaceVariant,
+              bgColor: AppColors.surfaceContainerLow,
+              onTap: () {
+                onClose();
+                onEditTap?.call(draftId);
+              },
+            ),
+            const SizedBox(width: 8),
+            // Publish keeps the panel open and shows a spinner while the note
+            // uploads + publishes; the graph reload on success closes it.
+            Expanded(
+              child: BlocBuilder<BrahmaCreateBloc, BrahmaCreateState>(
+                builder: (context, brahmaState) => _ActionBtn(
                   label: l10n.brahmaPublish,
                   color: AppColors.onPrimary,
                   bgColor: AppColors.primary,
                   fullWidth: true,
-                  onTap: () {
-                    onClose();
-                    onPublishTap?.call(draftId);
-                  },
+                  busy: brahmaState.isSubmitting,
+                  onTap: brahmaState.isSubmitting
+                      ? null
+                      : () => onPublishTap?.call(draftId),
                 ),
               ),
-              const SizedBox(width: 8),
-              _ActionBtn(
-                label: l10n.graphDraftDelete,
-                color: AppColors.error,
-                bgColor: AppColors.errorContainer,
-                onTap: () {
-                  onClose();
-                  context
-                      .read<GraphBloc>()
-                      .add(DeleteDraftNodeEvent(draftId));
-                },
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(width: 8),
+            _ActionBtn(
+              label: l10n.graphDraftDelete,
+              color: AppColors.error,
+              bgColor: AppColors.errorContainer,
+              onTap: () {
+                onClose();
+                context.read<GraphBloc>().add(DeleteDraftNodeEvent(draftId));
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Small "Draft" pill shown beside the author name so the note-look card still
+/// reads as a draft.
+class _DraftChip extends StatelessWidget {
+  const _DraftChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.graphDraft.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.graphDraft,
+        ),
       ),
     );
   }
@@ -390,12 +404,14 @@ class _ActionBtn extends StatelessWidget {
     required this.bgColor,
     required this.onTap,
     this.fullWidth = false,
+    this.busy = false,
   });
   final String label;
   final Color color;
   final Color bgColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool fullWidth;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -408,15 +424,24 @@ class _ActionBtn extends StatelessWidget {
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          label,
-          textAlign: fullWidth ? TextAlign.center : TextAlign.start,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
-        ),
+        child: busy
+            ? Center(
+                heightFactor: 1,
+                child: SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: DropLoadingIndicator(size: 16, color: color),
+                ),
+              )
+            : Text(
+                label,
+                textAlign: fullWidth ? TextAlign.center : TextAlign.start,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
       ),
     );
   }

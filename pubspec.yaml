@@ -87,6 +87,11 @@ dependencies:
   markdown: ^7.3.0
   url_launcher: ^6.3.0
   flutter_blurhash: ^0.9.1
+  # Blurhash ENCODER (flutter_blurhash only decodes). Needs the `image`
+  # package to decode/resize before encoding — both used by
+  # core/utils/media_blurhash.dart in a compute() isolate.
+  blurhash_dart: ^1.2.1
+  image: ^4.8.0
   mime: ^2.0.0
   file_picker: ^8.1.4
   # SAF "Save as" picker on Android, "Save to Files" on iOS.

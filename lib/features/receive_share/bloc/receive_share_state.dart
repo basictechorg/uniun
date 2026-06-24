@@ -6,11 +6,9 @@ abstract class ReceiveShareState with _$ReceiveShareState {
     /// Loading the destination lists. True until [InitReceiveShare] resolves.
     @Default(true) bool loading,
 
-    /// Reading/compressing/uploading the shared files on init.
+    /// Reading/compressing the shared files on init (no upload — that's
+    /// deferred to submit).
     @Default(false) bool ingesting,
-
-    /// Uploading a single file picked via the in-sheet "+" button.
-    @Default(false) bool uploading,
     @Default(false) bool submitting,
     @Default(false) bool submitted,
     @Default(false) bool draftSaved,
@@ -24,8 +22,9 @@ abstract class ReceiveShareState with _$ReceiveShareState {
     /// Referenced notes picked in the composer → NIP-10 `e` mention tags.
     @Default(<ComposerReference>[]) List<ComposerReference> references,
 
-    /// Uploaded blobs → NIP-92 `imeta` tags on publish.
-    @Default(<MediaBlobEntity>[]) List<MediaBlobEntity> attachments,
+    /// Picked-but-not-yet-uploaded media → uploaded to Blossom on submit, then
+    /// emitted as NIP-92 `imeta` tags.
+    @Default(<PickedMedia>[]) List<PickedMedia> pending,
     @Default(<ChannelEntity>[]) List<ChannelEntity> publicChannels,
     @Default(<PrivateChannelEntity>[]) List<PrivateChannelEntity> privateChannels,
     @Default(<DmConversationEntity>[]) List<DmConversationEntity> dmConversations,

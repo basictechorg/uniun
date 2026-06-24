@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
-import 'package:uniun/features/shiv/manthan/bloc/manthan_bloc.dart';
+import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Manthan drawer section: the Manas list that scopes the deck. "All notes"
-/// plus every Manas; tapping one dispatches [ManthanEvent.changeScope] on the
-/// ambient [ManthanBloc] and closes the drawer. Must sit under the deck's
-/// `BlocProvider<ManthanBloc>` (it does — the drawer is the deck Scaffold's).
-class ManthanScopeDrawerSection extends StatelessWidget {
-  const ManthanScopeDrawerSection({super.key});
+/// Nataraj drawer section: the Manas list that scopes the deck. "All notes"
+/// plus every Manas; tapping one dispatches [NatarajEvent.changeScope] on the
+/// ambient [NatarajBloc] and closes the drawer. Must sit under the deck's
+/// `BlocProvider<NatarajBloc>` (it does — the drawer is the deck Scaffold's).
+class NatarajScopeDrawerSection extends StatelessWidget {
+  const NatarajScopeDrawerSection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class ManthanScopeDrawerSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
           child: Text(
-            l10n.manthanScopeSheetTitle.toUpperCase(),
+            l10n.natarajScopeSheetTitle.toUpperCase(),
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -30,14 +30,14 @@ class ManthanScopeDrawerSection extends StatelessWidget {
             ),
           ),
         ),
-        BlocBuilder<ManthanBloc, ManthanState>(
+        BlocBuilder<NatarajBloc, NatarajState>(
           buildWhen: (prev, curr) =>
               prev.manasIds != curr.manasIds ||
               prev.manasOptions != curr.manasOptions,
           builder: (context, state) {
             void select(List<String> ids) {
               Navigator.of(context).pop();
-              context.read<ManthanBloc>().add(ManthanEvent.changeScope(ids));
+              context.read<NatarajBloc>().add(NatarajEvent.changeScope(ids));
             }
 
             return Column(
@@ -50,7 +50,7 @@ class ManthanScopeDrawerSection extends StatelessWidget {
                         ? AppColors.primary
                         : AppColors.onSurfaceVariant,
                   ),
-                  label: l10n.manthanScopeAllNotes,
+                  label: l10n.natarajScopeAllNotes,
                   isSelected: state.manasIds.isEmpty,
                   onTap: () => select(const []),
                 ),

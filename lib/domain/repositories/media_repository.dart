@@ -34,6 +34,25 @@ abstract class MediaRepository {
     required String mime,
   });
 
+  /// Stage raw bytes **locally only** — no Blossom upload. Computes sha256,
+  /// writes the file to the shared media cache, and upserts the
+  /// [MediaCacheModel] row. Used for draft media: the bytes are kept on-device
+  /// until the draft is published. The returned [MediaBlobEntity] carries
+  /// `localPath` (renders immediately) with an empty `serverUrls`.
+  Future<Either<Failure, MediaBlobEntity>> saveLocalBytes({
+    required Uint8List bytes,
+    required String mime,
+    String? filename,
+    String? blurhash,
+    int? width,
+    int? height,
+  });
+
+  /// Read the cached bytes for a sha256, or `null` (inside the Right) when the
+  /// blob isn't on disk. Used to re-hydrate staged draft media for editing /
+  /// publishing.
+  Future<Either<Failure, Uint8List?>> readLocalBytes(String sha256);
+
   /// Look up the cache entry for a single sha. Returns `null` inside the
   /// Right when the blob isn't on disk.
   Future<Either<Failure, MediaBlobEntity?>> getCachedBySha(String sha256);

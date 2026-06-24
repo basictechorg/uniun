@@ -96,6 +96,11 @@ class _AttachmentTileState extends State<_AttachmentTile> {
 
   bool get _cached => _blob.localPath != null;
   bool get _isImage => _blob.mime.startsWith('image/');
+  bool get _isVideo => _blob.mime.startsWith('video/');
+
+  /// Visual media (image or video) renders as a preview tile with a blurhash
+  /// placeholder until downloaded; everything else uses the file-row card.
+  bool get _isVisual => _isImage || _isVideo;
 
   Future<void> _download() async {
     if (_blob.serverUrls.isEmpty) return;
@@ -137,7 +142,9 @@ class _AttachmentTileState extends State<_AttachmentTile> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isImage) return _FileCard(blob: _blob, busy: _downloading, onTap: _onTap);
+    if (!_isVisual) {
+      return _FileCard(blob: _blob, busy: _downloading, onTap: _onTap);
+    }
 
     final l10n = AppLocalizations.of(context)!;
     final maxH = widget.compact ? _compactMaxHeight : _expandedMaxHeight;
@@ -164,7 +171,10 @@ class _AttachmentTileState extends State<_AttachmentTile> {
                 fit: StackFit.expand,
                 children: [
                   _background(),
-                  if (!_cached) _downloadOverlay(l10n),
+                  if (_isVideo)
+                    _videoOverlay()
+                  else if (!_cached)
+                    _downloadOverlay(l10n),
                 ],
               ),
             ),
@@ -207,10 +217,29 @@ class _AttachmentTileState extends State<_AttachmentTile> {
         errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
-    if (!_cached && _isImage && _blob.blurhash != null) {
+    // Non-downloaded image, or a video (which has no inline player) — show the
+    // blurhash placeholder when we have one, else a type icon.
+    if (_blob.blurhash != null) {
       return BlurHash(hash: _blob.blurhash!);
     }
     return _placeholder();
+  }
+
+  /// Centered play affordance over a video tile (the blurhash shows behind).
+  /// Tapping the tile downloads if needed, then hands off to the OS player.
+  Widget _videoOverlay() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.25),
+      alignment: Alignment.center,
+      child: _downloading
+          ? const SizedBox(
+              width: 32,
+              height: 32,
+              child: DropLoadingIndicator(size: 32),
+            )
+          : const Icon(Icons.play_circle_outline,
+              size: 48, color: Colors.white),
+    );
   }
 
   Widget _placeholder() {

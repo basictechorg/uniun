@@ -9,7 +9,7 @@ abstract class ShivAIEvent with _$ShivAIEvent {
   const factory ShivAIEvent.createConversation() = _CreateConversation;
 
   /// Create a fresh conversation, open it, and immediately send [firstMessage]
-  /// as the first user turn. Used by Manthan's ↓-discuss action.
+  /// as the first user turn. Used by Nataraj's ↓-discuss action.
   const factory ShivAIEvent.createConversationSeeded(String firstMessage) =
       _CreateConversationSeeded;
 

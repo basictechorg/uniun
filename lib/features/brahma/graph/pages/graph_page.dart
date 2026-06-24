@@ -14,6 +14,7 @@ import 'package:uniun/features/brahma/graph/widgets/graph_header.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_node_panel.dart';
 import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
 import 'package:uniun/features/brahma/manas/widgets/brahma_drawer.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 class GraphPage extends StatelessWidget {
   const GraphPage({super.key});
@@ -55,11 +56,27 @@ class _GraphViewState extends State<_GraphView> {
         BlocListener<BrahmaCreateBloc, BrahmaCreateState>(
           listenWhen: (prev, curr) => prev.status != curr.status,
           listener: (context, state) {
+            final l10n = AppLocalizations.of(context)!;
             if (state.status == BrahmaCreateStatus.success) {
-              // Pop back to the existing Home (Vishnu) instead of goNamed,
-              // which would rebuild the whole shell and lose its state. Home
-              // is the bottom of this navigator's stack.
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              // Draft published — confirm and refresh so the draft drops out of
+              // the graph (which closes the node panel with it). Stay on the
+              // graph rather than jumping back to Vishnu.
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(l10n.brahmaDraftPublished),
+                behavior: SnackBarBehavior.floating,
+              ));
+              final graph = context.read<GraphBloc>();
+              graph.add(LoadGraphEvent(
+                manasId: graph.state.scopedManasId,
+                manasName: graph.state.scopedManasName,
+              ));
+            } else if (state.status == BrahmaCreateStatus.error &&
+                state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(state.errorMessage!),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ));
             }
           },
         ),

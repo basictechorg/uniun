@@ -95,7 +95,7 @@ class RagPipeline {
 
   /// Returns the **Shiv-chat** system instruction for this session (persona +
   /// user name/bio). This is one of several distinct, per-use-case system
-  /// instructions — Gana, Manthan, extraction, and composer-chat each build
+  /// instructions — Gana, Nataraj, extraction, and composer-chat each build
   /// their own. Pass the result into [AIModelRunner.sendAndStream] per turn.
   Future<String> buildSystemInstruction() async {
     _personalization ??= await _loadPersonalization();

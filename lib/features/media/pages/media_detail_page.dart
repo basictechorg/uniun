@@ -107,7 +107,10 @@ class _DetailBody extends StatelessWidget {
                 _action(
                   Icons.delete_outline,
                   l10n.mediaActionRemoveLocal,
-                  cubit.removeLocal,
+                  () async {
+                    final ok = await cubit.removeLocal();
+                    if (ok && context.mounted) Navigator.of(context).pop();
+                  },
                   destructive: true,
                 ),
               _action(

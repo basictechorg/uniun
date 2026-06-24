@@ -88,11 +88,11 @@ class _BrahmaDrawerView extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(Icons.air, color: AppColors.primary),
-                title: Text(l10n.manthanTileAction),
+                title: Text(l10n.natarajTileAction),
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   context.pushNamed(
-                    AppRoutes.shivManthan,
+                    AppRoutes.shivNataraj,
                     extra: {'manasIds': [manas.manasId]},
                   );
                 },

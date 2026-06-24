@@ -7,13 +7,13 @@ import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
-import 'package:uniun/features/shiv/manthan/pages/manthan_deck_page.dart';
+import 'package:uniun/features/shiv/nataraj/pages/nataraj_deck_page.dart';
 import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
 
 /// Shiv AI assistant tab root.
 ///
 /// Provides the [ShivAIBloc], loads conversations on mount, then:
-/// - If no conversation is active → [ManthanDeckPage] (swipe-deck home).
+/// - If no conversation is active → [NatarajDeckPage] (swipe-deck home).
 /// - If a conversation is active → [ShivChatPage].
 ///
 /// Redirects to the AI model selection screen if no model is installed.
@@ -170,7 +170,7 @@ class _ShivRootState extends State<_ShivRoot> {
         if (state.activeConversation != null) {
           return ShivChatPage(onDrawerChanged: widget.onDrawerChanged);
         }
-        return ManthanDeckPage(onDrawerChanged: widget.onDrawerChanged);
+        return NatarajDeckPage(onDrawerChanged: widget.onDrawerChanged);
       },
     );
   }

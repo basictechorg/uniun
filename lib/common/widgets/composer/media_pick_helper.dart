@@ -1,8 +1,7 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,26 +11,39 @@ import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/image_compressor.dart';
+import 'package:uniun/core/utils/media_blurhash.dart';
 import 'package:uniun/core/utils/video_compressor.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// One picked + compressed file ready to hand to `UploadMediaUseCase`. The
-/// caller owns the upload step so each surface (Brahma / chat / DM) can
-/// decide where the resulting blob attaches.
+/// One picked + compressed file, with its visual metadata already computed at
+/// pick time. Surfaces hold this in compose state and upload it to Blossom
+/// only when the user hits Send — so attaching is instant and offline-safe.
+///
+/// [sha256] is a stable key for dedup + removal (it also matches the eventual
+/// uploaded blob's hash). [width]/[height]/[blurhash] are derived from the
+/// image — or, for videos, from a first-frame thumbnail — and are null for
+/// non-visual files.
 class PickedMedia {
   const PickedMedia({
     required this.bytes,
     required this.mime,
     required this.filename,
+    required this.sha256,
     this.width,
     this.height,
+    this.blurhash,
   });
 
   final Uint8List bytes;
   final String mime;
   final String filename;
+  final String sha256;
   final int? width;
   final int? height;
+  final String? blurhash;
+
+  bool get isImage => mime.startsWith('image/');
+  bool get isVideo => mime.startsWith('video/');
 }
 
 enum _PickKind { photo, video, file }
@@ -128,13 +140,10 @@ Future<PickedMedia?> sharedFileToPicked({
     final filename = Platform.isWindows
         ? p.basename(path)
         : '${p.basenameWithoutExtension(path)}.jpg';
-    final dim = await _decodeImageDim(compressed);
-    return PickedMedia(
+    return _buildPickedMedia(
       bytes: compressed,
       mime: outMime,
       filename: filename,
-      width: dim?.$1,
-      height: dim?.$2,
     );
   }
 
@@ -146,16 +155,17 @@ Future<PickedMedia?> sharedFileToPicked({
     );
     final upload = compressed ?? file;
     if (!await _withinUploadCap(upload)) return null;
-    return PickedMedia(
+    return _buildPickedMedia(
       bytes: await upload.readAsBytes(),
       mime: lookupMimeType(upload.path) ?? mime,
       filename: p.basename(path),
+      videoSourcePath: upload.path,
     );
   }
 
   // ── Arbitrary file: size-check only. ───────────────────────────────────────
   if (!await _withinUploadCap(file)) return null;
-  return PickedMedia(
+  return _buildPickedMedia(
     bytes: await file.readAsBytes(),
     mime: mime,
     filename: p.basename(path),
@@ -217,13 +227,10 @@ Future<PickedMedia?> _pickPhoto(
   final filename = Platform.isWindows
       ? p.basename(file.path)
       : '${p.basenameWithoutExtension(file.path)}.jpg';
-  final dim = await _decodeImageDim(compressed);
-  return PickedMedia(
+  return _buildPickedMedia(
     bytes: compressed,
     mime: mime,
     filename: filename,
-    width: dim?.$1,
-    height: dim?.$2,
   );
 }
 
@@ -243,10 +250,11 @@ Future<PickedMedia?> _pickVideo(
 
   final bytes = await upload.readAsBytes();
   final mime = lookupMimeType(upload.path) ?? 'video/mp4';
-  return PickedMedia(
+  return _buildPickedMedia(
     bytes: bytes,
     mime: mime,
     filename: p.basename(file.path),
+    videoSourcePath: upload.path,
   );
 }
 
@@ -265,10 +273,13 @@ Future<PickedMedia?> _pickFile(
   if (!await _passesUploadCap(fileHandle, messenger, l10n)) return null;
   final bytes = await fileHandle.readAsBytes();
   final mime = lookupMimeType(picked.name) ?? 'application/octet-stream';
-  return PickedMedia(
+  // A file-picked image/video still gets a blurhash — preview is decided by
+  // mime, not which picker opened it.
+  return _buildPickedMedia(
     bytes: bytes,
     mime: mime,
     filename: picked.name,
+    videoSourcePath: path,
   );
 }
 
@@ -301,15 +312,33 @@ String _humanBytes(int bytes) {
   return '$bytes B';
 }
 
-Future<(int, int)?> _decodeImageDim(Uint8List bytes) async {
-  try {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromList(bytes, completer.complete);
-    final img = await completer.future;
-    final dim = (img.width, img.height);
-    img.dispose();
-    return dim;
-  } catch (_) {
-    return null;
+/// Hashes [bytes] for a stable key and, for visual media, derives dimensions +
+/// a blurhash off the UI thread. Images hash/blur their own bytes; videos
+/// hash their bytes but blur a first-frame thumbnail extracted from
+/// [videoSourcePath]. Non-visual files get neither preview field.
+Future<PickedMedia> _buildPickedMedia({
+  required Uint8List bytes,
+  required String mime,
+  required String filename,
+  String? videoSourcePath,
+}) async {
+  final sha = crypto.sha256.convert(bytes).toString();
+
+  MediaPreview? preview;
+  if (mime.startsWith('image/')) {
+    preview = await extractImagePreview(bytes);
+  } else if (mime.startsWith('video/') && videoSourcePath != null) {
+    final thumb = await VideoCompressor.thumbnailBytes(videoSourcePath);
+    if (thumb != null) preview = await extractImagePreview(thumb);
   }
+
+  return PickedMedia(
+    bytes: bytes,
+    mime: mime,
+    filename: filename,
+    sha256: sha,
+    width: preview?.width,
+    height: preview?.height,
+    blurhash: preview?.blurhash,
+  );
 }

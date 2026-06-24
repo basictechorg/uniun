@@ -9,6 +9,8 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/draft_model.dart';
+import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/repositories/draft_repository.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
@@ -24,13 +26,24 @@ class DraftRepositoryImpl extends DraftRepository {
   final Isar isar;
   final EventQueueRepository _eventQueue;
   final GetActiveUserKeysUseCase _getActiveUserKeys;
+  final NoteAttachmentsEnricher _attachments;
 
   DraftRepositoryImpl({
     required this.isar,
     required EventQueueRepository eventQueue,
     required GetActiveUserKeysUseCase getActiveUserKeys,
+    required NoteAttachmentsEnricher attachments,
   })  : _eventQueue = eventQueue,
-        _getActiveUserKeys = getActiveUserKeys;
+        _getActiveUserKeys = getActiveUserKeys,
+        _attachments = attachments;
+
+  /// Patch `localPath` onto the draft's staged attachments from the media
+  /// cache so the draft renders like any note.
+  Future<DraftEntity> _enrich(DraftEntity draft) async {
+    if (draft.attachments.isEmpty) return draft;
+    final blobs = await _attachments.enrichBlobs(draft.attachments);
+    return draft.copyWith(attachments: blobs);
+  }
 
   @override
   Future<Either<Failure, DraftEntity>> saveDraft(DraftEntity draft) async {
@@ -48,6 +61,7 @@ class DraftRepositoryImpl extends DraftRepository {
         ..eTagRefs = draft.eTagRefs
         ..pTagRefs = draft.pTagRefs
         ..tTags = draft.tTags
+        ..attachments = [for (final a in draft.attachments) a.toAttachment()]
         ..createdAt = draft.createdAt
         ..updatedAt = draft.updatedAt
         ..lastSyncedCreatedAt = existing?.lastSyncedCreatedAt;
@@ -59,10 +73,11 @@ class DraftRepositoryImpl extends DraftRepository {
 
       // Await the publish so it's durably enqueued before we return — but
       // never let a publish failure surface as a save failure. Local Isar is
-      // the source of truth; the relay is best-effort sync.
+      // the source of truth; the relay is best-effort sync. Draft media is
+      // local-only, so the wrap carries text + tags but no `imeta`.
       await _publishDraftWrap(model);
 
-      return Right(model.toDomain());
+      return Right(await _enrich(model.toDomain()));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -73,7 +88,9 @@ class DraftRepositoryImpl extends DraftRepository {
     try {
       final drafts =
           await isar.draftModels.where().sortByUpdatedAtDesc().findAll();
-      return Right(drafts.map((d) => d.toDomain()).toList());
+      return Right([
+        for (final d in drafts) await _enrich(d.toDomain()),
+      ]);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -87,7 +104,7 @@ class DraftRepositoryImpl extends DraftRepository {
       if (draft == null) {
         return const Left(Failure.notFoundFailure('Draft not found'));
       }
-      return Right(draft.toDomain());
+      return Right(await _enrich(draft.toDomain()));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
