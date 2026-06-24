@@ -737,6 +737,124 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeRoleTransform => 'Transform';
 
   @override
+  String get howItWorksSkip => 'Skip';
+
+  @override
+  String get howItWorksNext => 'Next';
+
+  @override
+  String get howItWorksGetStarted => 'Get started';
+
+  @override
+  String get howItWorksIntroTitle => 'Your second brain, in your pocket';
+
+  @override
+  String get howItWorksIntroBody =>
+      'UNIUN is a calm space to capture what you think, connect your ideas, and reflect on them — all in one app that\'s truly yours.';
+
+  @override
+  String get howItWorksBrahmaTitle => 'Brahma — capture & connect';
+
+  @override
+  String get howItWorksBrahmaBody =>
+      'Your space to capture ideas and shape them into something lasting.';
+
+  @override
+  String get howItWorksVishnuTitle => 'Vishnu — your people & spaces';
+
+  @override
+  String get howItWorksVishnuBody =>
+      'Connect with people and communities, your way.';
+
+  @override
+  String get howItWorksShivTitle => 'Shiv — AI on your device';
+
+  @override
+  String get howItWorksShivBody =>
+      'On-device AI that thinks alongside your notes.';
+
+  @override
+  String get howItWorksTileNote => 'Note';
+
+  @override
+  String get howItWorksDescNote => 'Write text, images and links';
+
+  @override
+  String get howItWorksTileManas => 'Manas';
+
+  @override
+  String get howItWorksDescManas => 'Group notes into your own collections';
+
+  @override
+  String get howItWorksTileGraph => 'Graph';
+
+  @override
+  String get howItWorksDescGraph => 'Linked notes become your knowledge graph';
+
+  @override
+  String get howItWorksTilePeople => 'People';
+
+  @override
+  String get howItWorksDescPeople => 'Follow people to shape your feed';
+
+  @override
+  String get howItWorksTileChannels => 'Channels';
+
+  @override
+  String get howItWorksDescChannels => 'Public rooms to gather around topics';
+
+  @override
+  String get howItWorksTilePrivate => 'Private';
+
+  @override
+  String get howItWorksDescPrivate => 'Encrypted, invite-only channels';
+
+  @override
+  String get howItWorksTileDms => 'Direct messages';
+
+  @override
+  String get howItWorksDescDms => 'Private one-to-one chats';
+
+  @override
+  String get howItWorksTileAdiyogi => 'Adiyogi';
+
+  @override
+  String get howItWorksDescAdiyogi => 'Ask anything about your notes';
+
+  @override
+  String get howItWorksTileNataraj => 'Nataraj';
+
+  @override
+  String get howItWorksDescNataraj => 'Swipe to turn notes into fresh ideas';
+
+  @override
+  String get howItWorksTileGana => 'Gana';
+
+  @override
+  String get howItWorksDescGana => 'Agents that work in the background';
+
+  @override
+  String get howItWorksKeysTitle => 'You own your identity';
+
+  @override
+  String get howItWorksKeysBody =>
+      'No email, no password, no account. UNIUN gives you a private key that lives only on your device — it is your identity, and only you hold it.';
+
+  @override
+  String get howItWorksPrivateTitle => 'Private and always yours';
+
+  @override
+  String get howItWorksPrivateBody =>
+      'UNIUN works offline and its AI runs right on your device — nothing goes to the cloud. Your notes stay with you, and they\'re yours to keep.';
+
+  @override
+  String get howItWorksReadyTitle => 'Ready to begin?';
+
+  @override
+  String get howItWorksReadyBody =>
+      'Create your avatar and start building your second brain. It only takes a moment.';
+
+  @override
   String get aboutYouTitle => 'About You';
 
   @override

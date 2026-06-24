@@ -1438,6 +1438,228 @@ abstract class AppLocalizations {
   /// **'Transform'**
   String get welcomeRoleTransform;
 
+  /// Top-right control that closes the 'how it works' intro carousel and returns to the welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get howItWorksSkip;
+
+  /// Bottom button on the intro carousel that advances to the next slide.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get howItWorksNext;
+
+  /// Bottom button on the final intro carousel slide; closes the carousel and returns to the welcome screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get howItWorksGetStarted;
+
+  /// Title of the first intro carousel slide introducing UNIUN.
+  ///
+  /// In en, this message translates to:
+  /// **'Your second brain, in your pocket'**
+  String get howItWorksIntroTitle;
+
+  /// Body of the first intro carousel slide introducing UNIUN.
+  ///
+  /// In en, this message translates to:
+  /// **'UNIUN is a calm space to capture what you think, connect your ideas, and reflect on them — all in one app that\'s truly yours.'**
+  String get howItWorksIntroBody;
+
+  /// Title of the Brahma (create) slide in the intro carousel.
+  ///
+  /// In en, this message translates to:
+  /// **'Brahma — capture & connect'**
+  String get howItWorksBrahmaTitle;
+
+  /// Short lead under the Brahma slide title, above the feature sections.
+  ///
+  /// In en, this message translates to:
+  /// **'Your space to capture ideas and shape them into something lasting.'**
+  String get howItWorksBrahmaBody;
+
+  /// Title of the Vishnu (feed/social) slide in the intro carousel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vishnu — your people & spaces'**
+  String get howItWorksVishnuTitle;
+
+  /// Short lead under the Vishnu slide title, above the feature sections.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with people and communities, your way.'**
+  String get howItWorksVishnuBody;
+
+  /// Title of the Shiv (AI) slide in the intro carousel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shiv — AI on your device'**
+  String get howItWorksShivTitle;
+
+  /// Short lead under the Shiv slide title, above the feature sections.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device AI that thinks alongside your notes.'**
+  String get howItWorksShivBody;
+
+  /// Feature-section name on the Brahma slide: a single note you write.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get howItWorksTileNote;
+
+  /// Feature-section description on the Brahma slide for Note.
+  ///
+  /// In en, this message translates to:
+  /// **'Write text, images and links'**
+  String get howItWorksDescNote;
+
+  /// Feature-section name on the Brahma slide: a Manas (personal note collection).
+  ///
+  /// In en, this message translates to:
+  /// **'Manas'**
+  String get howItWorksTileManas;
+
+  /// Feature-section description on the Brahma slide for Manas.
+  ///
+  /// In en, this message translates to:
+  /// **'Group notes into your own collections'**
+  String get howItWorksDescManas;
+
+  /// Feature-section name on the Brahma slide: the knowledge graph of linked notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph'**
+  String get howItWorksTileGraph;
+
+  /// Feature-section description on the Brahma slide for Graph.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked notes become your knowledge graph'**
+  String get howItWorksDescGraph;
+
+  /// Feature-section name on the Vishnu slide: people you follow.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get howItWorksTilePeople;
+
+  /// Feature-section description on the Vishnu slide for People.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow people to shape your feed'**
+  String get howItWorksDescPeople;
+
+  /// Feature-section name on the Vishnu slide: public channels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get howItWorksTileChannels;
+
+  /// Feature-section description on the Vishnu slide for Channels.
+  ///
+  /// In en, this message translates to:
+  /// **'Public rooms to gather around topics'**
+  String get howItWorksDescChannels;
+
+  /// Feature-section name on the Vishnu slide: private encrypted channels.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get howItWorksTilePrivate;
+
+  /// Feature-section description on the Vishnu slide for Private channels.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted, invite-only channels'**
+  String get howItWorksDescPrivate;
+
+  /// Feature-section name on the Vishnu slide: direct messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct messages'**
+  String get howItWorksTileDms;
+
+  /// Feature-section description on the Vishnu slide for Direct messages.
+  ///
+  /// In en, this message translates to:
+  /// **'Private one-to-one chats'**
+  String get howItWorksDescDms;
+
+  /// Feature-section name on the Shiv slide: Adiyogi, the chat assistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Adiyogi'**
+  String get howItWorksTileAdiyogi;
+
+  /// Feature-section description on the Shiv slide for Adiyogi.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything about your notes'**
+  String get howItWorksDescAdiyogi;
+
+  /// Feature-section name on the Shiv slide: Nataraj, the idea-synthesis deck.
+  ///
+  /// In en, this message translates to:
+  /// **'Nataraj'**
+  String get howItWorksTileNataraj;
+
+  /// Feature-section description on the Shiv slide for Nataraj.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to turn notes into fresh ideas'**
+  String get howItWorksDescNataraj;
+
+  /// Feature-section name on the Shiv slide: Gana, the autonomous agents.
+  ///
+  /// In en, this message translates to:
+  /// **'Gana'**
+  String get howItWorksTileGana;
+
+  /// Feature-section description on the Shiv slide for Gana.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents that work in the background'**
+  String get howItWorksDescGana;
+
+  /// Title of the intro carousel slide about owning your identity via a private key.
+  ///
+  /// In en, this message translates to:
+  /// **'You own your identity'**
+  String get howItWorksKeysTitle;
+
+  /// Body of the intro carousel slide about owning your identity via a private key.
+  ///
+  /// In en, this message translates to:
+  /// **'No email, no password, no account. UNIUN gives you a private key that lives only on your device — it is your identity, and only you hold it.'**
+  String get howItWorksKeysBody;
+
+  /// Title of the intro carousel slide about offline-first, on-device privacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Private and always yours'**
+  String get howItWorksPrivateTitle;
+
+  /// Body of the intro carousel slide about offline-first, on-device privacy.
+  ///
+  /// In en, this message translates to:
+  /// **'UNIUN works offline and its AI runs right on your device — nothing goes to the cloud. Your notes stay with you, and they\'re yours to keep.'**
+  String get howItWorksPrivateBody;
+
+  /// Title of the final intro carousel slide inviting the user to start.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to begin?'**
+  String get howItWorksReadyTitle;
+
+  /// Body of the final intro carousel slide inviting the user to start.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your avatar and start building your second brain. It only takes a moment.'**
+  String get howItWorksReadyBody;
+
   /// Heading on the about-you onboarding page
   ///
   /// In en, this message translates to:

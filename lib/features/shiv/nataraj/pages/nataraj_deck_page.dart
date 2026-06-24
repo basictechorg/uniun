@@ -351,7 +351,7 @@ class _NatarajHeader extends StatelessWidget {
               child: const Padding(
                 padding: EdgeInsets.all(10),
                 child: Icon(
-                  Icons.chat_bubble_outline_rounded,
+                  Icons.self_improvement_rounded,
                   size: 22,
                   color: AppColors.onSurfaceVariant,
                 ),

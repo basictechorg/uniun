@@ -40,6 +40,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
   StreamSubscription<String>? _streamSub;
 
+  /// Tokens arriving faster than one UI frame are coalesced here and flushed
+  /// as a single [_TokenReceived] event on a short timer, so we emit (and
+  /// rebuild + re-sanitize) at most ~20×/s instead of once per raw token. The
+  /// LLM can stream 30–100 tok/s; without this, every token triggered a full
+  /// state emission and a full-buffer sanitize, spiking the UI thread.
+  final StringBuffer _pendingTokens = StringBuffer();
+  Timer? _tokenFlushTimer;
+  static const _kTokenFlushInterval = Duration(milliseconds: 50);
+
   /// Raw concatenation of streamed tokens for the in-flight assistant turn.
   /// Reset to '' at each `_initChatSession`. The state's [streamingContent]
   /// is the SANITIZED projection of this — we never concat new chunks onto
@@ -178,6 +187,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   Future<void> _onCloseConversation(
       _CloseConversation event, Emitter<ShivAIState> emit) async {
     _streamSub?.cancel();
+    _cancelTokenFlush();
     await _closeConv.call();
     emit(state.copyWith(
       status: ShivChatStatus.idle,
@@ -278,6 +288,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     // 5 — Stream inference through the LlmRepository (priority-coordinated
     //     locally; goes over HTTP for the cloud backend in Phase 3).
     _streamSub?.cancel();
+    _cancelTokenFlush();
     _streamSub = _sendChatStream
         .call(SendChatStreamInput(
           message: ragMsg.userMessage,
@@ -285,11 +296,40 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
           cleanHistory: cleanHistory,
         ))
         .listen(
-      (token) => add(ShivAIEvent.tokenReceived(token)),
-      onDone: () => add(const ShivAIEvent.streamDone()),
-      onError: (Object e) => add(ShivAIEvent.streamError(e.toString())),
+      (token) {
+        _pendingTokens.write(token);
+        _tokenFlushTimer ??= Timer(_kTokenFlushInterval, _flushPendingTokens);
+      },
+      onDone: () {
+        _flushPendingTokens(); // flush the trailing batch BEFORE streamDone
+        add(const ShivAIEvent.streamDone());
+      },
+      onError: (Object e) {
+        _cancelTokenFlush();
+        add(ShivAIEvent.streamError(e.toString()));
+      },
       cancelOnError: true,
     );
+  }
+
+  /// Drain [_pendingTokens] into a single [_TokenReceived] event. Called by the
+  /// flush timer and once more on `onDone` so no trailing batch is lost.
+  void _flushPendingTokens() {
+    _tokenFlushTimer?.cancel();
+    _tokenFlushTimer = null;
+    if (_pendingTokens.isEmpty) return;
+    final batch = _pendingTokens.toString();
+    _pendingTokens.clear();
+    add(ShivAIEvent.tokenReceived(batch));
+  }
+
+  /// Drop any buffered tokens and stop the flush timer. Called wherever the
+  /// stream subscription is torn down so a late timer can't `add` into a turn
+  /// that no longer exists.
+  void _cancelTokenFlush() {
+    _tokenFlushTimer?.cancel();
+    _tokenFlushTimer = null;
+    _pendingTokens.clear();
   }
 
   /// User tapped stop during streaming. Cancel the native token stream, keep
@@ -300,6 +340,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     if (state.status != ShivChatStatus.streaming) return;
     await _streamSub?.cancel();
     _streamSub = null;
+    _cancelTokenFlush();
 
     final msgId = state.streamingMessageId;
     final partial = stripThinking(state.streamingContent ?? '').trim();
@@ -462,6 +503,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   @override
   Future<void> close() async {
     _streamSub?.cancel();
+    _cancelTokenFlush();
     await _closeConv.call();
     // Safety net for logout / HomePage teardown — make sure the queue isn't
     // left paused and any pending extractions get a final chance to drain.

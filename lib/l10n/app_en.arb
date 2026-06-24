@@ -714,6 +714,107 @@
   "welcomeRoleTransform": "Transform",
   "@welcomeRoleTransform": { "description": "Role label under the Shiv pillar on the welcome screen." },
 
+  "howItWorksSkip": "Skip",
+  "@howItWorksSkip": { "description": "Top-right control that closes the 'how it works' intro carousel and returns to the welcome screen." },
+
+  "howItWorksNext": "Next",
+  "@howItWorksNext": { "description": "Bottom button on the intro carousel that advances to the next slide." },
+
+  "howItWorksGetStarted": "Get started",
+  "@howItWorksGetStarted": { "description": "Bottom button on the final intro carousel slide; closes the carousel and returns to the welcome screen." },
+
+  "howItWorksIntroTitle": "Your second brain, in your pocket",
+  "@howItWorksIntroTitle": { "description": "Title of the first intro carousel slide introducing UNIUN." },
+
+  "howItWorksIntroBody": "UNIUN is a calm space to capture what you think, connect your ideas, and reflect on them — all in one app that's truly yours.",
+  "@howItWorksIntroBody": { "description": "Body of the first intro carousel slide introducing UNIUN." },
+
+  "howItWorksBrahmaTitle": "Brahma — capture & connect",
+  "@howItWorksBrahmaTitle": { "description": "Title of the Brahma (create) slide in the intro carousel." },
+
+  "howItWorksBrahmaBody": "Your space to capture ideas and shape them into something lasting.",
+  "@howItWorksBrahmaBody": { "description": "Short lead under the Brahma slide title, above the feature sections." },
+
+  "howItWorksVishnuTitle": "Vishnu — your people & spaces",
+  "@howItWorksVishnuTitle": { "description": "Title of the Vishnu (feed/social) slide in the intro carousel." },
+
+  "howItWorksVishnuBody": "Connect with people and communities, your way.",
+  "@howItWorksVishnuBody": { "description": "Short lead under the Vishnu slide title, above the feature sections." },
+
+  "howItWorksShivTitle": "Shiv — AI on your device",
+  "@howItWorksShivTitle": { "description": "Title of the Shiv (AI) slide in the intro carousel." },
+
+  "howItWorksShivBody": "On-device AI that thinks alongside your notes.",
+  "@howItWorksShivBody": { "description": "Short lead under the Shiv slide title, above the feature sections." },
+
+  "howItWorksTileNote": "Note",
+  "@howItWorksTileNote": { "description": "Feature-section name on the Brahma slide: a single note you write." },
+  "howItWorksDescNote": "Write text, images and links",
+  "@howItWorksDescNote": { "description": "Feature-section description on the Brahma slide for Note." },
+
+  "howItWorksTileManas": "Manas",
+  "@howItWorksTileManas": { "description": "Feature-section name on the Brahma slide: a Manas (personal note collection)." },
+  "howItWorksDescManas": "Group notes into your own collections",
+  "@howItWorksDescManas": { "description": "Feature-section description on the Brahma slide for Manas." },
+
+  "howItWorksTileGraph": "Graph",
+  "@howItWorksTileGraph": { "description": "Feature-section name on the Brahma slide: the knowledge graph of linked notes." },
+  "howItWorksDescGraph": "Linked notes become your knowledge graph",
+  "@howItWorksDescGraph": { "description": "Feature-section description on the Brahma slide for Graph." },
+
+  "howItWorksTilePeople": "People",
+  "@howItWorksTilePeople": { "description": "Feature-section name on the Vishnu slide: people you follow." },
+  "howItWorksDescPeople": "Follow people to shape your feed",
+  "@howItWorksDescPeople": { "description": "Feature-section description on the Vishnu slide for People." },
+
+  "howItWorksTileChannels": "Channels",
+  "@howItWorksTileChannels": { "description": "Feature-section name on the Vishnu slide: public channels." },
+  "howItWorksDescChannels": "Public rooms to gather around topics",
+  "@howItWorksDescChannels": { "description": "Feature-section description on the Vishnu slide for Channels." },
+
+  "howItWorksTilePrivate": "Private",
+  "@howItWorksTilePrivate": { "description": "Feature-section name on the Vishnu slide: private encrypted channels." },
+  "howItWorksDescPrivate": "Encrypted, invite-only channels",
+  "@howItWorksDescPrivate": { "description": "Feature-section description on the Vishnu slide for Private channels." },
+
+  "howItWorksTileDms": "Direct messages",
+  "@howItWorksTileDms": { "description": "Feature-section name on the Vishnu slide: direct messages." },
+  "howItWorksDescDms": "Private one-to-one chats",
+  "@howItWorksDescDms": { "description": "Feature-section description on the Vishnu slide for Direct messages." },
+
+  "howItWorksTileAdiyogi": "Adiyogi",
+  "@howItWorksTileAdiyogi": { "description": "Feature-section name on the Shiv slide: Adiyogi, the chat assistant." },
+  "howItWorksDescAdiyogi": "Ask anything about your notes",
+  "@howItWorksDescAdiyogi": { "description": "Feature-section description on the Shiv slide for Adiyogi." },
+
+  "howItWorksTileNataraj": "Nataraj",
+  "@howItWorksTileNataraj": { "description": "Feature-section name on the Shiv slide: Nataraj, the idea-synthesis deck." },
+  "howItWorksDescNataraj": "Swipe to turn notes into fresh ideas",
+  "@howItWorksDescNataraj": { "description": "Feature-section description on the Shiv slide for Nataraj." },
+
+  "howItWorksTileGana": "Gana",
+  "@howItWorksTileGana": { "description": "Feature-section name on the Shiv slide: Gana, the autonomous agents." },
+  "howItWorksDescGana": "Agents that work in the background",
+  "@howItWorksDescGana": { "description": "Feature-section description on the Shiv slide for Gana." },
+
+  "howItWorksKeysTitle": "You own your identity",
+  "@howItWorksKeysTitle": { "description": "Title of the intro carousel slide about owning your identity via a private key." },
+
+  "howItWorksKeysBody": "No email, no password, no account. UNIUN gives you a private key that lives only on your device — it is your identity, and only you hold it.",
+  "@howItWorksKeysBody": { "description": "Body of the intro carousel slide about owning your identity via a private key." },
+
+  "howItWorksPrivateTitle": "Private and always yours",
+  "@howItWorksPrivateTitle": { "description": "Title of the intro carousel slide about offline-first, on-device privacy." },
+
+  "howItWorksPrivateBody": "UNIUN works offline and its AI runs right on your device — nothing goes to the cloud. Your notes stay with you, and they're yours to keep.",
+  "@howItWorksPrivateBody": { "description": "Body of the intro carousel slide about offline-first, on-device privacy." },
+
+  "howItWorksReadyTitle": "Ready to begin?",
+  "@howItWorksReadyTitle": { "description": "Title of the final intro carousel slide inviting the user to start." },
+
+  "howItWorksReadyBody": "Create your avatar and start building your second brain. It only takes a moment.",
+  "@howItWorksReadyBody": { "description": "Body of the final intro carousel slide inviting the user to start." },
+
   "aboutYouTitle": "About You",
   "@aboutYouTitle": { "description": "Heading on the about-you onboarding page" },
 

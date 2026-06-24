@@ -102,9 +102,7 @@ class WelcomePage extends StatelessWidget {
 
                 // ── Learn more ───────────────────────────────────────────
                 GestureDetector(
-                  onTap: () {
-                    // TODO: open how-it-works page
-                  },
+                  onTap: () => context.pushNamed(AppRoutes.howItWorks),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -164,7 +162,7 @@ class _BrandBlock extends StatelessWidget {
                 ),
               ),
               SvgPicture.asset(
-                'assets/images/uniun-logo.svg',
+                'assets/images/uniun-logo-mark.svg',
                 width: 88,
                 height: 88,
               ),

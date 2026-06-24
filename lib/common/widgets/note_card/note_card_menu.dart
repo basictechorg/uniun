@@ -102,7 +102,7 @@ class NoteCardMenu extends StatelessWidget {
         color: AppColors.outline,
       ),
       itemBuilder: (context) => [
-        _neutralItem('manas', Icons.self_improvement_rounded,
+        _neutralItem('manas', Icons.man_3_rounded,
             l10n.noteCardAddToManas),
         const PopupMenuDivider(),
         _destructiveItem('delete', Icons.delete_outline_rounded,

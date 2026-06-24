@@ -129,7 +129,7 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    const Icon(Icons.psychology_rounded,
+                    const Icon(Icons.man_3_rounded,
                         color: AppColors.primary, size: 20),
                     const SizedBox(width: 10),
                     Expanded(

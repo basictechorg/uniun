@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/tree/pages/shiv_branch_tree_page.dart';
@@ -50,6 +51,15 @@ class _ShivChatPageState extends State<ShivChatPage> {
     return BlocConsumer<ShivAIBloc, ShivAIState>(
       listenWhen: (prev, curr) => curr.messages.length != prev.messages.length,
       listener: (context, state) => _scrollToBottom(),
+      // Per-token `streamingContent` changes must NOT rebuild this whole tree
+      // (header + ListView + input composer). The live bubble subscribes to
+      // streamingContent on its own via [_StreamingBubble]; everything else
+      // only needs to rebuild on these structural changes.
+      buildWhen: (p, c) =>
+          p.status != c.status ||
+          p.messages != c.messages ||
+          p.activeConversation != c.activeConversation ||
+          p.lastTurnSourceNoteIds != c.lastTurnSourceNoteIds,
       builder: (context, state) {
         final isStreaming = state.status == ShivChatStatus.streaming;
         final conv = state.activeConversation;
@@ -97,14 +107,19 @@ class _ShivChatPageState extends State<ShivChatPage> {
                             final isAssistant =
                                 msg.role == MessageRole.assistant;
                             final isLastAssistant = isLast && isAssistant;
-                            final streamingContent =
-                                isStreaming && isLastAssistant
-                                    ? state.streamingContent
-                                    : null;
+                            // The live-streaming bubble subscribes to
+                            // streamingContent itself so only it rebuilds per
+                            // token — the rest of this list stays put.
+                            if (isStreaming && isLastAssistant) {
+                              return _StreamingBubble(
+                                key: ValueKey(msg.messageId),
+                                message: msg,
+                                sourceNoteIds: state.lastTurnSourceNoteIds,
+                              );
+                            }
                             return ShivMessageBubble(
                               key: ValueKey(msg.messageId),
                               message: msg,
-                              streamingContent: streamingContent,
                               isLastAssistant: isLastAssistant,
                               sourceNoteIds: isLastAssistant
                                   ? state.lastTurnSourceNoteIds
@@ -128,6 +143,35 @@ class _ShivChatPageState extends State<ShivChatPage> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Streaming bubble ─────────────────────────────────────────────────────────
+
+/// Wraps the live assistant bubble in a [BlocSelector] on `streamingContent`,
+/// so token updates rebuild ONLY this bubble — not the page's header, list, or
+/// input composer (which are gated out by the page's `buildWhen`).
+class _StreamingBubble extends StatelessWidget {
+  const _StreamingBubble({
+    super.key,
+    required this.message,
+    required this.sourceNoteIds,
+  });
+
+  final ShivMessageEntity message;
+  final List<String> sourceNoteIds;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<ShivAIBloc, ShivAIState, String?>(
+      selector: (s) => s.streamingContent,
+      builder: (context, streaming) => ShivMessageBubble(
+        message: message,
+        streamingContent: streaming ?? '',
+        isLastAssistant: true,
+        sourceNoteIds: sourceNoteIds,
+      ),
     );
   }
 }
@@ -195,9 +239,13 @@ class _ShivChatHeader extends StatelessWidget {
           ),
           // Nataraj — back to the spark deck (Shiv home).
           _HeaderIcon(
-            icon: Icons.air,
             onTap: onNatarajTap,
             tooltip: l10n.natarajTileAction,
+            child: const Icon(
+              Icons.sports_gymnastics_rounded,
+              size: 22,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
           // Tree — branch graph for this conversation
           _HeaderIcon(
@@ -215,12 +263,14 @@ class _HeaderIcon extends StatelessWidget {
   const _HeaderIcon({
     this.icon,
     this.assetPath,
+    this.child,
     required this.onTap,
     required this.tooltip,
-  }) : assert(icon != null || assetPath != null);
+  }) : assert(icon != null || assetPath != null || child != null);
 
   final IconData? icon;
   final String? assetPath;
+  final Widget? child;
   final VoidCallback onTap;
   final String tooltip;
 
@@ -233,21 +283,22 @@ class _HeaderIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(99),
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: assetPath != null
-              ? SvgPicture.asset(
-                  assetPath!,
-                  width: 22,
-                  height: 22,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.onSurfaceVariant,
-                    BlendMode.srcIn,
-                  ),
-                )
-              : Icon(
-                  icon,
-                  size: 22,
-                  color: AppColors.onSurfaceVariant,
-                ),
+          child: child ??
+              (assetPath != null
+                  ? SvgPicture.asset(
+                      assetPath!,
+                      width: 22,
+                      height: 22,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.onSurfaceVariant,
+                        BlendMode.srcIn,
+                      ),
+                    )
+                  : Icon(
+                      icon,
+                      size: 22,
+                      color: AppColors.onSurfaceVariant,
+                    )),
         ),
       ),
     );

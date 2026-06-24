@@ -26,6 +26,7 @@ import 'package:uniun/features/dm/chat/pages/dm_chat_page.dart';
 import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
 import 'package:uniun/features/home/pages/home_page.dart';
 import 'package:uniun/features/onboarding/pages/about_you_page.dart';
+import 'package:uniun/features/onboarding/pages/how_it_works_page.dart';
 import 'package:uniun/features/onboarding/pages/import_identity_page.dart';
 import 'package:uniun/features/onboarding/pages/splash_page.dart';
 import 'package:uniun/features/onboarding/pages/welcome_page.dart';
@@ -69,6 +70,11 @@ final GoRouter appRouter = GoRouter(
       name: AppRoutes.welcome,
       path: '/welcome',
       builder: (_, __) => const WelcomePage(),
+    ),
+    GoRoute(
+      name: AppRoutes.howItWorks,
+      path: '/how-it-works',
+      builder: (_, __) => const HowItWorksPage(),
     ),
     GoRoute(
       name: AppRoutes.importIdentity,

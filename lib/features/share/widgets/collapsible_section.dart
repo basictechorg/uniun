@@ -18,8 +18,31 @@ class CollapsibleSection extends StatefulWidget {
   State<CollapsibleSection> createState() => _CollapsibleSectionState();
 }
 
-class _CollapsibleSectionState extends State<CollapsibleSection> {
+class _CollapsibleSectionState extends State<CollapsibleSection>
+    with SingleTickerProviderStateMixin {
   late bool _expanded = widget.initiallyExpanded;
+  late final AnimationController _controller = AnimationController(
+    duration: const Duration(milliseconds: 200),
+    vsync: this,
+    value: widget.initiallyExpanded ? 1 : 0,
+  );
+  late final Animation<double> _sizeFactor =
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    if (_expanded) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +50,7 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: _toggle,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 6),
@@ -57,13 +80,12 @@ class _CollapsibleSectionState extends State<CollapsibleSection> {
             ),
           ),
         ),
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState: _expanded
-              ? CrossFadeState.showFirst
-              : CrossFadeState.showSecond,
-          firstChild: widget.child,
-          secondChild: const SizedBox.shrink(),
+        // Vertical accordion — clip height only. AnimatedCrossFade animated both
+        // axes, which made the body appear to grow horizontally from center.
+        SizeTransition(
+          alignment: Alignment.topCenter,
+          sizeFactor: _sizeFactor,
+          child: widget.child,
         ),
       ],
     );

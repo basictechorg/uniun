@@ -89,8 +89,22 @@ class LlmTextSanitizer {
   /// English/UI text), try to UTF-8-decode the byte array. On success
   /// substitute the run; on failure leave it.
   static String _repairByteRuns(String s) {
-    final out = StringBuffer();
+    // Fast path: byte-repair only ever changes the string when it contains a
+    // *remapped* char (U+0100..U+0143), which appears only on the rare emoji/
+    // multibyte mojibake leak. The common case is plain text — scan once and
+    // bail out before allocating a StringBuffer or rewriting every char. This
+    // keeps the per-token streaming sanitize allocation-free for normal text.
     final units = s.codeUnits;
+    bool hasRemapped = false;
+    for (final c in units) {
+      if (c >= 0x0100 && c <= 0x0143) {
+        hasRemapped = true;
+        break;
+      }
+    }
+    if (!hasRemapped) return s;
+
+    final out = StringBuffer();
     int i = 0;
     while (i < units.length) {
       // Start of a potential byte run.
