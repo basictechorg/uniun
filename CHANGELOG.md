@@ -12,6 +12,59 @@ See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure.
 
 ---
 
+## [1.3.0] — 2026-06-24
+
+### Added
+- **Manas — scoped note collections.** Users can group their notes into named **Manas** and use
+  them to scope where AI looks. Picking a Manas narrows Shiv's RAG retrieval, Gana's input pool,
+  and the composer-chat context to just that collection (falling back to the whole library when
+  none is selected). Manas search now includes drafts and the user's own notes.
+- **Nataraj — AI swipe-deck idea generator.** A swipe deck that synthesizes 2–3 of the user's own
+  notes into a single new note suggestion, reusing the on-device generation substrate. Cards are a
+  local cache, not Nostr events. (Shipped as "Manthan", renamed to **Nataraj** before release.)
+- **Gana — autonomous AI agents.** User-owned agents that watch an input surface, infer over
+  selected Manas(es), and autonomously publish. Includes scheduled/background generation
+  (own isolate + own Isar) and a foreground engine. The trigger config was collapsed into a single
+  **"When should this run?"** preset radio (five presets covering the trigger matrix).
+- **Composer-chat — inline AI in the composer.** Tap the avatar in any composer (thread / channel /
+  DM / private channel) to pick a Manas and chat with an on-device model grounded in the surface's
+  recent messages plus the selected Manas.
+- **Embed-by-value note sharing with full-note composer.** The share sheet now carries the original
+  note **by value** as a self-contained `embeddedNoteJson` snapshot (no `q`/`k`/`p` pointer, no Isar
+  lookup, retention-immune) and lets the user author a full note — text, references, and images —
+  alongside the embed. The snapshot's signature is verified once at inbound; failures render an
+  "unverified" badge.
+- **Receive shares from other apps into UNIUN.** UNIUN now registers as a system share target, so
+  content shared from other apps lands in the composer.
+- **DM replies.** Direct messages support replying to a specific message.
+- **OpenRouter (cloud) LLM backend, opt-in.** A backend-agnostic `LlmRepository` now dispatches
+  between the on-device `localGemma` runner and a remote **OpenRouter** backend; API keys are stored
+  in `flutter_secure_storage` (Keychain / Keystore), never in Isar or SharedPreferences.
+- **Media attachments in drafts + BlurHash placeholders** for smoother image loading.
+- **"How it works" intro carousel** on the onboarding entry screen.
+- **Reddit-style source attribution** shown in Shiv answers.
+- **Configurable recent-sync window.** History sync from relays can be capped to a configurable
+  recent window to limit how far back the Gateway pulls.
+- **Dockerized backend.** The Go relay (`uniun-backend/`) now ships with a Docker setup for
+  reproducible deployment.
+
+### Changed
+- **On-device AI generation moved to the main isolate** (off the dedicated isolate) for the
+  foreground path, with a UI performance pass across onboarding and the feed.
+- **Per-user cap on AI note generation** plus assorted generation-flow UI improvements.
+- Removed the color picker from Manas.
+- Updated `flutter_gemma`.
+
+### Fixed
+- Shiv: sanitize the live-streaming message bubble and anchor the Shiv persona near the question.
+- Guard against `add`/`emit` after BLoC close during long LLM generation (no more
+  "emit after close" crashes on slow inference).
+- Saved-note logic bugs.
+- Manas search missing drafts and own notes.
+- Background worker stability fixes.
+
+---
+
 ## [1.1.0] — 2026-06-17
 
 ### Added
@@ -55,5 +108,6 @@ built on the Nostr protocol.
 - **Sharing** — NIP-18 quote/share across feed, channels, and DMs.
 - Nostr identity onboarding (key generation + import), local-only private key storage.
 
+[1.3.0]: #114--2026-06-24
 [1.1.0]: #110--2026-06-17
 [1.0.0]: #100--initial-release
