@@ -213,7 +213,7 @@ What we kept:
 `lib/features/shiv/generation/context/manas_context_loader.dart`
 
 > Relocated 2026-06-21 from `gana/engine/` into the shared `generation/` substrate
-> (also used by Manthan, Shiv chat, and the composer-chat). Now an
+> (also used by Nataraj, Shiv chat, and the composer-chat). Now an
 > `@lazySingleton`: the **main-isolate instance** `merge` / `searchAll` use the
 > injected `Isar`, while the **static** `packNewest` / `loadPool` / `loadAll`
 > take an `isar` param so the DI-less background WorkManager isolate can call

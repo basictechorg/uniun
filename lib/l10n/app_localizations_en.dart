@@ -284,6 +284,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get brahmaPublish => 'Publish';
 
   @override
+  String get brahmaDraftPublished => 'Published as a note';
+
+  @override
   String get brahmaTags => 'tags';
 
   @override
@@ -2159,105 +2162,105 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaRunStatusRunning => 'Running';
 
   @override
-  String get manthanTileAction => 'Spark ideas';
+  String get natarajTileAction => 'Spark ideas';
 
   @override
-  String get manthanDrawerTitle => 'Manthan';
+  String get natarajDrawerTitle => 'Nataraj';
 
   @override
-  String get manthanScopeSheetTitle => 'Select Manas';
+  String get natarajScopeSheetTitle => 'Select Manas';
 
   @override
-  String get manthanScopeAllNotes => 'Brahma';
+  String get natarajScopeAllNotes => 'Brahma';
 
   @override
-  String manthanScopeManasCount(int count) {
+  String natarajScopeManasCount(int count) {
     return '$count manas';
   }
 
   @override
-  String get manthanNewChatTooltip => 'New chat';
+  String get natarajNewChatTooltip => 'New chat';
 
   @override
-  String get manthanEdgePublish => 'Publish';
+  String get natarajEdgePublish => 'Publish';
 
   @override
-  String get manthanEdgeDraft => 'Draft';
+  String get natarajEdgeDraft => 'Draft';
 
   @override
-  String get manthanEdgeDiscard => 'Discard';
+  String get natarajEdgeDiscard => 'Discard';
 
   @override
-  String get manthanEdgeDiscuss => 'Discuss';
+  String get natarajEdgeDiscuss => 'Discuss';
 
   @override
-  String get manthanReferencesLabel => 'References';
+  String get natarajReferencesLabel => 'References';
 
   @override
-  String get manthanReferencesView => 'View references';
+  String get natarajReferencesView => 'View references';
 
   @override
-  String get manthanReferencesAttach =>
+  String get natarajReferencesAttach =>
       'Publishing attaches the checked notes as references.';
 
   @override
-  String get manthanCoachTitle => 'Swipe to explore ideas';
+  String get natarajCoachTitle => 'Swipe to explore ideas';
 
   @override
-  String get manthanCoachDismiss => 'Got it';
+  String get natarajCoachDismiss => 'Got it';
 
   @override
-  String get manthanGenerating => 'Finding connections…';
+  String get natarajGenerating => 'Finding connections…';
 
   @override
-  String get manthanRevisitingHint =>
+  String get natarajRevisitingHint =>
       'Revisiting older sparks — add notes for fresh ideas';
 
   @override
-  String get manthanEmptyNeedsMoreTitle => 'Not enough notes yet';
+  String get natarajEmptyNeedsMoreTitle => 'Not enough notes yet';
 
   @override
-  String get manthanEmptyNeedsMoreBody =>
+  String get natarajEmptyNeedsMoreBody =>
       'This scope needs at least 2 notes to spark connections.';
 
   @override
-  String get manthanExhaustedTitle => 'You\'ve seen them all';
+  String get natarajExhaustedTitle => 'You\'ve seen them all';
 
   @override
-  String get manthanExhaustedBody => 'Add more notes to spark new ideas.';
+  String get natarajExhaustedBody => 'Add more notes to spark new ideas.';
 
   @override
-  String get manthanModelErrorTitle => 'Couldn\'t generate ideas';
+  String get natarajModelErrorTitle => 'Couldn\'t generate ideas';
 
   @override
-  String get manthanModelErrorBody =>
+  String get natarajModelErrorBody =>
       'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.';
 
   @override
-  String get manthanPublishedSnack => 'Published as a note';
+  String get natarajPublishedSnack => 'Published as a note';
 
   @override
-  String get manthanDraftSavedSnack => 'Saved as a draft';
+  String get natarajDraftSavedSnack => 'Saved as a draft';
 
   @override
-  String get manthanGenerateErrorSnack => 'Couldn\'t generate right now';
+  String get natarajGenerateErrorSnack => 'Couldn\'t generate right now';
 
   @override
-  String get manthanYouName => 'You';
+  String get natarajYouName => 'You';
 
   @override
-  String get manthanYouHandle => '@you · now';
+  String get natarajYouHandle => '@you · now';
 
   @override
-  String get manthanDraftLabel => 'Draft';
+  String get natarajDraftLabel => 'Draft';
 
   @override
-  String manthanRefsCount(int count) {
+  String natarajRefsCount(int count) {
     return '$count refs';
   }
 
   @override
-  String get manthanRetry => 'Try again';
+  String get natarajRetry => 'Try again';
 
   @override
   String get receiveShareTitle => 'Add to UNIUN';

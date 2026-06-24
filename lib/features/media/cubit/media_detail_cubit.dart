@@ -48,15 +48,18 @@ class MediaDetailCubit extends Cubit<MediaDetailState> {
     );
   }
 
-  Future<void> removeLocal() async {
+  /// Removes the cached file from this device. Returns true on success — the
+  /// detail page pops back to the gallery (which reactively drops the row), so
+  /// there's no in-place reload to do here.
+  Future<bool> removeLocal() async {
     emit(state.copyWith(busy: true));
     final res = await getIt<RemoveLocalMediaUseCase>().call(sha256);
-    res.fold(
-      (f) => emit(state.copyWith(busy: false, errorMessage: f.toMessage())),
-      (_) async {
-        await load();
-        emit(state.copyWith(busy: false));
+    return res.fold(
+      (f) {
+        emit(state.copyWith(busy: false, errorMessage: f.toMessage()));
+        return false;
       },
+      (_) => true,
     );
   }
 

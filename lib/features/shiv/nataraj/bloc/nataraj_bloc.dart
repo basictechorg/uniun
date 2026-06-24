@@ -2,37 +2,37 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/core/enum/manthan_card_status.dart';
+import 'package:uniun/core/enum/nataraj_card_status.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
-import 'package:uniun/domain/entities/manthan/manthan_card_entity.dart';
+import 'package:uniun/domain/entities/nataraj/nataraj_card_entity.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
-import 'package:uniun/domain/usecases/manthan_usecases.dart';
+import 'package:uniun/domain/usecases/nataraj_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
-import 'package:uniun/features/shiv/manthan/engine/manthan_generator.dart';
+import 'package:uniun/features/shiv/nataraj/engine/nataraj_generator.dart';
 import 'package:uuid/uuid.dart';
 
-part 'manthan_event.dart';
-part 'manthan_state.dart';
-part 'manthan_bloc.freezed.dart';
+part 'nataraj_event.dart';
+part 'nataraj_state.dart';
+part 'nataraj_bloc.freezed.dart';
 
 const int _kBufferTarget = 5;
 const int _kInitialFill = 1;
 
 @injectable
-class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
-  final ManthanGenerator _generator;
-  final GetNextManthanCardUseCase _next;
-  final RecordManthanSwipeUseCase _record;
+class NatarajBloc extends Bloc<NatarajEvent, NatarajState> {
+  final NatarajGenerator _generator;
+  final GetNextNatarajCardUseCase _next;
+  final RecordNatarajSwipeUseCase _record;
   final GetManasListUseCase _manasList;
   final GetActiveUserKeysUseCase _keys;
   final PublishNoteUseCase _publish;
   final SaveDraftUseCase _saveDraft;
 
-  ManthanBloc(
+  NatarajBloc(
     this._generator,
     this._next,
     this._record,
@@ -40,7 +40,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     this._keys,
     this._publish,
     this._saveDraft,
-  ) : super(const ManthanState()) {
+  ) : super(const NatarajState()) {
     on<_LoadDeck>(_onLoadDeck);
     on<_ChangeScope>(_onChangeScope);
     on<_SwipeCard>(_onSwipeCard, transformer: sequential());
@@ -48,12 +48,12 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     on<_LoadMore>(_onLoadMore, transformer: droppable());
   }
 
-  String get _scopeId => ManthanGenerator.scopeIdFor(state.manasIds);
+  String get _scopeId => NatarajGenerator.scopeIdFor(state.manasIds);
 
-  Future<void> _onLoadDeck(_LoadDeck e, Emitter<ManthanState> emit) async {
+  Future<void> _onLoadDeck(_LoadDeck e, Emitter<NatarajState> emit) async {
     final options = (await _manasList.call()).getOrElse(() => const []);
     emit(state.copyWith(
-      status: ManthanStatus.loading,
+      status: NatarajStatus.loading,
       manasIds: e.manasIds,
       scopeName: _scopeNameFor(e.manasIds, options),
       manasOptions: options,
@@ -64,9 +64,9 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     await _fillAndShow(emit);
   }
 
-  Future<void> _onChangeScope(_ChangeScope e, Emitter<ManthanState> emit) async {
+  Future<void> _onChangeScope(_ChangeScope e, Emitter<NatarajState> emit) async {
     emit(state.copyWith(
-      status: ManthanStatus.loading,
+      status: NatarajStatus.loading,
       manasIds: e.manasIds,
       scopeName: _scopeNameFor(e.manasIds, state.manasOptions),
       currentCard: null,
@@ -77,12 +77,12 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     await _fillAndShow(emit);
   }
 
-  Future<void> _onLoadMore(_LoadMore e, Emitter<ManthanState> emit) async {
+  Future<void> _onLoadMore(_LoadMore e, Emitter<NatarajState> emit) async {
     await _generator.fillBuffer(manasIds: state.manasIds, count: _kBufferTarget);
   }
 
   Future<void> _onToggleReference(
-      _ToggleReference e, Emitter<ManthanState> emit) {
+      _ToggleReference e, Emitter<NatarajState> emit) {
     final next = {...state.excludedRefIds};
     if (next.contains(e.noteId)) {
       next.remove(e.noteId);
@@ -93,22 +93,22 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     return Future.value();
   }
 
-  Future<void> _onSwipeCard(_SwipeCard e, Emitter<ManthanState> emit) async {
+  Future<void> _onSwipeCard(_SwipeCard e, Emitter<NatarajState> emit) async {
     final card = state.currentCard;
     if (card == null) return;
 
     String? seed;
     switch (e.direction) {
-      case ManthanDirection.up:
+      case NatarajDirection.up:
         if (!await _publishCard(card)) return;
-        await _mark(card, ManthanCardStatus.published);
-      case ManthanDirection.right:
+        await _mark(card, NatarajCardStatus.published);
+      case NatarajDirection.right:
         if (!await _draftCard(card)) return;
-        await _mark(card, ManthanCardStatus.drafted);
-      case ManthanDirection.left:
-        await _mark(card, ManthanCardStatus.discarded);
-      case ManthanDirection.down:
-        await _mark(card, ManthanCardStatus.seen);
+        await _mark(card, NatarajCardStatus.drafted);
+      case NatarajDirection.left:
+        await _mark(card, NatarajCardStatus.discarded);
+      case NatarajDirection.down:
+        await _mark(card, NatarajCardStatus.seen);
         seed = card.generatedParagraph;
     }
 
@@ -120,7 +120,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     if (isClosed) return; // page closed while we were awaiting; bail
     final next = nextE.getOrElse(() => null);
     emit(state.copyWith(
-      status: next == null ? ManthanStatus.loading : state.status,
+      status: next == null ? NatarajStatus.loading : state.status,
       currentCard: next,
       nextCard: null,
       excludedRefIds: const {},
@@ -129,12 +129,12 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     if (next == null) {
       await _fillAndShow(emit);
     } else {
-      if (!isClosed) add(const ManthanEvent.loadMore());
+      if (!isClosed) add(const NatarajEvent.loadMore());
     }
   }
 
-  Future<void> _mark(ManthanCardEntity card, ManthanCardStatus status) =>
-      _record.call(RecordManthanSwipeInput(
+  Future<void> _mark(NatarajCardEntity card, NatarajCardStatus status) =>
+      _record.call(RecordNatarajSwipeInput(
         scopeId: card.scopeId,
         signature: card.signature,
         status: status,
@@ -143,7 +143,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
   static bool _isEventId(String id) =>
       id.length == 64 && RegExp(r'^[0-9a-f]{64}$').hasMatch(id);
 
-  Future<bool> _publishCard(ManthanCardEntity card) async {
+  Future<bool> _publishCard(NatarajCardEntity card) async {
     final keys = (await _keys.call()).fold((_) => null, (k) => k);
     if (keys == null) return false;
     final mentionIds = card.noteIds
@@ -166,7 +166,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     return (await _publish.call(note)).isRight();
   }
 
-  Future<bool> _draftCard(ManthanCardEntity card) async {
+  Future<bool> _draftCard(NatarajCardEntity card) async {
     final mentionIds = card.noteIds
         .where((id) => !state.excludedRefIds.contains(id))
         .where(_isEventId)
@@ -183,7 +183,7 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
     ))).isRight();
   }
 
-  Future<void> _fillAndShow(Emitter<ManthanState> emit) async {
+  Future<void> _fillAndShow(Emitter<NatarajState> emit) async {
     // Generate one card first so the user sees something immediately.
     final result = await _generator.fillBuffer(
         manasIds: state.manasIds, count: _kInitialFill);
@@ -195,22 +195,22 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
 
     if (card != null) {
       emit(state.copyWith(
-        status: ManthanStatus.ready,
+        status: NatarajStatus.ready,
         currentCard: card,
-        resurfacing: result.state == ManthanFillState.resurfacing,
+        resurfacing: result.state == NatarajFillState.resurfacing,
       ));
       // Top the buffer up to _kBufferTarget in the background while the
       // user reads the first card.
-      if (!isClosed) add(const ManthanEvent.loadMore());
+      if (!isClosed) add(const NatarajEvent.loadMore());
       return;
     }
     emit(state.copyWith(
       status: switch (result.state) {
-        ManthanFillState.needsMoreNotes => ManthanStatus.needsMoreNotes,
-        ManthanFillState.exhausted => ManthanStatus.exhausted,
-        ManthanFillState.error => ManthanStatus.error,
-        ManthanFillState.ok => ManthanStatus.error,
-        ManthanFillState.resurfacing => ManthanStatus.error,
+        NatarajFillState.needsMoreNotes => NatarajStatus.needsMoreNotes,
+        NatarajFillState.exhausted => NatarajStatus.exhausted,
+        NatarajFillState.error => NatarajStatus.error,
+        NatarajFillState.ok => NatarajStatus.error,
+        NatarajFillState.resurfacing => NatarajStatus.error,
       },
       currentCard: null,
     ));
@@ -222,8 +222,8 @@ class ManthanBloc extends Bloc<ManthanEvent, ManthanState> {
       if (matches.isNotEmpty) return matches.first.name;
     }
     // Empty (all notes) or multi-manas: return '' — the page supplies
-    // the localized label via l10n.manthanScopeAllNotes /
-    // l10n.manthanScopeManasCount.
+    // the localized label via l10n.natarajScopeAllNotes /
+    // l10n.natarajScopeManasCount.
     return '';
   }
 }

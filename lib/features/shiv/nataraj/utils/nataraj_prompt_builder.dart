@@ -1,11 +1,11 @@
-// lib/features/shiv/manthan/utils/manthan_prompt_builder.dart
+// lib/features/shiv/nataraj/utils/nataraj_prompt_builder.dart
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
 import 'package:uniun/features/shiv/generation/prompt/prompt_parts.dart';
 
 /// Builds the one-shot prompt that asks the on-device LLM to synthesize 2-3 of
 /// the user's notes into one new, coherent note. Mirrors [GanaPromptBuilder]'s
 /// `/no_think` + hard-rules + NOOP discipline (shared via [PromptParts]).
-class ManthanPromptBuilder {
+class NatarajPromptBuilder {
   static const String noopSentinel = PromptParts.noopSentinel;
 
   static String build({required List<PackedNote> notes}) {

@@ -82,7 +82,12 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       }
     });
 
-    emit(DrawerLoading());
+    // Only show the loading placeholder on the first load. Reloads fired by the
+    // Isar watchers keep the current DrawerLoaded on screen so the top-right
+    // avatar and drawer header don't flicker to placeholders mid-reload.
+    if (state is! DrawerLoaded) {
+      emit(DrawerLoading());
+    }
 
     try {
       // Per-container unread counts from the UnreadNote collection (one batched

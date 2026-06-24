@@ -17,46 +17,53 @@ const DraftModelSchema = CollectionSchema(
   name: r'Draft',
   id: -1008759047235145202,
   properties: {
-    r'content': PropertySchema(id: 0, name: r'content', type: IsarType.string),
+    r'attachments': PropertySchema(
+      id: 0,
+      name: r'attachments',
+      type: IsarType.objectList,
+
+      target: r'MediaAttachment',
+    ),
+    r'content': PropertySchema(id: 1, name: r'content', type: IsarType.string),
     r'createdAt': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
-    r'draftId': PropertySchema(id: 2, name: r'draftId', type: IsarType.string),
+    r'draftId': PropertySchema(id: 3, name: r'draftId', type: IsarType.string),
     r'eTagRefs': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
     r'lastSyncedCreatedAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastSyncedCreatedAt',
       type: IsarType.dateTime,
     ),
     r'lastSyncedEventId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'lastSyncedEventId',
       type: IsarType.string,
     ),
     r'pTagRefs': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
     r'replyToEventId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'tTags': PropertySchema(id: 9, name: r'tTags', type: IsarType.stringList),
+    r'tTags': PropertySchema(id: 10, name: r'tTags', type: IsarType.stringList),
     r'updatedAt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
@@ -83,7 +90,7 @@ const DraftModelSchema = CollectionSchema(
     ),
   },
   links: {},
-  embeddedSchemas: {},
+  embeddedSchemas: {r'MediaAttachment': MediaAttachmentSchema},
 
   getId: _draftModelGetId,
   getLinks: _draftModelGetLinks,
@@ -97,6 +104,18 @@ int _draftModelEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  bytesCount += 3 + object.attachments.length * 3;
+  {
+    final offsets = allOffsets[MediaAttachment]!;
+    for (var i = 0; i < object.attachments.length; i++) {
+      final value = object.attachments[i];
+      bytesCount += MediaAttachmentSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.draftId.length * 3;
   bytesCount += 3 + object.eTagRefs.length * 3;
@@ -147,17 +166,23 @@ void _draftModelSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.content);
-  writer.writeDateTime(offsets[1], object.createdAt);
-  writer.writeString(offsets[2], object.draftId);
-  writer.writeStringList(offsets[3], object.eTagRefs);
-  writer.writeDateTime(offsets[4], object.lastSyncedCreatedAt);
-  writer.writeString(offsets[5], object.lastSyncedEventId);
-  writer.writeStringList(offsets[6], object.pTagRefs);
-  writer.writeString(offsets[7], object.replyToEventId);
-  writer.writeString(offsets[8], object.rootEventId);
-  writer.writeStringList(offsets[9], object.tTags);
-  writer.writeDateTime(offsets[10], object.updatedAt);
+  writer.writeObjectList<MediaAttachment>(
+    offsets[0],
+    allOffsets,
+    MediaAttachmentSchema.serialize,
+    object.attachments,
+  );
+  writer.writeString(offsets[1], object.content);
+  writer.writeDateTime(offsets[2], object.createdAt);
+  writer.writeString(offsets[3], object.draftId);
+  writer.writeStringList(offsets[4], object.eTagRefs);
+  writer.writeDateTime(offsets[5], object.lastSyncedCreatedAt);
+  writer.writeString(offsets[6], object.lastSyncedEventId);
+  writer.writeStringList(offsets[7], object.pTagRefs);
+  writer.writeString(offsets[8], object.replyToEventId);
+  writer.writeString(offsets[9], object.rootEventId);
+  writer.writeStringList(offsets[10], object.tTags);
+  writer.writeDateTime(offsets[11], object.updatedAt);
 }
 
 DraftModel _draftModelDeserialize(
@@ -167,18 +192,26 @@ DraftModel _draftModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = DraftModel();
-  object.content = reader.readString(offsets[0]);
-  object.createdAt = reader.readDateTime(offsets[1]);
-  object.draftId = reader.readString(offsets[2]);
-  object.eTagRefs = reader.readStringList(offsets[3]) ?? [];
+  object.attachments =
+      reader.readObjectList<MediaAttachment>(
+        offsets[0],
+        MediaAttachmentSchema.deserialize,
+        allOffsets,
+        MediaAttachment(),
+      ) ??
+      [];
+  object.content = reader.readString(offsets[1]);
+  object.createdAt = reader.readDateTime(offsets[2]);
+  object.draftId = reader.readString(offsets[3]);
+  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
   object.id = id;
-  object.lastSyncedCreatedAt = reader.readDateTimeOrNull(offsets[4]);
-  object.lastSyncedEventId = reader.readStringOrNull(offsets[5]);
-  object.pTagRefs = reader.readStringList(offsets[6]) ?? [];
-  object.replyToEventId = reader.readStringOrNull(offsets[7]);
-  object.rootEventId = reader.readStringOrNull(offsets[8]);
-  object.tTags = reader.readStringList(offsets[9]) ?? [];
-  object.updatedAt = reader.readDateTime(offsets[10]);
+  object.lastSyncedCreatedAt = reader.readDateTimeOrNull(offsets[5]);
+  object.lastSyncedEventId = reader.readStringOrNull(offsets[6]);
+  object.pTagRefs = reader.readStringList(offsets[7]) ?? [];
+  object.replyToEventId = reader.readStringOrNull(offsets[8]);
+  object.rootEventId = reader.readStringOrNull(offsets[9]);
+  object.tTags = reader.readStringList(offsets[10]) ?? [];
+  object.updatedAt = reader.readDateTime(offsets[11]);
   return object;
 }
 
@@ -190,26 +223,35 @@ P _draftModelDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectList<MediaAttachment>(
+                offset,
+                MediaAttachmentSchema.deserialize,
+                allOffsets,
+                MediaAttachment(),
+              ) ??
+              [])
+          as P;
     case 1:
-      return (reader.readDateTime(offset)) as P;
-    case 2:
       return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
     case 3:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 5:
-      return (reader.readStringOrNull(offset)) as P;
-    case 6:
       return (reader.readStringList(offset) ?? []) as P;
-    case 7:
+    case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
       return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readStringList(offset) ?? []) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 11:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -421,6 +463,59 @@ extension DraftModelQueryWhere
 
 extension DraftModelQueryFilter
     on QueryBuilder<DraftModel, DraftModel, QFilterCondition> {
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'attachments', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'attachments',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition> contentEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2023,7 +2118,14 @@ extension DraftModelQueryFilter
 }
 
 extension DraftModelQueryObject
-    on QueryBuilder<DraftModel, DraftModel, QFilterCondition> {}
+    on QueryBuilder<DraftModel, DraftModel, QFilterCondition> {
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  attachmentsElement(FilterQuery<MediaAttachment> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'attachments');
+    });
+  }
+}
 
 extension DraftModelQueryLinks
     on QueryBuilder<DraftModel, DraftModel, QFilterCondition> {}
@@ -2337,6 +2439,13 @@ extension DraftModelQueryProperty
   QueryBuilder<DraftModel, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<DraftModel, List<MediaAttachment>, QQueryOperations>
+  attachmentsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'attachments');
     });
   }
 

@@ -128,11 +128,11 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                       onRemoveReference: (id) =>
                           bloc.add(ShareSheetEvent.removeReference(id)),
                       onAddReference: () => _pickReferences(context, bloc, state),
-                      attachments: state.attachments,
+                      attachments: state.pending,
                       onRemoveAttachment: (sha) =>
                           bloc.add(ShareSheetEvent.removeMedia(sha)),
-                      onAttachMedia: () => _pickMedia(context, bloc, state),
-                      isAttachingMedia: state.uploading,
+                      onAttachMedia: () => _pickMedia(context, bloc),
+                      isAttachingMedia: false,
                     ),
                   ),
                   const Divider(height: 24),
@@ -181,18 +181,10 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
     if (result != null) bloc.add(ShareSheetEvent.setReferences(result));
   }
 
-  Future<void> _pickMedia(
-      BuildContext context, ShareSheetBloc bloc, ShareSheetState state) async {
-    if (state.uploading) return;
+  Future<void> _pickMedia(BuildContext context, ShareSheetBloc bloc) async {
     final picked = await showMediaPickSheet(context);
     if (picked == null) return;
-    bloc.add(ShareSheetEvent.attachMedia(
-      bytes: picked.bytes,
-      mime: picked.mime,
-      filename: picked.filename,
-      width: picked.width,
-      height: picked.height,
-    ));
+    bloc.add(ShareSheetEvent.attachMedia(picked));
   }
 }
 

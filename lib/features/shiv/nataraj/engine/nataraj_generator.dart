@@ -1,35 +1,35 @@
-// lib/features/shiv/manthan/engine/manthan_generator.dart
+// lib/features/shiv/nataraj/engine/nataraj_generator.dart
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/core/enum/manthan_card_status.dart';
+import 'package:uniun/core/enum/nataraj_card_status.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
-import 'package:uniun/domain/entities/manthan/manthan_card_entity.dart';
-import 'package:uniun/domain/repositories/manthan_repository.dart';
+import 'package:uniun/domain/entities/nataraj/nataraj_card_entity.dart';
+import 'package:uniun/domain/repositories/nataraj_repository.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
-import 'package:uniun/features/shiv/manthan/utils/manthan_prompt_builder.dart';
-import 'package:uniun/features/shiv/manthan/utils/manthan_sampler.dart';
+import 'package:uniun/features/shiv/nataraj/utils/nataraj_prompt_builder.dart';
+import 'package:uniun/features/shiv/nataraj/utils/nataraj_sampler.dart';
 
-enum ManthanFillState { ok, needsMoreNotes, resurfacing, exhausted, error }
+enum NatarajFillState { ok, needsMoreNotes, resurfacing, exhausted, error }
 
-class ManthanFillResult {
+class NatarajFillResult {
   final int inserted;
-  final ManthanFillState state;
-  const ManthanFillResult({required this.inserted, required this.state});
+  final NatarajFillState state;
+  const NatarajFillResult({required this.inserted, required this.state});
 }
 
 @lazySingleton
-class ManthanGenerator {
+class NatarajGenerator {
   final Isar _isar;
-  final ManthanRepository _repo;
+  final NatarajRepository _repo;
   final GenerateOneShotUseCase _generate;
   final GetActiveUserKeysUseCase _keys;
 
-  ManthanGenerator(this._isar, this._repo, this._generate, this._keys);
+  NatarajGenerator(this._isar, this._repo, this._generate, this._keys);
 
   /// 'all' for the empty (All notes) scope, else a stable SHA-1 key over
   /// the sorted manas id set.
@@ -42,7 +42,7 @@ class ManthanGenerator {
   /// Generate up to [count] fresh cards into the buffer for [manasIds]
   /// (empty ⇒ All notes). Falls back to resurfacing discarded cards when
   /// the fresh combination space is exhausted.
-  Future<ManthanFillResult> fillBuffer({
+  Future<NatarajFillResult> fillBuffer({
     required List<String> manasIds,
     int count = 5,
   }) async {
@@ -55,8 +55,8 @@ class ManthanGenerator {
       final keysE = await _keys.call();
       final selfPubkey = keysE.fold((_) => null, (k) => k.pubkeyHex);
       if (selfPubkey == null) {
-        return const ManthanFillResult(
-            inserted: 0, state: ManthanFillState.error);
+        return const NatarajFillResult(
+            inserted: 0, state: NatarajFillState.error);
       }
       pool = await ManasContextLoader.loadAll(
           isar: _isar, selfPubkey: selfPubkey);
@@ -66,8 +66,8 @@ class ManthanGenerator {
     }
 
     if (pool.length < 2) {
-      return const ManthanFillResult(
-          inserted: 0, state: ManthanFillState.needsMoreNotes);
+      return const NatarajFillResult(
+          inserted: 0, state: NatarajFillState.needsMoreNotes);
     }
 
     // 2. Known signatures → 3. sample unseen combos.
@@ -86,16 +86,16 @@ class ManthanGenerator {
           (await _repo.rehydrateOldestDiscarded(scopeId, count)).getOrElse(
         () => 0,
       );
-      return ManthanFillResult(
+      return NatarajFillResult(
         inserted: 0,
         state:
-            n > 0 ? ManthanFillState.resurfacing : ManthanFillState.exhausted,
+            n > 0 ? NatarajFillState.resurfacing : NatarajFillState.exhausted,
       );
     }
 
     // 4-5. Generate + sanitize each combo.
     final byId = {for (final p in pool) p.id: p};
-    final cards = <ManthanCardEntity>[];
+    final cards = <NatarajCardEntity>[];
 
     for (final combo in combos) {
       final notes = combo.noteIds
@@ -104,14 +104,14 @@ class ManthanGenerator {
           .toList();
       if (notes.length < 2) continue;
 
-      final prompt = ManthanPromptBuilder.build(notes: notes);
+      final prompt = NatarajPromptBuilder.build(notes: notes);
       final res = await _generate.call(
         GenerateOneShotInput(
           // maxTokens here is only a fallback: the runner opens the engine at
           // the model's baked-in KV-cache size (LocalModelParams.maxTokens),
           // NOT this value — opening smaller fails the native invoke. The
-          // prompt is bounded by truncating each note in ManthanPromptBuilder;
-          // output length is capped below. highPriority routes Manthan onto the
+          // prompt is bounded by truncating each note in NatarajPromptBuilder;
+          // output length is capped below. highPriority routes Nataraj onto the
           // chat lane so it runs while the Shiv tab holds the low lane paused.
           prompt: prompt,
           maxTokens: 512,
@@ -123,7 +123,7 @@ class ManthanGenerator {
 
       final clean = LlmTextSanitizer.clean(raw).trim();
       if (clean.isEmpty ||
-          clean.toUpperCase().contains(ManthanPromptBuilder.noopSentinel)) {
+          clean.toUpperCase().contains(NatarajPromptBuilder.noopSentinel)) {
         continue;
       }
       // Hard-cap to ~60 words. The prompt asks for 60 words max but not every
@@ -133,18 +133,18 @@ class ManthanGenerator {
       final paragraph =
           words.length > 60 ? '${words.take(60).join(' ')}…' : clean;
 
-      cards.add(ManthanCardEntity(
+      cards.add(NatarajCardEntity(
         scopeId: scopeId,
         signature: combo.signature,
         noteIds: combo.noteIds,
         generatedParagraph: paragraph,
-        status: ManthanCardStatus.buffered,
+        status: NatarajCardStatus.buffered,
         createdAt: DateTime.now(),
       ));
     }
 
     if (cards.isNotEmpty) await _repo.insertBufferedCards(cards);
-    return ManthanFillResult(
-        inserted: cards.length, state: ManthanFillState.ok);
+    return NatarajFillResult(
+        inserted: cards.length, state: NatarajFillState.ok);
   }
 }

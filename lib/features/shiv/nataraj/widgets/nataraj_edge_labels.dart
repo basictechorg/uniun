@@ -6,8 +6,8 @@ import 'package:uniun/l10n/app_localizations.dart';
 ///
 /// Labels fade in proportionally as [drag] moves toward that edge.
 /// The active direction's label becomes full primary-blue at the threshold.
-class ManthanEdgeLabels extends StatelessWidget {
-  const ManthanEdgeLabels({super.key, required this.drag});
+class NatarajEdgeLabels extends StatelessWidget {
+  const NatarajEdgeLabels({super.key, required this.drag});
 
   /// Current drag offset of the active card. Used to compute per-edge opacity.
   final Offset drag;
@@ -49,7 +49,7 @@ class ManthanEdgeLabels extends StatelessWidget {
           right: 0,
           child: Center(
             child: _EdgeLabel(
-              label: l10n.manthanEdgePublish.toUpperCase(),
+              label: l10n.natarajEdgePublish.toUpperCase(),
               prefix: '↑',
               opacity: vOpacity * (_drag.dy < 0 ? 1 : 0),
               active: upActive,
@@ -63,7 +63,7 @@ class ManthanEdgeLabels extends StatelessWidget {
           right: 0,
           child: Center(
             child: _EdgeLabel(
-              label: l10n.manthanEdgeDiscuss.toUpperCase(),
+              label: l10n.natarajEdgeDiscuss.toUpperCase(),
               prefix: '↓',
               opacity: vOpacity * (_drag.dy > 0 ? 1 : 0),
               active: downActive,
@@ -79,7 +79,7 @@ class ManthanEdgeLabels extends StatelessWidget {
             child: RotatedBox(
               quarterTurns: 3,
               child: _EdgeLabel(
-                label: l10n.manthanEdgeDiscard.toUpperCase(),
+                label: l10n.natarajEdgeDiscard.toUpperCase(),
                 prefix: '←',
                 opacity: hOpacity * (_drag.dx < 0 ? 1 : 0),
                 active: leftActive,
@@ -96,7 +96,7 @@ class ManthanEdgeLabels extends StatelessWidget {
             child: RotatedBox(
               quarterTurns: 1,
               child: _EdgeLabel(
-                label: l10n.manthanEdgeDraft.toUpperCase(),
+                label: l10n.natarajEdgeDraft.toUpperCase(),
                 prefix: '→',
                 opacity: hOpacity * (_drag.dx > 0 ? 1 : 0),
                 active: rightActive,

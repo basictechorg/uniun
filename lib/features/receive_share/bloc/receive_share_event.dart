@@ -10,14 +10,10 @@ sealed class ReceiveShareEvent with _$ReceiveShareEvent {
   const factory ReceiveShareEvent.contentChanged(String value) =
       ReceiveContentChanged;
 
-  /// Upload + attach an additional picked file (the in-sheet "+" picker).
-  const factory ReceiveShareEvent.attachMedia({
-    required Uint8List bytes,
-    required String mime,
-    String? filename,
-    int? width,
-    int? height,
-  }) = AttachReceiveMedia;
+  /// Attach an additional picked file (the in-sheet "+" picker). Held locally;
+  /// uploaded to Blossom only on submit.
+  const factory ReceiveShareEvent.attachMedia(PickedMedia media) =
+      AttachReceiveMedia;
 
   /// Remove a previously-attached blob by its sha256.
   const factory ReceiveShareEvent.removeMedia(String sha256) =

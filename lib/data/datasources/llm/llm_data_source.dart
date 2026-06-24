@@ -28,7 +28,7 @@ abstract class LlmDataSource {
   });
 
   /// One-shot completion for background extraction.
-  /// Pass [highPriority] = true for foreground user work (e.g. Manthan deck)
+  /// Pass [highPriority] = true for foreground user work (e.g. Nataraj deck)
   /// so the task runs even while the low lane is paused.
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,

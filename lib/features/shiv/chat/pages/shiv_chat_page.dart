@@ -68,7 +68,7 @@ class _ShivChatPageState extends State<ShivChatPage> {
               children: [
                 _ShivChatHeader(
                   threadTitle: conv?.title ?? l10n.shivDefaultConversationTitle,
-                  onManthanTap: () => context
+                  onNatarajTap: () => context
                       .read<ShivAIBloc>()
                       .add(const ShivAIEvent.closeConversation()),
                   onHistoryTap: () => Scaffold.of(ctx).openDrawer(),
@@ -137,13 +137,13 @@ class _ShivChatPageState extends State<ShivChatPage> {
 class _ShivChatHeader extends StatelessWidget {
   const _ShivChatHeader({
     required this.threadTitle,
-    required this.onManthanTap,
+    required this.onNatarajTap,
     required this.onHistoryTap,
     required this.onTreeTap,
   });
 
   final String threadTitle;
-  final VoidCallback onManthanTap;
+  final VoidCallback onNatarajTap;
   final VoidCallback onHistoryTap;
   final VoidCallback onTreeTap;
 
@@ -193,11 +193,11 @@ class _ShivChatHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Manthan — back to the spark deck (Shiv home).
+          // Nataraj — back to the spark deck (Shiv home).
           _HeaderIcon(
             icon: Icons.air,
-            onTap: onManthanTap,
-            tooltip: l10n.manthanTileAction,
+            onTap: onNatarajTap,
+            tooltip: l10n.natarajTileAction,
           ),
           // Tree — branch graph for this conversation
           _HeaderIcon(

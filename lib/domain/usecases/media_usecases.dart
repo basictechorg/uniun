@@ -41,6 +41,25 @@ class DownloadMediaInput {
   final String mime;
 }
 
+/// Same shape as [UploadMediaInput] — staged to the local cache only.
+class SaveLocalMediaInput {
+  const SaveLocalMediaInput({
+    required this.bytes,
+    required this.mime,
+    this.filename,
+    this.blurhash,
+    this.width,
+    this.height,
+  });
+
+  final Uint8List bytes;
+  final String mime;
+  final String? filename;
+  final String? blurhash;
+  final int? width;
+  final int? height;
+}
+
 @lazySingleton
 class UploadMediaUseCase
     extends UseCase<Either<Failure, MediaBlobEntity>, UploadMediaInput> {
@@ -60,6 +79,42 @@ class UploadMediaUseCase
         width: input.width,
         height: input.height,
       );
+}
+
+/// Stage picked media on-device without uploading (draft media). The bytes
+/// are uploaded later, when the draft is published.
+@lazySingleton
+class SaveLocalMediaUseCase
+    extends UseCase<Either<Failure, MediaBlobEntity>, SaveLocalMediaInput> {
+  const SaveLocalMediaUseCase(this._repo);
+  final MediaRepository _repo;
+
+  @override
+  Future<Either<Failure, MediaBlobEntity>> call(
+    SaveLocalMediaInput input, {
+    bool cached = false,
+  }) =>
+      _repo.saveLocalBytes(
+        bytes: input.bytes,
+        mime: input.mime,
+        filename: input.filename,
+        blurhash: input.blurhash,
+        width: input.width,
+        height: input.height,
+      );
+}
+
+/// Re-hydrate staged draft-media bytes from the local cache by sha256, e.g. to
+/// restore them into the composer for editing or to upload them on publish.
+@lazySingleton
+class ReadLocalMediaUseCase
+    extends UseCase<Either<Failure, Uint8List?>, String> {
+  const ReadLocalMediaUseCase(this._repo);
+  final MediaRepository _repo;
+
+  @override
+  Future<Either<Failure, Uint8List?>> call(String sha256, {bool cached = false}) =>
+      _repo.readLocalBytes(sha256);
 }
 
 @lazySingleton

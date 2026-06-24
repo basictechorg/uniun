@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:video_compress/video_compress.dart';
 
@@ -52,5 +53,21 @@ class VideoCompressor {
       }
     }
     return best; // may still be over budget — caller checks and errors out
+  }
+
+  /// Extracts a single representative still frame of the video at [sourcePath]
+  /// as JPEG bytes — used to derive a `blurhash` + dimensions for the NIP-92
+  /// `imeta` tag so the video shows a blurred preview before download. Returns
+  /// null on Windows (no backend) or when the native side refuses.
+  static Future<Uint8List?> thumbnailBytes(String sourcePath) async {
+    if (Platform.isWindows) return null;
+    try {
+      return await VideoCompress.getByteThumbnail(
+        sourcePath,
+        quality: 50,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }

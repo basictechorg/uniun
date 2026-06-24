@@ -10,18 +10,18 @@ import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Drawer section for the Manthan deck. Shows the active on-device AI model
+/// Drawer section for the Nataraj deck. Shows the active on-device AI model
 /// and opens model selection on tap. Rendered as [ShivHistoryDrawer.topSection]
 /// on the deck, so model selection lives in the same drawer as Gana selection.
-class ManthanModelDrawerSection extends StatefulWidget {
-  const ManthanModelDrawerSection({super.key});
+class NatarajModelDrawerSection extends StatefulWidget {
+  const NatarajModelDrawerSection({super.key});
 
   @override
-  State<ManthanModelDrawerSection> createState() =>
-      _ManthanModelDrawerSectionState();
+  State<NatarajModelDrawerSection> createState() =>
+      _NatarajModelDrawerSectionState();
 }
 
-class _ManthanModelDrawerSectionState extends State<ManthanModelDrawerSection> {
+class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
   // Resolved once — a drawer is short-lived, so a single read is enough.
   late final Future<Either<Failure, AIModelEntity?>> _modelFuture =
       getIt<GetActiveAIModelUseCase>().call();

@@ -14,14 +14,8 @@ sealed class ShareSheetEvent with _$ShareSheetEvent {
   /// Remove a single referenced note by its event id.
   const factory ShareSheetEvent.removeReference(String id) = RemoveReference;
 
-  /// Upload + attach a picked image (Blossom).
-  const factory ShareSheetEvent.attachMedia({
-    required Uint8List bytes,
-    required String mime,
-    String? filename,
-    int? width,
-    int? height,
-  }) = AttachMedia;
+  /// Attach a picked file. Held locally; uploaded to Blossom only on submit.
+  const factory ShareSheetEvent.attachMedia(PickedMedia media) = AttachMedia;
 
   /// Remove a previously-attached image by its sha256.
   const factory ShareSheetEvent.removeMedia(String sha256) = RemoveMedia;

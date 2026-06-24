@@ -6,7 +6,6 @@ abstract class ShareSheetState with _$ShareSheetState {
     @Default(false) bool loading,
     @Default(false) bool submitting,
     @Default(false) bool submitted,
-    @Default(false) bool uploading,
 
     /// Active user's pubkey — seeds the composer avatar.
     @Default('') String authorPubkey,
@@ -17,8 +16,9 @@ abstract class ShareSheetState with _$ShareSheetState {
     /// Referenced notes selected in the composer → `e` mention tags.
     @Default(<ComposerReference>[]) List<ComposerReference> references,
 
-    /// Uploaded images attached in the composer → `imeta` tags.
-    @Default(<MediaBlobEntity>[]) List<MediaBlobEntity> attachments,
+    /// Picked-but-not-yet-uploaded media → uploaded to Blossom on submit, then
+    /// emitted as `imeta` tags.
+    @Default(<PickedMedia>[]) List<PickedMedia> pending,
     @Default(<ChannelEntity>[]) List<ChannelEntity> publicChannels,
     @Default(<PrivateChannelEntity>[]) List<PrivateChannelEntity> privateChannels,
     @Default(<DmConversationEntity>[]) List<DmConversationEntity> dmConversations,

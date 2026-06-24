@@ -20,7 +20,7 @@ import 'package:uniun/features/share/pages/share_sheet_page.dart';
 /// Callers only pass the note (and optionally an explicit reply count).
 ///
 /// Set [showActions] to `false` to hide the ⋮ menu, divider, and action chips.
-/// Useful for unpublished preview cards (e.g. Manthan) where there is no real
+/// Useful for unpublished preview cards (e.g. Nataraj) where there is no real
 /// event id to act on.
 class LargeNoteCard extends StatelessWidget {
   const LargeNoteCard({

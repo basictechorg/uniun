@@ -188,7 +188,7 @@ class ManasContextLoader {
   }
 
   /// Full note pool (no ranking, no token budget) for the union of [manasIds].
-  /// Used by Manthan to randomly sample combinations. Dedupes across manases.
+  /// Used by Nataraj to randomly sample combinations. Dedupes across manases.
   static Future<List<PackedNote>> loadPool({
     required Isar isar,
     required List<String> manasIds,
@@ -200,7 +200,7 @@ class ManasContextLoader {
   }
 
   /// The whole Brahma knowledge base: saved notes + the user's own notes
-  /// ([selfPubkey]) + drafts + every Manas-linked note. Used by Manthan's
+  /// ([selfPubkey]) + drafts + every Manas-linked note. Used by Nataraj's
   /// "All notes" scope. Dedupes by id.
   static Future<List<PackedNote>> loadAll({
     required Isar isar,

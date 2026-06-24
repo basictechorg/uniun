@@ -10,7 +10,7 @@ class BrahmaCreateState {
     this.selectedMentions = const [],
     this.mentionResults = const [],
     this.isMentionSearching = false,
-    this.attachedMedia = const [],
+    this.pendingMedia = const [],
     this.isAttachingMedia = false,
   });
 
@@ -27,13 +27,13 @@ class BrahmaCreateState {
   /// True while a mention search is in flight.
   final bool isMentionSearching;
 
-  /// Blobs the user has attached to this note. Each becomes an `imeta` tag
-  /// (NIP-92) at submit time. Populated by the upload-and-attach flow when
-  /// the user picks Photo / Video / File from the composer's media button.
-  final List<MediaBlobEntity> attachedMedia;
+  /// Media the user has attached but NOT yet uploaded — held locally and
+  /// pushed to Blossom only when the note is submitted. Each becomes an
+  /// `imeta` tag (NIP-92) after that upload.
+  final List<PickedMedia> pendingMedia;
 
-  /// True while an upload is in flight after a Photo / Video / File pick.
-  /// The composer disables the attach button and shows a small spinner.
+  /// True while a freshly-picked file is being prepared (blurhash + dimensions
+  /// computed off-thread). The composer disables the attach button meanwhile.
   final bool isAttachingMedia;
 
   bool get isSubmitting => status == BrahmaCreateStatus.submitting;
@@ -45,7 +45,7 @@ class BrahmaCreateState {
     List<NoteEntity>? selectedMentions,
     List<NoteEntity>? mentionResults,
     bool? isMentionSearching,
-    List<MediaBlobEntity>? attachedMedia,
+    List<PickedMedia>? pendingMedia,
     bool? isAttachingMedia,
   }) {
     return BrahmaCreateState(
@@ -55,7 +55,7 @@ class BrahmaCreateState {
       selectedMentions: selectedMentions ?? this.selectedMentions,
       mentionResults: mentionResults ?? this.mentionResults,
       isMentionSearching: isMentionSearching ?? this.isMentionSearching,
-      attachedMedia: attachedMedia ?? this.attachedMedia,
+      pendingMedia: pendingMedia ?? this.pendingMedia,
       isAttachingMedia: isAttachingMedia ?? this.isAttachingMedia,
     );
   }

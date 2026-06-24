@@ -196,7 +196,7 @@ class AIModelRunner {
 
   /// Stateless one-shot completion. By default goes through the low-priority
   /// lane so chat turns always cut in front. Pass [highPriority] = true for
-  /// foreground user work (e.g. Manthan deck generation) so it runs even
+  /// foreground user work (e.g. Nataraj deck generation) so it runs even
   /// while the Shiv tab holds the low lane paused. May return null if
   /// preempted by chat or if no model is active — callers must tolerate null.
   Future<String?> generateOneShot(
@@ -210,7 +210,7 @@ class AIModelRunner {
     }
     return (highPriority ? _queue.runHigh<String?> : _queue.runLow<String?>)(
       () => _doGenerateOneShot(prompt, maxTokens),
-      label: highPriority ? 'manthan' : 'extract',
+      label: highPriority ? 'nataraj' : 'extract',
     );
   }
 
@@ -240,7 +240,7 @@ class AIModelRunner {
       // maxTokens]) — exactly like chat does. It is NOT a free choice: opening
       // SMALLER than the baked size (e.g. a caller's 512) makes the compiled
       // graph fail at invoke ("Failed to invoke the compiled model"), which
-      // strands the Manthan deck. The requested [maxTokens] is only a fallback
+      // strands the Nataraj deck. The requested [maxTokens] is only a fallback
       // for an unknown model with no params.
       final cacheSize = params?.maxTokens ?? maxTokens;
       final model = await _openActiveModel(cacheSize);

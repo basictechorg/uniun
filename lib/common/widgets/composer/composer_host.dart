@@ -72,8 +72,15 @@ class _ComposerHostState extends State<ComposerHost> {
   String? _avatarUrl;
   String _pubkeySeed = '';
   final List<ComposerReference> _mentionRefs = [];
-  final List<MediaBlobEntity> _attachments = [];
+
+  /// Picked-but-not-yet-uploaded media. Uploaded to Blossom in [_send].
+  final List<PickedMedia> _pending = [];
+
+  /// True while a freshly-picked file is being prepared (blurhash + dims).
   bool _isAttaching = false;
+
+  /// True while [_send] uploads the pending attachments to Blossom.
+  bool _isUploading = false;
 
   /// Manas-chat engine (WS4). A fresh factory instance per composer, so two
   /// chat surfaces never share state. Created lazily-but-eagerly here.
@@ -139,7 +146,7 @@ class _ComposerHostState extends State<ComposerHost> {
     );
   }
 
-  void _send() {
+  Future<void> _send() async {
     final text = _controller.text.trim();
     // Chat mode: route the turn to the Manas-chat engine instead of publishing.
     if (_chatCubit.state.active) {
@@ -150,16 +157,50 @@ class _ComposerHostState extends State<ComposerHost> {
     }
     // Allow attachment-only sends when there's no text — useful for sharing
     // a single image/file with no caption.
-    if (text.isEmpty && _attachments.isEmpty) return;
+    if (text.isEmpty && _pending.isEmpty) return;
+    if (_isUploading) return;
+
+    // Upload the pending attachments to Blossom now (deferred from attach
+    // time). A failure aborts the send but keeps the picks so the user can
+    // retry.
+    var uploaded = const <MediaBlobEntity>[];
+    if (_pending.isNotEmpty) {
+      setState(() => _isUploading = true);
+      final messenger = ScaffoldMessenger.of(context);
+      final blobs = <MediaBlobEntity>[];
+      for (final media in _pending) {
+        final res = await getIt<UploadMediaUseCase>().call(UploadMediaInput(
+          bytes: media.bytes,
+          mime: media.mime,
+          filename: media.filename,
+          blurhash: media.blurhash,
+          width: media.width,
+          height: media.height,
+        ));
+        final blob = res.fold((_) => null, (b) => b);
+        if (blob == null) {
+          if (!mounted) return;
+          AppSnackbar.errorVia(
+              messenger, res.fold((f) => f.toMessage(), (_) => ''));
+          setState(() => _isUploading = false);
+          return;
+        }
+        blobs.add(blob);
+      }
+      if (!mounted) return;
+      uploaded = blobs;
+    }
+
     widget.onSend(
       text,
       _mentionRefs.map((r) => r.id).toList(),
-      List.of(_attachments),
+      uploaded,
     );
     _controller.clear();
     setState(() {
       _mentionRefs.clear();
-      _attachments.clear();
+      _pending.clear();
+      _isUploading = false;
     });
   }
 
@@ -188,33 +229,18 @@ class _ComposerHostState extends State<ComposerHost> {
 
   Future<void> _attachMedia() async {
     if (_isAttaching) return;
-    final picked = await showMediaPickSheet(context);
-    if (picked == null || !mounted) return;
-
     setState(() => _isAttaching = true);
-    final messenger = ScaffoldMessenger.of(context);
-    final res = await getIt<UploadMediaUseCase>().call(UploadMediaInput(
-      bytes: picked.bytes,
-      mime: picked.mime,
-      filename: picked.filename,
-      width: picked.width,
-      height: picked.height,
-    ));
+    // The picker computes dimensions + blurhash off-thread; no Blossom upload
+    // happens until Send.
+    final picked = await showMediaPickSheet(context);
     if (!mounted) return;
-    res.fold(
-      (f) {
-        AppSnackbar.errorVia(messenger, f.toMessage());
-        setState(() => _isAttaching = false);
-      },
-      (blob) {
-        setState(() {
-          if (!_attachments.any((b) => b.sha256 == blob.sha256)) {
-            _attachments.add(blob);
-          }
-          _isAttaching = false;
-        });
-      },
-    );
+    setState(() {
+      _isAttaching = false;
+      if (picked != null &&
+          !_pending.any((m) => m.sha256 == picked.sha256)) {
+        _pending.add(picked);
+      }
+    });
   }
 
   @override
@@ -234,9 +260,10 @@ class _ComposerHostState extends State<ComposerHost> {
               : widget.hintText,
           canSend: inChat
               ? (_hasText && chat.status != ComposerChatStatus.streaming)
-              : (_hasText || _attachments.isNotEmpty),
-          isSending:
-              inChat ? chat.status == ComposerChatStatus.streaming : widget.isSending,
+              : ((_hasText || _pending.isNotEmpty) && !_isUploading),
+          isSending: inChat
+              ? chat.status == ComposerChatStatus.streaming
+              : (widget.isSending || _isUploading),
           onAvatarTap: _openManasChatPicker,
           avatarOverride: inChat && _activeScope != null
               ? _chatAvatar(_activeScope!.icon)
@@ -262,12 +289,12 @@ class _ComposerHostState extends State<ComposerHost> {
                   setState(() => _mentionRefs.removeWhere((r) => r.id == id)),
           onAddReference: inChat ? null : _openReferencePicker,
           onAttachMedia: inChat ? null : _attachMedia,
-          attachments: inChat ? const [] : _attachments,
+          attachments: inChat ? const [] : _pending,
           isAttachingMedia: inChat ? false : _isAttaching,
           onRemoveAttachment: inChat
               ? null
               : (sha) => setState(
-                  () => _attachments.removeWhere((b) => b.sha256 == sha)),
+                  () => _pending.removeWhere((m) => m.sha256 == sha)),
           onSend: _send,
         );
       },

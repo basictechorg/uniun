@@ -4,26 +4,26 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/repositories/app_settings_repository.dart';
 
-/// Reads whether the Manthan first-run coach overlay has been dismissed.
+/// Reads whether the Nataraj first-run coach overlay has been dismissed.
 @lazySingleton
-class GetManthanCoachSeenUseCase
+class GetNatarajCoachSeenUseCase
     extends NoParamsUseCase<Either<Failure, bool>> {
   final AppSettingsRepository _repository;
-  const GetManthanCoachSeenUseCase(this._repository);
+  const GetNatarajCoachSeenUseCase(this._repository);
 
   @override
-  Future<Either<Failure, bool>> call() => _repository.getManthanCoachSeen();
+  Future<Either<Failure, bool>> call() => _repository.getNatarajCoachSeen();
 }
 
-/// Persists that the Manthan coach overlay has been seen/dismissed.
+/// Persists that the Nataraj coach overlay has been seen/dismissed.
 @lazySingleton
-class SetManthanCoachSeenUseCase extends UseCase<Either<Failure, Unit>, bool> {
+class SetNatarajCoachSeenUseCase extends UseCase<Either<Failure, Unit>, bool> {
   final AppSettingsRepository _repository;
-  const SetManthanCoachSeenUseCase(this._repository);
+  const SetNatarajCoachSeenUseCase(this._repository);
 
   @override
   Future<Either<Failure, Unit>> call(bool input, {bool cached = false}) =>
-      _repository.setManthanCoachSeen(input);
+      _repository.setNatarajCoachSeen(input);
 }
 
 /// Reads the auto-delete retention window for short-lived public notes

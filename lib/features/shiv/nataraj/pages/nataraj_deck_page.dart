@@ -10,31 +10,31 @@ import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
-import 'package:uniun/features/shiv/manthan/bloc/manthan_bloc.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_card_widget.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_coach_overlay.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_edge_labels.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_drawer.dart';
-import 'package:uniun/features/shiv/manthan/widgets/manthan_empty_state.dart';
+import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_card_widget.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_coach_overlay.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_edge_labels.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_drawer.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_empty_state.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// The Manthan swipe-deck screen — Shiv tab's home in Task 15.
+/// The Nataraj swipe-deck screen — Shiv tab's home in Task 15.
 ///
-/// Provides its own [ManthanBloc] and dispatches [ManthanEvent.loadDeck] on
+/// Provides its own [NatarajBloc] and dispatches [NatarajEvent.loadDeck] on
 /// mount. Model gate: if no LLM is installed, redirects to AI model selection.
 ///
 /// Header: scope pill (left) + new-chat + history (right).
-/// Body: switches on [ManthanStatus]:
-///   - loading   → spinner + [l10n.manthanGenerating]
+/// Body: switches on [NatarajStatus]:
+///   - loading   → spinner + [l10n.natarajGenerating]
 ///   - ready     → swipe deck (card + edge labels + buttons + coach overlay)
-///   - needsMoreNotes / exhausted → [ManthanEmptyState]
+///   - needsMoreNotes / exhausted → [NatarajEmptyState]
 ///   - error     → retry button
 ///
 /// Seed-chat: BlocListener on [state.seedChatParagraph] fires
 /// [ShivAIEvent.createConversationSeeded] on the ambient [ShivAIBloc] (or
 /// falls back to getIt when no ambient bloc is available).
-class ManthanDeckPage extends StatelessWidget {
-  const ManthanDeckPage({
+class NatarajDeckPage extends StatelessWidget {
+  const NatarajDeckPage({
     super.key,
     this.manasIds = const [],
     this.onDrawerChanged,
@@ -43,7 +43,7 @@ class ManthanDeckPage extends StatelessWidget {
   /// Optional initial scope filter (list of manas IDs).
   final List<String> manasIds;
 
-  /// Called when the [ManthanDrawer] opens or closes. Wire this to
+  /// Called when the [NatarajDrawer] opens or closes. Wire this to
   /// [ShivPage]'s [_onDrawerChanged] so [FloatingNav] hides while the drawer
   /// is open — same pattern as [ShivChatPage.onDrawerChanged].
   final ValueChanged<bool>? onDrawerChanged;
@@ -51,9 +51,9 @@ class ManthanDeckPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<ManthanBloc>()
-        ..add(ManthanEvent.loadDeck(manasIds)),
-      child: _ManthanDeckView(
+      create: (_) => getIt<NatarajBloc>()
+        ..add(NatarajEvent.loadDeck(manasIds)),
+      child: _NatarajDeckView(
         initialManasIds: manasIds,
         onDrawerChanged: onDrawerChanged,
       ),
@@ -63,8 +63,8 @@ class ManthanDeckPage extends StatelessWidget {
 
 // ── Inner stateful widget (model gate + coach dismiss) ────────────────────────
 
-class _ManthanDeckView extends StatefulWidget {
-  const _ManthanDeckView({
+class _NatarajDeckView extends StatefulWidget {
+  const _NatarajDeckView({
     required this.initialManasIds,
     this.onDrawerChanged,
   });
@@ -72,10 +72,10 @@ class _ManthanDeckView extends StatefulWidget {
   final ValueChanged<bool>? onDrawerChanged;
 
   @override
-  State<_ManthanDeckView> createState() => _ManthanDeckViewState();
+  State<_NatarajDeckView> createState() => _NatarajDeckViewState();
 }
 
-class _ManthanDeckViewState extends State<_ManthanDeckView> {
+class _NatarajDeckViewState extends State<_NatarajDeckView> {
   /// Local flag to suppress the coach overlay independently of bloc state
   /// (so dismissing it survives without a dedicated bloc event).
   bool _coachDismissed = false;
@@ -83,7 +83,7 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
   /// Lets the fallback action buttons trigger the card's fly-off animation
   /// instead of advancing the deck instantly. Lives here (not in the rebuilt
   /// [_DeckBody]) so it survives bloc emissions and stays bound to the card.
-  final ManthanCardController _cardController = ManthanCardController();
+  final NatarajCardController _cardController = NatarajCardController();
 
   @override
   void initState() {
@@ -95,7 +95,7 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
   /// Seed the coach gate from the persisted once-ever flag (via the settings
   /// repository) so it never reappears after dismissal, across app restarts.
   Future<void> _loadCoachSeen() async {
-    final seen = (await getIt<GetManthanCoachSeenUseCase>().call())
+    final seen = (await getIt<GetNatarajCoachSeenUseCase>().call())
         .fold((_) => false, (v) => v);
     if (mounted && seen) setState(() => _coachDismissed = true);
   }
@@ -182,7 +182,7 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
     final l10n = AppLocalizations.of(context)!;
     final top = MediaQuery.of(context).padding.top;
 
-    return BlocListener<ManthanBloc, ManthanState>(
+    return BlocListener<NatarajBloc, NatarajState>(
       listenWhen: (prev, curr) =>
           curr.seedChatParagraph != null &&
           curr.seedChatParagraph != prev.seedChatParagraph,
@@ -194,20 +194,20 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
       },
       child: Scaffold(
         backgroundColor: AppColors.surfaceContainerLowest,
-        drawer: const ManthanDrawer(),
+        drawer: const NatarajDrawer(),
         onDrawerChanged: widget.onDrawerChanged,
         body: Builder(
           builder: (ctx) => Column(
             children: [
               // ── Header ─────────────────────────────────────────────────────
-              _ManthanHeader(
+              _NatarajHeader(
                 top: top,
                 onLogoTap: () => Scaffold.of(ctx).openDrawer(),
                 onNewChat: () => _onNewChat(ctx),
               ),
 
               // ── Revisiting banner ───────────────────────────────────────────
-              BlocSelector<ManthanBloc, ManthanState, bool>(
+              BlocSelector<NatarajBloc, NatarajState, bool>(
                 selector: (s) => s.resurfacing,
                 builder: (_, resurfacing) {
                   if (!resurfacing) return const SizedBox.shrink();
@@ -220,7 +220,7 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
                     color:
                         AppColors.secondaryContainer.withValues(alpha: 0.45),
                     child: Text(
-                      l10n.manthanRevisitingHint,
+                      l10n.natarajRevisitingHint,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 12,
@@ -234,48 +234,48 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
 
               // ── Body ────────────────────────────────────────────────────────
               Expanded(
-                child: BlocConsumer<ManthanBloc, ManthanState>(
+                child: BlocConsumer<NatarajBloc, NatarajState>(
                   listenWhen: (prev, curr) =>
                       prev.status != curr.status,
                   listener: (context, state) {
-                    if (state.status == ManthanStatus.error) {
+                    if (state.status == NatarajStatus.error) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(l10n.manthanGenerateErrorSnack),
+                          content: Text(l10n.natarajGenerateErrorSnack),
                         ),
                       );
                     }
                   },
                   builder: (context, state) {
                     return switch (state.status) {
-                      ManthanStatus.loading =>
-                        _LoadingBody(label: l10n.manthanGenerating),
+                      NatarajStatus.loading =>
+                        _LoadingBody(label: l10n.natarajGenerating),
                       // Defense-in-depth: `ready` should always carry a card,
                       // but if a transient emit leaves it null, show loading
                       // rather than crash on `currentCard!` in _DeckBody.
-                      ManthanStatus.ready => state.currentCard == null
-                          ? _LoadingBody(label: l10n.manthanGenerating)
+                      NatarajStatus.ready => state.currentCard == null
+                          ? _LoadingBody(label: l10n.natarajGenerating)
                           : _DeckBody(
                               state: state,
                               cardController: _cardController,
                               coachDismissed: _coachDismissed,
                               onCoachDismiss: () {
-                                getIt<SetManthanCoachSeenUseCase>().call(true);
+                                getIt<SetNatarajCoachSeenUseCase>().call(true);
                                 setState(() => _coachDismissed = true);
                               },
                             ),
-                      ManthanStatus.needsMoreNotes ||
-                      ManthanStatus.exhausted =>
-                        ManthanEmptyState(
+                      NatarajStatus.needsMoreNotes ||
+                      NatarajStatus.exhausted =>
+                        NatarajEmptyState(
                           status: state.status,
                           onAddNotes: () {
                             context.pushNamed(AppRoutes.graph);
                           },
                         ),
-                      ManthanStatus.error => _ErrorBody(
+                      NatarajStatus.error => _ErrorBody(
                           onRetry: () => context
-                              .read<ManthanBloc>()
-                              .add(ManthanEvent.loadDeck(state.manasIds)),
+                              .read<NatarajBloc>()
+                              .add(NatarajEvent.loadDeck(state.manasIds)),
                           onChangeModel: () =>
                               context.pushNamed(AppRoutes.aiModelSelection),
                         ),
@@ -294,8 +294,8 @@ class _ManthanDeckViewState extends State<_ManthanDeckView> {
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-class _ManthanHeader extends StatelessWidget {
-  const _ManthanHeader({
+class _NatarajHeader extends StatelessWidget {
+  const _NatarajHeader({
     required this.top,
     required this.onLogoTap,
     required this.onNewChat,
@@ -344,7 +344,7 @@ class _ManthanHeader extends StatelessWidget {
           const Spacer(),
           // New chat button
           Tooltip(
-            message: l10n.manthanNewChatTooltip,
+            message: l10n.natarajNewChatTooltip,
             child: InkWell(
               onTap: onNewChat,
               borderRadius: BorderRadius.circular(99),
@@ -401,15 +401,15 @@ class _DeckBody extends StatelessWidget {
     required this.onCoachDismiss,
   });
 
-  final ManthanState state;
-  final ManthanCardController cardController;
+  final NatarajState state;
+  final NatarajCardController cardController;
   final bool coachDismissed;
   final VoidCallback onCoachDismiss;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final bloc = context.read<ManthanBloc>();
+    final bloc = context.read<NatarajBloc>();
     final card = state.currentCard!;
     final showCoach = state.showCoach && !coachDismissed;
     // ShivPage overlays the FloatingNav at bottom:0 on top of this deck, so the
@@ -434,7 +434,7 @@ class _DeckBody extends StatelessWidget {
                     children: [
                       // Edge labels — static (Offset.zero = no live-drag at page level;
                       // the card animates drag internally).
-                      const ManthanEdgeLabels(drag: Offset.zero),
+                      const NatarajEdgeLabels(drag: Offset.zero),
                       // Swipe card — sized to its content. Wrapped in a scroll
                       // view so a long note grows past the screen and scrolls
                       // instead of overflowing; ConstrainedBox(minHeight) keeps
@@ -452,12 +452,12 @@ class _DeckBody extends StatelessWidget {
                               minHeight: constraints.maxHeight,
                             ),
                             child: Center(
-                              child: ManthanCardWidget(
+                              child: NatarajCardWidget(
                                 card: card,
                                 peek: state.nextCard,
                                 controller: cardController,
                                 onSwipe: (dir) =>
-                                    bloc.add(ManthanEvent.swipeCard(dir)),
+                                    bloc.add(NatarajEvent.swipeCard(dir)),
                               ),
                             ),
                           ),
@@ -471,10 +471,10 @@ class _DeckBody extends StatelessWidget {
               // card controller so a tap flies the card off in that direction —
               // identical to a swipe — instead of advancing the deck instantly.
               _FallbackButtons(
-                onPublish: () => cardController.swipe(ManthanDirection.up),
-                onDraft: () => cardController.swipe(ManthanDirection.right),
-                onDiscard: () => cardController.swipe(ManthanDirection.left),
-                onDiscuss: () => cardController.swipe(ManthanDirection.down),
+                onPublish: () => cardController.swipe(NatarajDirection.up),
+                onDraft: () => cardController.swipe(NatarajDirection.right),
+                onDiscard: () => cardController.swipe(NatarajDirection.left),
+                onDiscuss: () => cardController.swipe(NatarajDirection.down),
                 l10n: l10n,
               ),
               SizedBox(height: navClearance),
@@ -485,7 +485,7 @@ class _DeckBody extends StatelessWidget {
         // Coach overlay (shown once on first open)
         if (showCoach)
           Positioned.fill(
-            child: ManthanCoachOverlay(onDismiss: onCoachDismiss),
+            child: NatarajCoachOverlay(onDismiss: onCoachDismiss),
           ),
       ],
     );
@@ -518,25 +518,25 @@ class _FallbackButtons extends StatelessWidget {
         children: [
           _ActionButton(
             icon: Icons.close_rounded,
-            label: l10n.manthanEdgeDiscard,
+            label: l10n.natarajEdgeDiscard,
             color: AppColors.error,
             onTap: onDiscard,
           ),
           _ActionButton(
             icon: Icons.chat_bubble_outline_rounded,
-            label: l10n.manthanEdgeDiscuss,
+            label: l10n.natarajEdgeDiscuss,
             color: AppColors.primary,
             onTap: onDiscuss,
           ),
           _ActionButton(
             icon: Icons.bookmark_border_rounded,
-            label: l10n.manthanEdgeDraft,
+            label: l10n.natarajEdgeDraft,
             color: AppColors.secondary,
             onTap: onDraft,
           ),
           _ActionButton(
             icon: Icons.publish_rounded,
-            label: l10n.manthanEdgePublish,
+            label: l10n.natarajEdgePublish,
             color: AppColors.tertiary,
             onTap: onPublish,
           ),
@@ -617,7 +617,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              l10n.manthanModelErrorTitle,
+              l10n.natarajModelErrorTitle,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -627,7 +627,7 @@ class _ErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              l10n.manthanModelErrorBody,
+              l10n.natarajModelErrorBody,
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.onSurfaceVariant,
@@ -657,7 +657,7 @@ class _ErrorBody extends StatelessWidget {
             TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: Text(l10n.manthanRetry),
+              label: Text(l10n.natarajRetry),
             ),
           ],
         ),

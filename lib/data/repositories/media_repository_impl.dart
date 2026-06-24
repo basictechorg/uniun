@@ -188,6 +188,60 @@ class MediaRepositoryImpl extends MediaRepository {
   }
 
   @override
+  Future<Either<Failure, MediaBlobEntity>> saveLocalBytes({
+    required Uint8List bytes,
+    required String mime,
+    String? filename,
+    String? blurhash,
+    int? width,
+    int? height,
+  }) async {
+    try {
+      final sha256 = crypto.sha256.convert(bytes).toString();
+      final ext = _extFromMime(mime, filename);
+
+      await _cache.write(sha256, ext, bytes);
+      final localFile = await _cache.fileFor(sha256, ext);
+
+      final downloadedAt = DateTime.now();
+      await _upsertCache(
+        sha256: sha256,
+        localPath: localFile.path,
+        downloadedAt: downloadedAt,
+        mime: mime,
+        sizeBytes: bytes.length,
+      );
+
+      return Right(MediaBlobEntity(
+        sha256: sha256,
+        mime: mime,
+        sizeBytes: bytes.length,
+        dim: (width != null && height != null)
+            ? MediaDim(width: width, height: height)
+            : null,
+        blurhash: blurhash,
+        filename: filename,
+        serverUrls: const [], // local-only until published
+        localPath: localFile.path,
+        downloadedAt: downloadedAt,
+      ));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Uint8List?>> readLocalBytes(String sha256) async {
+    try {
+      final f = await _cache.read(sha256, null);
+      if (f == null) return const Right(null);
+      return Right(await f.readAsBytes());
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, MediaBlobEntity?>> getCachedBySha(String sha256) async {
     try {
       final row = await isar.mediaCacheModels

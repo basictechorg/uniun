@@ -278,6 +278,9 @@
   "brahmaPublish": "Publish",
   "@brahmaPublish": { "description": "Publish draft button in draft list" },
 
+  "brahmaDraftPublished": "Published as a note",
+  "@brahmaDraftPublished": { "description": "Snackbar confirmation after a draft is published from the graph" },
+
   "brahmaTags": "tags",
   "@brahmaTags": { "description": "Tag count display in draft item" },
 
@@ -2023,104 +2026,104 @@
   "ganaRunStatusRunning": "Running",
   "@ganaRunStatusRunning": { "description": "Run-status label" },
 
-  "manthanTileAction": "Spark ideas",
-  "@manthanTileAction": { "description": "Manthan tile action button label" },
+  "natarajTileAction": "Spark ideas",
+  "@natarajTileAction": { "description": "Nataraj tile action button label" },
 
-  "manthanDrawerTitle": "Manthan",
-  "@manthanDrawerTitle": { "description": "Title of the Manthan deck side drawer" },
+  "natarajDrawerTitle": "Nataraj",
+  "@natarajDrawerTitle": { "description": "Title of the Nataraj deck side drawer" },
 
-  "manthanScopeSheetTitle": "Select Manas",
-  "@manthanScopeSheetTitle": { "description": "Manthan scope sheet title" },
+  "natarajScopeSheetTitle": "Select Manas",
+  "@natarajScopeSheetTitle": { "description": "Nataraj scope sheet title" },
 
-  "manthanScopeAllNotes": "Brahma",
-  "@manthanScopeAllNotes": { "description": "Manthan scope option — all notes (Brahma)" },
+  "natarajScopeAllNotes": "Brahma",
+  "@natarajScopeAllNotes": { "description": "Nataraj scope option — all notes (Brahma)" },
 
-  "manthanScopeManasCount": "{count} manas",
-  "@manthanScopeManasCount": {
-    "description": "Manthan scope pill label when multiple manas are selected",
+  "natarajScopeManasCount": "{count} manas",
+  "@natarajScopeManasCount": {
+    "description": "Nataraj scope pill label when multiple manas are selected",
     "placeholders": { "count": { "type": "int" } }
   },
 
-  "manthanNewChatTooltip": "New chat",
-  "@manthanNewChatTooltip": { "description": "Tooltip for new manthan chat button" },
+  "natarajNewChatTooltip": "New chat",
+  "@natarajNewChatTooltip": { "description": "Tooltip for new nataraj chat button" },
 
-  "manthanEdgePublish": "Publish",
-  "@manthanEdgePublish": { "description": "Manthan edge action — publish" },
+  "natarajEdgePublish": "Publish",
+  "@natarajEdgePublish": { "description": "Nataraj edge action — publish" },
 
-  "manthanEdgeDraft": "Draft",
-  "@manthanEdgeDraft": { "description": "Manthan edge action — save as draft" },
+  "natarajEdgeDraft": "Draft",
+  "@natarajEdgeDraft": { "description": "Nataraj edge action — save as draft" },
 
-  "manthanEdgeDiscard": "Discard",
-  "@manthanEdgeDiscard": { "description": "Manthan edge action — discard" },
+  "natarajEdgeDiscard": "Discard",
+  "@natarajEdgeDiscard": { "description": "Nataraj edge action — discard" },
 
-  "manthanEdgeDiscuss": "Discuss",
-  "@manthanEdgeDiscuss": { "description": "Manthan edge action — discuss" },
+  "natarajEdgeDiscuss": "Discuss",
+  "@natarajEdgeDiscuss": { "description": "Nataraj edge action — discuss" },
 
-  "manthanReferencesLabel": "References",
-  "@manthanReferencesLabel": { "description": "Manthan references section label" },
+  "natarajReferencesLabel": "References",
+  "@natarajReferencesLabel": { "description": "Nataraj references section label" },
 
-  "manthanReferencesView": "View references",
-  "@manthanReferencesView": { "description": "Manthan references action — view" },
+  "natarajReferencesView": "View references",
+  "@natarajReferencesView": { "description": "Nataraj references action — view" },
 
-  "manthanReferencesAttach": "Publishing attaches the checked notes as references.",
-  "@manthanReferencesAttach": { "description": "Manthan references helper text" },
+  "natarajReferencesAttach": "Publishing attaches the checked notes as references.",
+  "@natarajReferencesAttach": { "description": "Nataraj references helper text" },
 
-  "manthanCoachTitle": "Swipe to explore ideas",
-  "@manthanCoachTitle": { "description": "Manthan coach/onboarding title" },
+  "natarajCoachTitle": "Swipe to explore ideas",
+  "@natarajCoachTitle": { "description": "Nataraj coach/onboarding title" },
 
-  "manthanCoachDismiss": "Got it",
-  "@manthanCoachDismiss": { "description": "Manthan coach dismiss button" },
+  "natarajCoachDismiss": "Got it",
+  "@natarajCoachDismiss": { "description": "Nataraj coach dismiss button" },
 
-  "manthanGenerating": "Finding connections…",
-  "@manthanGenerating": { "description": "Manthan generating state label" },
+  "natarajGenerating": "Finding connections…",
+  "@natarajGenerating": { "description": "Nataraj generating state label" },
 
-  "manthanRevisitingHint": "Revisiting older sparks — add notes for fresh ideas",
-  "@manthanRevisitingHint": { "description": "Manthan hint when revisiting older generated ideas" },
+  "natarajRevisitingHint": "Revisiting older sparks — add notes for fresh ideas",
+  "@natarajRevisitingHint": { "description": "Nataraj hint when revisiting older generated ideas" },
 
-  "manthanEmptyNeedsMoreTitle": "Not enough notes yet",
-  "@manthanEmptyNeedsMoreTitle": { "description": "Manthan empty state title when scope lacks notes" },
+  "natarajEmptyNeedsMoreTitle": "Not enough notes yet",
+  "@natarajEmptyNeedsMoreTitle": { "description": "Nataraj empty state title when scope lacks notes" },
 
-  "manthanEmptyNeedsMoreBody": "This scope needs at least 2 notes to spark connections.",
-  "@manthanEmptyNeedsMoreBody": { "description": "Manthan empty state body when scope lacks notes" },
+  "natarajEmptyNeedsMoreBody": "This scope needs at least 2 notes to spark connections.",
+  "@natarajEmptyNeedsMoreBody": { "description": "Nataraj empty state body when scope lacks notes" },
 
-  "manthanExhaustedTitle": "You've seen them all",
-  "@manthanExhaustedTitle": { "description": "Manthan exhausted state title" },
+  "natarajExhaustedTitle": "You've seen them all",
+  "@natarajExhaustedTitle": { "description": "Nataraj exhausted state title" },
 
-  "manthanExhaustedBody": "Add more notes to spark new ideas.",
-  "@manthanExhaustedBody": { "description": "Manthan exhausted state body" },
+  "natarajExhaustedBody": "Add more notes to spark new ideas.",
+  "@natarajExhaustedBody": { "description": "Nataraj exhausted state body" },
 
-  "manthanModelErrorTitle": "Couldn't generate ideas",
-  "@manthanModelErrorTitle": { "description": "Manthan error state title when the AI model fails to run" },
+  "natarajModelErrorTitle": "Couldn't generate ideas",
+  "@natarajModelErrorTitle": { "description": "Nataraj error state title when the AI model fails to run" },
 
-  "manthanModelErrorBody": "The AI model couldn't run on this device. Try a different (smaller) model, or tap retry.",
-  "@manthanModelErrorBody": { "description": "Manthan error state body when the AI model fails to run" },
+  "natarajModelErrorBody": "The AI model couldn't run on this device. Try a different (smaller) model, or tap retry.",
+  "@natarajModelErrorBody": { "description": "Nataraj error state body when the AI model fails to run" },
 
-  "manthanPublishedSnack": "Published as a note",
-  "@manthanPublishedSnack": { "description": "Snackbar after publishing a manthan idea" },
+  "natarajPublishedSnack": "Published as a note",
+  "@natarajPublishedSnack": { "description": "Snackbar after publishing a nataraj idea" },
 
-  "manthanDraftSavedSnack": "Saved as a draft",
-  "@manthanDraftSavedSnack": { "description": "Snackbar after saving a manthan idea as draft" },
+  "natarajDraftSavedSnack": "Saved as a draft",
+  "@natarajDraftSavedSnack": { "description": "Snackbar after saving a nataraj idea as draft" },
 
-  "manthanGenerateErrorSnack": "Couldn't generate right now",
-  "@manthanGenerateErrorSnack": { "description": "Snackbar when manthan generation fails" },
+  "natarajGenerateErrorSnack": "Couldn't generate right now",
+  "@natarajGenerateErrorSnack": { "description": "Snackbar when nataraj generation fails" },
 
-  "manthanYouName": "You",
-  "@manthanYouName": { "description": "Author name shown on the synthesized root card in Manthan refs page" },
+  "natarajYouName": "You",
+  "@natarajYouName": { "description": "Author name shown on the synthesized root card in Nataraj refs page" },
 
-  "manthanYouHandle": "@you · now",
-  "@manthanYouHandle": { "description": "Handle/timestamp shown on the synthesized root card in Manthan refs page" },
+  "natarajYouHandle": "@you · now",
+  "@natarajYouHandle": { "description": "Handle/timestamp shown on the synthesized root card in Nataraj refs page" },
 
-  "manthanDraftLabel": "Draft",
-  "@manthanDraftLabel": { "description": "Display name for unknown or resolved draft references in Manthan refs page" },
+  "natarajDraftLabel": "Draft",
+  "@natarajDraftLabel": { "description": "Display name for unknown or resolved draft references in Nataraj refs page" },
 
-  "manthanRefsCount": "{count} refs",
-  "@manthanRefsCount": {
-    "description": "Refs badge label on the synthesized root card action row in Manthan refs page",
+  "natarajRefsCount": "{count} refs",
+  "@natarajRefsCount": {
+    "description": "Refs badge label on the synthesized root card action row in Nataraj refs page",
     "placeholders": { "count": { "type": "int" } }
   },
 
-  "manthanRetry": "Try again",
-  "@manthanRetry": { "description": "Retry button label on the Manthan error state" },
+  "natarajRetry": "Try again",
+  "@natarajRetry": { "description": "Retry button label on the Nataraj error state" },
 
   "receiveShareTitle": "Add to UNIUN",
   "@receiveShareTitle": { "description": "Title of the sheet shown when content is shared into UNIUN from another app" },

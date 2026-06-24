@@ -18,10 +18,15 @@ final class SubmitNoteEvent extends BrahmaCreateEvent {
 final class SaveDraftEvent extends BrahmaCreateEvent {
   const SaveDraftEvent({
     required this.content,
+    this.draftId,
     this.rootEventId,
     this.replyToEventId,
   });
   final String content;
+
+  /// When set (draft is being edited), the existing draft is updated in place
+  /// instead of creating a new one — so re-saving keeps the same row + media.
+  final String? draftId;
   final String? rootEventId;
   final String? replyToEventId;
 }
@@ -83,27 +88,23 @@ final class RestoreDraftMentionsEvent extends BrahmaCreateEvent {
 
 // ── Media attachment events ───────────────────────────────────────────────────
 
-/// User picked a Photo / Video / File from the device. The page reads bytes
-/// + (for images) decodes width/height, then fires this event. The bloc owns
-/// the upload via [UploadMediaUseCase] and appends the resulting blob to
-/// [BrahmaCreateState.attachedMedia].
-final class UploadAndAttachMediaEvent extends BrahmaCreateEvent {
-  const UploadAndAttachMediaEvent({
-    required this.bytes,
-    required this.mime,
-    this.filename,
-    this.width,
-    this.height,
-  });
-
-  final Uint8List bytes;
-  final String mime;
-  final String? filename;
-  final int? width;
-  final int? height;
+/// User picked a Photo / Video / File. The picker already computed dimensions
+/// + blurhash; the bloc just holds the [PickedMedia] in
+/// [BrahmaCreateState.pendingMedia] and uploads it to Blossom only on submit.
+final class AttachMediaEvent extends BrahmaCreateEvent {
+  const AttachMediaEvent(this.media);
+  final PickedMedia media;
 }
 
 final class RemoveAttachedMediaEvent extends BrahmaCreateEvent {
   const RemoveAttachedMediaEvent(this.sha256);
   final String sha256;
+}
+
+/// Re-hydrate a draft's staged media into [BrahmaCreateState.pendingMedia] when
+/// the draft is opened for editing — reads the cached bytes back so the
+/// composer shows the thumbnails and re-save / publish carry the media.
+final class RestoreDraftMediaEvent extends BrahmaCreateEvent {
+  const RestoreDraftMediaEvent(this.attachments);
+  final List<MediaBlobEntity> attachments;
 }
