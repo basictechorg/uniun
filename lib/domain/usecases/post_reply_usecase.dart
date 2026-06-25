@@ -130,6 +130,9 @@ class PostReplyUseCase {
     required String threadRoot,
     required PostReplyParams params,
   }) async {
+    // Tag order MUST match [EventQueueModel.toSerializedRelayMessage].
+    // Reply marker is always emitted (even when replyToId == threadRoot)
+    // because UNIUN's thread BFS keys on `replyToEventId` — see #76.
     final imetaTags = buildImetaTags(params.attachments);
     final tags = <List<String>>[
       ['e', threadRoot, '', 'root'],
