@@ -21,3 +21,11 @@ const int kPrivateChannelKind = 9023;
 /// inner draft event (Kind 1 unsigned payload) is JSON-stringified, NIP-44
 /// self-encrypted, and placed in `.content`. Empty content signals deletion.
 const int kDraftWrapKind = 31234;
+
+/// NIP-56 report event. Carries `e` (note id) and/or `p` (pubkey) tags whose
+/// final positional entry is one of the [ReportType] names. Reports are stored
+/// locally in `ReportModel` and broadcast via the event queue; UNIUN does NOT
+/// consume incoming reports in v1 (filtering is the relay's or aggregator's
+/// concern). Publishers send a report once per (target, type) pair — repeats
+/// short-circuit on the unique `eventId` index.
+const int kReportKind = 1984;

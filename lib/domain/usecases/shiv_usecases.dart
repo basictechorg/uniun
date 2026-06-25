@@ -18,6 +18,18 @@ class GetConversationsUseCase
   }
 }
 
+/// Lazy stream that fires whenever the conversation collection changes.
+/// Consumers (e.g. `ShivAIBloc`) re-call [GetConversationsUseCase] on each
+/// emission to refresh the in-memory drawer list — keeps the drawer in sync
+/// when Settings → Delete Chat History wipes both Isar tables.
+@lazySingleton
+class WatchConversationsUseCase {
+  final ShivRepository _repository;
+  const WatchConversationsUseCase(this._repository);
+
+  Stream<void> call() => _repository.watchConversations();
+}
+
 @lazySingleton
 class CreateConversationUseCase
     extends UseCase<Either<Failure, ShivConversationEntity>, String> {

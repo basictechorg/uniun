@@ -3070,6 +3070,132 @@ abstract class AppLocalizations {
   /// **'Unblock'**
   String get actionUnblock;
 
+  /// Action in the note card overflow menu that opens the NIP-56 report sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Report note'**
+  String get noteCardReport;
+
+  /// Title shown at the top of the NIP-56 report bottom sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Report this content'**
+  String get reportSheetTitle;
+
+  /// Placeholder for the optional reason text field in the report sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — add any context (max 280 chars)'**
+  String get reportSheetReasonHint;
+
+  /// Primary button on the report sheet that publishes the Kind-1984 event
+  ///
+  /// In en, this message translates to:
+  /// **'Submit report'**
+  String get reportSheetSubmit;
+
+  /// Inline explainer under the report form telling the user what the unconditional outcome of submitting will be
+  ///
+  /// In en, this message translates to:
+  /// **'This note will be hidden from your feed. Your report is sent to the network.'**
+  String get reportSheetOutcomeHint;
+
+  /// Optional checkbox on the report sheet that additionally adds the author to the blocked-users list
+  ///
+  /// In en, this message translates to:
+  /// **'Also block this user (you won\'t see any of their posts)'**
+  String get reportSheetAlsoBlock;
+
+  /// Confirmation snackbar shown after a report is successfully published
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent. Thanks for keeping UNIUN safe.'**
+  String get reportSentSnackbar;
+
+  /// Label for the NIP-56 'nudity' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Nudity'**
+  String get reportTypeNudity;
+
+  /// One-line description shown under the 'nudity' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Sexually explicit material or nudity'**
+  String get reportTypeNudityDescription;
+
+  /// Label for the NIP-56 'malware' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Malware'**
+  String get reportTypeMalware;
+
+  /// One-line description shown under the 'malware' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Links or files that could harm devices'**
+  String get reportTypeMalwareDescription;
+
+  /// Label for the NIP-56 'profanity' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Profanity'**
+  String get reportTypeProfanity;
+
+  /// One-line description shown under the 'profanity' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Hateful or extremely vulgar language'**
+  String get reportTypeProfanityDescription;
+
+  /// Label for the NIP-56 'illegal' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Illegal'**
+  String get reportTypeIllegal;
+
+  /// One-line description shown under the 'illegal' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Content that is illegal in the reporter\'s jurisdiction'**
+  String get reportTypeIllegalDescription;
+
+  /// Label for the NIP-56 'spam' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Spam'**
+  String get reportTypeSpam;
+
+  /// One-line description shown under the 'spam' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Unwanted or repetitive promotion'**
+  String get reportTypeSpamDescription;
+
+  /// Label for the NIP-56 'impersonation' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Impersonation'**
+  String get reportTypeImpersonation;
+
+  /// One-line description shown under the 'impersonation' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Pretending to be someone they are not'**
+  String get reportTypeImpersonationDescription;
+
+  /// Label for the NIP-56 'other' report category
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get reportTypeOther;
+
+  /// One-line description shown under the 'other' report option
+  ///
+  /// In en, this message translates to:
+  /// **'Something else that violates community standards'**
+  String get reportTypeOtherDescription;
+
   /// Button that expands a note's text when it is longer than the collapsed line limit
   ///
   /// In en, this message translates to:

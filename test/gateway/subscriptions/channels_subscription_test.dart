@@ -3,7 +3,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/channel_model.dart';
 import 'package:uniun/gateway/subscriptions/providers/channels_subscription.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
-import 'isar_test_harness.dart';
+import '../../_helpers/isar_test_harness.dart';
 
 void main() {
   late Isar isar;

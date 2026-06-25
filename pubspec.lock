@@ -237,10 +237,10 @@ packages:
     dependency: transitive
     description:
       name: code_assets
-      sha256: "83ccdaa064c980b5596c35dd64a8d3ecc68620174ab9b90b6343b753aa721687"
+      sha256: bf394f466ba9205f1812a0433b392d6af280f155f56651eda7c18cc32ed493b8
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.2.1"
   code_builder:
     dependency: transitive
     description:
@@ -487,34 +487,34 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: a45e48e04193080ebe37fe65a9adb33d8473feceb8e1f51659f7bee8f8c95e04
+      sha256: "4178418fa3074d1207538c858fb4cd601694ebde4b99653a66ca36d4ca4cf8bc"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.1.0"
   flutter_gemma_embeddings:
     dependency: "direct main"
     description:
       name: flutter_gemma_embeddings
-      sha256: "1231b4a8e1c06bcf7674950a6cce0da2d940c9034b54cd216e0ed74e48dd1bf8"
+      sha256: "54a9862dd2980ff9f96ac355a797adcd634e6a0bde54eda16b3867ce408643ca"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.0.1"
   flutter_gemma_litertlm:
     dependency: "direct main"
     description:
       name: flutter_gemma_litertlm
-      sha256: "6b801403f1f682b699dbf31b485bddba2692296a894b7f23f1c78f171fc62fa3"
+      sha256: "2a8fff6c6a278e702caae1628af7b0eddfb0f45c76a9cd1a344771082b3ff053"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.0.2"
   flutter_gemma_mediapipe:
     dependency: "direct main"
     description:
       name: flutter_gemma_mediapipe
-      sha256: "048ea82177a52378ea4b7c18c88b4a1dcc9a765c84d1e28cf8d9f0e722540430"
+      sha256: "013dcd69f9d25d090712f385af8e1f8bf24c991388f127a5b44ab9aacfbd8df5"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.0"
+    version: "1.0.2"
   flutter_image_compress:
     dependency: "direct main"
     description:
@@ -808,13 +808,13 @@ packages:
     source: hosted
     version: "0.2.0"
   hooks:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: hooks
-      sha256: e79ed1e8e1929bc6ecb6ec85f0cb519c887aa5b423705ded0d0f2d9226def388
+      sha256: "9a62a50b50b769a737bc0a8ff381f333529df3ab746b2f6b02e83760231455ba"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "2.0.2"
   hotreloader:
     dependency: transitive
     description:
@@ -1413,6 +1413,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.8.1"
+  record_use:
+    dependency: transitive
+    description:
+      name: record_use
+      sha256: "2551bd8eecfe95d14ae75f6021ad0248be5c27f138c2ec12fcb52b500b3ba1ed"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   rxdart:
     dependency: transitive
     description:

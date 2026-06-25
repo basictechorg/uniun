@@ -22,6 +22,7 @@ part 'shiv_ai_bloc.freezed.dart';
 @injectable
 class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final GetConversationsUseCase _getConversations;
+  final WatchConversationsUseCase _watchConversations;
   final CreateConversationUseCase _createConversation;
   final DeleteConversationUseCase _deleteConversation;
   final GetMessagesUseCase _getMessages;
@@ -39,6 +40,11 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   final DrainPendingExtractionsUseCase _drainPending;
 
   StreamSubscription<String>? _streamSub;
+
+  /// Fires whenever the Isar `ShivConversation` collection mutates. Drives
+  /// drawer-list freshness when Settings → Delete Chat History bulk-wipes,
+  /// so the user doesn't have to restart the app to see the empty state.
+  StreamSubscription<void>? _conversationsSub;
 
   /// Tokens arriving faster than one UI frame are coalesced here and flushed
   /// as a single [_TokenReceived] event on a short timer, so we emit (and
@@ -64,6 +70,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
   ShivAIBloc(
     this._getConversations,
+    this._watchConversations,
     this._createConversation,
     this._deleteConversation,
     this._getMessages,
@@ -100,6 +107,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     on<_SwitchBranch>(_onSwitchBranch, transformer: droppable());
     on<_CreateBranchFrom>(_onCreateBranchFrom, transformer: droppable());
     on<_SelectGraphNode>(_onSelectGraphNode);
+
+    // Keep the drawer in sync with Isar. Settings → Delete Chat History
+    // bulk-clears `shivConversationModels`; without this the drawer keeps
+    // stale rows until restart. Dispatches the same [_LoadConversations]
+    // path the chat tab uses at open — `_rag.init()` is idempotent so a
+    // re-trigger is cheap.
+    _conversationsSub = _watchConversations.call().listen((_) {
+      if (!isClosed) add(const ShivAIEvent.loadConversations());
+    });
   }
 
   // ── Conversation list ───────────────────────────────────────────────────────
@@ -114,8 +130,21 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     result.fold(
       (f) => emit(state.copyWith(
           status: ShivChatStatus.error, errorMessage: f.toString())),
-      (list) => emit(state.copyWith(
-          status: ShivChatStatus.idle, conversations: list, errorMessage: null)),
+      (list) {
+        // If the active conversation was just wiped (Settings → Delete Chat
+        // History fires this path), drop the selection so the chat pane
+        // doesn't keep rendering a deleted row.
+        final activeId = state.activeConversation?.conversationId;
+        final activeGone =
+            activeId != null && !list.any((c) => c.conversationId == activeId);
+        emit(state.copyWith(
+          status: ShivChatStatus.idle,
+          conversations: list,
+          activeConversation: activeGone ? null : state.activeConversation,
+          messages: activeGone ? const [] : state.messages,
+          errorMessage: null,
+        ));
+      },
     );
   }
 
@@ -503,6 +532,7 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   @override
   Future<void> close() async {
     _streamSub?.cancel();
+    _conversationsSub?.cancel();
     _cancelTokenFlush();
     await _closeConv.call();
     // Safety net for logout / HomePage teardown — make sure the queue isn't

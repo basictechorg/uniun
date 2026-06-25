@@ -79,6 +79,7 @@ import 'package:uniun/data/repositories/pending_extraction_repository_impl.dart'
     as _i754;
 import 'package:uniun/data/repositories/profile_repository_impl.dart' as _i484;
 import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
+import 'package:uniun/data/repositories/report_repository_impl.dart' as _i488;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
 import 'package:uniun/data/repositories/share_repository_impl.dart' as _i593;
@@ -134,6 +135,7 @@ import 'package:uniun/domain/repositories/pending_extraction_repository.dart'
     as _i1000;
 import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
+import 'package:uniun/domain/repositories/report_repository.dart' as _i469;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
 import 'package:uniun/domain/repositories/share_repository.dart' as _i1019;
 import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
@@ -175,6 +177,7 @@ import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
 import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
+import 'package:uniun/domain/usecases/report_usecases.dart' as _i27;
 import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
 import 'package:uniun/domain/usecases/save_relay_usecase.dart' as _i433;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
@@ -409,6 +412,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i160.GanaRepository>(
       () => _i899.GanaRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i469.ReportRepository>(
+      () => _i488.ReportRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        eventQueueRepository: gh<_i1039.EventQueueRepository>(),
+        userRepository: gh<_i103.UserRepository>(),
+      ),
+    );
     gh.lazySingleton<_i978.ResolveSourceLabelsUseCase>(
       () => _i978.ResolveSourceLabelsUseCase(gh<_i633.SourceLabelRepository>()),
     );
@@ -436,6 +446,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i604.GetConversationsUseCase>(
       () => _i604.GetConversationsUseCase(gh<_i266.ShivRepository>()),
+    );
+    gh.lazySingleton<_i604.WatchConversationsUseCase>(
+      () => _i604.WatchConversationsUseCase(gh<_i266.ShivRepository>()),
     );
     gh.lazySingleton<_i604.CreateConversationUseCase>(
       () => _i604.CreateConversationUseCase(gh<_i266.ShivRepository>()),
@@ -619,6 +632,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i993.RelayRepository>(),
         gh<_i1023.CreateDmConversationUseCase>(),
       ),
+    );
+    gh.lazySingleton<_i27.ReportNoteUseCase>(
+      () => _i27.ReportNoteUseCase(gh<_i469.ReportRepository>()),
+    );
+    gh.lazySingleton<_i27.ReportUserUseCase>(
+      () => _i27.ReportUserUseCase(gh<_i469.ReportRepository>()),
     );
     gh.factory<_i117.AppSettingsRepository>(
       () => _i913.AppSettingsRepositoryImpl(gh<_i107.AppSettingsStore>()),
@@ -1417,19 +1436,10 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserUseCase>(),
       ),
     );
-    gh.factory<_i807.ThreadBloc>(
-      () => _i807.ThreadBloc(
-        gh<_i789.NoteResolverRepository>(),
-        gh<_i924.PostReplyUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i858.GetSavedRepliesUseCase>(),
-        gh<_i858.GetSavedReferencesUseCase>(),
-      ),
-    );
     gh.factory<_i190.ShivAIBloc>(
       () => _i190.ShivAIBloc(
         gh<_i604.GetConversationsUseCase>(),
+        gh<_i604.WatchConversationsUseCase>(),
         gh<_i604.CreateConversationUseCase>(),
         gh<_i604.DeleteConversationUseCase>(),
         gh<_i604.GetMessagesUseCase>(),
@@ -1445,6 +1455,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.ResumeBackgroundWorkUseCase>(),
         gh<_i681.RagPipeline>(),
         gh<_i179.DrainPendingExtractionsUseCase>(),
+      ),
+    );
+    gh.factory<_i807.ThreadBloc>(
+      () => _i807.ThreadBloc(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i924.PostReplyUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i858.GetSavedRepliesUseCase>(),
+        gh<_i858.GetSavedReferencesUseCase>(),
       ),
     );
     return this;

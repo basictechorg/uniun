@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/gateway/subscriptions/providers/dms_subscription.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
-import 'isar_test_harness.dart';
+import '../../_helpers/isar_test_harness.dart';
 
 void main() {
   late Isar isar;

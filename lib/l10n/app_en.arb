@@ -1512,6 +1512,62 @@
   "actionUnblock": "Unblock",
   "@actionUnblock": { "description": "Button that unblocks a user on the blocked users screen" },
 
+  "noteCardReport": "Report note",
+  "@noteCardReport": { "description": "Action in the note card overflow menu that opens the NIP-56 report sheet" },
+
+  "reportSheetTitle": "Report this content",
+  "@reportSheetTitle": { "description": "Title shown at the top of the NIP-56 report bottom sheet" },
+
+  "reportSheetReasonHint": "Optional — add any context (max 280 chars)",
+  "@reportSheetReasonHint": { "description": "Placeholder for the optional reason text field in the report sheet" },
+
+  "reportSheetSubmit": "Submit report",
+  "@reportSheetSubmit": { "description": "Primary button on the report sheet that publishes the Kind-1984 event" },
+
+  "reportSheetOutcomeHint": "This note will be hidden from your feed. Your report is sent to the network.",
+  "@reportSheetOutcomeHint": { "description": "Inline explainer under the report form telling the user what the unconditional outcome of submitting will be" },
+
+  "reportSheetAlsoBlock": "Also block this user (you won't see any of their posts)",
+  "@reportSheetAlsoBlock": { "description": "Optional checkbox on the report sheet that additionally adds the author to the blocked-users list" },
+
+  "reportSentSnackbar": "Report sent. Thanks for keeping UNIUN safe.",
+  "@reportSentSnackbar": { "description": "Confirmation snackbar shown after a report is successfully published" },
+
+  "reportTypeNudity": "Nudity",
+  "@reportTypeNudity": { "description": "Label for the NIP-56 'nudity' report category" },
+  "reportTypeNudityDescription": "Sexually explicit material or nudity",
+  "@reportTypeNudityDescription": { "description": "One-line description shown under the 'nudity' report option" },
+
+  "reportTypeMalware": "Malware",
+  "@reportTypeMalware": { "description": "Label for the NIP-56 'malware' report category" },
+  "reportTypeMalwareDescription": "Links or files that could harm devices",
+  "@reportTypeMalwareDescription": { "description": "One-line description shown under the 'malware' report option" },
+
+  "reportTypeProfanity": "Profanity",
+  "@reportTypeProfanity": { "description": "Label for the NIP-56 'profanity' report category" },
+  "reportTypeProfanityDescription": "Hateful or extremely vulgar language",
+  "@reportTypeProfanityDescription": { "description": "One-line description shown under the 'profanity' report option" },
+
+  "reportTypeIllegal": "Illegal",
+  "@reportTypeIllegal": { "description": "Label for the NIP-56 'illegal' report category" },
+  "reportTypeIllegalDescription": "Content that is illegal in the reporter's jurisdiction",
+  "@reportTypeIllegalDescription": { "description": "One-line description shown under the 'illegal' report option" },
+
+  "reportTypeSpam": "Spam",
+  "@reportTypeSpam": { "description": "Label for the NIP-56 'spam' report category" },
+  "reportTypeSpamDescription": "Unwanted or repetitive promotion",
+  "@reportTypeSpamDescription": { "description": "One-line description shown under the 'spam' report option" },
+
+  "reportTypeImpersonation": "Impersonation",
+  "@reportTypeImpersonation": { "description": "Label for the NIP-56 'impersonation' report category" },
+  "reportTypeImpersonationDescription": "Pretending to be someone they are not",
+  "@reportTypeImpersonationDescription": { "description": "One-line description shown under the 'impersonation' report option" },
+
+  "reportTypeOther": "Other",
+  "@reportTypeOther": { "description": "Label for the NIP-56 'other' report category" },
+  "reportTypeOtherDescription": "Something else that violates community standards",
+  "@reportTypeOtherDescription": { "description": "One-line description shown under the 'other' report option" },
+
   "actionReadMore": "Read more",
   "@actionReadMore": { "description": "Button that expands a note's text when it is longer than the collapsed line limit" },
 

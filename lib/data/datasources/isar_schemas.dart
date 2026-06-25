@@ -33,6 +33,7 @@ import 'package:uniun/data/models/manas_note_link_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/nataraj/nataraj_card_model.dart';
+import 'package:uniun/data/models/report_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -67,5 +68,6 @@ final List<CollectionSchema> isarSchemas = [
   GanaModelSchema,
   GanaRunModelSchema,
   NatarajCardModelSchema,
+  ReportModelSchema,
 ];
 
