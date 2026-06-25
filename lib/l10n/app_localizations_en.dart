@@ -1077,14 +1077,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get termsResponsibilityBody =>
-      'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, or violates others\' rights.';
+      'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, hateful, sexually explicit, or that violates others\' rights. Objectionable content and abusive behavior are not welcome on UNIUN.';
 
   @override
   String get termsNoAbuseTitle => 'No Abuse or Spam';
 
   @override
   String get termsNoAbuseBody =>
-      'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network.';
+      'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network. UNIUN is decentralized: any note menu includes a Report option (categories: nudity, malware, profanity, illegal, spam, impersonation, other) and any user can be blocked from Settings → Blocked Users. Reported notes are immediately hidden from your feed and blocked users\' content never reaches you. Reports are also published on the Nostr network so other clients and relay operators can act on them.';
 
   @override
   String get termsPrivateKeyTitle => 'Keep Your Private Key Safe';
