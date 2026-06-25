@@ -1,21 +1,22 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
-import 'package:uniun/data/datasources/llm/local_inference_queue.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
 
 /// On-device flutter_gemma backend.
 ///
-/// Wraps [AIModelRunner] (token streaming + one-shot) and [ModelTaskQueue]
-/// (high/low priority coordination). The runner still does the engine work
-/// today; Phase 2 will swap it to flutter_gemma 0.16 with persistent
-/// per-conversation sessions. This data source's surface stays stable
-/// through that change.
+/// Wraps [AIModelRunner] (token streaming + one-shot) and the
+/// [InferenceScheduler] (5-tier priority + CFS fair pool + EDF deadlines —
+/// see `docs/SHIVA/scheduling.md`). The runner submits each job to the
+/// scheduler; this data source's role is the foreground hint coordination
+/// for the chat lifecycle.
 ///
 /// Registered as a concrete type rather than `as: LlmDataSource` so the
 /// repository can hold both [LocalLlmDataSource] and [RemoteLlmDataSource]
@@ -23,10 +24,10 @@ import 'package:uniun/domain/repositories/ai_model_repository.dart';
 @lazySingleton
 class LocalLlmDataSource implements LlmDataSource {
   final AIModelRunner _runner;
-  final ModelTaskQueue _queue;
+  final InferenceScheduler _scheduler;
   final AIModelRepository _modelCatalog;
 
-  LocalLlmDataSource(this._runner, this._queue, this._modelCatalog);
+  LocalLlmDataSource(this._runner, this._scheduler, this._modelCatalog);
 
   @override
   Future<bool> hasActiveModel() async => _runner.hasActiveModel;
@@ -76,13 +77,13 @@ class LocalLlmDataSource implements LlmDataSource {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
-    bool highPriority = false,
+    LlmTaskKind kind = LlmTaskKind.extract,
   }) async {
     try {
       final result = await _runner.generateOneShot(
         prompt,
         maxTokens: maxTokens,
-        highPriority: highPriority,
+        kind: kind,
       );
       return Right(result);
     } catch (e) {
@@ -90,17 +91,23 @@ class LocalLlmDataSource implements LlmDataSource {
     }
   }
 
-  // ── Priority coordination ───────────────────────────────────────────────
+  // ── Foreground coordination ─────────────────────────────────────────────
+  //
+  // The historical `preemptBackgroundWork` / `resumeBackgroundWork` pair is
+  // routed through the scheduler's `setForeground` knob: entering Shiv chat
+  // means "user is here, chat is foreground" (T0 already preempts), leaving
+  // clears the foreground hint. For non-chat foreground surfaces (Nataraj
+  // deck, Gana form), callers go through SchedulerCoordinator directly.
 
   @override
   Future<Either<Failure, Unit>> preemptBackgroundWork() async {
-    _queue.pauseLowPriority();
+    _scheduler.setForeground(LlmTaskKind.chat);
     return const Right(unit);
   }
 
   @override
   Future<Either<Failure, Unit>> resumeBackgroundWork() async {
-    _queue.resumeLowPriority();
+    _scheduler.setForeground(null);
     return const Right(unit);
   }
 

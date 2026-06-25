@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 
 /// Per-backend inference contract. One impl per backend
 /// ([LocalLlmDataSource], [RemoteLlmDataSource]). The Repository owns
@@ -27,13 +28,13 @@ abstract class LlmDataSource {
     List<(String, String)> cleanHistory = const [],
   });
 
-  /// One-shot completion for background extraction.
-  /// Pass [highPriority] = true for foreground user work (e.g. Nataraj deck)
-  /// so the task runs even while the low lane is paused.
+  /// One-shot completion. [kind] drives scheduler tier on the local backend
+  /// (see `docs/SHIVA/scheduling.md`); ignored by the cloud backend which
+  /// is network-concurrent.
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
-    bool highPriority = false,
+    LlmTaskKind kind = LlmTaskKind.extract,
   });
 
   /// Backend-specific coordination — local pauses its low-priority queue;

@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/nataraj_card_status.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/entities/nataraj/nataraj_card_entity.dart';
 import 'package:uniun/domain/repositories/nataraj_repository.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
@@ -111,11 +112,11 @@ class NatarajGenerator {
           // the model's baked-in KV-cache size (LocalModelParams.maxTokens),
           // NOT this value — opening smaller fails the native invoke. The
           // prompt is bounded by truncating each note in NatarajPromptBuilder;
-          // output length is capped below. highPriority routes Nataraj onto the
-          // chat lane so it runs while the Shiv tab holds the low lane paused.
+          // output length is capped below. kind: nataraj puts this job in the
+          // T4 fair pool by default, T1 when the NatarajDeckPage is foreground.
           prompt: prompt,
           maxTokens: 512,
-          highPriority: true,
+          kind: LlmTaskKind.nataraj,
         ),
       );
       final raw = res.fold((_) => null, (s) => s);

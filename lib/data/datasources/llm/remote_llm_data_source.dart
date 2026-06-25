@@ -13,6 +13,7 @@ import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 
 /// Cloud LLM backend backed by [OpenRouter].
@@ -135,7 +136,7 @@ class RemoteLlmDataSource implements LlmDataSource {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
-    bool highPriority = false, // no local queue — flag is ignored for remote
+    LlmTaskKind kind = LlmTaskKind.extract, // no local queue — kind is ignored for remote
   }) async {
     final inference = await _client();
     if (inference == null) {

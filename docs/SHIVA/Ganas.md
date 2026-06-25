@@ -78,9 +78,11 @@ Run trace (post-refactor):
      Manas pool, and packs the top scored hits under the token budget.
   6. Prompt assembled: SYSTEM rules → USER instruction → KNOWLEDGE
      → INPUT (Bob's msg).
-  7. Engine calls AIModelRunner.generateOneShot() directly — same
-     LocalInferenceQueue.runLow lane the rest of the app uses (Shiv
-     chat at runHigh preempts).
+  7. Engine calls AIModelRunner.generateOneShot() with
+     `kind: LlmTaskKind.gana` + `modelId: gana.desiredModelId` — the
+     InferenceScheduler places it at T4 (fair pool) by default, or T1
+     when the GanaForm preview is open, or T3 when the cron deadline
+     has passed. Shiv chat (T0) preempts. See scheduling.md.
   8. Reply sanitized through LlmTextSanitizer (envelope strip + GPT-2
      byte-pass decode for emoji).
   9. <NOOP> sentinel check: no. Body extracted.
@@ -116,7 +118,11 @@ the existing relay-sync component — it doesn't host Gana logic.
 │  │   ├ Isar.ganaModels.watchLazy()    ─► schedule rebuild (500ms)     │ │
 │  │   ├ Isar.noteModels.watchLazy()    ─► reactive Ganas (3s debounce) │ │
 │  │   ├ Timer.periodic(N min)          ─► interval Ganas               │ │
-│  │   ├ Single-flight mutex            ─► one run at a time, app-wide  │ │
+│  │   ├ InferenceScheduler             ─► kind=gana + desiredModelId,  │ │
+│  │   │                                   T4 fair pool by default,     │ │
+│  │   │                                   T3 if cron deadline passed,  │ │
+│  │   │                                   T1 while GanaForm preview is │ │
+│  │   │                                   open. See scheduling.md.     │ │
 │  │   │                                                                │ │
 │  │   └ One run:                                                       │ │
 │  │      1. Self-output guard set loaded                               │ │
@@ -129,9 +135,10 @@ the existing relay-sync component — it doesn't host Gana logic.
 │  │           • else ⇒ newest-first fallback                           │ │
 │  │      5. GanaPromptBuilder — SYSTEM rules + USER instruction +      │ │
 │  │         KNOWLEDGE + INPUT (no `publish_message(body=...)` ask)     │ │
-│  │      6. Model gates (hasActiveModel + desiredModelId == active)    │ │
-│  │      7. AIModelRunner.generateOneShot — LocalInferenceQueue.runLow │ │
-│  │         (Shiv chat at runHigh always preempts)                     │ │
+│  │      6. Model gate (FlutterGemma.hasActiveModel)                   │ │
+│  │      7. AIModelRunner.generateOneShot(kind=gana,                   │ │
+│  │         modelId=gana.desiredModelId) — InferenceScheduler picks    │ │
+│  │         the tier (T4 default · T1 form · T3 cron). Chat preempts.  │ │
 │  │      8. LlmTextSanitizer cleans envelope + GPT-2 byte-pass mojibake│ │
 │  │      9. NOOP sentinel check; else call publish use case directly:  │ │
 │  │           • PublishNoteUseCase (feed, kind 1)                      │ │
@@ -199,10 +206,11 @@ costing 6 hops + a duplicate Isar handle.
 
 What we kept:
 
-- **`LocalInferenceQueue.runLow` / `runHigh`** — chat preemption still
-  matters because the GPU is one-at-a-time. flutter_gemma 1.0's
-  concurrent-sessions feature removes model duplication, not GPU
-  serialization.
+- **`InferenceScheduler`** (see [`scheduling.md`](scheduling.md)) — chat
+  preemption still matters because the GPU is one-at-a-time.
+  flutter_gemma 1.x's concurrent-sessions feature removes model
+  duplication, not GPU serialization. The scheduler's T0 chat tier is
+  what makes preemption usable in practice.
 - **WorkManager bg isolate** — separate concern. OS-dispatched, can't
   share with main. Stays exactly as-is.
 
@@ -376,16 +384,21 @@ Two `@Injectable(as: ...)` repository impls in `lib/data/repositories/`:
                     └─────────────────────────────────────┘
                                   │
                                   ▼
-                    ┌─────────────────────────────────────┐
-                    │ Model gates (inline now):           │
-                    │  - FlutterGemma.hasActiveModel()    │
-                    │  - desiredModelId == active or null │
-                    │ Else: log skip + return             │
-                    │                                     │
-                    │ AIModelRunner.generateOneShot(...)  │
-                    │  ─► LocalInferenceQueue.runLow      │
-                    │     (chat at runHigh preempts)      │
-                    └─────────────────────────────────────┘
+                    ┌──────────────────────────────────────┐
+                    │ AIModelRunner.generateOneShot(        │
+                    │   kind: LlmTaskKind.gana,             │
+                    │   modelId: gana.desiredModelId        │
+                    │           ?? activeModelId,           │
+                    │   deadline: cronFireTime (if cron),   │
+                    │ )                                     │
+                    │   ─► InferenceScheduler picks tier:   │
+                    │      T1 if GanaFormPage open,         │
+                    │      T3 if past cron deadline,        │
+                    │      T4 fair-pool otherwise.          │
+                    │   Model affinity batches same-model   │
+                    │   Ganas to amortize swap cost.        │
+                    │   See docs/SHIVA/scheduling.md.       │
+                    └──────────────────────────────────────┘
                                   │
                 ┌─────────────────┼─────────────────────────┐
                 ▼                 ▼                         ▼
@@ -437,10 +450,10 @@ Reactive watcher / interval timer / fire-on-enable
               ├─ EmbeddingService.embed (if reactive)               [FFI → native]
               ├─ VectorSearchService.search                         [async]
               ├─ Prompt build (string concat)                        [<1ms]
-              ├─ AIModelRunner.generateOneShot                       [FFI]
-              │    └─ LocalInferenceQueue.runLow
+              ├─ AIModelRunner.generateOneShot(kind=gana)             [FFI]
+              │    └─ InferenceScheduler → tier T4 / T3 / T1
               │         └─ flutter_gemma native threads             [native pool]
-              │             ─► chat (runHigh) preempts via
+              │             ─► chat (T0) preempts via
               │                InferenceChat.stopGeneration
               ├─ LlmTextSanitizer.clean                              [<1ms]
               └─ Publish use case
@@ -573,11 +586,10 @@ The test that answers this lives at `test/integration/flutter_gemma_bg_isolate_t
 |---|---|---|
 | Input filter | `authorPubkey != selfPubkey` | Self-loops (Gana reads its own publish) + Gana-to-Gana ping-pong (one user's Gana A publishes → their Gana B reads → publishes → A reads → …) |
 | Input filter | `eventId ∉ this Gana's output history` | Belt+suspenders against the same |
-| Run gate | `desiredModelId == active OR null` | Per-Gana model preference; mismatched runs skip cleanly |
+| Run gate | `desiredModelId` carried into the scheduler | Model-affinity rules batch same-model Ganas; mismatched Ganas wait for an affinity opportunity instead of skipping outright |
 | Run gate | `FlutterGemma.hasActiveModel()` | Skip cleanly with `noActiveModel` if model is uninstalled |
 | Cursor | NOT advanced on skip/fail | Same input retried next trigger; never lose work |
-| Scheduler | Single-flight FIFO mutex | One Gana run at a time globally — predictable inference load |
-| Queue | `LocalInferenceQueue.runLow` | Chat (`runHigh`) preempts; user never waits behind a Gana |
+| Scheduler | `InferenceScheduler` (5-tier — see [`scheduling.md`](scheduling.md)) | Chat (T0) preempts; GanaForm preview hoists to T1; cron deadlines promote to T3; CFS fair pool at T4 stops Nataraj from starving Gana |
 | Publish | use-case-level errors → `GanaRunStatus.failed` | Publish failures surface in the run log; engine does not retry automatically (next trigger will re-attempt naturally) |
 | Form | `enabled = false` default | User must explicitly turn on after reviewing config — no surprise publishes |
 | Form | Interval ≥ 5 min | Foreground; background clamps to ≥ 30 min |

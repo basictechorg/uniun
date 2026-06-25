@@ -23,11 +23,12 @@ import 'package:uniun/data/datasources/app_settings_store.dart' as _i107;
 import 'package:uniun/data/datasources/blossom_client.dart' as _i706;
 import 'package:uniun/data/datasources/feed_read_state_store.dart' as _i752;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
+import 'package:uniun/data/datasources/llm/embedding_queue.dart' as _i1031;
+import 'package:uniun/data/datasources/llm/inference_scheduler.dart' as _i552;
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart'
     as _i981;
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart'
     as _i634;
-import 'package:uniun/data/datasources/llm/local_inference_queue.dart' as _i393;
 import 'package:uniun/data/datasources/llm/local_llm_data_source.dart' as _i937;
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart' as _i937;
 import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart'
@@ -82,6 +83,8 @@ import 'package:uniun/data/repositories/relay_repository_impl.dart' as _i542;
 import 'package:uniun/data/repositories/report_repository_impl.dart' as _i488;
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart'
     as _i669;
+import 'package:uniun/data/repositories/scheduler_coordinator_impl.dart'
+    as _i289;
 import 'package:uniun/data/repositories/share_repository_impl.dart' as _i593;
 import 'package:uniun/data/repositories/shiv_repository_impl.dart' as _i412;
 import 'package:uniun/data/repositories/source_label_repository_impl.dart'
@@ -137,6 +140,7 @@ import 'package:uniun/domain/repositories/profile_repository.dart' as _i967;
 import 'package:uniun/domain/repositories/relay_repository.dart' as _i993;
 import 'package:uniun/domain/repositories/report_repository.dart' as _i469;
 import 'package:uniun/domain/repositories/saved_note_repository.dart' as _i43;
+import 'package:uniun/domain/repositories/scheduler_coordinator.dart' as _i537;
 import 'package:uniun/domain/repositories/share_repository.dart' as _i1019;
 import 'package:uniun/domain/repositories/shiv_repository.dart' as _i266;
 import 'package:uniun/domain/repositories/source_label_repository.dart'
@@ -181,6 +185,7 @@ import 'package:uniun/domain/usecases/report_usecases.dart' as _i27;
 import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
 import 'package:uniun/domain/usecases/save_relay_usecase.dart' as _i433;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
+import 'package:uniun/domain/usecases/scheduler_usecases.dart' as _i1012;
 import 'package:uniun/domain/usecases/share_usecases.dart' as _i1;
 import 'package:uniun/domain/usecases/shiv_usecases.dart' as _i604;
 import 'package:uniun/domain/usecases/source_label_usecases.dart' as _i978;
@@ -268,7 +273,10 @@ extension GetItInjectableX on _i174.GetIt {
       dispose: (i) => i.dispose(),
     );
     gh.lazySingleton<_i706.BlossomClient>(() => _i706.BlossomClient());
-    gh.lazySingleton<_i393.ModelTaskQueue>(() => _i393.ModelTaskQueue());
+    gh.lazySingleton<_i1031.EmbeddingQueue>(() => _i1031.EmbeddingQueue());
+    gh.lazySingleton<_i552.InferenceScheduler>(
+      () => _i552.InferenceScheduler(),
+    );
     gh.lazySingleton<_i366.MediaCacheDataSource>(
       () => _i366.MediaCacheDataSource(),
     );
@@ -338,6 +346,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i182.NoteAttachmentsEnricher>(
       () => _i182.NoteAttachmentsEnricher(isar: gh<_i214.Isar>()),
     );
+    gh.lazySingleton<_i937.AIModelRunner>(
+      () => _i937.AIModelRunner(
+        gh<_i552.InferenceScheduler>(),
+        gh<_i107.AppSettingsStore>(),
+      ),
+    );
     gh.lazySingleton<_i761.MarmotTransportService>(
       () => _i761.MarmotTransportService(
         gh<_i214.Isar>(),
@@ -363,20 +377,20 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i219.PruneGanaRunsUseCase>(
       () => _i219.PruneGanaRunsUseCase(gh<_i534.GanaRunRepository>()),
     );
+    gh.factory<_i537.SchedulerCoordinator>(
+      () => _i289.SchedulerCoordinatorImpl(gh<_i552.InferenceScheduler>()),
+    );
     gh.factory<_i967.ProfileRepository>(
       () => _i484.ProfileRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.lazySingleton<_i937.AIModelRunner>(
-      () => _i937.AIModelRunner(
-        gh<_i393.ModelTaskQueue>(),
-        gh<_i107.AppSettingsStore>(),
-      ),
     );
     gh.lazySingleton<_i635.E2EEGroupRepository>(
       () => _i896.E2EEGroupRepositoryImpl(
         gh<_i214.Isar>(),
         gh<_i182.NoteAttachmentsEnricher>(),
       ),
+    );
+    gh.lazySingleton<_i1012.SetForegroundKindUseCase>(
+      () => _i1012.SetForegroundKindUseCase(gh<_i537.SchedulerCoordinator>()),
     );
     gh.factory<_i127.ChannelRepository>(
       () => _i1009.ChannelRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -627,6 +641,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
+    gh.lazySingleton<_i937.LocalLlmDataSource>(
+      () => _i937.LocalLlmDataSource(
+        gh<_i937.AIModelRunner>(),
+        gh<_i552.InferenceScheduler>(),
+        gh<_i646.AIModelRepository>(),
+      ),
+    );
     gh.factory<_i399.CreateDmBloc>(
       () => _i399.CreateDmBloc(
         gh<_i993.RelayRepository>(),
@@ -699,13 +720,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i141.RemoteLlmDataSource(
         gh<_i981.LlmCredentialsDataSource>(),
         gh<_i634.LlmPreferencesDataSource>(),
-      ),
-    );
-    gh.lazySingleton<_i937.LocalLlmDataSource>(
-      () => _i937.LocalLlmDataSource(
-        gh<_i937.AIModelRunner>(),
-        gh<_i393.ModelTaskQueue>(),
-        gh<_i646.AIModelRepository>(),
       ),
     );
     gh.factory<_i930.UserServerListRepository>(

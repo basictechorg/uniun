@@ -232,6 +232,54 @@ Models live in flutter_gemma's managed storage — uninstall via Settings → AI
 
 ---
 
+## Running the tests
+
+UNIUN ships three layers of tests. Run them in increasing order of cost.
+
+### 1. Unit tests (fast, no device)
+
+```bash
+# Whole suite
+flutter test
+
+# A focused area — e.g. the on-device LLM scheduler
+flutter test test/data/datasources/llm/
+flutter test test/data/repositories/scheduler_coordinator_impl_test.dart
+```
+
+### 2. Vertical-slice integration tests (fast, no device)
+
+Wire the real production classes across `presentation → domain → data` (no
+mocks) and assert the chain behaves end-to-end. Catches DI / signature-drift
+regressions.
+
+```bash
+flutter test test/integration/
+```
+
+### 3. Real-device integration tests (require a connected device)
+
+These load native libraries (flutter_gemma, MLS, etc.) and need an actual
+device or emulator. They live under `test/device_integration/`.
+
+```bash
+# List connected devices
+flutter devices
+
+# Run the whole device_integration suite on a chosen device
+flutter test test/device_integration/ -d <device-id>
+```
+
+Some integration tests require an AI model to be installed on the device
+first — they SKIP gracefully when one is not. To exercise the on-device LLM
+paths, open Shiv on the device and download a model before running.
+
+See [`docs/SHIVA/scheduling.md`](docs/SHIVA/scheduling.md) for the algorithm
+under test and the verification scenarios that drive the unit + slice
+coverage.
+
+---
+
 ## Platform support
 
 | Platform | Status | Notes |

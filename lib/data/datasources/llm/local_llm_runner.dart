@@ -1,60 +1,52 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma/flutter_gemma.dart' hide CancelToken;
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
-import 'package:uniun/data/datasources/llm/local_inference_queue.dart';
+import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/local_model_params.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 
-/// Wraps flutter_gemma 0.16.x for token-streaming inference.
+/// Wraps flutter_gemma 1.x for token-streaming inference.
 ///
-/// ## Why 0.16 matters
-///
-/// 0.13.x had a single shared LiteRT-LM native session under every Dart
-/// [InferenceChat] wrapper. `stopGeneration()` on the extraction wrapper
-/// cancelled whatever chat was streaming and the next `nativeSendMessageAsync`
-/// dereferenced a freed pointer → SIGSEGV. So we couldn't preempt extraction
-/// when the user opened the Shiv tab.
-///
-/// 0.16's [InferenceModel.openChat] gives each Dart wrapper its **own**
-/// independent native session, so `stopGeneration()` is per-session. We can
-/// now safely cancel extraction the moment chat is requested, without
-/// touching chat's session state.
+/// Serialization is delegated to [InferenceScheduler] (see
+/// `docs/SHIVA/scheduling.md`) — the scheduler picks the next job based on
+/// the 5-tier algorithm and signals cooperative cancellation via the
+/// [CancelToken] handed to each work closure. The runner is the only place
+/// that knows how to translate "cancel" into [InferenceChat.stopGeneration].
 ///
 /// ## Strategy
 ///
 /// - **Chat** opens a throwaway [InferenceChat] per turn via [openChat]. RAG
 ///   context can change every turn so we don't want stale RAG dumps living in
-///   a long-lived chat's history. Re-opening per turn is cheap on 0.16 because
-///   each openChat just spawns a fresh session against the loaded weights.
-/// - **Extraction** also uses [openChat], but we cache the in-flight reference
-///   in [_activeExtraction] so that [sendAndStream] can call
-///   `stopGeneration()` on it before the chat turn starts. Extraction's future
-///   exits cleanly with a `null` result; the caller treats null as
-///   "cancelled, retry later" (already handled by ExtractKnowledgeUseCase).
-/// - [ModelTaskQueue] still serialises because the **native accelerator**
-///   itself runs one inference at a time. The new contract is: preempt first
-///   (cancel extraction), then chat enters the high-priority lane and waits
-///   only for the very brief window the cancelled extraction takes to
-///   actually stop.
+///   a long-lived chat's history. Re-opening per turn is cheap on 1.x because
+///   each `openChat` just spawns a fresh session against the loaded weights.
+/// - **One-shot** (extraction / Nataraj / Gana) uses the same `openChat`
+///   pattern. The scheduler's [CancelToken] is polled between streamed
+///   tokens — on cancel the work calls `stopGeneration()` on its private
+///   session and returns null. The caller treats null as "cancelled / no
+///   active model"; for `extract`, [ExtractKnowledgeUseCase] retries; for
+///   `nataraj` / `gana`, the scheduler itself re-queues the cancelled job.
 @lazySingleton
 class AIModelRunner {
-  final ModelTaskQueue _queue;
+  final InferenceScheduler _scheduler;
   final AppSettingsStore _settings;
-
-  /// In-flight extraction chat, if any. Held so [sendAndStream] can call
-  /// [InferenceChat.stopGeneration] on it. Cleared in extraction's finally.
-  InferenceChat? _activeExtraction;
 
   /// The model instance last handed out by [_openActiveModel]. Held so a failed
   /// invoke can [_resetModel] it — closing the native model frees its
   /// accumulated sessions/cache so the next open rebuilds a fresh one.
   InferenceModel? _activeModel;
 
-  AIModelRunner(this._queue, this._settings);
+  AIModelRunner(this._scheduler, this._settings);
+
+  /// Stable string id for the currently-active model — handed to the
+  /// scheduler so it can apply model-affinity batching across jobs. Falls
+  /// back to a sentinel when no model is selected yet (the runner short-
+  /// circuits before dispatch in that case, so the value is unused).
+  String get _activeModelIdName => _settings.activeModelId?.name ?? '_none_';
 
   LocalModelParams? get _activeParams =>
       LocalModelParams.forId(_settings.activeModelId);
@@ -134,59 +126,60 @@ class AIModelRunner {
       throw StateError('No AI model is active. Please select a model first.');
     }
 
-    // Preempt any in-flight extraction. Safe in 0.16 because openChat sessions
-    // are independent — stopping extraction does not touch chat's session.
-    final extraction = _activeExtraction;
-    if (extraction != null) {
-      debugPrint('🚫 Preempting in-flight extraction for chat turn');
-      try {
-        await extraction.stopGeneration();
-      } catch (e) {
-        debugPrint('⚠️ stopGeneration on extraction threw: $e');
-      }
-    }
-
     final tokens = StreamController<String>();
-    final running = _queue.runHigh<void>(() async {
-      InferenceChat? chat;
-      try {
-        final params = _activeParams;
-        final model = await _openActiveModel(params?.maxTokens ?? 4096);
-        chat = await model.openChat(
-          temperature: 0.8,
-          topK: 40,
-          tokenBuffer: 512,
-          modelType: params?.modelType,
-          isThinking: params?.isThinking ?? false,
-        );
 
-        final prompt = _composePrompt(
-          systemInstruction: systemInstruction,
-          cleanHistory: cleanHistory,
-          currentMessage: message,
-          historyBudget: _historyBudgetTokens(params),
-        );
+    // Submit via the scheduler at T0 (chat). The scheduler is responsible
+    // for preempting any in-flight lower-tier job (extract / nataraj /
+    // gana) at the next token boundary — see docs/SHIVA/scheduling.md.
+    final running = _scheduler.run<void>(
+      kind: LlmTaskKind.chat,
+      modelId: _activeModelIdName,
+      work: (cancel) async {
+        InferenceChat? chat;
+        try {
+          final params = _activeParams;
+          final model = await _openActiveModel(params?.maxTokens ?? 4096);
+          _scheduler.notifyLoadedModel(_activeModelIdName);
+          chat = await model.openChat(
+            temperature: 0.8,
+            topK: 40,
+            tokenBuffer: 512,
+            modelType: params?.modelType,
+            isThinking: params?.isThinking ?? false,
+          );
 
-        await chat.addQueryChunk(Message.text(text: prompt));
-        final scrubber = _StopTokenScrubber();
-        await for (final response in chat.generateChatResponseAsync()) {
-          if (response is TextResponse && response.token.isNotEmpty) {
-            final safe = scrubber.feed(response.token);
-            if (safe != null) tokens.add(safe);
-            if (scrubber.isDone) break;
+          final prompt = _composePrompt(
+            systemInstruction: systemInstruction,
+            cleanHistory: cleanHistory,
+            currentMessage: message,
+            historyBudget: _historyBudgetTokens(params),
+          );
+
+          await chat.addQueryChunk(Message.text(text: prompt));
+          final scrubber = _StopTokenScrubber();
+          await for (final response in chat.generateChatResponseAsync()) {
+            if (cancel.isCancelled) {
+              await chat.stopGeneration();
+              break;
+            }
+            if (response is TextResponse && response.token.isNotEmpty) {
+              final safe = scrubber.feed(response.token);
+              if (safe != null) tokens.add(safe);
+              if (scrubber.isDone) break;
+            }
           }
+          final tail = scrubber.flush();
+          if (tail != null) tokens.add(tail);
+        } catch (e, st) {
+          tokens.addError(e, st);
+        } finally {
+          await chat?.close();
+          await tokens.close();
         }
-        final tail = scrubber.flush();
-        if (tail != null) tokens.add(tail);
-      } catch (e, st) {
-        tokens.addError(e, st);
-      } finally {
-        await chat?.close();
-        await tokens.close();
-      }
-    }, label: 'chat');
+      },
+    );
 
-    unawaited(running);
+    unawaited(running.catchError((_) {}));
     yield* tokens.stream;
   }
 
@@ -194,44 +187,57 @@ class AIModelRunner {
   /// per-conversation state to tear down. Kept for the datasource lifecycle.
   Future<void> close() async {}
 
-  /// Stateless one-shot completion. By default goes through the low-priority
-  /// lane so chat turns always cut in front. Pass [highPriority] = true for
-  /// foreground user work (e.g. Nataraj deck generation) so it runs even
-  /// while the Shiv tab holds the low lane paused. May return null if
-  /// preempted by chat or if no model is active — callers must tolerate null.
+  /// Stateless one-shot completion routed through [InferenceScheduler].
+  ///
+  /// [kind] picks the tier (see `docs/SHIVA/scheduling.md` §3).
+  /// Returns `null` if preempted at a token boundary or if no model is
+  /// active — callers must tolerate null.
   Future<String?> generateOneShot(
     String prompt, {
     int maxTokens = 1024,
-    bool highPriority = false,
-  }) {
+    LlmTaskKind kind = LlmTaskKind.extract,
+  }) async {
     if (!FlutterGemma.hasActiveModel()) {
       debugPrint('⏭️ generateOneShot: no active model');
-      return Future.value(null);
+      return null;
     }
-    return (highPriority ? _queue.runHigh<String?> : _queue.runLow<String?>)(
-      () => _doGenerateOneShot(prompt, maxTokens),
-      label: highPriority ? 'nataraj' : 'extract',
-    );
+    try {
+      return await _scheduler.run<String?>(
+        kind: kind,
+        modelId: _activeModelIdName,
+        work: (cancel) => _doGenerateOneShot(prompt, maxTokens, cancel),
+      );
+    } catch (e, st) {
+      debugPrint('⏭️ generateOneShot failed: $e\n$st');
+      return null;
+    }
   }
 
-  Future<String?> _doGenerateOneShot(String prompt, int maxTokens) async {
-    final (result, ok) = await _attemptOneShot(prompt, maxTokens);
-    if (ok) return result;
-    // The invoke failed. After many open/close session cycles the native
-    // runtime can degrade — invoke starts failing even though it worked
-    // moments ago (seen heavily on the resource-limited iOS simulator). Drop
-    // the cached model so a fresh one is rebuilt, then retry once. If it still
-    // fails, the caller treats null as "skip this combo".
+  Future<String?> _doGenerateOneShot(
+    String prompt,
+    int maxTokens,
+    CancelToken cancel,
+  ) async {
+    final (result, ok) = await _attemptOneShot(prompt, maxTokens, cancel);
+    if (ok || cancel.isCancelled) return result;
+    // The invoke failed (not a cancel). After many open/close session cycles
+    // the native runtime can degrade — invoke starts failing even though it
+    // worked moments ago (seen heavily on the resource-limited iOS simulator).
+    // Drop the cached model so a fresh one is rebuilt, then retry once.
     debugPrint('⚠️ generateOneShot: invoke failed — resetting model + retry');
     await _resetModel();
-    final (retryResult, _) = await _attemptOneShot(prompt, maxTokens);
+    final (retryResult, _) = await _attemptOneShot(prompt, maxTokens, cancel);
     return retryResult;
   }
 
-  /// One open → generate → close attempt. Returns `(text, true)` on success or
-  /// `(null, false)` when the native invoke threw, so the caller can decide
-  /// whether to reset the model and retry.
-  Future<(String?, bool)> _attemptOneShot(String prompt, int maxTokens) async {
+  /// One open → generate → close attempt. Returns `(text, true)` on success
+  /// or `(null, false)` when the native invoke threw / was cancelled, so the
+  /// caller can decide whether to reset the model and retry.
+  Future<(String?, bool)> _attemptOneShot(
+    String prompt,
+    int maxTokens,
+    CancelToken cancel,
+  ) async {
     InferenceChat? oneShot;
     try {
       debugPrint('🧪 generateOneShot: opening throwaway chat…');
@@ -244,6 +250,7 @@ class AIModelRunner {
       // for an unknown model with no params.
       final cacheSize = params?.maxTokens ?? maxTokens;
       final model = await _openActiveModel(cacheSize);
+      _scheduler.notifyLoadedModel(_activeModelIdName);
       oneShot = await model.openChat(
         temperature: 0.2,
         topK: 20,
@@ -251,12 +258,15 @@ class AIModelRunner {
         modelType: params?.modelType,
         isThinking: params?.isThinking ?? false,
       );
-      _activeExtraction = oneShot;
 
       await oneShot.addQueryChunk(Message.text(text: prompt));
       final buffer = StringBuffer();
       final scrubber = _StopTokenScrubber();
       await for (final response in oneShot.generateChatResponseAsync()) {
+        if (cancel.isCancelled) {
+          await oneShot.stopGeneration();
+          break;
+        }
         if (response is TextResponse) {
           final safe = scrubber.feed(response.token);
           if (safe != null) buffer.write(safe);
@@ -271,14 +281,11 @@ class AIModelRunner {
       // whole string, not per-chunk, or we'd split UTF-8 byte sequences.
       final cleaned = LlmTextSanitizer.clean(buffer.toString());
       debugPrint('🧪 generateOneShot: done (${cleaned.length} chars)');
-      return (cleaned, true);
+      return (cleaned, !cancel.isCancelled);
     } catch (e, st) {
       debugPrint('⏭️ generateOneShot attempt failed: $e\n$st');
       return (null, false);
     } finally {
-      if (identical(_activeExtraction, oneShot)) {
-        _activeExtraction = null;
-      }
       try {
         await oneShot?.close();
       } catch (_) {

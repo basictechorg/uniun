@@ -13,6 +13,7 @@ import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
@@ -34,7 +35,9 @@ import 'package:uuid/uuid.dart';
 /// gives us:
 ///
 ///   • Direct calls to `AIModelRunner.generateOneShot` (which routes through
-///     `LocalInferenceQueue.runLow` so Shiv chat (`runHigh`) preempts).
+///     [InferenceScheduler] with `kind: gana` — T4 fair pool by default,
+///     T1 while the GanaForm preview is open, T3 once the cron deadline has
+///     passed; Shiv chat (T0) preempts via `InferenceChat.stopGeneration`).
 ///   • Direct calls to publish use cases (NIP-17 DM gift-wrap, NIP-29 MLS
 ///     private channels) without going through a pending-table dispatcher.
 ///   • Direct access to `EmbeddingService` for Manas vector retrieval.
@@ -348,7 +351,7 @@ class GanaEngine {
     String? text;
     String? error;
     try {
-      text = await _runner.generateOneShot(prompt);
+      text = await _runner.generateOneShot(prompt, kind: LlmTaskKind.gana);
     } catch (e) {
       error = e.toString();
     }

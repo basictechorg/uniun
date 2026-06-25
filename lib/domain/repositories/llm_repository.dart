@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 
 /// Single inference contract for the app.
 ///
@@ -46,12 +47,19 @@ abstract class LlmRepository {
     List<(String, String)> cleanHistory = const [],
   });
 
-  // ── Background one-shot (extraction etc.) ───────────────────────────────
+  // ── One-shot work ───────────────────────────────────────────────────────
 
+  /// Stateless completion routed through [InferenceScheduler] (local
+  /// backend) or executed directly (cloud backend, network-concurrent).
+  ///
+  /// [kind] drives scheduler tier selection — see
+  /// `docs/SHIVA/scheduling.md` §3. Default is [LlmTaskKind.extract] which
+  /// matches the original semantics of `generateOneShot` before the
+  /// scheduler landed.
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
-    bool highPriority = false,
+    LlmTaskKind kind = LlmTaskKind.extract,
   });
 
   // ── Priority coordination ───────────────────────────────────────────────
