@@ -52,14 +52,9 @@ class IdentityCard extends StatelessWidget {
             trailing: Icons.chevron_right_rounded,
             onTap: () => _showRelaysSheet(context),
           ),
-          IdentityRow(
-            icon: Icons.backup_rounded,
-            label: l10n.identityExportBackup,
-            trailing: Icons.download_rounded,
-            onTap: () {
-              // TODO: export backup
-            },
-          ),
+          // Export Backup is hidden until the feature is implemented.
+          // Apple Guideline 2.1 rejects shipping UI that does nothing.
+          // Restore this row once the export flow is wired up.
           IdentityRow(
             icon: Icons.block_rounded,
             label: l10n.settingsBlockedUsers,
