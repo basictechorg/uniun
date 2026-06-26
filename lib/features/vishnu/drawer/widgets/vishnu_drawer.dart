@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -97,7 +96,7 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.surface,
-      width: 280,
+      width: 312,
       child: BlocBuilder<app_drawer.DrawerBloc, app_drawer.DrawerState>(
         builder: (context, state) {
           final loaded = state is app_drawer.DrawerLoaded ? state : null;
@@ -110,6 +109,16 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                 pubkeyHex: loaded?.pubkeyHex ?? '',
                 avatarUrl: loaded?.avatarUrl,
                 myRelays: loaded?.myRelays ?? const [],
+                onScan: () => context.pushNamed(AppRoutes.scanQr),
+              ),
+
+              _DrawerSearchField(
+                controller: _searchController,
+                onChanged: (v) => setState(() => _query = v),
+                onClear: () => setState(() {
+                  _searchController.clear();
+                  _query = '';
+                }),
               ),
 
               Expanded(
@@ -121,181 +130,185 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                         onTap: (r) => _onResultTap(context, r),
                       )
                     : ListView(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                  children: [
-                    // ── Main nav ──────────────────────────────────────────
-                    _NavItem(
-                      icon: Icons.home_rounded,
-                      label: l10n.drawerHome,
-                      active: true,
-                      onTap: () => _close(context),
-                    ),
-                    _NavItem(
-                      icon: Icons.bookmark_rounded,
-                      label: l10n.drawerSavedNotes,
-                      onTap: () {
-                        _close(context);
-                        context.pushNamed(AppRoutes.savedNotes);
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ── Following Notes (collapsible) ─────────────────────
-                    _CollapsibleSection(
-                      icon: Icons.notifications_none_rounded,
-                      title: l10n.drawerFollowingNotes,
-                      itemCount: (loaded?.followedNotes ?? []).length,
-                      emptyHint: l10n.drawerNoFollowedNotes,
-                      onAdd: () => _showComingSoon(context, l10n.drawerHome),
-                      children: [
-                        for (final item in loaded?.followedNotes ?? [])
-                          _FollowedNoteRow(
-                            item: item,
-                            onTap: () async {
+                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        children: [
+                          // ── Main nav ────────────────────────────────────
+                          _NavItem(
+                            icon: Icons.home_rounded,
+                            label: l10n.drawerHome,
+                            active: true,
+                            onTap: () => _close(context),
+                          ),
+                          _NavItem(
+                            icon: Icons.bookmark_rounded,
+                            label: l10n.drawerSavedNotes,
+                            onTap: () {
                               _close(context);
-                              getIt<ClearNewReferencesUseCase>()
-                                  .call(item.eventId);
-                              await openEventThread(
-                                context,
-                                item.eventId,
-                                openAsNote: () => context.pushNamed(
-                                  AppRoutes.thread,
-                                  pathParameters: {'noteId': item.eventId},
+                              context.pushNamed(AppRoutes.savedNotes);
+                            },
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // ── Direct messages ─────────────────────────────
+                          _CollapsibleSection(
+                            title: l10n.drawerDirectMessages,
+                            itemCount: (loaded?.dms ?? []).length,
+                            emptyHint: l10n.drawerNoMessages,
+                            onAdd: () {
+                              _close(context);
+                              context.pushNamed(AppRoutes.createDm);
+                            },
+                            children: [
+                              for (final dm in loaded?.dms ?? [])
+                                _ListRow(
+                                  leading: UserAvatar(
+                                    seed: dm.pubkey,
+                                    photoUrl: dm.avatarUrl,
+                                    size: 32,
+                                  ),
+                                  title: dm.name,
+                                  trailing: dm.unreadCount > 0
+                                      ? _CountBadge(dm.unreadCount)
+                                      : null,
+                                  onTap: () {
+                                    _close(context);
+                                    context.pushNamed(
+                                      AppRoutes.chatDm,
+                                      pathParameters: {'id': dm.pubkey},
+                                    );
+                                  },
                                 ),
-                              );
-                              // ignore: use_build_context_synchronously
-                              if (context.mounted) {
-                                context.read<app_drawer.DrawerBloc>().add(
-                                    app_drawer.DrawerLoadEvent());
-                              }
-                            },
+                            ],
                           ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 16),
+                          // ── Channels ────────────────────────────────────
+                          _CollapsibleSection(
+                            title: l10n.drawerChannels,
+                            itemCount: (loaded?.channels ?? []).length,
+                            emptyHint: l10n.drawerNoChannels,
+                            onAdd: () {
+                              _close(context);
+                              context.pushNamed(AppRoutes.channelEntry);
+                            },
+                            children: [
+                              for (final ch in loaded?.channels ?? [])
+                                _ListRow(
+                                  leading: const _IconSquare(Icons.tag_rounded),
+                                  title: ch.name,
+                                  trailing: ch.hasUnread ? const _Dot() : null,
+                                  onTap: () {
+                                    _close(context);
+                                    context.pushNamed(
+                                      AppRoutes.channelDetail,
+                                      pathParameters: {'channelId': ch.id},
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
 
-                    // ── Following Users (collapsible) ─────────────────────
-                    _CollapsibleSection(
-                      icon: Icons.person_outline_rounded,
-                      title: l10n.drawerFollowingSectionTitle,
-                      itemCount: (loaded?.followedUsers ?? []).length,
-                      emptyHint: l10n.drawerFollowingEmpty,
-                      onAdd: () {
-                        _close(context);
-                        context.pushNamed(
-                          AppRoutes.scanQr,
-                          extra: UniunQrScanIntent.follow,
-                        );
-                      },
-                      children: [
-                        for (final user in loaded?.followedUsers ?? [])
-                          _FollowedUserRow(
-                            user: user,
-                            onTap: () {
+                          // ── Private channels ────────────────────────────
+                          _CollapsibleSection(
+                            title: l10n.drawerPrivateChannels,
+                            itemCount: (loaded?.privateChannels ?? []).length,
+                            emptyHint: l10n.drawerNoPrivateChannels,
+                            onAdd: () {
+                              _close(context);
+                              context.pushNamed(AppRoutes.privateChannelEntry);
+                            },
+                            children: [
+                              for (final ch in loaded?.privateChannels ?? [])
+                                _ListRow(
+                                  leading:
+                                      const _IconSquare(Icons.lock_rounded),
+                                  title: ch.name,
+                                  subtitle: l10n.drawerPrivateLabel,
+                                  trailing: ch.hasUnread ? const _Dot() : null,
+                                  onTap: () {
+                                    _close(context);
+                                    context.pushNamed(
+                                      AppRoutes.privateChannelDetail,
+                                      pathParameters: {'groupId': ch.id},
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+
+                          // ── Followed notes ──────────────────────────────
+                          _CollapsibleSection(
+                            title: l10n.drawerFollowingNotes,
+                            itemCount: (loaded?.followedNotes ?? []).length,
+                            emptyHint: l10n.drawerNoFollowedNotes,
+                            onAdd: () => _showComingSoon(context, l10n.drawerHome),
+                            children: [
+                              for (final item in loaded?.followedNotes ?? [])
+                                _ListRow(
+                                  leading: const _IconSquare(Icons.link_rounded),
+                                  title: item.contentPreview,
+                                  trailing: item.newReferenceCount > 0
+                                      ? _CountBadge(
+                                          item.newReferenceCount,
+                                          activity: true,
+                                        )
+                                      : null,
+                                  onTap: () async {
+                                    _close(context);
+                                    getIt<ClearNewReferencesUseCase>()
+                                        .call(item.eventId);
+                                    await openEventThread(
+                                      context,
+                                      item.eventId,
+                                      openAsNote: () => context.pushNamed(
+                                        AppRoutes.thread,
+                                        pathParameters: {'noteId': item.eventId},
+                                      ),
+                                    );
+                                    // ignore: use_build_context_synchronously
+                                    if (context.mounted) {
+                                      context.read<app_drawer.DrawerBloc>().add(
+                                          app_drawer.DrawerLoadEvent());
+                                    }
+                                  },
+                                ),
+                            ],
+                          ),
+
+                          // ── Following users ─────────────────────────────
+                          _CollapsibleSection(
+                            title: l10n.drawerFollowingSectionTitle,
+                            itemCount: (loaded?.followedUsers ?? []).length,
+                            emptyHint: l10n.drawerFollowingEmpty,
+                            onAdd: () {
                               _close(context);
                               context.pushNamed(
-                                AppRoutes.userProfile,
-                                extra: UserProfileArgs(pubkeyHex: user.pubkey),
+                                AppRoutes.scanQr,
+                                extra: UniunQrScanIntent.follow,
                               );
                             },
+                            children: [
+                              for (final user in loaded?.followedUsers ?? [])
+                                _ListRow(
+                                  leading: UserAvatar(
+                                    seed: user.pubkey,
+                                    photoUrl: user.avatarUrl,
+                                    size: 32,
+                                  ),
+                                  title: user.name,
+                                  onTap: () {
+                                    _close(context);
+                                    context.pushNamed(
+                                      AppRoutes.userProfile,
+                                      extra:
+                                          UserProfileArgs(pubkeyHex: user.pubkey),
+                                    );
+                                  },
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ── Channels (collapsible) ────────────────────────────
-                    _CollapsibleSection(
-                      icon: Icons.tag_rounded,
-                      title: l10n.drawerChannels,
-                      itemCount: (loaded?.channels ?? []).length,
-                      emptyHint: l10n.drawerNoChannels,
-                      onAdd: () {
-                        _close(context);
-                        context.pushNamed(AppRoutes.channelEntry);
-                      },
-                      children: [
-                        for (final ch in loaded?.channels ?? [])
-                          _ChannelRow(
-                            channel: ch,
-                            onTap: () {
-                              _close(context);
-                              context.pushNamed(
-                                AppRoutes.channelDetail,
-                                pathParameters: {'channelId': ch.id},
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ── Private Channels (collapsible) ────────────────────
-                    _CollapsibleSection(
-                      icon: Icons.lock_outline_rounded,
-                      title: l10n.drawerPrivateChannels,
-                      itemCount: (loaded?.privateChannels ?? []).length,
-                      emptyHint: l10n.drawerNoPrivateChannels,
-                      onAdd: () {
-                        _close(context);
-                        context.pushNamed(AppRoutes.privateChannelEntry);
-                      },
-                      children: [
-                        for (final ch in loaded?.privateChannels ?? [])
-                          _PrivateChannelRow(
-                            channel: ch,
-                            onTap: () {
-                              _close(context);
-                              context.pushNamed(
-                                AppRoutes.privateChannelDetail,
-                                pathParameters: {'groupId': ch.id},
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // ── Direct Messages (collapsible) ─────────────────────
-                    _CollapsibleSection(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      title: l10n.drawerDirectMessages,
-                      itemCount: (loaded?.dms ?? []).length,
-                      emptyHint: l10n.drawerNoMessages,
-                      onAdd: () {
-                        _close(context);
-                        context.pushNamed(AppRoutes.createDm);
-                      },
-                      children: [
-                        for (final dm in loaded?.dms ?? [])
-                          _DmRow(
-                            dm: dm,
-                            onTap: () {
-                              _close(context);
-                              context.pushNamed(
-                                AppRoutes.chatDm,
-                                pathParameters: {'id': dm.pubkey},
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              _DrawerSearchField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _query = v),
-                onClear: () => setState(() {
-                  _searchController.clear();
-                  _query = '';
-                }),
+                        ],
+                      ),
               ),
 
               _DrawerFooter(
@@ -320,6 +333,7 @@ class _DrawerHeader extends StatelessWidget {
     required this.npub,
     required this.pubkeyHex,
     required this.myRelays,
+    required this.onScan,
     this.avatarUrl,
   });
 
@@ -328,21 +342,28 @@ class _DrawerHeader extends StatelessWidget {
   final String pubkeyHex;
   final String? avatarUrl;
   final List<String> myRelays;
+  final VoidCallback onScan;
 
   void _showQr(BuildContext context) {
     if (npub.isEmpty) return;
-    showDialog<void>(
-      context: context,
-      builder: (_) =>
-          UniunQrCard.user(npub: npub, name: name, relays: myRelays),
+    UniunQrCard.show(
+      context,
+      card: UniunQrCard.user(
+        npub: npub,
+        name: name,
+        relays: myRelays,
+        avatarSeed: pubkeyHex,
+        avatarUrl: avatarUrl,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.fromLTRB(
-          16, MediaQuery.of(context).padding.top + 16, 8, 16),
+          16, MediaQuery.of(context).padding.top + 18, 16, 14),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -350,53 +371,102 @@ class _DrawerHeader extends StatelessWidget {
           ),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
+          Row(
             children: [
               UserAvatar(
                 seed: pubkeyHex,
                 photoUrl: avatarUrl,
-                size: 40,
-                borderRadius: 10,
+                size: 48,
               ),
-              Positioned(
-                bottom: -1,
-                right: -1,
-                child: Container(
-                  width: 11,
-                  height: 11,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF22C55E),
-                    border: Border.all(color: AppColors.surface, width: 2),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _QrActionButton(
+                  icon: Icons.qr_code_2_rounded,
+                  label: l10n.drawerMyQrCode,
+                  onTap: () => _showQr(context),
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          UniunQrScanButton(
-            onTap: () => context.pushNamed(AppRoutes.scanQr),
-            tooltip: 'Scan QR',
-          ),
-          UniunQrButton(
-            onTap: () => _showQr(context),
-            tooltip: 'My QR',
+              const SizedBox(width: 8),
+              Expanded(
+                child: _QrActionButton(
+                  icon: Icons.qr_code_scanner_rounded,
+                  label: l10n.drawerScanCode,
+                  onTap: onScan,
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Bordered "My QR code" / "Scan code" pill in the drawer header.
+class _QrActionButton extends StatelessWidget {
+  const _QrActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -411,7 +481,6 @@ class _DrawerHeader extends StatelessWidget {
 
 class _CollapsibleSection extends StatefulWidget {
   const _CollapsibleSection({
-    required this.icon,
     required this.title,
     required this.itemCount,
     required this.emptyHint,
@@ -419,7 +488,6 @@ class _CollapsibleSection extends StatefulWidget {
     this.onAdd,
   });
 
-  final IconData icon;
   final String title;
   final int itemCount;
   final String emptyHint;
@@ -484,41 +552,51 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: _toggle,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                Icon(widget.icon, size: 14, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: AppColors.primary,
-                    ),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 8, top: 14, bottom: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _toggle,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      AnimatedRotation(
+                        turns: _expanded ? 0 : -0.25,
+                        duration: const Duration(milliseconds: 200),
+                        child: const Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 18, color: AppColors.outline),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          widget.title.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: AppColors.outline,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (widget.onAdd != null)
-                  GestureDetector(
-                    onTap: widget.onAdd,
-                    child: const Icon(Icons.add_rounded,
-                        size: 18, color: AppColors.outline),
+              ),
+              if (widget.onAdd != null)
+                InkWell(
+                  onTap: widget.onAdd,
+                  borderRadius: BorderRadius.circular(999),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.add_rounded,
+                        size: 18, color: AppColors.primary),
                   ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0 : -0.25,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 18, color: AppColors.outline),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
         // Vertical accordion — clip height only. AnimatedCrossFade animated both
@@ -528,7 +606,6 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
           sizeFactor: _sizeFactor,
           child: Column(
             children: [
-              const SizedBox(height: 4),
               if (widget.itemCount == 0)
                 _EmptyHint(widget.emptyHint)
               else
@@ -536,7 +613,6 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
             ],
           ),
         ),
-
       ],
     );
   }
@@ -559,264 +635,174 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          color: active
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: active ? AppColors.primary : AppColors.onSurfaceVariant,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: active
+                ? AppColors.primary.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
                 color: active ? AppColors.primary : AppColors.onSurfaceVariant,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Followed note row ──────────────────────────────────────────────────────────
-
-class _FollowedNoteRow extends StatelessWidget {
-  const _FollowedNoteRow({required this.item, required this.onTap});
-  final app_drawer.DrawerFollowedNoteItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          children: [
-            const Icon(Icons.notifications_none_rounded,
-                size: 16, color: AppColors.outline),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                item.contentPreview,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ),
-            if (item.newReferenceCount > 0)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Followed user row ──────────────────────────────────────────────────────────
-
-class _FollowedUserRow extends StatelessWidget {
-  const _FollowedUserRow({required this.user, required this.onTap});
-  final app_drawer.DrawerFollowedUserItem user;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          children: [
-            UserAvatar(seed: user.pubkey, photoUrl: user.avatarUrl, size: 22),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                user.name,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Private channel row ────────────────────────────────────────────────────────
-
-class _PrivateChannelRow extends StatelessWidget {
-  const _PrivateChannelRow({required this.channel, required this.onTap});
-  final app_drawer.DrawerPrivateChannelItem channel;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          children: [
-            const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.outline),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                channel.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 12),
+              Text(
+                label,
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight:
-                      channel.hasUnread ? FontWeight.w600 : FontWeight.w400,
-                  color: AppColors.onSurfaceVariant,
+                  fontSize: 15,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                  color: active ? AppColors.primary : AppColors.onSurface,
                 ),
               ),
-            ),
-            if (channel.hasUnread)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Channel row ────────────────────────────────────────────────────────────────
+// ── List row ───────────────────────────────────────────────────────────────────
+//
+// The shared drawer list row: leading avatar/icon-square + title (+ optional
+// muted subtitle) + optional trailing badge. Used by every section.
 
-class _ChannelRow extends StatelessWidget {
-  const _ChannelRow({required this.channel, required this.onTap});
-  final app_drawer.DrawerChannelItem channel;
+class _ListRow extends StatelessWidget {
+  const _ListRow({
+    required this.leading,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.trailing,
+  });
+
+  final Widget leading;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            const Icon(Icons.tag_rounded, size: 18, color: AppColors.outline),
-            const SizedBox(width: 10),
+            leading,
+            const SizedBox(width: 11),
             Expanded(
-              child: Text(
-                channel.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight:
-                      channel.hasUnread ? FontWeight.w600 : FontWeight.w400,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ),
-            if (channel.hasUnread)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── DM row ─────────────────────────────────────────────────────────────────────
-
-class _DmRow extends StatelessWidget {
-  const _DmRow({required this.dm, required this.onTap});
-  final app_drawer.DrawerDmItem dm;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          children: [
-            UserAvatar(seed: dm.pubkey, photoUrl: dm.avatarUrl, size: 22),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                dm.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight:
-                      dm.unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (dm.unreadCount > 0)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${dm.unreadCount}',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onPrimary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                    ),
                   ),
-                ),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.outline,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Icon inside a tinted rounded square — channel #, private lock, followed link.
+class _IconSquare extends StatelessWidget {
+  const _IconSquare(this.icon);
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 18, color: AppColors.primary),
+    );
+  }
+}
+
+// Count pill. Filled (primary) for unread; tinted (activity) for reference counts.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge(this.count, {this.activity = false});
+  final int count;
+  final bool activity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: activity
+            ? AppColors.primary.withValues(alpha: 0.12)
+            : AppColors.primary,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: activity ? AppColors.primary : AppColors.onPrimary,
+        ),
+      ),
+    );
+  }
+}
+
+// Small unread dot for surfaces that only carry a boolean (channels / private).
+class _Dot extends StatelessWidget {
+  const _Dot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.primary,
       ),
     );
   }
@@ -824,8 +810,8 @@ class _DmRow extends StatelessWidget {
 
 // ── Search field ───────────────────────────────────────────────────────────────
 //
-// Pinned at the bottom of the drawer, above the Settings footer. While it holds
-// text the body above swaps to a unified result list (_SearchResultsList).
+// Pinned just under the header. While it holds text the body below swaps to a
+// unified result list (_SearchResultsList).
 
 class _DrawerSearchField extends StatelessWidget {
   const _DrawerSearchField({
@@ -842,18 +828,11 @@ class _DrawerSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     OutlineInputBorder border(Color color) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(999),
           borderSide: BorderSide(color: color),
         );
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
@@ -866,7 +845,7 @@ class _DrawerSearchField extends StatelessWidget {
           prefixIcon: const Icon(Icons.search_rounded,
               size: 18, color: AppColors.outline),
           prefixIconConstraints:
-              const BoxConstraints(minWidth: 36, minHeight: 36),
+              const BoxConstraints(minWidth: 38, minHeight: 38),
           suffixIcon: controller.text.isEmpty
               ? null
               : GestureDetector(
@@ -875,12 +854,13 @@ class _DrawerSearchField extends StatelessWidget {
                       size: 18, color: AppColors.outline),
                 ),
           suffixIconConstraints:
-              const BoxConstraints(minWidth: 36, minHeight: 36),
+              const BoxConstraints(minWidth: 38, minHeight: 38),
           filled: true,
           fillColor: AppColors.surfaceContainerLow,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
-          border: border(Colors.transparent),
-          enabledBorder: border(Colors.transparent),
+          border: border(AppColors.outlineVariant.withValues(alpha: 0.4)),
+          enabledBorder:
+              border(AppColors.outlineVariant.withValues(alpha: 0.4)),
           focusedBorder: border(AppColors.primary.withValues(alpha: 0.5)),
         ),
       ),
@@ -891,18 +871,19 @@ class _DrawerSearchField extends StatelessWidget {
 // ── Search results ─────────────────────────────────────────────────────────────
 //
 // Flat, mixed list of matches across every drawer surface. Each row carries a
-// leading type icon so intermixed kinds stay identifiable at a glance.
+// leading avatar (users / DMs) or type icon-square so intermixed kinds stay
+// identifiable at a glance.
 
 IconData _searchIconFor(DrawerSearchKind kind) {
   switch (kind) {
     case DrawerSearchKind.channel:
       return Icons.tag_rounded;
     case DrawerSearchKind.privateChannel:
-      return Icons.lock_outline_rounded;
+      return Icons.lock_rounded;
     case DrawerSearchKind.dm:
       return Icons.chat_bubble_outline_rounded;
     case DrawerSearchKind.followedNote:
-      return Icons.notifications_none_rounded;
+      return Icons.link_rounded;
     case DrawerSearchKind.followedUser:
       return Icons.person_outline_rounded;
   }
@@ -931,59 +912,29 @@ class _SearchResultsList extends StatelessWidget {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: results.length,
-      itemBuilder: (_, i) => _SearchResultRow(
-        result: results[i],
-        onTap: () => onTap(results[i]),
-      ),
-    );
-  }
-}
-
-class _SearchResultRow extends StatelessWidget {
-  const _SearchResultRow({required this.result, required this.onTap});
-
-  final DrawerSearchResult result;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Icon(_searchIconFor(result.kind),
-                size: 18, color: AppColors.outline),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                result.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight:
-                      result.hasUnread ? FontWeight.w600 : FontWeight.w400,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ),
-            if (result.hasUnread)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
-        ),
-      ),
+      itemBuilder: (_, i) {
+        final r = results[i];
+        // DMs and followed users both render as an avatar + name; a kind
+        // subtitle keeps the two visually distinct in the mixed list.
+        final hasAvatar = (r.kind == DrawerSearchKind.dm ||
+                r.kind == DrawerSearchKind.followedUser);
+        final String? subtitle = switch (r.kind) {
+          DrawerSearchKind.dm => l10n.drawerSearchKindDm,
+          DrawerSearchKind.followedUser => l10n.drawerSearchKindUser,
+          _ => null,
+        };
+        return _ListRow(
+          leading: hasAvatar
+              ? UserAvatar(seed: r.id, photoUrl: r.avatarUrl, size: 32)
+              : _IconSquare(_searchIconFor(r.kind)),
+          title: r.label,
+          subtitle: subtitle,
+          trailing: r.hasUnread ? const _Dot() : null,
+          onTap: () => onTap(r),
+        );
+      },
     );
   }
 }
@@ -997,7 +948,7 @@ class _EmptyHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Text(
         text,
         style: const TextStyle(
@@ -1019,9 +970,7 @@ class _DrawerFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
         border: Border(
           top: BorderSide(
             color: AppColors.outlineVariant.withValues(alpha: 0.4),
@@ -1032,22 +981,24 @@ class _DrawerFooter extends StatelessWidget {
         top: false,
         child: InkWell(
           onTap: onSettings,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
                 const Icon(Icons.settings_rounded,
-                    size: 20, color: AppColors.onSurfaceVariant),
-                const SizedBox(width: 12),
-                Text(
-                  AppLocalizations.of(context)!.drawerSettings,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.onSurfaceVariant,
+                    size: 22, color: AppColors.onSurfaceVariant),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context)!.drawerSettings,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.onSurface,
+                    ),
                   ),
                 ),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 20, color: AppColors.outlineVariant),
               ],
             ),
           ),

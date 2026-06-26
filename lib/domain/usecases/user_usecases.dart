@@ -114,3 +114,17 @@ class ImportKeyUseCase
     return _repository.importKey(nsec);
   }
 }
+
+// ── LogoutUseCase ─────────────────────────────────────────────────────────────
+
+/// Clears the stored keypair (nsec from secure storage + the public
+/// `UserKeyModel` from Isar). After this resolves the app has no active
+/// identity, so the caller should route back to onboarding (Welcome).
+@lazySingleton
+class LogoutUseCase extends NoParamsUseCase<Either<Failure, Unit>> {
+  final UserRepository _repository;
+  const LogoutUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call() => _repository.logout();
+}

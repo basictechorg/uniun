@@ -122,7 +122,7 @@ class _ComposerHostState extends State<ComposerHost> {
 
   /// Tap the avatar → pick a Manas scope → enter (or re-scope) chat mode.
   Future<void> _openManasChatPicker() async {
-    final scope = await showManasChatPicker(context);
+    final scope = await showManasChatPicker(context, current: _activeScope);
     if (scope == null || !mounted) return;
     setState(() => _activeScope = scope);
     _chatCubit.start(
@@ -130,6 +130,18 @@ class _ComposerHostState extends State<ComposerHost> {
       manasName: scope.name,
       entityContext: widget.entityContext,
     );
+    _focusNode.requestFocus();
+  }
+
+  /// Drop a finished Shiv answer into the composer as an editable reply draft:
+  /// leave chat mode, fill the text field with the answer, and refocus so the
+  /// user can tweak it before sending. The reply-context strip reappears since
+  /// chat mode is exited.
+  void _useAnswerAsReply(String text) {
+    _chatCubit.exit();
+    _controller.text = text;
+    _controller.selection = TextSelection.collapsed(offset: text.length);
+    setState(() => _hasText = text.trim().isNotEmpty);
     _focusNode.requestFocus();
   }
 
@@ -213,7 +225,6 @@ class _ComposerHostState extends State<ComposerHost> {
           title: l10n.composerReferenceTitle,
           searchHint: l10n.composerReferenceSearchHint,
           emptyLabel: l10n.composerReferenceEmpty,
-          selectedLabel: l10n.composerReferenceSelected,
           initialSelected: List.of(_mentionRefs),
         ),
       ),
@@ -274,6 +285,7 @@ class _ComposerHostState extends State<ComposerHost> {
                   state: chat,
                   onExit: _chatCubit.exit,
                   onStop: _chatCubit.stop,
+                  onUseAsReply: _useAnswerAsReply,
                 )
               : null,
           // In chat mode the publish-only affordances are hidden.

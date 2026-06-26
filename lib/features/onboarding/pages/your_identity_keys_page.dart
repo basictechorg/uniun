@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -134,33 +132,6 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
     );
   }
 
-  Future<void> _downloadBackup(String npub, String nsec) async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/uniun_keys_backup.txt');
-      await file.writeAsString(
-        'UNIUN Identity Backup\n'
-        '=====================\n\n'
-        'Public Key (npub):\n$npub\n\n'
-        'Private Key (nsec):\n$nsec\n\n'
-        'WARNING: Never share your private key with anyone.\n'
-        'Lose this file = lose access to your account forever.\n',
-      );
-      if (!mounted) return;
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.keysBackupSaved(file.path))),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.keysBackupFailed)),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final args = widget.args ?? {};
@@ -171,93 +142,132 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final h = constraints.maxHeight;
-            final topGap = h < 680 ? 8.0 : 16.0;
-            final midGap = h < 680 ? 8.0 : 12.0;
+      body: Stack(
+        children: [
+          // ambient blue blobs (purely decorative)
+          const Positioned(top: -70, left: -90, child: _AmbientBlob()),
+          const Positioned(bottom: -60, right: -90, child: _AmbientBlob()),
+          SafeArea(
+            child: LayoutBuilder(
+            builder: (context, constraints) {
+              final h = constraints.maxHeight;
+              final topGap = h < 680 ? 8.0 : 16.0;
+              final midGap = h < 680 ? 8.0 : 12.0;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                OnboardingAppBar(onBack: () => Navigator.pop(context)),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  OnboardingAppBar(onBack: () => Navigator.pop(context)),
 
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(minHeight: constraints.maxHeight - 16),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: topGap),
+                  // ── Keys + warning — pinned to the top, scrolls if tight ─
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: topGap),
 
-                        Text(
-                          l10n.keysTitle,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.6,
-                            color: AppColors.onSurface,
-                          ),
+                            // eyebrow
+                            Text(
+                              l10n.keysEyebrow.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.4,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // serif display headline
+                            Text(
+                              l10n.keysHeadline,
+                              style: const TextStyle(
+                                fontFamily: 'Newsreader',
+                                fontVariations: [FontVariation('wght', 600)],
+                                fontSize: 28,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                                letterSpacing: -0.5,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+
+                            SizedBox(height: midGap + 12),
+
+                            KeyCard(
+                              label: l10n.keysPublicKeyTitle,
+                              helper: l10n.keysPublicKeySubtitle,
+                              keyValue: npub,
+                              isSecret: false,
+                              isVisible: true,
+                              onToggle: null,
+                              isCopied: _pubKeyCopied,
+                              onCopy: () => _copyPub(npub),
+                            ),
+
+                            SizedBox(height: midGap + 8),
+
+                            KeyCard(
+                              label: l10n.keysPrivateKeyTitle,
+                              helper: l10n.keysPrivateKeySubtitle,
+                              keyValue: nsec,
+                              isSecret: true,
+                              isVisible: _nsecVisible,
+                              onToggle: () => setState(
+                                  () => _nsecVisible = !_nsecVisible),
+                              isCopied: _privKeyCopied,
+                              onCopy: () => _copyPriv(nsec),
+                            ),
+
+                            SizedBox(height: midGap + 4),
+
+                            // backup warning
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorContainer
+                                    .withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.key_rounded,
+                                      color: AppColors.error, size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.keysPrivateKeyWarning,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        height: 1.45,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.onErrorContainer,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: midGap),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.keysSubtitle,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
+                      ),
+                    ),
+                  ),
 
-                        SizedBox(height: midGap + 4),
-
-                        KeyCard(
-                          title: l10n.keysPublicKeyTitle,
-                          subtitle: l10n.keysPublicKeySubtitle,
-                          keyValue: npub,
-                          icon: Icons.share_rounded,
-                          iconColor: AppColors.primary,
-                          iconBg: AppColors.primary.withValues(alpha: 0.08),
-                          isSecret: false,
-                          isVisible: true,
-                          onToggle: null,
-                          isCopied: _pubKeyCopied,
-                          onCopy: () => _copyPub(npub),
-                        ),
-
-                        SizedBox(height: midGap),
-
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _pubKeyCopied
-                              ? KeyCard(
-                                  key: const ValueKey('priv'),
-                                  title: l10n.keysPrivateKeyTitle,
-                                  subtitle: l10n.keysPrivateKeySubtitle,
-                                  keyValue: nsec,
-                                  icon: Icons.lock_rounded,
-                                  iconColor: AppColors.error,
-                                  iconBg:
-                                      AppColors.error.withValues(alpha: 0.08),
-                                  isSecret: true,
-                                  isVisible: _nsecVisible,
-                                  onToggle: () => setState(
-                                      () => _nsecVisible = !_nsecVisible),
-                                  isCopied: _privKeyCopied,
-                                  onCopy: () => _copyPriv(nsec),
-                                  warning: l10n.keysPrivateKeyWarning,
-                                )
-                              : const PrivKeyHint(key: ValueKey('hint')),
-                        ),
-
-                        const Spacer(),
-
+                  // ── Terms + Save & Continue — pinned to the bottom ──────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         _TermsCheckbox(
                           accepted: _termsAccepted,
                           onChanged: (v) =>
@@ -310,53 +320,15 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             ),
                           ),
                         ),
-
-                        const SizedBox(height: 4),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextButton(
-                              onPressed: () => _downloadBackup(npub, nsec),
-                              child: Text(
-                                l10n.keysDownloadBackup,
-                                style: const TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                const Icon(Icons.verified_user_rounded,
-                                    size: 11, color: AppColors.outline),
-                                const SizedBox(width: 4),
-                                Text(
-                                  l10n.keysE2eEncrypted,
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1,
-                                    color: AppColors.outline,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                              const SizedBox(height: 8),
-                            ],
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
+        ],
       ),
     );
   }
@@ -433,6 +405,30 @@ class _TermsCheckbox extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Soft, decorative blue glow used as an ambient background accent.
+class _AmbientBlob extends StatelessWidget {
+  const _AmbientBlob();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: 340,
+        height: 340,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.07),
+              AppColors.primary.withValues(alpha: 0.0),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

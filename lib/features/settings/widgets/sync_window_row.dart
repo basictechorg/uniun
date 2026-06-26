@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Sync-window picker — how many days of history the capped sync surfaces
@@ -21,60 +21,26 @@ class SyncWindowRow extends StatelessWidget {
     return BlocBuilder<StorageCubit, StorageState>(
       buildWhen: (a, b) => a.recentSyncWindowDays != b.recentSyncWindowDays,
       builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.syncWindowTitle,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.syncWindowSubtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              DropdownButton<int>(
-                value: state.recentSyncWindowDays,
-                underline: const SizedBox.shrink(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-                items: [
+        return SettingsRow(
+          icon: Icons.sync_rounded,
+          label: l10n.syncWindowTitle,
+          infoTooltip: l10n.syncWindowSubtitle,
+          showChevron: false,
+          trailing: SettingsPickerButton(
+            label: l10n.syncWindowDays(state.recentSyncWindowDays),
+            onTap: () {
+              final cubit = context.read<StorageCubit>();
+              showSettingsOptionSheet<int>(
+                context: context,
+                title: l10n.syncWindowTitle,
+                selected: state.recentSyncWindowDays,
+                options: [
                   for (final v in _options)
-                    DropdownMenuItem<int>(
-                      value: v,
-                      child: Text(l10n.syncWindowDays(v)),
-                    ),
+                    SettingsOption(v, l10n.syncWindowDays(v)),
                 ],
-                onChanged: (v) {
-                  if (v != null) {
-                    context.read<StorageCubit>().setRecentSyncWindowDays(v);
-                  }
-                },
-              ),
-            ],
+                onSelected: cubit.setRecentSyncWindowDays,
+              );
+            },
           ),
         );
       },

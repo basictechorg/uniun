@@ -9,6 +9,7 @@ import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
+import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -47,6 +48,10 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   final _scrollController = ScrollController();
   final Set<String> _everVisible = <String>{};
 
+  /// Whether the jump-to-latest button is showing (set when scrolled above the
+  /// bottom).
+  bool _showJumpButton = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +74,26 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
           .read<PrivateChannelDetailBloc>()
           .add(MarkAllPrivateChannelSeenEvent());
     }
+
+    final showJump =
+        pos.maxScrollExtent - pos.pixels > kJumpToBottomTolerance;
+    if (showJump != _showJumpButton) {
+      setState(() => _showJumpButton = showJump);
+    }
+  }
+
+  /// Jumps to the newest message and marks the whole channel read.
+  void _jumpToLatest() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
+    context
+        .read<PrivateChannelDetailBloc>()
+        .add(MarkAllPrivateChannelSeenEvent());
   }
 
   void _onMessageVisibility(String eventId, VisibilityInfo info) {
@@ -197,9 +222,9 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
                 ),
               if (state.channel != null) ...[
                 UniunQrButton(
-                  onTap: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => UniunQrCard.privateChannel(
+                  onTap: () => UniunQrCard.show(
+                    context,
+                    card: UniunQrCard.privateChannel(
                       name: state.channel!.name,
                       groupId: state.groupId,
                       relays: state.channel!.relays,
@@ -228,31 +253,47 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
               : Column(
                   children: [
                     Expanded(
-                      child: state.isLoading && state.messages.isEmpty
-                          ? const Center(child: DropLoadingIndicator())
-                          : ListView.builder(
-                              controller: _scrollController,
-                              reverse: false, // oldest at top, newest at bottom
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                              itemCount: state.messages.length,
-                              itemBuilder: (context, index) {
-                                final msg = state.messages[index];
-                                // NoteCard self-loads its author profile.
-                                return VisibilityDetector(
-                                  key: ValueKey('pc-${msg.id}'),
-                                  onVisibilityChanged: (info) =>
-                                      _onMessageVisibility(msg.id, info),
-                                  child: NoteCard(
-                                    key: ValueKey(msg.id),
-                                    note: msg,
-                                    onTap: () => _openThread(context, msg.id),
+                      child: Stack(
+                        children: [
+                          state.isLoading && state.messages.isEmpty
+                              ? const Center(child: DropLoadingIndicator())
+                              : ListView.builder(
+                                  controller: _scrollController,
+                                  reverse:
+                                      false, // oldest at top, newest at bottom
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
                                   ),
-                                );
-                              },
+                                  itemCount: state.messages.length,
+                                  itemBuilder: (context, index) {
+                                    final msg = state.messages[index];
+                                    // NoteCard self-loads its author profile.
+                                    return VisibilityDetector(
+                                      key: ValueKey('pc-${msg.id}'),
+                                      onVisibilityChanged: (info) =>
+                                          _onMessageVisibility(msg.id, info),
+                                      child: NoteCard(
+                                        key: ValueKey(msg.id),
+                                        note: msg,
+                                        onTap: () =>
+                                            _openThread(context, msg.id),
+                                      ),
+                                    );
+                                  },
+                                ),
+                          Positioned(
+                            right: 16,
+                            bottom: 12,
+                            child: JumpToBottomButton(
+                              visible: _showJumpButton,
+                              onPressed: _jumpToLatest,
+                              tooltip:
+                                  AppLocalizations.of(context)!.jumpToLatest,
                             ),
+                          ),
+                        ],
+                      ),
                     ),
                     ComposerHost(
                       hintText: AppLocalizations.of(context)!.chatMessageHint,

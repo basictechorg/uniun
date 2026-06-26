@@ -69,7 +69,14 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
-        title: Text(l10n.receiveShareTitle),
+        title: Text(
+          l10n.receiveShareTitle,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
       ),
       body: BlocConsumer<ReceiveShareBloc, ReceiveShareState>(
         listenWhen: (a, b) =>
@@ -183,7 +190,6 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
           title: l10n.composerReferenceTitle,
           searchHint: l10n.composerReferenceSearchHint,
           emptyLabel: l10n.composerReferenceEmpty,
-          selectedLabel: l10n.composerReferenceSelected,
           initialSelected: state.references,
         ),
       ),
@@ -215,6 +221,18 @@ class _DestinationList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+          child: Text(
+            l10n.shareToLabel.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+        ),
         DestinationTile(
           icon: Icons.dynamic_feed_rounded,
           title: l10n.shareDestFeed,

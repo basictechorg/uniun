@@ -663,6 +663,7 @@ Text(l10n.actionSave)
 - Check for existing records before inserting (idempotent saves).
 - Annotate repository implementations with `@Injectable(as: RepositoryInterface)`.
 - Run `build_runner` after any change to `@freezed`, `@collection`, or `@injectable` annotated classes.
+- **Prefer bottom sheets over modal dialogs.** Reach for `showModalBottomSheet` (rounded top, drag handle, `AppColors.surfaceContainerLowest`) for input forms, pickers, and option lists — it is the app's default surface for transient UI. Reserve `AlertDialog` / `showDialog` for terse destructive confirmations ("Delete X?" yes/no). When a text field lives in a sheet, wrap it with `isScrollControlled: true` + `MediaQuery.viewInsets.bottom` padding so the keyboard doesn't cover it.
 
 ### NEVER DO
 

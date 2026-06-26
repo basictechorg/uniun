@@ -8,34 +8,55 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
+import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Shared QR display dialog used for all three sharing kinds. Render via
-/// `showDialog(builder: (_) => UniunQrCard.xxx(...))`. Always copies the FULL
-/// underlying id to the clipboard — never a truncated display string.
+/// Near-black QR ink. Kept independent of the theme — a QR must stay
+/// dark-on-white to scan reliably (the app is light-only in v1).
+const Color _kQrInk = Color(0xFF15181C);
+
+/// Shared QR display sheet used for all four sharing kinds. Present via
+/// [UniunQrCard.show]. Always copies the FULL underlying id to the clipboard —
+/// never a truncated display string.
 class UniunQrCard extends StatefulWidget {
-  const UniunQrCard._({required this.entries, required this.titleLeading});
+  const UniunQrCard._({required this.entries});
 
   /// Tabs/entries shown in the card. Single-entry cards render without a
-  /// toggle; multi-entry cards (DM) show a [ToggleButtons] header.
+  /// toggle; multi-entry cards (DM) show a segmented header.
   // ignore: library_private_types_in_public_api
   final List<_QrEntry> entries;
-  final Widget? titleLeading;
 
-  /// User identity card (own or anyone else's).
+  /// Presents [card] as a modal bottom sheet with the app's standard chrome
+  /// (rounded top, drag handle, scrollable body). Centralized so every call
+  /// site stays a one-liner and shares identical styling.
+  static Future<void> show(BuildContext context, {required UniunQrCard card}) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => card,
+    );
+  }
+
+  /// User identity card (own or anyone else's). [avatarSeed] should be the hex
+  /// pubkey so the avatar matches the user's glyph elsewhere in the app; it
+  /// falls back to [npub] when omitted.
   factory UniunQrCard.user({
     required String npub,
     String? name,
     List<String> relays = const [],
+    String? avatarSeed,
+    String? avatarUrl,
   }) {
     return UniunQrCard._(
-      titleLeading: null,
       entries: [
         _QrEntry(
           label: name ?? 'User',
-          subtitle: npub,
           copyValue: npub,
           payload: UniunQrPayload(
             kind: UniunQrKind.user,
@@ -44,6 +65,9 @@ class UniunQrCard extends StatefulWidget {
             relays: relays,
           ),
           copyLabel: 'Copy npub',
+          caption: (l10n) => l10n.qrCaptionUser,
+          avatarSeed: avatarSeed ?? npub,
+          avatarUrl: avatarUrl,
         ),
       ],
     );
@@ -56,15 +80,9 @@ class UniunQrCard extends StatefulWidget {
     required List<String> relays,
   }) {
     return UniunQrCard._(
-      titleLeading: const Icon(
-        Icons.tag_rounded,
-        size: 18,
-        color: AppColors.primary,
-      ),
       entries: [
         _QrEntry(
           label: name,
-          subtitle: channelId,
           copyValue: channelId,
           payload: UniunQrPayload(
             kind: UniunQrKind.publicChannel,
@@ -73,6 +91,12 @@ class UniunQrCard extends StatefulWidget {
             relays: relays,
           ),
           copyLabel: 'Copy channel ID',
+          caption: (l10n) => l10n.qrCaptionPublicChannel,
+          iconLeading: const Icon(
+            Icons.tag_rounded,
+            size: 26,
+            color: AppColors.primary,
+          ),
         ),
       ],
     );
@@ -85,15 +109,9 @@ class UniunQrCard extends StatefulWidget {
     required List<String> relays,
   }) {
     return UniunQrCard._(
-      titleLeading: const Icon(
-        Icons.lock_outline,
-        size: 18,
-        color: AppColors.primary,
-      ),
       entries: [
         _QrEntry(
           label: name,
-          subtitle: groupId,
           copyValue: groupId,
           payload: UniunQrPayload(
             kind: UniunQrKind.privateChannel,
@@ -102,6 +120,12 @@ class UniunQrCard extends StatefulWidget {
             relays: relays,
           ),
           copyLabel: 'Copy group ID',
+          caption: (l10n) => l10n.qrCaptionPrivateChannel,
+          iconLeading: const Icon(
+            Icons.lock_outline,
+            size: 26,
+            color: AppColors.primary,
+          ),
         ),
       ],
     );
@@ -110,20 +134,24 @@ class UniunQrCard extends StatefulWidget {
   /// DM-chat card with a "Their key | My key" toggle. Both branches encode
   /// a [UniunQrKind.user] payload. [conversationRelays] are the relays this DM
   /// is configured to use; they ride along in the QR so the scanner can
-  /// auto-add them on the receiver's device.
+  /// auto-add them on the receiver's device. The `*Seed` args should be hex
+  /// pubkeys so each side's avatar matches the app's; they fall back to the
+  /// corresponding npub when omitted.
   factory UniunQrCard.dmConversation({
     required String partnerNpub,
     String? partnerName,
+    String? partnerSeed,
+    String? partnerAvatarUrl,
     required String myNpub,
     String? myName,
+    String? mySeed,
+    String? myAvatarUrl,
     List<String> conversationRelays = const [],
   }) {
     return UniunQrCard._(
-      titleLeading: null,
       entries: [
         _QrEntry(
           label: partnerName ?? 'Their key',
-          subtitle: partnerNpub,
           copyValue: partnerNpub,
           payload: UniunQrPayload(
             kind: UniunQrKind.user,
@@ -132,11 +160,13 @@ class UniunQrCard extends StatefulWidget {
             relays: conversationRelays,
           ),
           copyLabel: 'Copy npub',
+          caption: (l10n) => l10n.qrCaptionDm,
           tabLabel: 'Their key',
+          avatarSeed: partnerSeed ?? partnerNpub,
+          avatarUrl: partnerAvatarUrl,
         ),
         _QrEntry(
           label: myName ?? 'Your key',
-          subtitle: myNpub,
           copyValue: myNpub,
           payload: UniunQrPayload(
             kind: UniunQrKind.user,
@@ -145,7 +175,10 @@ class UniunQrCard extends StatefulWidget {
             relays: conversationRelays,
           ),
           copyLabel: 'Copy npub',
+          caption: (l10n) => l10n.qrCaptionDm,
           tabLabel: 'My key',
+          avatarSeed: mySeed ?? myNpub,
+          avatarUrl: myAvatarUrl,
         ),
       ],
     );
@@ -165,20 +198,30 @@ class _UniunQrCardState extends State<UniunQrCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final entry = widget.entries[_selected];
     final hasToggle = widget.entries.length > 1;
-    final shortSubtitle = _truncateMiddle(entry.subtitle, 12);
 
-    return Dialog(
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+    return SafeArea(
+      top: false,
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               if (hasToggle) ...[
                 _ToggleHeader(
                   labels: [
@@ -187,38 +230,23 @@ class _UniunQrCardState extends State<UniunQrCard> {
                   selectedIndex: _selected,
                   onChanged: (i) => setState(() => _selected = i),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (widget.titleLeading != null) ...[
-                    widget.titleLeading!,
-                    const SizedBox(width: 6),
-                  ],
-                  Flexible(
-                    child: Text(
-                      entry.label,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
+              Center(child: _AvatarSlot(entry: entry)),
+              const SizedBox(height: 12),
               Text(
-                shortSubtitle,
+                entry.label,
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
                 ),
               ),
+              const SizedBox(height: 8),
+              _IdRow(entry: entry, onCopy: () => _copy(entry)),
               const SizedBox(height: 20),
               Center(
                 child: RepaintBoundary(
@@ -234,49 +262,38 @@ class _UniunQrCardState extends State<UniunQrCard> {
                       version: QrVersions.auto,
                       size: 220,
                       backgroundColor: Colors.white,
+                      // qr_flutter only offers square|circle; circular finders
+                      // give the reference's "rounded" feel, square data
+                      // modules keep the code crisp and scannable.
                       eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: AppColors.primary,
+                        eyeShape: QrEyeShape.circle,
+                        color: _kQrInk,
                       ),
                       dataModuleStyle: const QrDataModuleStyle(
                         dataModuleShape: QrDataModuleShape.square,
-                        color: AppColors.primary,
+                        color: _kQrInk,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+              Text(
+                entry.caption(l10n),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: () => _shareEntry(entry),
                 icon: const Icon(Icons.ios_share_rounded, size: 18),
-                label: Text(AppLocalizations.of(context)!.qrShareAction),
+                label: Text(l10n.qrShareAction),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.onPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              TextButton.icon(
-                onPressed: () {
-                  // Always copy the FULL id — never the truncated display.
-                  Clipboard.setData(ClipboardData(text: entry.copyValue));
-                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    SnackBar(
-                      content: Text('${entry.copyLabel} • copied to clipboard'),
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.copy_rounded,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-                label: Text(
-                  entry.copyLabel,
-                  style: const TextStyle(color: AppColors.primary),
                 ),
               ),
             ],
@@ -286,9 +303,21 @@ class _UniunQrCardState extends State<UniunQrCard> {
     );
   }
 
+  void _copy(_QrEntry entry) {
+    // Always copy the FULL id — never the truncated display.
+    Clipboard.setData(ClipboardData(text: entry.copyValue));
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text('${entry.copyLabel} • copied to clipboard'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   /// Captures the on-screen QR box as a PNG and opens the native share sheet
   /// with the image + the entity's deep link as text. Works for every card
-  /// kind (user / public / private channel) via [_deepLinkFor].
+  /// kind (user / public / private channel / DM) via [_deepLinkFor].
   Future<void> _shareEntry(_QrEntry entry) async {
     // Anchor the iPad share popover to this card — read before any await.
     final box = context.findRenderObject() as RenderBox?;
@@ -349,28 +378,112 @@ class _UniunQrCardState extends State<UniunQrCard> {
       relays: p.relays,
     ),
   };
-
-  String _truncateMiddle(String s, int side) {
-    if (s.length <= side * 2 + 3) return s;
-    return '${s.substring(0, side)}…${s.substring(s.length - side)}';
-  }
 }
 
 class _QrEntry {
   const _QrEntry({
     required this.label,
-    required this.subtitle,
     required this.copyValue,
     required this.payload,
     required this.copyLabel,
+    required this.caption,
     this.tabLabel,
+    this.avatarSeed,
+    this.avatarUrl,
+    this.iconLeading,
   });
+
+  /// Name shown under the avatar.
   final String label;
-  final String subtitle;
+
+  /// FULL id (npub / channel id / group id) — shown verbatim and copied.
   final String copyValue;
   final UniunQrPayload payload;
   final String copyLabel;
+
+  /// Per-kind caption resolved against l10n at build time (factories have no
+  /// [BuildContext]).
+  final String Function(AppLocalizations l10n) caption;
+
+  /// DM toggle label.
   final String? tabLabel;
+
+  /// Avatar seed (hex pubkey) for person kinds; null for channels.
+  final String? avatarSeed;
+  final String? avatarUrl;
+
+  /// Icon shown in the avatar slot for channel kinds; null for person kinds.
+  final Widget? iconLeading;
+}
+
+/// 56px header glyph: the user's avatar for person kinds, or a tinted rounded
+/// square holding the channel icon for channel kinds.
+class _AvatarSlot extends StatelessWidget {
+  const _AvatarSlot({required this.entry});
+  final _QrEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = entry.iconLeading;
+    if (icon != null) {
+      return Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: icon,
+      );
+    }
+    return UserAvatar(
+      seed: entry.avatarSeed ?? entry.copyValue,
+      photoUrl: entry.avatarUrl,
+      size: 56,
+    );
+  }
+}
+
+/// The full id in mono text with a trailing inline copy button.
+class _IdRow extends StatelessWidget {
+  const _IdRow({required this.entry, required this.onCopy});
+  final _QrEntry entry;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            entry.copyValue,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 12,
+              height: 1.4,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(width: 2),
+        IconButton(
+          onPressed: onCopy,
+          icon: const Icon(
+            Icons.copy_rounded,
+            size: 16,
+            color: AppColors.primary,
+          ),
+          tooltip: entry.copyLabel,
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+      ],
+    );
+  }
 }
 
 class _ToggleHeader extends StatelessWidget {
@@ -389,7 +502,7 @@ class _ToggleHeader extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         children: [
@@ -399,21 +512,32 @@ class _ToggleHeader extends StatelessWidget {
                 onTap: () => onChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
                     color: selectedIndex == i
-                        ? AppColors.primary
+                        ? AppColors.surface
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: selectedIndex == i
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     labels[i],
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: selectedIndex == i
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                       color: selectedIndex == i
-                          ? AppColors.onPrimary
+                          ? AppColors.primary
                           : AppColors.onSurfaceVariant,
                     ),
                   ),

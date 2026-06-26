@@ -5,6 +5,7 @@ import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart';
@@ -22,7 +23,7 @@ class JoinChannelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<JoinChannelBloc>()..add(const LoadJoinRelaysEvent()),
+      create: (_) => getIt<JoinChannelBloc>(),
       child: _JoinChannelView(payload: payload),
     );
   }
@@ -39,7 +40,6 @@ class _JoinChannelView extends StatefulWidget {
 
 class _JoinChannelViewState extends State<_JoinChannelView> {
   final _channelIdController = TextEditingController();
-  final _relayUrlController = TextEditingController();
   final List<String> _selectedRelays = [];
   String _prefilledName = '';
 
@@ -59,7 +59,6 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
   @override
   void dispose() {
     _channelIdController.dispose();
-    _relayUrlController.dispose();
     super.dispose();
   }
 
@@ -79,156 +78,16 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
     context.pushNamed(AppRoutes.scanQr);
   }
 
-  Future<String?> _showAddRelayDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-    _relayUrlController.clear();
-
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surfaceContainerLowest,
-          title: Text(l10n.joinChannelAddRelay),
-          content: TextField(
-            controller: _relayUrlController,
-            autofocus: true,
-            keyboardType: TextInputType.url,
-            decoration: InputDecoration(
-              hintText: l10n.joinChannelRelayHint,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l10n.actionCancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                final relayUrl = _relayUrlController.text.trim();
-                if (relayUrl.isEmpty) return;
-                final bloc = context.read<JoinChannelBloc>();
-                final previousLength = bloc.state.availableRelays.length;
-                bloc.add(AddJoinRelayEvent(url: relayUrl));
-                final nextState = await bloc.stream.firstWhere(
-                  (state) =>
-                      state.availableRelays.length != previousLength ||
-                      state.errorMessage != null,
-                );
-                if (!dialogContext.mounted) return;
-                if (nextState.availableRelays.contains(relayUrl)) {
-                  Navigator.of(dialogContext).pop(relayUrl);
-                }
-              },
-              child: Text(l10n.joinChannelAddRelayAction),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showRelaySelectorDialog(List<String> availableRelays) {
-    final l10n = AppLocalizations.of(context)!;
-    final joinChannelBloc = context.read<JoinChannelBloc>();
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return BlocProvider.value(
-          value: joinChannelBloc,
-          child: StatefulBuilder(
-            builder: (dialogContext, setStateDialog) {
-              return AlertDialog(
-                backgroundColor: AppColors.surfaceContainerLowest,
-                title: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.joinChannelSelectRelays,
-                        style: const TextStyle(color: AppColors.onSurface),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () async {
-                        final addedRelay = await _showAddRelayDialog();
-                        if (!dialogContext.mounted || addedRelay == null) return;
-                        setStateDialog(() {
-                          if (!_selectedRelays.contains(addedRelay)) {
-                            _selectedRelays.add(addedRelay);
-                          }
-                        });
-                        setState(() {});
-                      },
-                      icon: const Icon(
-                        Icons.add_circle_outline_rounded,
-                        color: AppColors.primary,
-                      ),
-                      tooltip: l10n.joinChannelAddRelay,
-                    ),
-                  ],
-                ),
-                content: SizedBox(
-                  width: double.maxFinite,
-                  child: BlocBuilder<JoinChannelBloc, JoinChannelState>(
-                    builder: (context, state) {
-                      final relays = state.availableRelays.isEmpty
-                          ? availableRelays
-                          : state.availableRelays;
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: relays.length,
-                        itemBuilder: (context, index) {
-                          final relay = relays[index];
-                          final isSelected = _selectedRelays.contains(relay);
-                          return CheckboxListTile(
-                            activeColor: AppColors.primary,
-                            title: Text(
-                              relay,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            value: isSelected,
-                            onChanged: (value) {
-                              setStateDialog(() {
-                                if (value == true) {
-                                  _selectedRelays.add(relay);
-                                } else {
-                                  _selectedRelays.remove(relay);
-                                }
-                              });
-                              setState(() {});
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: Text(l10n.actionDone),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return BlocListener<JoinChannelBloc, JoinChannelState>(
       listener: (context, state) {
-        if (state.errorMessage != null) {
+        if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.errorMessage!),
+              content: Text(_errorText(state.error!, l10n)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
             ),
@@ -257,6 +116,12 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
           appBar: AppBar(
             backgroundColor: AppColors.surface,
             elevation: 0,
+            centerTitle: true,
+            shape: Border(
+              bottom: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
             leading: UniunBackButton(
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -264,147 +129,75 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
               l10n.joinChannelTitle,
               style: const TextStyle(
                 color: AppColors.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
               ),
             ),
           ),
           body: BlocBuilder<JoinChannelBloc, JoinChannelState>(
             builder: (context, state) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      l10n.joinChannelHeading,
+                    // Scan a channel QR — the primary affordance.
+                    _ScanQrCard(
+                      title: l10n.joinChannelScanCardTitle,
+                      subtitle: l10n.joinChannelScanCardSubtitle,
+                      onTap: state.isSubmitting ? null : _joinByQr,
+                    ),
+                    const SizedBox(height: 20),
+                    _OrDivider(label: l10n.joinChannelOr),
+                    const SizedBox(height: 20),
+                    // Paste channel id (hex — mono).
+                    TextField(
+                      controller: _channelIdController,
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                        fontSize: 14,
+                        color: AppColors.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: l10n.joinChannelIdHint,
+                        hintStyle: const TextStyle(
+                          fontFamily: 'monospace',
+                          color: AppColors.outline,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.tag_rounded,
+                          size: 20,
+                          color: AppColors.outline,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _channelIdController,
-                      decoration: InputDecoration(
-                        labelText: l10n.joinChannelIdLabel,
-                        labelStyle: const TextStyle(
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      l10n.joinChannelRelaysTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    RelaySelectorField(
+                      selected: _selectedRelays,
+                      onChanged: (next) => setState(() => _selectedRelays
+                        ..clear()
+                        ..addAll(next)),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       l10n.joinChannelRelaysBody,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: AppColors.outline,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    if (state.isLoadingRelays)
-                      const Center(child: DropLoadingIndicator())
-                    else
-                      InkWell(
-                        onTap: () => _showRelaySelectorDialog(state.availableRelays),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.outlineVariant),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _selectedRelays.isEmpty
-                                      ? l10n.joinChannelSelectRelays
-                                      : l10n.joinChannelSelectedRelays(
-                                          _selectedRelays.length,
-                                        ),
-                                  style: TextStyle(
-                                    color: _selectedRelays.isEmpty
-                                        ? AppColors.onSurfaceVariant
-                                        : AppColors.onSurface,
-                                    fontWeight: _selectedRelays.isEmpty
-                                        ? FontWeight.normal
-                                        : FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const Icon(
-                                Icons.arrow_drop_down_rounded,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    if (_selectedRelays.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _selectedRelays
-                              .map(
-                                (relay) => Chip(
-                                  label: Text(
-                                    relay,
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  onDeleted: () {
-                                    setState(() {
-                                      _selectedRelays.remove(relay);
-                                    });
-                                  },
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton.icon(
-                        onPressed: state.isSubmitting ? null : _joinByQr,
-                        icon: const Icon(Icons.qr_code_scanner_rounded),
-                        label: Text(l10n.joinChannelByQr),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
+                      height: 52,
                       child: ElevatedButton(
                         onPressed: state.isSubmitting ? null : _submitJoin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.onPrimary,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
                         child: state.isSubmitting
@@ -419,7 +212,7 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
                             : Text(
                                 l10n.joinChannelAction,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 16,
                                 ),
                               ),
@@ -432,6 +225,119 @@ class _JoinChannelViewState extends State<_JoinChannelView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Maps a [JoinChannelError] from the bloc to a localized message.
+String _errorText(JoinChannelError error, AppLocalizations l10n) {
+  return switch (error) {
+    JoinChannelError.invalidId => l10n.joinChannelErrorInvalidId,
+    JoinChannelError.noRelay => l10n.joinChannelErrorNoRelay,
+    JoinChannelError.relaySaveFailed => l10n.joinChannelErrorRelaySaveFailed,
+    JoinChannelError.saveFailed => l10n.joinChannelErrorSaveFailed,
+  };
+}
+
+// Prominent tap-to-scan card at the top of the join flow. A null [onTap]
+// renders it disabled (while a join is submitting).
+class _ScanQrCard extends StatelessWidget {
+  const _ScanQrCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Opacity(
+        opacity: onTap == null ? 0.5 : 1,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.20),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner_rounded,
+                  size: 34,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: AppColors.outline,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Hairline "or" divider between the scan card and the paste-id input.
+class _OrDivider extends StatelessWidget {
+  const _OrDivider({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final line = Expanded(
+      child: Container(
+        height: 1,
+        color: AppColors.outlineVariant.withValues(alpha: 0.4),
+      ),
+    );
+    return Row(
+      children: [
+        line,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppColors.outline),
+          ),
+        ),
+        line,
+      ],
     );
   }
 }

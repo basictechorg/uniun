@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
+import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
@@ -93,12 +94,11 @@ class _BranchTreeGraphState extends State<BranchTreeGraph> {
 
     final msgById = {for (final m in widget.allMessages) m.messageId: m};
 
-    // InteractiveViewer(constrained: false) inside a bounded parent (Expanded)
-    // is the correct graphview pattern. The viewer clips to its parent bounds
-    // and the child (GraphView) sizes itself to its content.
-    return InteractiveViewer(
+    // SafeInteractiveViewer(constrained: false) inside a bounded parent
+    // (Expanded) is the correct graphview pattern. The viewer clips to its
+    // parent bounds and the child (GraphView) sizes itself to its content.
+    return SafeInteractiveViewer(
       constrained: false,
-      boundaryMargin: const EdgeInsets.all(200),
       minScale: 0.3,
       maxScale: 2.5,
       child: Padding(

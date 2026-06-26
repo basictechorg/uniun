@@ -52,6 +52,10 @@ class GraphNodePanel extends StatelessWidget {
             pTagRefs: node.pTagRefs,
             tTags: node.tTags,
             created: node.created!,
+            // Carry the enriched edge-table counts so the card's reference/
+            // comment chips show the real numbers, not zeros.
+            referenceCount: node.referenceCount,
+            cachedReplyCount: node.cachedReplyCount,
             attachments: node.attachments,
           )
         : null;

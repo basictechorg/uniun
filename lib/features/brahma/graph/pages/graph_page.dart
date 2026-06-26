@@ -182,39 +182,51 @@ class _GraphBody extends StatelessWidget {
           );
         }
 
-        return Stack(
+        // Solid app bar on top (DESIGN.md §3.3) pushes the canvas down; the
+        // legend overlays the canvas top-left, the node panel + FAB anchor to
+        // the screen bottom.
+        return Column(
           children: [
-            Positioned.fill(
-              child: GraphCanvas(
-                nodes: state.nodes,
-                adjacency: state.adjacency,
-                selectedNodeId: state.selectedNodeId,
-                onNodeTap: (id) =>
-                    context.read<GraphBloc>().add(SelectGraphNodeEvent(id)),
-                onCanvasTap: () =>
-                    context.read<GraphBloc>().add(const DeselectGraphNodeEvent()),
-                onInteractingChanged: onInteractingChanged,
+            const GraphHeader(),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GraphCanvas(
+                      nodes: state.nodes,
+                      adjacency: state.adjacency,
+                      selectedNodeId: state.selectedNodeId,
+                      isSearching: state.isSearching,
+                      matchedNodeIds: state.matchedNodeIds,
+                      onNodeTap: (id) => context
+                          .read<GraphBloc>()
+                          .add(SelectGraphNodeEvent(id)),
+                      onCanvasTap: () => context
+                          .read<GraphBloc>()
+                          .add(const DeselectGraphNodeEvent()),
+                      onInteractingChanged: onInteractingChanged,
+                    ),
+                  ),
+
+                  const Positioned(top: 12, left: 12, child: GraphLegend()),
+
+                  Positioned(
+                    bottom: 0, left: 0, right: 0,
+                    child: _NodePanelSlider(state: state),
+                  ),
+
+                  if (state.selectedNode == null)
+                    Positioned(
+                      // Clear the floating nav, whose height grows by the
+                      // home-indicator safe area — add that inset so the FAB
+                      // doesn't touch the nav on devices with a home indicator.
+                      right: 20,
+                      bottom: 96 + MediaQuery.of(context).padding.bottom,
+                      child: const GraphFab(),
+                    ),
+                ],
               ),
             ),
-
-            const Positioned(
-              top: 0, left: 0, right: 0,
-              child: GraphHeader(),
-            ),
-
-            Positioned(
-              bottom: 0, left: 0, right: 0,
-              child: _NodePanelSlider(state: state),
-            ),
-
-            if (state.selectedNode == null)
-              Positioned(
-                // Clear the floating nav, whose height grows by the
-                // home-indicator safe area — add that inset so the FAB
-                // doesn't touch the nav on devices with a home indicator.
-                right: 20, bottom: 96 + MediaQuery.of(context).padding.bottom,
-                child: const GraphFab(),
-              ),
           ],
         );
       },

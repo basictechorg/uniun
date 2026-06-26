@@ -1,14 +1,13 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/onboarding/widgets/field_label.dart';
+import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart';
 
 class EditProfilePage extends StatelessWidget {
@@ -90,214 +89,325 @@ class _EditProfileContentState extends State<_EditProfileContent> {
         final isSaving = state.status == EditProfileStatus.saving;
         final l10n = AppLocalizations.of(context)!;
 
-        return Scaffold(
-          backgroundColor: AppColors.surface,
-          resizeToAvoidBottomInset: true,
-          appBar: _buildAppBar(context, isSaving, cubit),
-          body: KeyboardDismissOnTap(
-            child: ListView(
-            padding: EdgeInsets.only(
-                top: 16,
-                left: 20, right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 48),
-            children: [
-              // ── Avatar preview ────────────────────────────────────────
-              Center(
-                child: UserAvatar(
-                  seed: state.username.isNotEmpty
-                      ? state.username
-                      : state.name,
-                  photoUrl: state.avatarUrl.isNotEmpty
-                      ? state.avatarUrl
-                      : null,
-                  size: 96,
-                  showBorder: true,
+        return KeyboardDismissOnTap(
+          child: Scaffold(
+            backgroundColor: AppColors.surface,
+            resizeToAvoidBottomInset: true,
+            body: Stack(
+              children: [
+                // ── Ambient brand glow (purely decorative) ──────────────────
+                const Positioned.fill(
+                  child: IgnorePointer(child: _AmbientBackdrop()),
                 ),
-              ),
+                SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      OnboardingAppBar(onBack: () => Navigator.pop(context)),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            24,
+                            0,
+                            24,
+                            MediaQuery.of(context).padding.bottom + 24,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 16),
 
-              const SizedBox(height: 28),
+                              // ── Header (eyebrow → title → subtitle) ────────
+                              SizedBox(
+                                width: double.infinity,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.editProfileEyebrow.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.4,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      l10n.editProfileTitle,
+                                      // Display serif (Newsreader) — reserved for
+                                      // headline moments. h1 28 · semibold.
+                                      style: const TextStyle(
+                                        fontFamily: 'Newsreader',
+                                        fontVariations: [
+                                          FontVariation('wght', 600),
+                                          FontVariation('opsz', 28),
+                                        ],
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.2,
+                                        letterSpacing: -0.56,
+                                        color: AppColors.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      l10n.editProfileSubtitle,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.onSurfaceVariant,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
 
-              // ── Fields ────────────────────────────────────────────────
-              _FieldGroup(
-                label: l10n.editProfileDisplayName,
-                controller: _name,
-                hint: l10n.editProfileDisplayNameHint,
-                onChanged: cubit.updateName,
-              ),
-              const SizedBox(height: 16),
-              _FieldGroup(
-                label: l10n.editProfileUsername,
-                controller: _username,
-                hint: l10n.editProfileUsernameHint,
-                prefix: '@',
-                onChanged: cubit.updateUsername,
-              ),
-              const SizedBox(height: 16),
-              _FieldGroup(
-                label: l10n.editProfileAbout,
-                controller: _about,
-                hint: l10n.editProfileAboutHint,
-                maxLines: 4,
-                onChanged: cubit.updateAbout,
-              ),
-              const SizedBox(height: 16),
-              _FieldGroup(
-                label: l10n.editProfileAvatarUrl,
-                controller: _avatarUrl,
-                hint: l10n.editProfileAvatarUrlHint,
-                onChanged: cubit.updateAvatarUrl,
-              ),
-              const SizedBox(height: 16),
-              _FieldGroup(
-                label: l10n.editProfileNip05,
-                controller: _nip05,
-                hint: l10n.editProfileNip05Hint,
-                onChanged: cubit.updateNip05,
-              ),
-              const SizedBox(height: 32),
+                              const SizedBox(height: 24),
 
-              // ── Save button ───────────────────────────────────────────
-              FilledButton(
-                onPressed: isSaving ? null : () => cubit.save(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: isSaving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: DropLoadingIndicator(
-                          size: 18,
-                          color: AppColors.onPrimary,
-                        ),
-                      )
-                    : Text(
-                        l10n.editProfileSaveButton,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                              // ── Avatar preview ─────────────────────────────
+                              UserAvatar(
+                                seed: state.username.isNotEmpty
+                                    ? state.username
+                                    : state.name,
+                                photoUrl: state.avatarUrl.isNotEmpty
+                                    ? state.avatarUrl
+                                    : null,
+                                size: 96,
+                                showBorder: true,
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // ── Display name ───────────────────────────────
+                              FieldLabel(l10n.editProfileDisplayName),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _name,
+                                textCapitalization: TextCapitalization.words,
+                                onChanged: cubit.updateName,
+                                decoration: InputDecoration(
+                                  hintText: l10n.editProfileDisplayNameHint,
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── Username ───────────────────────────────────
+                              FieldLabel(l10n.editProfileUsername),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _username,
+                                onChanged: cubit.updateUsername,
+                                decoration: InputDecoration(
+                                  hintText: l10n.editProfileUsernameHint,
+                                  prefixIcon: const Padding(
+                                    padding: EdgeInsets.only(left: 20, right: 0),
+                                    child: Text(
+                                      '@',
+                                      style: TextStyle(
+                                        color: AppColors.outline,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 18,
+                                        height: 2.6,
+                                      ),
+                                    ),
+                                  ),
+                                  prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 0, minHeight: 0),
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── About ──────────────────────────────────────
+                              FieldLabel(l10n.editProfileAbout),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _about,
+                                maxLines: 4,
+                                onChanged: cubit.updateAbout,
+                                decoration: InputDecoration(
+                                  hintText: l10n.editProfileAboutHint,
+                                  alignLabelWithHint: true,
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── Avatar URL ─────────────────────────────────
+                              FieldLabel(l10n.editProfileAvatarUrl),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _avatarUrl,
+                                onChanged: cubit.updateAvatarUrl,
+                                decoration: InputDecoration(
+                                  hintText: l10n.editProfileAvatarUrlHint,
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── NIP-05 ─────────────────────────────────────
+                              FieldLabel(l10n.editProfileNip05),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: _nip05,
+                                onChanged: cubit.updateNip05,
+                                decoration: InputDecoration(
+                                  hintText: l10n.editProfileNip05Hint,
+                                ),
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // ── Save button ────────────────────────────────
+                              AnimatedOpacity(
+                                opacity: isSaving ? 0.6 : 1.0,
+                                duration: const Duration(milliseconds: 150),
+                                child: GestureDetector(
+                                  onTap: isSaving ? null : () => cubit.save(),
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          AppColors.primary,
+                                          AppColors.primaryContainer,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: isSaving
+                                          ? null
+                                          : [
+                                              BoxShadow(
+                                                color: AppColors.primary
+                                                    .withValues(alpha: 0.28),
+                                                blurRadius: 24,
+                                                offset: const Offset(0, 8),
+                                              ),
+                                            ],
+                                    ),
+                                    child: Center(
+                                      child: isSaving
+                                          ? const SizedBox(
+                                              height: 18,
+                                              width: 18,
+                                              child: DropLoadingIndicator(
+                                                size: 18,
+                                                color: AppColors.onPrimary,
+                                              ),
+                                            )
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  l10n.editProfileSaveButton,
+                                                  style: const TextStyle(
+                                                    color: AppColors.onPrimary,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                const Icon(
+                                                  Icons.check_rounded,
+                                                  color: AppColors.onPrimary,
+                                                  size: 20,
+                                                ),
+                                              ],
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // ── Privacy reassurance pill ───────────────────
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.12),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.verified_user_rounded,
+                                        size: 13, color: AppColors.primary),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      l10n.editProfileEncrypted,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 24),
+                            ],
+                          ),
                         ),
                       ),
-              ),
-            ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          ),  // KeyboardDismissOnTap
         );
       },
     );
   }
+}
 
-  PreferredSizeWidget _buildAppBar(
-    BuildContext context,
-    bool isSaving,
-    EditProfileCubit cubit,
-  ) {
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final statusBarH = view.padding.top / view.devicePixelRatio;
-    return PreferredSize(
-      preferredSize: Size.fromHeight(64 + statusBarH),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            color: AppColors.surface.withValues(alpha: 0.80),
-            child: SafeArea(
-              child: SizedBox(
-                height: 64,
-                child: Row(
-                  children: [
-                    const SizedBox(width: 4),
-                    UniunBackButton(
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.editProfileTitle,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+/// Two soft brand-blue radial glows bleeding in from opposite corners — the
+/// ambient backdrop mirrored from the onboarding flow. Purely decorative.
+class _AmbientBackdrop extends StatelessWidget {
+  const _AmbientBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Stack(
+      children: [
+        Positioned(top: -120, left: -120, child: _Glow()),
+        Positioned(bottom: -140, right: -120, child: _Glow()),
+      ],
     );
   }
 }
 
-class _FieldGroup extends StatelessWidget {
-  const _FieldGroup({
-    required this.label,
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.prefix,
-    this.maxLines = 1,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final String hint;
-  final ValueChanged<String> onChanged;
-  final String? prefix;
-  final int maxLines;
+class _Glow extends StatelessWidget {
+  const _Glow();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: AppColors.onSurfaceVariant,
-          ),
+    return Container(
+      width: 320,
+      height: 320,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            AppColors.primary.withValues(alpha: 0.10),
+            AppColors.primary.withValues(alpha: 0.0),
+          ],
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          onChanged: onChanged,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixText: prefix,
-            filled: true,
-            fillColor: AppColors.surfaceContainerLow,
-            hintStyle: const TextStyle(
-              color: AppColors.outline,
-              fontSize: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

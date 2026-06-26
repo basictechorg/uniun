@@ -5,9 +5,20 @@ import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 /// Kind 0 (profile metadata) for every pubkey we've seen but don't yet have
 /// a [ProfileModel] for. Sub is re-opened whenever [MissingProfilePubkeyModel]
 /// changes.
+///
+/// Profiles are low-volume metadata that must resolve regardless of age — a
+/// profile published long ago must still arrive. Like the kind 40/41 channel
+/// metadata in [ChannelsSubscription], it therefore opts out of NIP-77 and
+/// rides a plain uncapped REQ: ProfileModel carries no source event id, so we
+/// can't seed negentropy with what we hold, and a `since=now` live-tail would
+/// silently miss every historical profile. The open-ended REQ backfills history
+/// and live-tails future updates in one subscription.
 class ProfilesSubscription extends SubscriptionProvider {
   @override
   String get subId => 'profiles';
+
+  @override
+  bool get supportsNip77 => false;
 
   @override
   Future<Map<String, dynamic>?> buildFilter(SubscriptionContext ctx) async {
@@ -21,9 +32,7 @@ class ProfilesSubscription extends SubscriptionProvider {
 
   @override
   Future<Map<String, int>> localIndex(SubscriptionContext ctx) async {
-    // ProfileModel doesn't carry the source event id, so we can't seed NIP-77
-    // with what we have. Matches the original behavior in the kind-0 branch
-    // of _getLocalEventIdsForFilter.
+    // Unused — NIP-77 is disabled for this provider (see class doc).
     return const {};
   }
 }

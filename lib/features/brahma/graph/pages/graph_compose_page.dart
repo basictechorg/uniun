@@ -101,7 +101,6 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
           title: l10n.composerReferenceTitle,
           searchHint: l10n.brahmaMentionSearchHint,
           emptyLabel: l10n.brahmaMentionEmpty,
-          selectedLabel: l10n.composerReferenceSelected,
           initialSelected: selected,
         ),
       ),
@@ -178,9 +177,10 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
         }
 
         if (state.status == BrahmaCreateStatus.success) {
-          // Pop the compose + graph routes back to the existing Home (Vishnu)
-          // rather than goNamed, which rebuilds the shell and loses its state.
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          // Pop only the compose route so the user lands back on Brahma (the
+          // graph), not Vishnu. The GraphFab/onEditTap awaits this push and
+          // reloads the graph on return, so the new note shows immediately.
+          Navigator.pop(context);
         }
 
         if (state.status == BrahmaCreateStatus.error &&

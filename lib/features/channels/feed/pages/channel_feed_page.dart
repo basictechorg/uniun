@@ -15,6 +15,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 
 class ChannelFeedPage extends StatelessWidget {
@@ -60,6 +61,10 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   /// bottom rather than on every scroll frame.
   bool _markedAllAtBottom = false;
 
+  /// Whether the jump-to-latest button is showing (set when scrolled above the
+  /// bottom).
+  bool _showJumpButton = false;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +104,18 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
     } else {
       _markedAllAtBottom = false;
     }
+
+    final showJump =
+        pos.maxScrollExtent - pos.pixels > kJumpToBottomTolerance;
+    if (showJump != _showJumpButton) {
+      setState(() => _showJumpButton = showJump);
+    }
+  }
+
+  /// Jumps to the newest message and marks the whole channel read.
+  void _jumpToLatest() {
+    _scrollToBottom();
+    context.read<ChannelFeedBloc>().add(MarkAllChannelSeenEvent(widget.channelId));
   }
 
   /// Over-pulling past the bottom edge re-checks the relay-synced store for
@@ -154,9 +171,9 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
   void _showChannelQrSheet(BuildContext context, ChannelFeedState state) {
     final channel = state.channel;
     if (channel == null) return;
-    showDialog<void>(
-      context: context,
-      builder: (_) => UniunQrCard.publicChannel(
+    UniunQrCard.show(
+      context,
+      card: UniunQrCard.publicChannel(
         name: channel.name,
         channelId: channel.channelId,
         relays: channel.relays,
@@ -182,33 +199,52 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
         return Scaffold(
           backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.glassFill,
             elevation: 0,
+            scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
+            titleSpacing: 4,
             leading: UniunBackButton(
               onPressed: () => context.popOrHome(),
             ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // # glyph + name (no "#" prefix — the icon conveys it). About rides
+            // below as a subtitle. No member count (DESIGN.md §3.5).
+            title: Row(
               children: [
-                Text(
-                  '#$channelName',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                const Icon(
+                  Icons.tag_rounded,
+                  size: 20,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        channelName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      if (state.channel?.about.isNotEmpty == true)
+                        Text(
+                          state.channel!.about,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
-                if (state.channel?.about.isNotEmpty == true)
-                  Text(
-                    state.channel!.about,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
               ],
             ),
             actions: [
@@ -217,12 +253,16 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
                   onPressed: () => _showChannelQrSheet(context, state),
                   icon: const Icon(
                     Icons.qr_code_rounded,
-                    color: AppColors.primary,
+                    color: AppColors.onSurface,
                   ),
                   tooltip: l10n.channelShareQrTitle,
                 ),
               ],
             ],
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+            ),
           ),
           body: Column(
             children: [
@@ -322,6 +362,15 @@ class _ChannelFeedViewState extends State<_ChannelFeedView> {
           const Positioned(top: 0, left: 0, right: 0, child: _EdgeSpinner()),
         if (state.isLoadingUnread)
           const Positioned(bottom: 0, left: 0, right: 0, child: _EdgeSpinner()),
+        Positioned(
+          right: 16,
+          bottom: 12,
+          child: JumpToBottomButton(
+            visible: _showJumpButton,
+            onPressed: _jumpToLatest,
+            tooltip: AppLocalizations.of(context)!.jumpToLatest,
+          ),
+        ),
       ],
     );
   }

@@ -25,11 +25,21 @@ class Nip77Synchronizer {
   }) async {
     if (!session.read || !session.isConnected) return;
 
+    // Providers that opt out of NIP-77 (low-volume metadata that must pull full
+    // history regardless of age — e.g. kind-0 profiles) ignore any shared
+    // client and fall straight through to a plain REQ. The open-ended filter
+    // backfills history and live-tails future updates in one subscription, so
+    // no separate `since=now` tail is needed.
+    if (!supportsNip77) {
+      session.sendRaw(NostrFrame.req(subId, filter));
+      return;
+    }
+
     Nip77Client? client = sharedClient;
     bool nip77Connected = sharedClientConnected;
     bool ownsClient = false;
 
-    if (supportsNip77 && client == null) {
+    if (client == null) {
       client = Nip77Client(relayUrl: session.url);
       ownsClient = true;
       try {
@@ -45,7 +55,7 @@ class Nip77Synchronizer {
     if (nip77Connected) {
       try {
         final myEvents = await localIndex();
-        final syncResult = await client!.syncEvents(
+        final syncResult = await client.syncEvents(
           myEvents: myEvents,
           filter: filter,
         );
@@ -61,7 +71,7 @@ class Nip77Synchronizer {
     }
 
     if (!session.isConnected) {
-      if (ownsClient && nip77Connected) await client!.disconnect();
+      if (ownsClient && nip77Connected) await client.disconnect();
       return;
     }
 
@@ -73,6 +83,6 @@ class Nip77Synchronizer {
       session.sendRaw(NostrFrame.req(subId, liveFilter));
     }
 
-    if (ownsClient && nip77Connected) await client!.disconnect();
+    if (ownsClient && nip77Connected) await client.disconnect();
   }
 }

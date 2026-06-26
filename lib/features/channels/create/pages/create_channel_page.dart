@@ -7,6 +7,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class CreateChannelPage extends StatelessWidget {
@@ -31,15 +32,15 @@ class _CreateChannelView extends StatefulWidget {
 class _CreateChannelViewState extends State<_CreateChannelView> {
   final _nameController = TextEditingController();
   final _aboutController = TextEditingController();
-  final _pictureController = TextEditingController();
 
   final List<String> _selectedRelays = [];
+
+  bool _relaysExpanded = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _aboutController.dispose();
-    _pictureController.dispose();
     super.dispose();
   }
 
@@ -48,7 +49,8 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
       SubmitChannelEvent(
         name: _nameController.text,
         about: _aboutController.text,
-        picture: _pictureController.text,
+        // Channel image is not collected in v1 — created without a picture.
+        picture: '',
         selectedRelays: _selectedRelays,
       ),
     );
@@ -72,7 +74,7 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.createChannelSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -80,111 +82,174 @@ class _CreateChannelViewState extends State<_CreateChannelView> {
         }
       },
       child: Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: AppBar(
           backgroundColor: AppColors.surface,
-          appBar: AppBar(
-            backgroundColor: AppColors.surface,
-            elevation: 0,
-            leading: UniunBackButton(
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              l10n.createChannelTitle,
-              style: const TextStyle(
-                color: AppColors.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          leading: UniunBackButton(
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            l10n.createChannelHeaderTitle,
+            style: const TextStyle(
+              color: AppColors.onSurface,
+              fontWeight: FontWeight.w700,
+              fontSize: 17,
             ),
           ),
-          body: KeyboardDismissOnTap(
-            child: BlocBuilder<CreateChannelBloc, CreateChannelState>(
-              builder: (context, state) {
-                return _buildCreateTab(state, l10n);
-              },
-            ),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(
+                height: 1, thickness: 1, color: AppColors.borderSubtle),
           ),
         ),
+        body: KeyboardDismissOnTap(
+          child: BlocBuilder<CreateChannelBloc, CreateChannelState>(
+            builder: (context, state) => _buildCreateForm(state, l10n),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildCreateTab(CreateChannelState state, AppLocalizations l10n) {
+  Widget _buildCreateForm(CreateChannelState state, AppLocalizations l10n) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.createChannelDetailsHeading,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _nameController,
-            maxLength: 30,
-            decoration: InputDecoration(
-              labelText: l10n.createChannelNameLabel,
-              labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          // ── Channel icon (decorative) ─────────────────────────────────────
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 2,
-                ),
+              child: const Icon(
+                Icons.tag_rounded,
+                size: 40,
+                color: AppColors.primary,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 28),
 
+          // ── Name ──────────────────────────────────────────────────────────
+          SettingsSectionLabel(l10n.createChannelNameLabel),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _nameController,
+            maxLength: 30,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              hintText: l10n.createChannelNamePlaceholder,
+              counterText: '',
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Description ───────────────────────────────────────────────────
+          SettingsSectionLabel(l10n.createChannelDescriptionLabel),
+          const SizedBox(height: 8),
           TextField(
             controller: _aboutController,
             maxLines: 3,
             decoration: InputDecoration(
-              labelText: l10n.createChannelAboutLabel,
-              labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+              hintText: l10n.createChannelAboutPlaceholder,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Permanence note ───────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderSubtle),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    size: 20, color: AppColors.onSurfaceVariant),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.createChannelPermanenceNote,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Advanced · relays (collapsible) ───────────────────────────────
+          InkWell(
+            onTap: () =>
+                setState(() => _relaysExpanded = !_relaysExpanded),
+            child: Container(
+              margin: const EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: AppColors.borderSubtle),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.dns_rounded,
+                      size: 20, color: AppColors.onSurfaceVariant),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.createChannelAdvancedRelays,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _relaysExpanded ? 0.25 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.chevron_right_rounded,
+                        size: 20, color: AppColors.neutral400),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _pictureController,
-            decoration: InputDecoration(
-              labelText: l10n.createChannelPictureLabel,
-              labelStyle: const TextStyle(color: AppColors.onSurfaceVariant),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (_relaysExpanded) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.createChannelPublishRelaysBody,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppColors.textMuted,
               ),
             ),
-          ),
+            const SizedBox(height: 12),
+            RelaySelectorField(
+              selected: _selectedRelays,
+              onChanged: (next) => setState(() => _selectedRelays
+                ..clear()
+                ..addAll(next)),
+            ),
+          ],
 
-          const SizedBox(height: 32),
-          Text(
-            l10n.createChannelPublishRelays,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.createChannelPublishRelaysBody,
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 40),
 
-          RelaySelectorField(
-            selected: _selectedRelays,
-            onChanged: (next) => setState(() => _selectedRelays
-              ..clear()
-              ..addAll(next)),
-          ),
-
-          const SizedBox(height: 48),
-
+          // ── Create (bottom CTA) ───────────────────────────────────────────
           SizedBox(
             width: double.infinity,
             height: 50,

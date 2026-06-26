@@ -62,7 +62,7 @@ class ReferenceNoteCard extends StatelessWidget {
                       '· ${formatTimeAgo(note.created)}',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors.onSurfaceVariant,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],

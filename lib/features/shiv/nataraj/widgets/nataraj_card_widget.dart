@@ -325,9 +325,9 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
         ],
       ),
       padding: const EdgeInsets.all(20),
-      // The card sizes to its content — it grows with the text, never clipped.
-      // The deck (_DeckBody) wraps this card in a scroll view, so a long note
-      // can exceed the screen and scroll instead of overflowing.
+      // The deck (_DeckBody) caps this card to the available height. A short
+      // card hugs its content (Column.min); a long one fills that cap and the
+      // generated-note section below scrolls internally so nothing is clipped.
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,15 +426,31 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
           const SizedBox(height: 12),
 
           // ── Generated note as LargeNoteCard (actions hidden) ──────────
+          // Scrolls within the card when the note is long, so the whole text
+          // is readable without the card growing behind the action buttons.
+          // ListView(shrinkWrap) hugs short notes (the card stays sized to its
+          // content) and scrolls long ones; its vertical-drag recognizer wins
+          // over the card's 4-way pan inside this region, so dragging the text
+          // scrolls it instead of firing a swipe. Up/down swipes still fire
+          // from the references area above and the action buttons below.
           // Key on _selfPubkey: it's empty on first build until _resolve()
           // finishes, and LargeNoteCard's NoteCardCubit is created once from
           // the note's authorPubkey. Without re-keying, the cubit keeps
           // watching the empty pubkey and the author renders as a raw hash
           // instead of the user's profile name/avatar.
-          LargeNoteCard(
-            key: ValueKey(_selfPubkey),
-            note: synthesized,
-            showActions: false,
+          Flexible(
+            child: ListView(
+              primary: false,
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              children: [
+                LargeNoteCard(
+                  key: ValueKey(_selfPubkey),
+                  note: synthesized,
+                  showActions: false,
+                ),
+              ],
+            ),
           ),
         ],
       ),

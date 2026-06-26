@@ -46,6 +46,27 @@ abstract class AppColors {
   static const graphSaved = Color(0xFF0075f2);
   static const graphOwn = Color(0xFF059669);
   static const graphDraft = Color(0xFFD97706);
+
+  // Knowledge-graph node palette — mono-blue (DESIGN.md §1.1 decision) so the
+  // graph stays single-accent. The green/orange above remain the Draft pill /
+  // semantic colors used OUTSIDE the graph (compose, Nataraj, success/warning).
+  static const graphNodeSaved = Color(0xFF0075F2); // primary
+  static const graphNodeOwn = Color(0xFF6FB0F8); // blue-300
+  static const graphNodeDraft = Color(0xFF00458E); // blue-800
+  static const neutral300 = Color(0xFFCBD3DF); // graph edges (rest state)
+
+  // ── Redesign tokens (DESIGN.md §1.1) ──────────────────────────────────────
+  // Additive surface/text/border tokens that map 1:1 to the design-system CSS
+  // custom properties. Used by the note cards so they reference tokens, not hex.
+  static const borderSubtle = Color(0xFFEEF2F7); // --border-subtle (dividers)
+  static const border = Color(0xFFDEE4EC); // --border (default outline)
+  static const surfaceLow = Color(0xFFF4F7FB); // --surface-low (muted fill)
+  static const textBody = Color(0xFF1E293B); // --text-body (note/chat body)
+  static const textMuted = Color(0xFF6B7480); // --text-muted (timestamps/meta)
+  static const success = Color(0xFF059669); // --success (encrypted/positive state)
+  static const neutral400 = Color(0xFFA7B0BE); // --neutral-400 (inactive nav fg)
+  static const glassFill = Color(0xB8FFFFFF); // --glass-fill (white @ 72%)
+  static const glassBorder = Color(0x4DFFFFFF); // --glass-border (white @ 30%)
 }
 
 /// UNIUN typography scale. Used via `Theme.of(context).textTheme.<role>` so a

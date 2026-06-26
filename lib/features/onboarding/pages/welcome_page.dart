@@ -83,7 +83,7 @@ class WelcomePage extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.vpn_key_rounded,
+                      const Icon(Icons.vpn_key_outlined,
                           color: AppColors.primary, size: 20),
                       const SizedBox(width: 10),
                       Text(

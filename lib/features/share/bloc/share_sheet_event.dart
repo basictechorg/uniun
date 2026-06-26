@@ -2,7 +2,15 @@ part of 'share_sheet_bloc.dart';
 
 @freezed
 sealed class ShareSheetEvent with _$ShareSheetEvent {
-  const factory ShareSheetEvent.loadDestinations() = LoadDestinations;
+  /// Loads the destination lists and resolves [sourceEventId] into the quoted
+  /// note shown in the "Quoting" preview card.
+  const factory ShareSheetEvent.loadDestinations(String sourceEventId) =
+      LoadDestinations;
+
+  /// Picks (highlights) a destination without sending — the bottom Share button
+  /// publishes it.
+  const factory ShareSheetEvent.selectDestination(ShareDestination destination) =
+      SelectDestination;
 
   /// The user's composed note text changed.
   const factory ShareSheetEvent.contentChanged(String value) = ContentChanged;

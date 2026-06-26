@@ -180,7 +180,13 @@ class _Card extends StatelessWidget {
             color: AppColors.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
-        child: child,
+        // ListTiles (RadioListTile/SwitchListTile) paint their background and
+        // ink splashes on the nearest Material ancestor. Without this the
+        // Container's decoration color would suppress them — Flutter asserts.
+        child: Material(
+          type: MaterialType.transparency,
+          child: child,
+        ),
       );
 }
 

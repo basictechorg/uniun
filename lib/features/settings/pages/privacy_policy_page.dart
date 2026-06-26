@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/constants/app_constants.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -136,13 +137,18 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               const SizedBox(height: 16),
 
               Center(
-                child: Text(
-                  l10n.appVersion,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.4,
-                    color: AppColors.outline,
+                child: FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snap) => Text(
+                    snap.hasData
+                        ? 'UNIUN v${snap.data!.version}'
+                        : l10n.appVersion,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.4,
+                      color: AppColors.outline,
+                    ),
                   ),
                 ),
               ),
