@@ -260,14 +260,18 @@ flutter test test/integration/
 ### 3. Real-device integration tests (require a connected device)
 
 These load native libraries (flutter_gemma, MLS, etc.) and need an actual
-device or emulator. They live under `test/device_integration/`.
+device or emulator. They live at the project root in `integration_test/`
+— this folder name is a Flutter convention; the `integration_test` plugin
+is only detected when the folder is named exactly that at the repo root.
 
 ```bash
 # List connected devices
 flutter devices
 
-# Run the whole device_integration suite on a chosen device
-flutter test test/device_integration/ -d <device-id>
+# Run the whole suite in ONE app install (preserves the downloaded model
+# across tests — `flutter test integration_test/` would reinstall per file
+# and wipe it, causing tests to SKIP).
+flutter test integration_test/all_tests.dart -d <device-id>
 ```
 
 Some integration tests require an AI model to be installed on the device

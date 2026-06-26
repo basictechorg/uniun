@@ -95,6 +95,20 @@ class UniunApp extends StatelessWidget {
       supportedLocales: const [Locale('en')],
       theme: AppTheme.light,
       routerConfig: appRouter,
+      builder: (context, child) {
+        // Global tap-outside-to-dismiss-keyboard. HitTestBehavior.opaque is
+        // required — the default (deferToChild) means taps on empty space
+        // never reach this GestureDetector. translucent leaves bubbling intact
+        // so list scrolls / button taps still work.
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            final focus = FocusManager.instance.primaryFocus;
+            if (focus != null && focus.hasFocus) focus.unfocus();
+          },
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

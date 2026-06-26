@@ -16,14 +16,15 @@
 //            real InferenceChat, or flutter_gemma's stopGeneration() has
 //            regressed.
 //
-// Why this file lives at `test/device_integration/`:
-//   it needs a real device (iOS sim / Android emulator) to load Gemma's
-//   native libraries. UNIUN groups all device-bound tests under
-//   `test/device_integration/` so a single command runs them all.
+// Why this file lives at `integration_test/` (project root, not under
+// `test/`): the `integration_test` plugin is only wired up when the folder
+// is literally `integration_test/` at the repo root. Move it under `test/`
+// and `flutter test` runs the file as a plain host-VM test — platform
+// channels don't work, `hasActiveModel` returns false, the test SKIPs.
 //
 // How to run (after the device has an AI model installed via Shiv):
 //
-//   flutter test test/device_integration/ -d <device-id>
+//   flutter test integration_test/ -d <device-id>
 //
 // Expected output on PASS:
 //   OK: chat first-token latency = NNN ms (well under the 500ms budget)

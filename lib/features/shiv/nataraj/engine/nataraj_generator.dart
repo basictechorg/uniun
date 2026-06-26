@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/nataraj_card_status.dart';
@@ -48,6 +49,9 @@ class NatarajGenerator {
     int count = 5,
   }) async {
     final scopeId = scopeIdFor(manasIds);
+    debugPrint('🃏 Nataraj.fillBuffer START '
+        '(manasIds=${manasIds.isEmpty ? "ALL" : manasIds.join(",")}, '
+        'count=$count, scope=$scopeId)');
 
     // 1. Load the candidate note pool.
     final List<PackedNote> pool;
@@ -56,6 +60,7 @@ class NatarajGenerator {
       final keysE = await _keys.call();
       final selfPubkey = keysE.fold((_) => null, (k) => k.pubkeyHex);
       if (selfPubkey == null) {
+        debugPrint('🃏 Nataraj.fillBuffer EXIT=error (no selfPubkey)');
         return const NatarajFillResult(
             inserted: 0, state: NatarajFillState.error);
       }
@@ -65,8 +70,11 @@ class NatarajGenerator {
       pool =
           await ManasContextLoader.loadPool(isar: _isar, manasIds: manasIds);
     }
+    debugPrint('🃏 Nataraj.fillBuffer pool.size=${pool.length}');
 
     if (pool.length < 2) {
+      debugPrint('🃏 Nataraj.fillBuffer EXIT=needsMoreNotes '
+          '(pool.length=${pool.length} < 2)');
       return const NatarajFillResult(
           inserted: 0, state: NatarajFillState.needsMoreNotes);
     }
@@ -80,6 +88,8 @@ class NatarajGenerator {
       count: count,
       random: Random(),
     );
+    debugPrint('🃏 Nataraj.fillBuffer known.size=${known.length} '
+        'combos.size=${combos.length}');
 
     if (combos.isEmpty) {
       // Fresh combination space exhausted → resurface discarded cards instead.
@@ -87,6 +97,8 @@ class NatarajGenerator {
           (await _repo.rehydrateOldestDiscarded(scopeId, count)).getOrElse(
         () => 0,
       );
+      debugPrint('🃏 Nataraj.fillBuffer EXIT='
+          '${n > 0 ? "resurfacing" : "exhausted"} (combos empty, rehydrated=$n)');
       return NatarajFillResult(
         inserted: 0,
         state:
@@ -97,15 +109,23 @@ class NatarajGenerator {
     // 4-5. Generate + sanitize each combo.
     final byId = {for (final p in pool) p.id: p};
     final cards = <NatarajCardEntity>[];
+    int skippedShortNotes = 0;
+    int skippedNullResponse = 0;
+    int skippedEmptyOrNoop = 0;
 
     for (final combo in combos) {
       final notes = combo.noteIds
           .map((id) => byId[id])
           .whereType<PackedNote>()
           .toList();
-      if (notes.length < 2) continue;
+      if (notes.length < 2) {
+        skippedShortNotes++;
+        continue;
+      }
 
       final prompt = NatarajPromptBuilder.build(notes: notes);
+      debugPrint('🃏 Nataraj.fillBuffer calling LLM '
+          '(combo=${combo.signature.substring(0, 8)}, prompt=${prompt.length} chars)');
       final res = await _generate.call(
         GenerateOneShotInput(
           // maxTokens here is only a fallback: the runner opens the engine at
@@ -120,11 +140,15 @@ class NatarajGenerator {
         ),
       );
       final raw = res.fold((_) => null, (s) => s);
-      if (raw == null) continue; // preempted / no model → retry next fill
+      if (raw == null) {
+        skippedNullResponse++;
+        continue; // preempted / no model → retry next fill
+      }
 
       final clean = LlmTextSanitizer.clean(raw).trim();
       if (clean.isEmpty ||
           clean.toUpperCase().contains(NatarajPromptBuilder.noopSentinel)) {
+        skippedEmptyOrNoop++;
         continue;
       }
       // Hard-cap to ~60 words. The prompt asks for 60 words max but not every
@@ -145,6 +169,11 @@ class NatarajGenerator {
     }
 
     if (cards.isNotEmpty) await _repo.insertBufferedCards(cards);
+    debugPrint('🃏 Nataraj.fillBuffer EXIT=ok '
+        '(inserted=${cards.length}/${combos.length}, '
+        'skip[shortNotes=$skippedShortNotes, '
+        'null=$skippedNullResponse, '
+        'noop=$skippedEmptyOrNoop])');
     return NatarajFillResult(
         inserted: cards.length, state: NatarajFillState.ok);
   }

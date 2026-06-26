@@ -114,6 +114,17 @@ class InferenceScheduler {
 
   void _maybePreempt() {
     if (_running == null) return;
+    // User is on the chat surface → preempt any background work (T2+) outright
+    // even if no chat job is queued yet. Without this, an in-flight extract
+    // can hold the runner for minutes while the user stares at an empty chat
+    // tab — exactly the #118 / #7-foreground-toggling complaint. Matches the
+    // semantic the old `pauseLowPriority` had before the scheduler rewrite.
+    if (_foreground == LlmTaskKind.chat &&
+        _tier(_running!) >= 2 &&
+        _isReQueueable(_running!)) {
+      _signalPreempt();
+      return;
+    }
     final best = _peekBest();
     if (best == null) return;
     if (_tier(best) < _tier(_running!)) _signalPreempt();
@@ -152,9 +163,14 @@ class InferenceScheduler {
   _Job? _pickBestInternal({required bool removeFromQueue}) {
     _decayVruntimeIfDue();
     final t2BudgetBlown = _t2BudgetExceeded();
+    // While the user is on the chat surface, never start new background work.
+    // T0 (chat) and T1 (foreground=chat ⇒ chat-kind ⇒ still T0) are the only
+    // dispatchable tiers. Resumed when [setForeground] clears.
+    final blockBackground = _foreground == LlmTaskKind.chat;
 
     for (int tier = 0; tier <= 4; tier++) {
       if (tier == 2 && t2BudgetBlown) continue;
+      if (tier >= 2 && blockBackground) continue;
 
       final inTier = _q.where((j) => _tier(j) == tier).toList();
       if (inTier.isEmpty) continue;
