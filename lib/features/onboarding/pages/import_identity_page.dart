@@ -12,6 +12,7 @@ import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
+import 'package:uniun/features/onboarding/widgets/terms_checkbox.dart';
 
 /// Login screen — "Reclaim Your Avatar".
 class ImportIdentityPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class ImportIdentityPage extends StatefulWidget {
 
 class _ImportIdentityPageState extends State<ImportIdentityPage> {
   final _controller = TextEditingController();
+  bool _termsAccepted = false;
 
   @override
   void initState() {
@@ -36,7 +38,8 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
     super.dispose();
   }
 
-  bool get _canContinue => _controller.text.trim().isNotEmpty;
+  bool get _canContinue =>
+      _controller.text.trim().isNotEmpty && _termsAccepted;
 
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -233,6 +236,19 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                           ),
                         ],
                       ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    TermsCheckbox(
+                      accepted: _termsAccepted,
+                      onChanged: (v) => setState(() => _termsAccepted = v),
+                      onOpenTerms: () => context.pushNamed(
+                        AppRoutes.privacyPolicy,
+                        extra: true,
+                      ),
+                      onOpenPrivacy: () =>
+                          context.pushNamed(AppRoutes.privacyPolicy),
                     ),
 
                     const SizedBox(height: 12),

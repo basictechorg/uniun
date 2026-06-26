@@ -16,6 +16,7 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:nostr/nostr.dart';
 import 'package:uniun/features/onboarding/widgets/key_card.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
+import 'package:uniun/features/onboarding/widgets/terms_checkbox.dart';
 
 /// Shows the generated npub + nsec after profile setup.
 /// Route args: Map{'npub': String, 'nsec': String}
@@ -258,7 +259,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
 
                         const Spacer(),
 
-                        _TermsCheckbox(
+                        TermsCheckbox(
                           accepted: _termsAccepted,
                           onChanged: (v) =>
                               setState(() => _termsAccepted = v),
@@ -362,77 +363,3 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
   }
 }
 
-/// Terms & Conditions / Privacy Policy acceptance checkbox shown above the
-/// Save & Continue button. Both labels are tappable and open the policy page.
-class _TermsCheckbox extends StatelessWidget {
-  const _TermsCheckbox({
-    required this.accepted,
-    required this.onChanged,
-    required this.onOpenTerms,
-    required this.onOpenPrivacy,
-  });
-
-  final bool accepted;
-  final ValueChanged<bool> onChanged;
-  final VoidCallback onOpenTerms;
-  final VoidCallback onOpenPrivacy;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    const linkStyle = TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w700,
-      color: AppColors.primary,
-      decoration: TextDecoration.underline,
-      decorationColor: AppColors.primary,
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: accepted,
-            onChanged: (v) => onChanged(v ?? false),
-            activeColor: AppColors.primary,
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                l10n.keysAgreePrefix,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              GestureDetector(
-                onTap: onOpenTerms,
-                child: Text(l10n.keysAgreeTerms, style: linkStyle),
-              ),
-              Text(
-                l10n.keysAgreeConjunction,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              GestureDetector(
-                onTap: onOpenPrivacy,
-                child: Text(l10n.keysAgreePrivacy, style: linkStyle),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
