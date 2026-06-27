@@ -19,8 +19,8 @@ abstract class GanaEntity with _$GanaEntity {
 
     // Output
     required GanaOutputType outputType,
-    String? outputChannelId,
     String? outputGroupId,
+    String? outputPrivateGroupId,
     int? outputDmConversationId,
 
     // Model preference

@@ -9,7 +9,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// Sits below [StorageCard] on the settings page. Default is **off** —
 /// nothing is deleted unless the user explicitly opts in. The retention
 /// applies only to short-lived public traffic the user hasn't saved /
-/// followed / authored; DMs and private-channel messages are never
+/// followed / authored; DMs and private-group messages are never
 /// touched.
 ///
 /// Change takes effect on next app launch (CleanupManager reads the

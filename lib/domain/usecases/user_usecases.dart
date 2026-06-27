@@ -67,7 +67,7 @@ class ActiveUserProfile {
 
 /// Fetches the active user's pubkey and their avatar URL in a single call.
 /// Used by any screen that needs to show the current user's avatar in the
-/// reply composer (e.g. ThreadPage, ChannelPage).
+/// reply composer (e.g. ThreadPage, GroupPage).
 @lazySingleton
 class GetActiveUserProfileUseCase
     extends NoParamsUseCase<Either<Failure, ActiveUserProfile>> {

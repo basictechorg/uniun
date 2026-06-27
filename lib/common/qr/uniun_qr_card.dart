@@ -73,37 +73,8 @@ class UniunQrCard extends StatefulWidget {
     );
   }
 
-  /// Public channel card.
-  factory UniunQrCard.publicChannel({
-    required String name,
-    required String channelId,
-    required List<String> relays,
-  }) {
-    return UniunQrCard._(
-      entries: [
-        _QrEntry(
-          label: name,
-          copyValue: channelId,
-          payload: UniunQrPayload(
-            kind: UniunQrKind.publicChannel,
-            id: channelId,
-            name: name,
-            relays: relays,
-          ),
-          copyLabel: 'Copy channel ID',
-          caption: (l10n) => l10n.qrCaptionPublicChannel,
-          iconLeading: const Icon(
-            Icons.tag_rounded,
-            size: 26,
-            color: AppColors.primary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Private channel card.
-  factory UniunQrCard.privateChannel({
+  /// Public group card.
+  factory UniunQrCard.publicGroup({
     required String name,
     required String groupId,
     required List<String> relays,
@@ -114,13 +85,42 @@ class UniunQrCard extends StatefulWidget {
           label: name,
           copyValue: groupId,
           payload: UniunQrPayload(
-            kind: UniunQrKind.privateChannel,
+            kind: UniunQrKind.publicGroup,
             id: groupId,
             name: name,
             relays: relays,
           ),
           copyLabel: 'Copy group ID',
-          caption: (l10n) => l10n.qrCaptionPrivateChannel,
+          caption: (l10n) => l10n.qrCaptionPublicGroup,
+          iconLeading: const Icon(
+            Icons.tag_rounded,
+            size: 26,
+            color: AppColors.primary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Private group card.
+  factory UniunQrCard.privateGroup({
+    required String name,
+    required String groupId,
+    required List<String> relays,
+  }) {
+    return UniunQrCard._(
+      entries: [
+        _QrEntry(
+          label: name,
+          copyValue: groupId,
+          payload: UniunQrPayload(
+            kind: UniunQrKind.privateGroup,
+            id: groupId,
+            name: name,
+            relays: relays,
+          ),
+          copyLabel: 'Copy group ID',
+          caption: (l10n) => l10n.qrCaptionPrivateGroup,
           iconLeading: const Icon(
             Icons.lock_outline,
             size: 26,
@@ -317,7 +317,7 @@ class _UniunQrCardState extends State<UniunQrCard> {
 
   /// Captures the on-screen QR box as a PNG and opens the native share sheet
   /// with the image + the entity's deep link as text. Works for every card
-  /// kind (user / public / private channel / DM) via [_deepLinkFor].
+  /// kind (user / public / private group / DM) via [_deepLinkFor].
   Future<void> _shareEntry(_QrEntry entry) async {
     // Anchor the iPad share popover to this card — read before any await.
     final box = context.findRenderObject() as RenderBox?;
@@ -367,12 +367,12 @@ class _UniunQrCardState extends State<UniunQrCard> {
   /// Maps a QR payload to its shareable `https://www.uniun.in/...` deep link.
   Uri _deepLinkFor(UniunQrPayload p) => switch (p.kind) {
     UniunQrKind.user => DeepLink.user(p.id, relays: p.relays),
-    UniunQrKind.publicChannel => DeepLink.channel(
+    UniunQrKind.publicGroup => DeepLink.group(
       p.id,
       name: p.name,
       relays: p.relays,
     ),
-    UniunQrKind.privateChannel => DeepLink.privateChannel(
+    UniunQrKind.privateGroup => DeepLink.privateGroup(
       p.id,
       name: p.name,
       relays: p.relays,
@@ -396,7 +396,7 @@ class _QrEntry {
   /// Name shown under the avatar.
   final String label;
 
-  /// FULL id (npub / channel id / group id) — shown verbatim and copied.
+  /// FULL id (npub / group id / group id) — shown verbatim and copied.
   final String copyValue;
   final UniunQrPayload payload;
   final String copyLabel;
@@ -408,16 +408,16 @@ class _QrEntry {
   /// DM toggle label.
   final String? tabLabel;
 
-  /// Avatar seed (hex pubkey) for person kinds; null for channels.
+  /// Avatar seed (hex pubkey) for person kinds; null for groups.
   final String? avatarSeed;
   final String? avatarUrl;
 
-  /// Icon shown in the avatar slot for channel kinds; null for person kinds.
+  /// Icon shown in the avatar slot for group kinds; null for person kinds.
   final Widget? iconLeading;
 }
 
 /// 56px header glyph: the user's avatar for person kinds, or a tinted rounded
-/// square holding the channel icon for channel kinds.
+/// square holding the group icon for group kinds.
 class _AvatarSlot extends StatelessWidget {
   const _AvatarSlot({required this.entry});
   final _QrEntry entry;

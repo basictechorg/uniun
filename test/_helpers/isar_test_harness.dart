@@ -3,10 +3,10 @@ import 'dart:math' as math;
 
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/followed_user_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 
 final math.Random _rng = math.Random();
 
@@ -31,8 +31,8 @@ Future<Isar> openTestIsar() async {
   );
 }
 
-ChannelModel channelSeed(String channelId) => ChannelModel()
-  ..channelId = channelId
+GroupModel groupSeed(String groupId) => GroupModel()
+  ..groupId = groupId
   ..creatorPubKey = 'creator'
   ..name = 'name'
   ..about = 'about'
@@ -41,7 +41,7 @@ ChannelModel channelSeed(String channelId) => ChannelModel()
   ..createdAt = 0
   ..updatedAt = 0;
 
-PrivateChannelModel privateChannelSeed(String groupId) => PrivateChannelModel()
+PrivateGroupModel privateGroupSeed(String groupId) => PrivateGroupModel()
   ..groupId = groupId
   ..mlsGroupId = 'mls_$groupId'
   ..relays = const []

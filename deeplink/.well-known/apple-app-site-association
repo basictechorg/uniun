@@ -4,7 +4,7 @@
     "details": [
       {
         "appID": "A86M9D5A43.in.uniun.app",
-        "paths": ["/channel/*", "/private/*", "/user/*"]
+        "paths": ["/group/*", "/channel/*", "/private/*", "/user/*"]
       }
     ]
   }

@@ -15,9 +15,9 @@ part 'thread_event.dart';
 part 'thread_state.dart';
 
 /// Resolver-backed thread bloc. Reads a note from *any* collection by id and
-/// posts replies routed by source — one bloc for feed/channel/private/DM.
+/// posts replies routed by source — one bloc for feed/group/private/DM.
 /// In `savedOnly` mode (entry from Saved Notes), root/replies/refs come from
-/// the saved-note edge table so channel messages whose live row was evicted
+/// the saved-note edge table so group messages whose live row was evicted
 /// still render.
 @injectable
 class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
@@ -57,7 +57,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
 
     // ── Root note ──────────────────────────────────────────────────────────
     // In saved mode the note may live only in savedNoteModels (a saved public
-    // channel message is never in noteModels), so resolve it from there.
+    // group message is never in noteModels), so resolve it from there.
     final NoteEntity? root;
     if (event.savedOnly) {
       SavedNoteEntity? rootSaved;
@@ -101,7 +101,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     // ── Mentions / references rendered above the root ──────────────────────
     final mentionedNotes = <NoteEntity>[];
     if (event.savedOnly) {
-      // Resolve refs from the edge table + saved set, so channel-sourced
+      // Resolve refs from the edge table + saved set, so group-sourced
       // parents (with stripped eTagRefs) still render.
       final refResult = await _getSavedReferences.call(event.noteId);
       final refs = refResult.fold((_) => <SavedNoteEntity>[], (r) => r);
@@ -174,7 +174,7 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       mentionRefs: event.mentionRefs,
       attachments: event.attachments,
       // Saved-only threads always reply as feed notes (parity with prior
-      // behavior — the saved root may be from a channel/group the user can't post to).
+      // behavior — the saved root may be from a group/group the user can't post to).
       sourceOverride: state.savedOnly ? NoteSource.feed : null,
     ));
 

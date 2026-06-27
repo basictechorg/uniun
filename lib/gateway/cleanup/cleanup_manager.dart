@@ -20,13 +20,13 @@ import 'package:uniun/data/models/saved_note_model.dart';
 /// 1. **Note eviction** — short-lived public traffic (Kind 1 / Kind 42)
 ///    older than [retention] is deleted, unless the note is own (matches
 ///    the active user's pubkey), saved (row in [SavedNoteModel]), or
-///    followed (row in [FollowedNoteModel]). DMs (14/15), private-channel
-///    messages (9023), AI conversations, and profile / channel metadata
+///    followed (row in [FollowedNoteModel]). DMs (14/15), private-group
+///    messages (9023), AI conversations, and profile / group metadata
 ///    are untouched.
 ///
 /// 2. **Media GC** — after note eviction, any [MediaCacheModel] row whose
 ///    SHA is no longer referenced by any surviving note loses its file +
-///    cache row. Media on saved / own / followed / DM / private-channel
+///    cache row. Media on saved / own / followed / DM / private-group
 ///    notes stays because those notes survive eviction.
 class CleanupManager {
   CleanupManager({
@@ -144,7 +144,7 @@ class CleanupManager {
         .findAll();
     final staleKind42 = await isar.noteModels
         .filter()
-        .kindEqualTo(kChannelMessageKind)
+        .kindEqualTo(kGroupMessageKind)
         .createdLessThan(cutoff)
         .findAll();
     final stale = [...staleKind1, ...staleKind42];
@@ -170,7 +170,7 @@ class CleanupManager {
   ///
   /// A SHA is considered "referenced" if any of:
   ///   • a live [NoteModel] row carries it (covers own / saved / followed /
-  ///     DM / private-channel notes — eviction skips those ids).
+  ///     DM / private-group notes — eviction skips those ids).
   ///   • a [SavedNoteModel] row carries it. Belt+suspenders: the saved row
   ///     owns its attachments independently of the live note, so future
   ///     manual storage purges can't orphan saved media.

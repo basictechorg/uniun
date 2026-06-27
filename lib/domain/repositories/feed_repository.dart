@@ -4,8 +4,8 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 
 /// Vishnu unified feed repository.
 ///
-/// Merges two collections — Kind 1 notes and Kind 42 public channel messages
-/// from joined channels — under one read model. A note is "unread" iff an
+/// Merges two collections — Kind 1 notes and Kind 42 public group messages
+/// from joined groups — under one read model. A note is "unread" iff an
 /// `UnreadNote` row exists for its eventId. The feed drains in two phases:
 ///
 ///   - **Unread**: any note with an unread row — drained first, `created` desc,
@@ -20,7 +20,7 @@ abstract class FeedRepository {
   /// Snaps the anchor forward (called on banner tap / pull-to-refresh).
   Future<Either<Failure, Unit>> setFeedLoadedAt(DateTime ts);
 
-  /// Unread phase — feed-eligible notes/channel-msgs that still have an unread
+  /// Unread phase — feed-eligible notes/group-msgs that still have an unread
   /// row, `created` desc. Returns up to [limit] items, skipping any eventId in
   /// [excludeIds] (the already-loaded set). No `before` cursor: new arrivals
   /// are newer than any cursor, and the unread collection self-prunes (rows are
@@ -30,7 +30,7 @@ abstract class FeedRepository {
     required Set<String> excludeIds,
   });
 
-  /// Seen phase — feed-eligible notes/channel-msgs with NO unread row,
+  /// Seen phase — feed-eligible notes/group-msgs with NO unread row,
   /// `created` desc, paginated by [before].
   Future<Either<Failure, List<NoteEntity>>> getSeen({
     required int limit,
@@ -42,7 +42,7 @@ abstract class FeedRepository {
   /// underlying collections change.
   Stream<int> watchNewBufferCount(DateTime loadedAt);
 
-  /// Mark a note or channel message seen by deleting its unread row.
+  /// Mark a note or group message seen by deleting its unread row.
   /// No-op if already seen or unknown.
   Future<Either<Failure, Unit>> markSeen(String eventId);
 }

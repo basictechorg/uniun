@@ -63,7 +63,7 @@ const int kBackgroundMaxGanasPerTick = 1;
 ///
 /// ## What it DOES
 ///
-/// 1. Boots BackgroundIsolateBinaryMessenger so plugin channels work.
+/// 1. Boots BackgroundIsolateBinaryMessenger so plugin groups work.
 /// 2. Opens its own Isar handle at the shared DB path.
 /// 3. Initializes flutter_gemma 1.0.0 with the same engine list as
 ///    `main.dart`. Verified PASS by
@@ -72,7 +72,7 @@ const int kBackgroundMaxGanasPerTick = 1;
 /// 4. Picks ONE due interval Gana (battery-clamped to ≥30 min).
 /// 5. Runs the full engine flow: input filter → reply ancestry →
 ///    Manas context pack → prompt build → openChat → inference →
-///    publish (feed/channel in-isolate; DM/private skipped — see below) →
+///    publish (feed/group in-isolate; DM/private skipped — see below) →
 ///    log GanaRunModel → advance cursor.
 /// 6. Closes Isar, returns.
 ///
@@ -81,7 +81,7 @@ const int kBackgroundMaxGanasPerTick = 1;
 /// - Reactive triggers. The gateway isolate is NOT running here, so new
 ///   notes don't arrive while the app is killed. Only interval Ganas
 ///   fire in the background.
-/// - DM + private-channel publishing in bg. Those kinds need
+/// - DM + private-group publishing in bg. Those kinds need
 ///   main-isolate-only native plugins (NIP-17 gift-wrap / NIP-29 MLS).
 ///   The bg tick logs a skip; the foreground engine reactively picks the
 ///   same input up on next app open. One-shot DM/PC Ganas with no
@@ -432,22 +432,22 @@ Future<void> _runOneGana({
   _log('  body preview: "${_previewBody(trimmed)}"');
 
   // Route by output type:
-  //   - feed (kind 1) / channel (kind 42): sign locally + write to
+  //   - feed (kind 1) / group (kind 42): sign locally + write to
   //     EventQueueModel. The gateway isolate's watcher picks it up and
   //     broadcasts. ZERO main-isolate hops.
-  //   - dm (NIP-17) / privateChannel (NIP-29 MLS): native plugins are
+  //   - dm (NIP-17) / privateGroup (NIP-29 MLS): native plugins are
   //     main-isolate-only. Skipped in bg; foreground engine catches up via
   //     foreground engine when the user reopens the app.
-  // Bg publish — only feed (kind 1) + channel (kind 42) are safe to sign
+  // Bg publish — only feed (kind 1) + group (kind 42) are safe to sign
   // and broadcast from this isolate (no native plugins required, gateway
   // watcher picks up the EventQueueModel row). DM (NIP-17) and private
-  // channels (NIP-29 MLS) need main-isolate plugins, so we skip them in
+  // groups (NIP-29 MLS) need main-isolate plugins, so we skip them in
   // bg; the foreground engine reactively picks up the same input next
   // time the app opens. One-shot DM/PC Ganas with no reactive trigger
   // won't fire from bg — known limitation.
   String? publishedEventId;
   if (gana.outputType == GanaOutputType.feed ||
-      gana.outputType == GanaOutputType.channel) {
+      gana.outputType == GanaOutputType.group) {
     if (privkeyHex == null || privkeyHex.isEmpty) {
       _log('  publish SKIPPED: no privkeyHex in bg (will retry foreground)');
     } else {
@@ -503,7 +503,7 @@ String _previewBody(String s) {
   return '${flat.substring(0, 80)}…';
 }
 
-/// Sign + enqueue a kind-1 (feed) or kind-42 (channel) event directly
+/// Sign + enqueue a kind-1 (feed) or kind-42 (group) event directly
 /// from the bg isolate. Returns the resulting `eventId`, or null on
 /// failure (in which case the caller falls back to the pending table).
 ///
@@ -560,15 +560,15 @@ Future<String?> _publishInBg({
       });
       return ev.id;
     }
-    if (gana.outputType == GanaOutputType.channel) {
-      final channelId = gana.outputChannelId;
-      if (channelId == null) return null;
+    if (gana.outputType == GanaOutputType.group) {
+      final groupId = gana.outputGroupId;
+      if (groupId == null) return null;
       final tags = <List<String>>[
-        ['e', channelId, '', 'root'],
+        ['e', groupId, '', 'root'],
       ];
       final ev = Event.from(
         privkey: privkeyHex,
-        kind: kChannelMessageKind,
+        kind: kGroupMessageKind,
         content: body,
         tags: tags,
         createdAt: nowUnix,
@@ -582,11 +582,11 @@ Future<String?> _publishInBg({
           sig: ev.sig,
           authorPubkey: ev.pubkey,
           content: ev.content,
-          kind: kChannelMessageKind,
-          channelId: channelId,
+          kind: kGroupMessageKind,
+          groupId: groupId,
           type: NoteType.text,
-          eTagRefs: [channelId],
-          rootEventId: channelId,
+          eTagRefs: [groupId],
+          rootEventId: groupId,
           pTagRefs: const [],
           tTags: const [],
           created: createdAt,
@@ -597,9 +597,9 @@ Future<String?> _publishInBg({
             ..authorPubkey = ev.pubkey
             ..sig = ev.sig
             ..content = ev.content
-            ..kind = kChannelMessageKind
-            ..eTagRefs = [channelId]
-            ..rootEventId = channelId
+            ..kind = kGroupMessageKind
+            ..eTagRefs = [groupId]
+            ..rootEventId = groupId
             ..pTagRefs = const []
             ..tTags = const []
             ..created = createdAt

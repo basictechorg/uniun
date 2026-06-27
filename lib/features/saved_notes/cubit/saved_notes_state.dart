@@ -19,7 +19,7 @@ class SavedNotesState {
   final Map<String, ProfileEntity> profiles;
 
   /// eventId → pre-rendered chip ("#general" / "🔒 secret"). Only present
-  /// for saved items that came from a public or private channel; native
+  /// for saved items that came from a public or private group; native
   /// Kind-1 saves are absent from the map so the chip stays hidden.
   final Map<String, String> sourceLabels;
 

@@ -4,7 +4,7 @@ import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 part 'share_note_input.freezed.dart';
 
 /// The destination a note is being shared into. Each variant maps to one of
-/// the existing publish paths (feed / public channel / private channel / DM)
+/// the existing publish paths (feed / public group / private group / DM)
 /// so the share repository is a thin dispatcher — it never publishes events
 /// directly.
 @freezed
@@ -12,15 +12,15 @@ sealed class ShareDestination with _$ShareDestination {
   /// Quote-post on the author's own Vishnu feed (Kind 1).
   const factory ShareDestination.feed() = ShareToFeed;
 
-  /// Public NIP-28 channel message (Kind 42).
-  const factory ShareDestination.publicChannel({
-    required String channelId,
-  }) = ShareToPublicChannel;
-
-  /// Private MLS-encrypted channel message (Kind 9023).
-  const factory ShareDestination.privateChannel({
+  /// Public NIP-28 group message (Kind 42).
+  const factory ShareDestination.publicGroup({
     required String groupId,
-  }) = ShareToPrivateChannel;
+  }) = ShareToPublicGroup;
+
+  /// Private MLS-encrypted group message (Kind 9023).
+  const factory ShareDestination.privateGroup({
+    required String groupId,
+  }) = ShareToPrivateGroup;
 
   /// NIP-17 DM to a specific peer (Kind 14 inside Kind 1059 gift-wrap).
   const factory ShareDestination.dm({

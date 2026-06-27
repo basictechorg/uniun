@@ -12,7 +12,7 @@ import 'package:uniun/features/shiv/generation/prompt/composer_chat_prompt.dart'
 /// Headless chat engine for the composer-chat (WS4): the inline AI chat the
 /// note composer becomes when the user long-presses the avatar and picks a
 /// Manas. It answers about the conversation the user is reading (thread /
-/// channel / DM / private channel), grounded in the picked Manas.
+/// group / DM / private group), grounded in the picked Manas.
 ///
 /// Standalone by design — it reuses the existing [SendChatStreamUseCase] +
 /// [ManasContextLoader] + WS3 chat helpers, so it needs no decomposition of

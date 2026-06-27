@@ -12,8 +12,8 @@ import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
-import 'package:uniun/data/models/private_channel_join_request_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/private_group_join_request_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/services/marmot_mls_service.dart';
@@ -40,8 +40,8 @@ class MarmotTransportService {
     _subscription?.cancel();
   }
 
-  Future<PrivateChannelModel?> _findChannel(String groupId) {
-    return _isar.privateChannelModels.where().groupIdEqualTo(groupId).findFirst();
+  Future<PrivateGroupModel?> _findGroup(String groupId) {
+    return _isar.privateGroupModels.where().groupIdEqualTo(groupId).findFirst();
   }
 
   Future<void> _processPendingMessages() async {
@@ -54,26 +54,26 @@ class MarmotTransportService {
           final joinedMlsGroupIdB64 = await _mlsService.joinGroupFromWelcome(
             welcomeB64: encrypted.encryptedPayload,
           );
-          final channel = await _findChannel(encrypted.groupId);
-          if (channel == null) {
+          final group = await _findGroup(encrypted.groupId);
+          if (group == null) {
             continue;
           }
           await _isar.writeTxn(() async {
-            channel.mlsGroupId = joinedMlsGroupIdB64;
-            await _isar.privateChannelModels.put(channel);
+            group.mlsGroupId = joinedMlsGroupIdB64;
+            await _isar.privateGroupModels.put(group);
             await _isar.encryptedMessageModels.delete(encrypted.id);
           });
           continue;
         }
 
         if (encrypted.kind == 9025) {
-          final channel = await _findChannel(encrypted.groupId);
-          if (channel == null || channel.mlsGroupId.isEmpty) {
+          final group = await _findGroup(encrypted.groupId);
+          if (group == null || group.mlsGroupId.isEmpty) {
             // Wait until welcome has populated mlsGroupId.
             continue;
           }
           await _mlsService.processProtocolMessage(
-            groupId: channel.mlsGroupId,
+            groupId: group.mlsGroupId,
             base64Payload: encrypted.encryptedPayload,
             groupIdIsBase64: true,
           );
@@ -90,13 +90,13 @@ class MarmotTransportService {
           continue;
         }
 
-        final channel = await _findChannel(encrypted.groupId);
-        if (channel == null || channel.mlsGroupId.isEmpty) {
+        final group = await _findGroup(encrypted.groupId);
+        if (group == null || group.mlsGroupId.isEmpty) {
           continue;
         }
 
         final decryptedBytes = await _mlsService.decryptMessage(
-          groupId: channel.mlsGroupId,
+          groupId: group.mlsGroupId,
           base64Payload: encrypted.encryptedPayload,
           groupIdIsBase64: true,
         );
@@ -108,8 +108,8 @@ class MarmotTransportService {
           sig: '',
           authorPubkey: encrypted.senderPubkey,
           content: envelope.content,
-          kind: kPrivateChannelKind,
-          groupId: encrypted.groupId,
+          kind: kPrivateGroupKind,
+          privateGroupId: encrypted.groupId,
           type: envelope.attachments.any((a) => a.mime.startsWith('image/'))
               ? NoteType.image
               : NoteType.text,
@@ -298,14 +298,14 @@ class MarmotTransportService {
   // Public API
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Creates a NIP-29 private channel.
+  /// Creates a NIP-29 private group.
   ///
   /// Signs a kind-9002 event. Its [event.id] becomes the [groupId] so the
   /// server can identify the group from the creation event alone. All
-  /// subsequent events for this channel use `["h", groupId]` tag.
+  /// subsequent events for this group use `["h", groupId]` tag.
   ///
   /// Returns the generated [groupId] (= event id of the creation event).
-  Future<String> createChannel({
+  Future<String> createGroup({
     required String privkeyHex, // hex private key for signing
     required String authorPubkey,
     required String name,
@@ -318,7 +318,7 @@ class MarmotTransportService {
     );
     final mlsGroupId = base64Encode(createResult.groupId);
 
-    // 2. Sign the channel creation event (kind 9002 — NIP-29 edit-metadata).
+    // 2. Sign the group creation event (kind 9002 — NIP-29 edit-metadata).
     //    No `h` tag here: this IS the creation event, and its id becomes the groupId.
     final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final event = Event.from(
@@ -332,7 +332,7 @@ class MarmotTransportService {
     final groupId = event.id; // ← groupId = event id of the creation event
 
     // 3. Persist locally + queue for relay
-    final model = PrivateChannelModel()
+    final model = PrivateGroupModel()
       ..groupId = groupId
       ..mlsGroupId = mlsGroupId
       ..name = name
@@ -341,7 +341,7 @@ class MarmotTransportService {
       ..adminPubkey = authorPubkey;
 
     await _isar.writeTxn(() async {
-      await _isar.privateChannelModels.put(model);
+      await _isar.privateGroupModels.put(model);
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
     });
 
@@ -350,10 +350,10 @@ class MarmotTransportService {
 
   /// NIP-29 Join Request with MLS KeyPackage embedded in content.
   ///
-  /// Saves a local [PrivateChannelModel] stub so [CentralRelayManager] can
+  /// Saves a local [PrivateGroupModel] stub so [CentralRelayManager] can
   /// route the join event to the correct relays. The stub has an empty
   /// mlsGroupId until the admin sends back the Welcome message.
-  Future<void> joinChannel({
+  Future<void> joinGroup({
     required String groupId,
     required String authorPubkey,
     required String privkeyHex,
@@ -373,37 +373,37 @@ class MarmotTransportService {
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
 
-    // Save a local stub so the relay router can find the channel's relays.
-    final existing = await _isar.privateChannelModels
+    // Save a local stub so the relay router can find the group's relays.
+    final existing = await _isar.privateGroupModels
         .where()
         .groupIdEqualTo(groupId)
         .findFirst();
 
     await _isar.writeTxn(() async {
       if (existing == null) {
-        final stub = PrivateChannelModel()
+        final stub = PrivateGroupModel()
           ..groupId = groupId
           ..mlsGroupId = '' // filled in after Welcome is received
           ..name = groupId  // placeholder until metadata synced
           ..description = ''
           ..relays = relays
           ..adminPubkey = '';
-        await _isar.privateChannelModels.put(stub);
+        await _isar.privateGroupModels.put(stub);
       } else if (existing.relays.isEmpty && relays.isNotEmpty) {
         existing.relays = relays;
-        await _isar.privateChannelModels.put(existing);
+        await _isar.privateGroupModels.put(existing);
       }
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
     });
   }
 
   /// NIP-29 Leave Request.
-  Future<void> leaveChannel({
+  Future<void> leaveGroup({
     required String groupId,
     required String authorPubkey,
     required String privkeyHex,
   }) async {
-    final channel = await _findChannel(groupId);
+    final group = await _findGroup(groupId);
 
     final event = Event.from(
       privkey: privkeyHex,
@@ -415,10 +415,10 @@ class MarmotTransportService {
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
 
-    if (channel != null && channel.mlsGroupId.isNotEmpty) {
+    if (group != null && group.mlsGroupId.isNotEmpty) {
       try {
         await _mlsService.leaveGroup(
-          groupId: channel.mlsGroupId,
+          groupId: group.mlsGroupId,
           groupIdIsBase64: true,
         );
       } catch (_) {
@@ -428,7 +428,7 @@ class MarmotTransportService {
 
     await _isar.writeTxn(() async {
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
-      await _isar.privateChannelModels.where().groupIdEqualTo(groupId).deleteAll();
+      await _isar.privateGroupModels.where().groupIdEqualTo(groupId).deleteAll();
     });
   }
 
@@ -436,7 +436,7 @@ class MarmotTransportService {
   ///
   /// [embeddedNoteJson] is the embed-by-value share snapshot, carried inside the
   /// encrypted envelope (key `em`).
-  Future<void> sendChannelMessage({
+  Future<void> sendGroupMessage({
     required String groupId,
     required String content,
     required String authorPubkey,
@@ -447,11 +447,11 @@ class MarmotTransportService {
     String? embeddedNoteJson,
     List<MediaBlobEntity> attachments = const [],
   }) async {
-    final channel = await _findChannel(groupId);
-    if (channel == null) {
-      throw Exception('Private channel not found locally for groupId: $groupId');
+    final group = await _findGroup(groupId);
+    if (group == null) {
+      throw Exception('Private group not found locally for groupId: $groupId');
     }
-    if (channel.mlsGroupId.isEmpty) {
+    if (group.mlsGroupId.isEmpty) {
       throw Exception('MLS group is not initialized for groupId: $groupId');
     }
 
@@ -469,7 +469,7 @@ class MarmotTransportService {
     ];
 
     final encryptedPayload = await _mlsService.encryptMessage(
-      groupId: channel.mlsGroupId,
+      groupId: group.mlsGroupId,
       content: _encodeMessageEnvelope(
         content,
         mentionRefs,
@@ -497,8 +497,8 @@ class MarmotTransportService {
       sig: '',
       authorPubkey: authorPubkey,
       content: content,
-      kind: kPrivateChannelKind,
-      groupId: groupId,
+      kind: kPrivateGroupKind,
+      privateGroupId: groupId,
       type: imeta.any((a) => a.mime.startsWith('image/'))
           ? NoteType.image
           : NoteType.text,
@@ -533,11 +533,11 @@ class MarmotTransportService {
     required String userKeyPackageB64,
     required String adminPrivkeyHex,
   }) async {
-    final channel = await _findChannel(groupId);
-    if (channel == null) {
-      throw Exception('Private channel not found locally for groupId: $groupId');
+    final group = await _findGroup(groupId);
+    if (group == null) {
+      throw Exception('Private group not found locally for groupId: $groupId');
     }
-    if (channel.mlsGroupId.isEmpty) {
+    if (group.mlsGroupId.isEmpty) {
       throw Exception('MLS group is not initialized for groupId: $groupId');
     }
 
@@ -551,7 +551,7 @@ class MarmotTransportService {
 
     try {
       final addResult = await _mlsService.addMembers(
-        groupId: channel.mlsGroupId,
+        groupId: group.mlsGroupId,
         keyPackagesB64: [userKeyPackageB64],
         groupIdIsBase64: true,
       );
@@ -581,7 +581,7 @@ class MarmotTransportService {
           _buildQueueEntry(welcomeEvent),
           _buildQueueEntry(commitEvent),
         ]);
-        await _deletePendingRequestsInTxn(
+        await _markRequestsHandledInTxn(
           groupId,
           userKeyPackageB64,
           senderPubkey,
@@ -589,11 +589,11 @@ class MarmotTransportService {
       });
     } catch (e) {
       // The member's signature key is already in the group — they were added by
-      // a previous commit. Treat as success and drop the stale request(s)
-      // instead of surfacing "Duplicate signature key" to the admin.
+      // a previous commit. Treat as success and mark the stale request(s)
+      // handled instead of surfacing "Duplicate signature key" to the admin.
       if (_isAlreadyMemberError(e)) {
         await _isar.writeTxn(() async {
-          await _deletePendingRequestsInTxn(
+          await _markRequestsHandledInTxn(
             groupId,
             userKeyPackageB64,
             senderPubkey,
@@ -611,37 +611,46 @@ class MarmotTransportService {
     String groupId,
     String keyPackageB64,
   ) async {
-    final requests = await _isar.privateChannelJoinRequestModels
+    final requests = await _isar.privateGroupJoinRequestModels
         .where()
         .groupIdEqualTo(groupId)
         .findAll();
     return requests
-        .where((request) => request.keyPackageB64 == keyPackageB64)
+        .where((request) =>
+            !request.handled && request.keyPackageB64 == keyPackageB64)
         .map((request) => request.senderPubkey)
         .firstOrNull;
   }
 
-  /// Deletes every pending join request for [groupId] that either matches the
-  /// approved [keyPackageB64] or was submitted by [senderPubkey] (a member may
-  /// have several outstanding requests sharing one signature key).
-  Future<void> _deletePendingRequestsInTxn(
+  /// Marks every pending join request for [groupId] that either matches the
+  /// approved [keyPackageB64] or was submitted by [senderPubkey] as handled (a
+  /// member may have several outstanding requests sharing one signature key).
+  ///
+  /// The rows are kept rather than deleted: the relay holds the original Kind
+  /// 9021 events permanently, so on the next sync the inbound handler re-offers
+  /// them. Keeping the rows lets the handler's `eventId` idempotency check skip
+  /// the re-insert; the `handled` flag keeps them out of the pending list.
+  Future<void> _markRequestsHandledInTxn(
     String groupId,
     String keyPackageB64,
     String? senderPubkey,
   ) async {
-    final requests = await _isar.privateChannelJoinRequestModels
+    final requests = await _isar.privateGroupJoinRequestModels
         .where()
         .groupIdEqualTo(groupId)
         .findAll();
-    final ids = requests
+    final toMark = requests
         .where((request) =>
-            request.keyPackageB64 == keyPackageB64 ||
-            (senderPubkey != null && request.senderPubkey == senderPubkey))
-        .map((request) => request.id)
+            !request.handled &&
+            (request.keyPackageB64 == keyPackageB64 ||
+                (senderPubkey != null &&
+                    request.senderPubkey == senderPubkey)))
         .toList();
-    if (ids.isNotEmpty) {
-      await _isar.privateChannelJoinRequestModels.deleteAll(ids);
+    if (toMark.isEmpty) return;
+    for (final request in toMark) {
+      request.handled = true;
     }
+    await _isar.privateGroupJoinRequestModels.putAll(toMark);
   }
 
   bool _isAlreadyMemberError(Object error) {

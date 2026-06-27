@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 
 /// Behaviour guard for the shared jump-to-latest affordance used by the chat
-/// surfaces (channel feed, private channel, DM): it must invoke its callback
+/// surfaces (group feed, private group, DM): it must invoke its callback
 /// when shown, and must NOT absorb taps when hidden (so it never blocks the
 /// message list underneath).
 void main() {

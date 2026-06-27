@@ -9,7 +9,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 
 /// Reusable relay multi-select with an inline "Add new relay" action.
 ///
-/// Used by Create Channel, Create Private Channel, Create DM and any other
+/// Used by Create Group, Create Private Group, Create DM and any other
 /// surface where the user must pick which relays to publish on. Loads the
 /// device's relay list on first build and refreshes after a new relay is
 /// added (saved through [SaveRelayUseCase] so the entry persists for next
@@ -17,7 +17,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 ///
 /// Selection is presented as a tappable field that opens a bottom sheet of
 /// checkable relay rows with an inline add field — matching the relay picker
-/// on the Join Channel screen.
+/// on the Join Group screen.
 class RelaySelectorField extends StatefulWidget {
   const RelaySelectorField({
     super.key,

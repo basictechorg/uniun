@@ -13,8 +13,8 @@ class GanaFormState {
     this.inputType,
     this.inputRefId,
     this.outputType = GanaOutputType.feed,
-    this.outputChannelId,
     this.outputGroupId,
+    this.outputPrivateGroupId,
     this.outputDmConversationId,
     this.desiredModelId,
     this.triggerReactive = false,
@@ -24,8 +24,8 @@ class GanaFormState {
     this.enabled = false,
     this.createdAt,
     this.manases = const [],
-    this.channels = const [],
-    this.privateChannels = const [],
+    this.groups = const [],
+    this.privateGroups = const [],
     this.dmConversations = const [],
     this.followedNotes = const [],
     this.availableModels = const [],
@@ -47,8 +47,8 @@ class GanaFormState {
   final String? inputRefId;
 
   final GanaOutputType outputType;
-  final String? outputChannelId;
   final String? outputGroupId;
+  final String? outputPrivateGroupId;
   final int? outputDmConversationId;
 
   final String? desiredModelId;
@@ -67,8 +67,8 @@ class GanaFormState {
 
   // Picker pools — loaded once on form open.
   final List<ManasEntity> manases;
-  final List<ChannelEntity> channels;
-  final List<PrivateChannelEntity> privateChannels;
+  final List<GroupEntity> groups;
+  final List<PrivateGroupEntity> privateGroups;
   final List<DmConversationEntity> dmConversations;
   final List<FollowedNoteEntity> followedNotes;
   final List<String> availableModels;
@@ -96,11 +96,11 @@ class GanaFormState {
     switch (outputType) {
       case GanaOutputType.feed:
         break;
-      case GanaOutputType.channel:
-        if (outputChannelId == null) return false;
-        break;
-      case GanaOutputType.privateChannel:
+      case GanaOutputType.group:
         if (outputGroupId == null) return false;
+        break;
+      case GanaOutputType.privateGroup:
+        if (outputPrivateGroupId == null) return false;
         break;
       case GanaOutputType.dm:
         if (outputDmConversationId == null) return false;
@@ -150,11 +150,11 @@ class GanaFormState {
     switch (outputType) {
       case GanaOutputType.feed:
         break;
-      case GanaOutputType.channel:
-        if (outputChannelId == null) return l10n.ganaFormBlockerOutputRef;
-        break;
-      case GanaOutputType.privateChannel:
+      case GanaOutputType.group:
         if (outputGroupId == null) return l10n.ganaFormBlockerOutputRef;
+        break;
+      case GanaOutputType.privateGroup:
+        if (outputPrivateGroupId == null) return l10n.ganaFormBlockerOutputRef;
         break;
       case GanaOutputType.dm:
         if (outputDmConversationId == null) return l10n.ganaFormBlockerOutputRef;
@@ -196,10 +196,10 @@ class GanaFormState {
     String? inputRefId,
     bool clearInputRefId = false,
     GanaOutputType? outputType,
-    String? outputChannelId,
-    bool clearOutputChannelId = false,
     String? outputGroupId,
     bool clearOutputGroupId = false,
+    String? outputPrivateGroupId,
+    bool clearOutputPrivateGroupId = false,
     int? outputDmConversationId,
     bool clearOutputDmConversationId = false,
     String? desiredModelId,
@@ -213,8 +213,8 @@ class GanaFormState {
     bool? enabled,
     DateTime? createdAt,
     List<ManasEntity>? manases,
-    List<ChannelEntity>? channels,
-    List<PrivateChannelEntity>? privateChannels,
+    List<GroupEntity>? groups,
+    List<PrivateGroupEntity>? privateGroups,
     List<DmConversationEntity>? dmConversations,
     List<FollowedNoteEntity>? followedNotes,
     List<String>? availableModels,
@@ -233,11 +233,11 @@ class GanaFormState {
       inputType: clearInputType ? null : (inputType ?? this.inputType),
       inputRefId: clearInputRefId ? null : (inputRefId ?? this.inputRefId),
       outputType: outputType ?? this.outputType,
-      outputChannelId: clearOutputChannelId
+      outputGroupId: clearOutputGroupId
           ? null
-          : (outputChannelId ?? this.outputChannelId),
-      outputGroupId:
-          clearOutputGroupId ? null : (outputGroupId ?? this.outputGroupId),
+          : (outputGroupId ?? this.outputGroupId),
+      outputPrivateGroupId:
+          clearOutputPrivateGroupId ? null : (outputPrivateGroupId ?? this.outputPrivateGroupId),
       outputDmConversationId: clearOutputDmConversationId
           ? null
           : (outputDmConversationId ?? this.outputDmConversationId),
@@ -253,8 +253,8 @@ class GanaFormState {
       enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
       manases: manases ?? this.manases,
-      channels: channels ?? this.channels,
-      privateChannels: privateChannels ?? this.privateChannels,
+      groups: groups ?? this.groups,
+      privateGroups: privateGroups ?? this.privateGroups,
       dmConversations: dmConversations ?? this.dmConversations,
       followedNotes: followedNotes ?? this.followedNotes,
       availableModels: availableModels ?? this.availableModels,

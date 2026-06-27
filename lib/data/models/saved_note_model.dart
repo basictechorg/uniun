@@ -37,13 +37,13 @@ class SavedNoteModel {
   @Index()
   late DateTime savedAt;
 
-  /// Source channel id if this saved item was originally a Kind-42 public
-  /// channel message. Used by the saved-notes UI to render the "#channel"
-  /// chip and to route taps to the channel thread page.
-  String? sourceChannelId;
+  /// Source group id if this saved item was originally a Kind-42 public
+  /// group message. Used by the saved-notes UI to render the "#group"
+  /// chip and to route taps to the group thread page.
+  String? sourceGroupId;
 
-  /// Source group id if this saved item was a NIP-29 private channel message.
-  /// Mutually exclusive with [sourceChannelId].
+  /// Source group id if this saved item was a NIP-29 private group message.
+  /// Mutually exclusive with [sourceGroupId].
   String? sourcePrivateGroupId;
 
   /// Saved-forever embed-by-value snapshot of the quoted original. Self-
@@ -73,7 +73,7 @@ extension SavedNoteModelExtension on SavedNoteModel {
         savedAt: savedAt,
         rootEventId: rootEventId,
         replyToEventId: replyToEventId,
-        sourceChannelId: sourceChannelId,
+        sourceGroupId: sourceGroupId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         quotedNote: decodeEmbeddedNote(embeddedNoteJson),
         attachments: [for (final a in attachments) a.toEntity()],

@@ -94,8 +94,8 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
           _Feature(
             icon: const Icon(Icons.tag_rounded,
                 size: 24, color: AppColors.primary),
-            name: l10n.howItWorksTileChannels,
-            desc: l10n.howItWorksDescChannels,
+            name: l10n.howItWorksTileGroups,
+            desc: l10n.howItWorksDescGroups,
           ),
           _Feature(
             icon: const Icon(Icons.lock_outline_rounded,
@@ -123,7 +123,7 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
           ),
           _Feature(
             icon: const Icon(
-              Icons.sports_gymnastics_rounded,
+              Icons.cyclone_rounded,
               size: 24,
               color: AppColors.primary,
             ),
@@ -131,7 +131,7 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
             desc: l10n.howItWorksDescNataraj,
           ),
           _Feature(
-            icon: const Icon(Icons.smart_toy_rounded,
+            icon: const Icon(Icons.auto_mode_rounded,
                 size: 24, color: AppColors.primary),
             name: l10n.howItWorksTileGana,
             desc: l10n.howItWorksDescGana,

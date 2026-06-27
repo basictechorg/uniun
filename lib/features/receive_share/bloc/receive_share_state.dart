@@ -25,8 +25,8 @@ abstract class ReceiveShareState with _$ReceiveShareState {
     /// Picked-but-not-yet-uploaded media → uploaded to Blossom on submit, then
     /// emitted as NIP-92 `imeta` tags.
     @Default(<PickedMedia>[]) List<PickedMedia> pending,
-    @Default(<ChannelEntity>[]) List<ChannelEntity> publicChannels,
-    @Default(<PrivateChannelEntity>[]) List<PrivateChannelEntity> privateChannels,
+    @Default(<GroupEntity>[]) List<GroupEntity> publicGroups,
+    @Default(<PrivateGroupEntity>[]) List<PrivateGroupEntity> privateGroups,
     @Default(<DmConversationEntity>[]) List<DmConversationEntity> dmConversations,
     String? error,
   }) = _ReceiveShareState;

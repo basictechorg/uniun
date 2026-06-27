@@ -8,8 +8,8 @@ import 'package:uniun/features/vishnu/drawer/utils/drawer_search.dart';
 /// unread / new-reference flags, avatar passthrough, and empty / multi-match
 /// behaviour.
 DrawerLoaded _state({
-  List<DrawerChannelItem> channels = const [],
-  List<DrawerPrivateChannelItem> privateChannels = const [],
+  List<DrawerGroupItem> groups = const [],
+  List<DrawerPrivateGroupItem> privateGroups = const [],
   List<DrawerDmItem> dms = const [],
   List<DrawerFollowedNoteItem> followedNotes = const [],
   List<DrawerFollowedUserItem> followedUsers = const [],
@@ -19,8 +19,8 @@ DrawerLoaded _state({
     npub: 'npub',
     pubkeyHex: 'hex',
     followedNotes: followedNotes,
-    channels: channels,
-    privateChannels: privateChannels,
+    groups: groups,
+    privateGroups: privateGroups,
     dms: dms,
     followedUsers: followedUsers,
     myRelays: const [],
@@ -30,7 +30,7 @@ DrawerLoaded _state({
 void main() {
   group('buildDrawerSearchResults — query normalisation', () {
     final state = _state(
-      channels: const [DrawerChannelItem(id: 'c1', name: 'Alice')],
+      groups: const [DrawerGroupItem(id: 'c1', name: 'Alice')],
     );
 
     test('trims leading + trailing whitespace before matching', () {
@@ -45,7 +45,7 @@ void main() {
       // Query upper, label lower
       expect(
         buildDrawerSearchResults(
-          _state(channels: const [DrawerChannelItem(id: 'c', name: 'alice')]),
+          _state(groups: const [DrawerGroupItem(id: 'c', name: 'alice')]),
           'ALICE',
         ),
         hasLength(1),
@@ -53,7 +53,7 @@ void main() {
       // Query lower, label mixed
       expect(
         buildDrawerSearchResults(
-          _state(channels: const [DrawerChannelItem(id: 'c', name: 'AlIcE')]),
+          _state(groups: const [DrawerGroupItem(id: 'c', name: 'AlIcE')]),
           'alice',
         ),
         hasLength(1),
@@ -62,10 +62,10 @@ void main() {
 
     test('substring matches at start, middle, and end of the label', () {
       final s = _state(
-        channels: const [
-          DrawerChannelItem(id: 's', name: 'devops-team'),
-          DrawerChannelItem(id: 'm', name: 'team-devops'),
-          DrawerChannelItem(id: 'e', name: 'about-devops'),
+        groups: const [
+          DrawerGroupItem(id: 's', name: 'devops-team'),
+          DrawerGroupItem(id: 'm', name: 'team-devops'),
+          DrawerGroupItem(id: 'e', name: 'about-devops'),
         ],
       );
       expect(buildDrawerSearchResults(s, 'devops'), hasLength(3));
@@ -76,7 +76,7 @@ void main() {
     test('results are emitted in section order regardless of input order', () {
       final state = _state(
         // Each section has one matching item — assert the section iteration
-        // order channels → privateChannels → dms → followedNotes →
+        // order groups → privateGroups → dms → followedNotes →
         // followedUsers is preserved.
         followedUsers: const [
           DrawerFollowedUserItem(pubkey: 'u', name: 'foo user'),
@@ -85,17 +85,17 @@ void main() {
           DrawerFollowedNoteItem(eventId: 'n', contentPreview: 'foo note'),
         ],
         dms: const [DrawerDmItem(pubkey: 'd', name: 'foo dm')],
-        privateChannels: const [
-          DrawerPrivateChannelItem(id: 'p', name: 'foo private'),
+        privateGroups: const [
+          DrawerPrivateGroupItem(id: 'p', name: 'foo private'),
         ],
-        channels: const [DrawerChannelItem(id: 'c', name: 'foo channel')],
+        groups: const [DrawerGroupItem(id: 'c', name: 'foo group')],
       );
       final results = buildDrawerSearchResults(state, 'foo');
       expect(
         results.map((r) => r.kind).toList(),
         [
-          DrawerSearchKind.channel,
-          DrawerSearchKind.privateChannel,
+          DrawerSearchKind.group,
+          DrawerSearchKind.privateGroup,
           DrawerSearchKind.dm,
           DrawerSearchKind.followedNote,
           DrawerSearchKind.followedUser,
@@ -105,10 +105,10 @@ void main() {
 
     test('multiple matches in the same section keep their input order', () {
       final state = _state(
-        channels: const [
-          DrawerChannelItem(id: 'c1', name: 'devops-prod'),
-          DrawerChannelItem(id: 'c2', name: 'random'),
-          DrawerChannelItem(id: 'c3', name: 'devops-staging'),
+        groups: const [
+          DrawerGroupItem(id: 'c1', name: 'devops-prod'),
+          DrawerGroupItem(id: 'c2', name: 'random'),
+          DrawerGroupItem(id: 'c3', name: 'devops-staging'),
         ],
       );
       final results = buildDrawerSearchResults(state, 'devops');
@@ -117,21 +117,21 @@ void main() {
   });
 
   group('buildDrawerSearchResults — unread / new-reference flags', () {
-    test('channel with hasUnread=false yields hasUnread=false on the hit',
+    test('group with hasUnread=false yields hasUnread=false on the hit',
         () {
       final state = _state(
-        channels: const [
-          DrawerChannelItem(id: 'c', name: 'news'),
+        groups: const [
+          DrawerGroupItem(id: 'c', name: 'news'),
         ],
       );
       expect(buildDrawerSearchResults(state, 'news').single.hasUnread,
           isFalse);
     });
 
-    test('private channel hasUnread flag flows through', () {
+    test('private group hasUnread flag flows through', () {
       final state = _state(
-        privateChannels: const [
-          DrawerPrivateChannelItem(id: 'g', name: 'inner', hasUnread: true),
+        privateGroups: const [
+          DrawerPrivateGroupItem(id: 'g', name: 'inner', hasUnread: true),
         ],
       );
       expect(buildDrawerSearchResults(state, 'inner').single.hasUnread,
@@ -174,7 +174,7 @@ void main() {
       // The display label must preserve the source casing — the lowercase
       // form is used only for the substring match.
       final state = _state(
-        channels: const [DrawerChannelItem(id: 'c', name: 'DevOps')],
+        groups: const [DrawerGroupItem(id: 'c', name: 'DevOps')],
       );
       expect(buildDrawerSearchResults(state, 'devops').single.label, 'DevOps');
     });
@@ -218,12 +218,12 @@ void main() {
       expect(userHit.avatarUrl, 'https://user.png');
     });
 
-    test('channels and followed notes do NOT carry an avatar URL', () {
+    test('groups and followed notes do NOT carry an avatar URL', () {
       // Sanity: only DM + followedUser have avatars in the data model. The
       // other DrawerSearchResults must report null so the row picks the
       // correct icon strategy.
       final state = _state(
-        channels: const [DrawerChannelItem(id: 'c', name: 'noavatar')],
+        groups: const [DrawerGroupItem(id: 'c', name: 'noavatar')],
         followedNotes: const [
           DrawerFollowedNoteItem(eventId: 'n', contentPreview: 'noavatar'),
         ],
@@ -242,7 +242,7 @@ void main() {
 
     test('non-matching items in populated sections still return empty', () {
       final state = _state(
-        channels: const [DrawerChannelItem(id: 'c', name: 'general')],
+        groups: const [DrawerGroupItem(id: 'c', name: 'general')],
         dms: const [DrawerDmItem(pubkey: 'p', name: 'alice')],
       );
       expect(buildDrawerSearchResults(state, 'zzz-no-match'), isEmpty);
@@ -254,10 +254,10 @@ void main() {
       // A user searching for a pubkey fragment wouldn't expect a result
       // unless the label itself contains it.
       final state = _state(
-        channels: const [DrawerChannelItem(id: 'channel-id-abc', name: 'chat')],
+        groups: const [DrawerGroupItem(id: 'group-id-abc', name: 'chat')],
         dms: const [DrawerDmItem(pubkey: 'pk-xyz', name: 'Bob')],
       );
-      expect(buildDrawerSearchResults(state, 'channel-id-abc'), isEmpty);
+      expect(buildDrawerSearchResults(state, 'group-id-abc'), isEmpty);
       expect(buildDrawerSearchResults(state, 'pk-xyz'), isEmpty);
     });
   });

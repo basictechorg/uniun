@@ -5,7 +5,7 @@ import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 ///
 /// Tag order matters when the publisher re-serializes for the wire — the
 /// signed event hash depends on the original order. This helper is the
-/// single source so every surface (feed / channel / DM / private channel)
+/// single source so every surface (feed / group / DM / private group)
 /// produces identical bytes.
 List<List<String>> buildImetaTags(List<MediaBlobEntity> blobs) {
   final out = <List<String>>[];

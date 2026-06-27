@@ -39,9 +39,6 @@ import 'package:uniun/data/repositories/app_settings_repository_impl.dart'
     as _i913;
 import 'package:uniun/data/repositories/blocked_user_repository_impl.dart'
     as _i877;
-import 'package:uniun/data/repositories/channel_message_repository_impl.dart'
-    as _i929;
-import 'package:uniun/data/repositories/channel_repository_impl.dart' as _i1009;
 import 'package:uniun/data/repositories/deleted_note_repository_impl.dart'
     as _i438;
 import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart'
@@ -61,6 +58,9 @@ import 'package:uniun/data/repositories/followed_user_repository_impl.dart'
 import 'package:uniun/data/repositories/gana_repository_impl.dart' as _i899;
 import 'package:uniun/data/repositories/gana_run_repository_impl.dart' as _i678;
 import 'package:uniun/data/repositories/graph_repository_impl.dart' as _i250;
+import 'package:uniun/data/repositories/group_message_repository_impl.dart'
+    as _i828;
+import 'package:uniun/data/repositories/group_repository_impl.dart' as _i632;
 import 'package:uniun/data/repositories/llm_credentials_repository_impl.dart'
     as _i147;
 import 'package:uniun/data/repositories/llm_repository_impl.dart' as _i19;
@@ -99,9 +99,6 @@ import 'package:uniun/domain/repositories/app_settings_repository.dart'
     as _i117;
 import 'package:uniun/domain/repositories/blocked_user_repository.dart'
     as _i756;
-import 'package:uniun/domain/repositories/channel_message_repository.dart'
-    as _i964;
-import 'package:uniun/domain/repositories/channel_repository.dart' as _i127;
 import 'package:uniun/domain/repositories/deleted_note_repository.dart'
     as _i775;
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart'
@@ -119,6 +116,9 @@ import 'package:uniun/domain/repositories/followed_user_repository.dart'
 import 'package:uniun/domain/repositories/gana_repository.dart' as _i160;
 import 'package:uniun/domain/repositories/gana_run_repository.dart' as _i534;
 import 'package:uniun/domain/repositories/graph_repository.dart' as _i649;
+import 'package:uniun/domain/repositories/group_message_repository.dart'
+    as _i546;
+import 'package:uniun/domain/repositories/group_repository.dart' as _i582;
 import 'package:uniun/domain/repositories/llm_credentials_repository.dart'
     as _i819;
 import 'package:uniun/domain/repositories/llm_repository.dart' as _i205;
@@ -152,9 +152,9 @@ import 'package:uniun/domain/services/marmot_transport_service.dart' as _i761;
 import 'package:uniun/domain/usecases/ai_model_usecases.dart' as _i894;
 import 'package:uniun/domain/usecases/app_settings_usecases.dart' as _i907;
 import 'package:uniun/domain/usecases/blocked_user_usecases.dart' as _i278;
-import 'package:uniun/domain/usecases/create_channel_message_usecase.dart'
-    as _i524;
-import 'package:uniun/domain/usecases/create_channel_usecase.dart' as _i1033;
+import 'package:uniun/domain/usecases/create_group_message_usecase.dart'
+    as _i815;
+import 'package:uniun/domain/usecases/create_group_usecase.dart' as _i890;
 import 'package:uniun/domain/usecases/delete_relay_usecase.dart' as _i700;
 import 'package:uniun/domain/usecases/deleted_note_usecases.dart' as _i232;
 import 'package:uniun/domain/usecases/dm_usecases.dart' as _i1023;
@@ -163,10 +163,9 @@ import 'package:uniun/domain/usecases/feed_usecases.dart' as _i837;
 import 'package:uniun/domain/usecases/followed_note_usecases.dart' as _i561;
 import 'package:uniun/domain/usecases/followed_user_usecases.dart' as _i63;
 import 'package:uniun/domain/usecases/gana_usecases.dart' as _i219;
-import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart' as _i263;
-import 'package:uniun/domain/usecases/get_channel_messages_usecase.dart'
-    as _i689;
-import 'package:uniun/domain/usecases/get_channels_usecase.dart' as _i722;
+import 'package:uniun/domain/usecases/get_group_by_id_usecase.dart' as _i690;
+import 'package:uniun/domain/usecases/get_group_messages_usecase.dart' as _i932;
+import 'package:uniun/domain/usecases/get_groups_usecase.dart' as _i879;
 import 'package:uniun/domain/usecases/get_relays_usecase.dart' as _i985;
 import 'package:uniun/domain/usecases/knowledge_usecases.dart' as _i179;
 import 'package:uniun/domain/usecases/llm_usecases.dart' as _i918;
@@ -175,10 +174,10 @@ import 'package:uniun/domain/usecases/media_usecases.dart' as _i629;
 import 'package:uniun/domain/usecases/nataraj_usecases.dart' as _i812;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
-import 'package:uniun/domain/usecases/private_channel_usecases.dart' as _i78;
+import 'package:uniun/domain/usecases/private_group_usecases.dart' as _i1055;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
 import 'package:uniun/domain/usecases/report_usecases.dart' as _i27;
-import 'package:uniun/domain/usecases/save_channel_usecase.dart' as _i67;
+import 'package:uniun/domain/usecases/save_group_usecase.dart' as _i511;
 import 'package:uniun/domain/usecases/save_relay_usecase.dart' as _i433;
 import 'package:uniun/domain/usecases/saved_note_usecases.dart' as _i858;
 import 'package:uniun/domain/usecases/share_usecases.dart' as _i1;
@@ -192,18 +191,17 @@ import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart' as _i886;
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart' as _i830;
 import 'package:uniun/features/brahma/manas/bloc/manas_form_bloc.dart' as _i630;
 import 'package:uniun/features/brahma/manas/bloc/manas_list_bloc.dart' as _i437;
-import 'package:uniun/features/channels/create/bloc/create_channel_bloc.dart'
-    as _i501;
-import 'package:uniun/features/channels/join/bloc/join_channel_bloc.dart'
-    as _i750;
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart' as _i60;
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart' as _i399;
-import 'package:uniun/features/private_channels/create/bloc/create_private_channel_bloc.dart'
-    as _i636;
-import 'package:uniun/features/private_channels/detail/bloc/private_channel_detail_bloc.dart'
-    as _i10;
-import 'package:uniun/features/private_channels/join/bloc/join_private_channel_bloc.dart'
-    as _i926;
+import 'package:uniun/features/groups/create/bloc/create_group_bloc.dart'
+    as _i968;
+import 'package:uniun/features/groups/join/bloc/join_group_bloc.dart' as _i574;
+import 'package:uniun/features/private_groups/create/bloc/create_private_group_bloc.dart'
+    as _i985;
+import 'package:uniun/features/private_groups/detail/bloc/private_group_detail_bloc.dart'
+    as _i548;
+import 'package:uniun/features/private_groups/join/bloc/join_private_group_bloc.dart'
+    as _i425;
 import 'package:uniun/features/profile/bloc/user_profile_bloc.dart' as _i959;
 import 'package:uniun/features/receive_share/bloc/receive_share_bloc.dart'
     as _i939;
@@ -293,6 +291,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i189.DmConversationRepository>(
       () => _i1011.DmConversationRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.factory<_i582.GroupRepository>(
+      () => _i632.GroupRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
     gh.factory<_i1017.NoteRelationRepository>(
       () => _i126.NoteRelationRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -322,6 +323,15 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
+    );
+    gh.lazySingleton<_i690.GetGroupByIdUseCase>(
+      () => _i690.GetGroupByIdUseCase(gh<_i582.GroupRepository>()),
+    );
+    gh.lazySingleton<_i879.GetGroupsUseCase>(
+      () => _i879.GetGroupsUseCase(gh<_i582.GroupRepository>()),
+    );
+    gh.lazySingleton<_i511.SaveGroupUseCase>(
+      () => _i511.SaveGroupUseCase(gh<_i582.GroupRepository>()),
     );
     gh.lazySingleton<_i475.GetNoteRelationCountsUseCase>(
       () => _i475.GetNoteRelationCountsUseCase(
@@ -383,20 +393,8 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i182.NoteAttachmentsEnricher>(),
       ),
     );
-    gh.factory<_i127.ChannelRepository>(
-      () => _i1009.ChannelRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
     gh.factory<_i993.RelayRepository>(
       () => _i542.RelayRepositoryImpl(isar: gh<_i214.Isar>()),
-    );
-    gh.lazySingleton<_i263.GetChannelByIdUseCase>(
-      () => _i263.GetChannelByIdUseCase(gh<_i127.ChannelRepository>()),
-    );
-    gh.lazySingleton<_i722.GetChannelsUseCase>(
-      () => _i722.GetChannelsUseCase(gh<_i127.ChannelRepository>()),
-    );
-    gh.lazySingleton<_i67.SaveChannelUseCase>(
-      () => _i67.SaveChannelUseCase(gh<_i127.ChannelRepository>()),
     );
     gh.lazySingleton<_i1023.GetDmConversationsUseCase>(
       () => _i1023.GetDmConversationsUseCase(
@@ -494,25 +492,25 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i240.StorageRepository>(
       () => _i209.StorageRepositoryImpl(isar: gh<_i214.Isar>()),
     );
-    gh.lazySingleton<_i78.CreatePrivateChannelUsecase>(
+    gh.lazySingleton<_i1055.CreatePrivateGroupUsecase>(
       () =>
-          _i78.CreatePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+          _i1055.CreatePrivateGroupUsecase(gh<_i761.MarmotTransportService>()),
     );
-    gh.lazySingleton<_i78.SendPrivateChannelMessageUsecase>(
-      () => _i78.SendPrivateChannelMessageUsecase(
+    gh.lazySingleton<_i1055.SendPrivateGroupMessageUsecase>(
+      () => _i1055.SendPrivateGroupMessageUsecase(
         gh<_i761.MarmotTransportService>(),
       ),
     );
-    gh.lazySingleton<_i78.JoinPrivateChannelUsecase>(
-      () => _i78.JoinPrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    gh.lazySingleton<_i1055.JoinPrivateGroupUsecase>(
+      () => _i1055.JoinPrivateGroupUsecase(gh<_i761.MarmotTransportService>()),
     );
-    gh.lazySingleton<_i78.ApprovePrivateChannelJoinUsecase>(
-      () => _i78.ApprovePrivateChannelJoinUsecase(
+    gh.lazySingleton<_i1055.ApprovePrivateGroupJoinUsecase>(
+      () => _i1055.ApprovePrivateGroupJoinUsecase(
         gh<_i761.MarmotTransportService>(),
       ),
     );
-    gh.lazySingleton<_i78.LeavePrivateChannelUsecase>(
-      () => _i78.LeavePrivateChannelUsecase(gh<_i761.MarmotTransportService>()),
+    gh.lazySingleton<_i1055.LeavePrivateGroupUsecase>(
+      () => _i1055.LeavePrivateGroupUsecase(gh<_i761.MarmotTransportService>()),
     );
     gh.lazySingleton<_i179.GetGraphNeighboursUseCase>(
       () => _i179.GetGraphNeighboursUseCase(gh<_i649.GraphRepository>()),
@@ -541,20 +539,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i331.MemoryRepository>(),
       ),
     );
-    gh.lazySingleton<_i78.GetPrivateChannelsUsecase>(
-      () => _i78.GetPrivateChannelsUsecase(gh<_i635.E2EEGroupRepository>()),
+    gh.lazySingleton<_i1055.GetPrivateGroupsUsecase>(
+      () => _i1055.GetPrivateGroupsUsecase(gh<_i635.E2EEGroupRepository>()),
     );
-    gh.lazySingleton<_i78.GetPrivateChannelEntityUsecase>(
+    gh.lazySingleton<_i1055.GetPrivateGroupEntityUsecase>(
       () =>
-          _i78.GetPrivateChannelEntityUsecase(gh<_i635.E2EEGroupRepository>()),
+          _i1055.GetPrivateGroupEntityUsecase(gh<_i635.E2EEGroupRepository>()),
     );
-    gh.lazySingleton<_i78.GetPrivateChannelMessagesUsecase>(
-      () => _i78.GetPrivateChannelMessagesUsecase(
+    gh.lazySingleton<_i1055.GetPrivateGroupMessagesUsecase>(
+      () => _i1055.GetPrivateGroupMessagesUsecase(
         gh<_i635.E2EEGroupRepository>(),
       ),
     );
-    gh.lazySingleton<_i78.GetPrivateChannelJoinRequestsUsecase>(
-      () => _i78.GetPrivateChannelJoinRequestsUsecase(
+    gh.lazySingleton<_i1055.GetPrivateGroupJoinRequestsUsecase>(
+      () => _i1055.GetPrivateGroupJoinRequestsUsecase(
         gh<_i635.E2EEGroupRepository>(),
       ),
     );
@@ -572,6 +570,12 @@ extension GetItInjectableX on _i174.GetIt {
         isar: gh<_i214.Isar>(),
         relations: gh<_i1017.NoteRelationRepository>(),
         attachments: gh<_i182.NoteAttachmentsEnricher>(),
+      ),
+    );
+    gh.lazySingleton<_i890.CreateGroupUseCase>(
+      () => _i890.CreateGroupUseCase(
+        gh<_i582.GroupRepository>(),
+        gh<_i1039.EventQueueRepository>(),
       ),
     );
     gh.factory<_i170.DraftRepository>(
@@ -629,12 +633,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i977.GetManasIdsForNoteUseCase>(
       () => _i977.GetManasIdsForNoteUseCase(gh<_i699.ManasRepository>()),
     );
-    gh.factory<_i636.CreatePrivateChannelBloc>(
-      () => _i636.CreatePrivateChannelBloc(
-        gh<_i78.CreatePrivateChannelUsecase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-      ),
-    );
     gh.factory<_i399.CreateDmBloc>(
       () => _i399.CreateDmBloc(
         gh<_i993.RelayRepository>(),
@@ -669,6 +667,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i278.UnblockUserUseCase>(
       () => _i278.UnblockUserUseCase(gh<_i756.BlockedUserRepository>()),
     );
+    gh.factory<_i985.CreatePrivateGroupBloc>(
+      () => _i985.CreatePrivateGroupBloc(
+        gh<_i1055.CreatePrivateGroupUsecase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
     );
@@ -690,18 +694,17 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i719.MarkUnreadSeenUseCase>(
       () => _i719.MarkUnreadSeenUseCase(gh<_i497.UnreadRepository>()),
     );
-    gh.lazySingleton<_i719.MarkChannelSeenUseCase>(
-      () => _i719.MarkChannelSeenUseCase(gh<_i497.UnreadRepository>()),
+    gh.lazySingleton<_i719.MarkGroupSeenUseCase>(
+      () => _i719.MarkGroupSeenUseCase(gh<_i497.UnreadRepository>()),
     );
-    gh.lazySingleton<_i719.MarkPrivateChannelSeenUseCase>(
-      () => _i719.MarkPrivateChannelSeenUseCase(gh<_i497.UnreadRepository>()),
+    gh.lazySingleton<_i719.MarkPrivateGroupSeenUseCase>(
+      () => _i719.MarkPrivateGroupSeenUseCase(gh<_i497.UnreadRepository>()),
     );
     gh.lazySingleton<_i719.MarkConversationSeenUseCase>(
       () => _i719.MarkConversationSeenUseCase(gh<_i497.UnreadRepository>()),
     );
-    gh.lazySingleton<_i719.GetChannelOldestUnreadTimeUseCase>(
-      () =>
-          _i719.GetChannelOldestUnreadTimeUseCase(gh<_i497.UnreadRepository>()),
+    gh.lazySingleton<_i719.GetGroupOldestUnreadTimeUseCase>(
+      () => _i719.GetGroupOldestUnreadTimeUseCase(gh<_i497.UnreadRepository>()),
     );
     gh.lazySingleton<_i141.RemoteLlmDataSource>(
       () => _i141.RemoteLlmDataSource(
@@ -716,6 +719,22 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i646.AIModelRepository>(),
       ),
     );
+    gh.factoryParam<_i548.PrivateGroupDetailBloc, String, dynamic>(
+      (groupId, _) => _i548.PrivateGroupDetailBloc(
+        gh<_i1055.GetPrivateGroupEntityUsecase>(),
+        gh<_i1055.GetPrivateGroupMessagesUsecase>(),
+        gh<_i1055.GetPrivateGroupJoinRequestsUsecase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i1055.ApprovePrivateGroupJoinUsecase>(),
+        gh<_i1055.LeavePrivateGroupUsecase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i719.MarkUnreadSeenUseCase>(),
+        gh<_i719.MarkPrivateGroupSeenUseCase>(),
+        groupId,
+      ),
+    );
     gh.factory<_i930.UserServerListRepository>(
       () => _i745.UserServerListRepositoryImpl(
         store: gh<_i107.UserServerListStore>(),
@@ -723,20 +742,17 @@ extension GetItInjectableX on _i174.GetIt {
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
-    gh.factoryParam<_i10.PrivateChannelDetailBloc, String, dynamic>(
-      (groupId, _) => _i10.PrivateChannelDetailBloc(
-        gh<_i78.GetPrivateChannelEntityUsecase>(),
-        gh<_i78.GetPrivateChannelMessagesUsecase>(),
-        gh<_i78.GetPrivateChannelJoinRequestsUsecase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i78.ApprovePrivateChannelJoinUsecase>(),
-        gh<_i78.LeavePrivateChannelUsecase>(),
+    gh.factory<_i968.CreateGroupBloc>(
+      () => _i968.CreateGroupBloc(
+        gh<_i985.GetRelaysUseCase>(),
         gh<_i799.GetActiveUserUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i719.MarkUnreadSeenUseCase>(),
-        gh<_i719.MarkPrivateChannelSeenUseCase>(),
-        groupId,
+        gh<_i890.CreateGroupUseCase>(),
+      ),
+    );
+    gh.factory<_i574.JoinGroupBloc>(
+      () => _i574.JoinGroupBloc(
+        gh<_i433.SaveRelayUseCase>(),
+        gh<_i511.SaveGroupUseCase>(),
       ),
     );
     gh.factory<_i551.DmMessageRepository>(
@@ -745,17 +761,10 @@ extension GetItInjectableX on _i174.GetIt {
         resolver: gh<_i789.NoteResolverRepository>(),
       ),
     );
-    gh.lazySingleton<_i1033.CreateChannelUseCase>(
-      () => _i1033.CreateChannelUseCase(
-        gh<_i127.ChannelRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-      ),
-    );
-    gh.factory<_i964.ChannelMessageRepository>(
-      () => _i929.ChannelMessageRepositoryImpl(
-        isar: gh<_i214.Isar>(),
-        relations: gh<_i1017.NoteRelationRepository>(),
-        resolver: gh<_i789.NoteResolverRepository>(),
+    gh.factory<_i425.JoinPrivateGroupBloc>(
+      () => _i425.JoinPrivateGroupBloc(
+        gh<_i1055.JoinPrivateGroupUsecase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
     gh.factory<_i331.SettingsCubit>(
@@ -764,11 +773,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetOwnProfileUseCase>(),
       ),
     );
-    gh.factory<_i501.CreateChannelBloc>(
-      () => _i501.CreateChannelBloc(
-        gh<_i985.GetRelaysUseCase>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i1033.CreateChannelUseCase>(),
+    gh.factory<_i546.GroupMessageRepository>(
+      () => _i828.GroupMessageRepositoryImpl(
+        isar: gh<_i214.Isar>(),
+        relations: gh<_i1017.NoteRelationRepository>(),
+        resolver: gh<_i789.NoteResolverRepository>(),
       ),
     );
     gh.lazySingleton<_i537.SaveDraftUseCase>(
@@ -833,12 +842,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1023.GetDmUseCase>(
       () => _i1023.GetDmUseCase(
         gh<_i214.Isar>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-      ),
-    );
-    gh.factory<_i926.JoinPrivateChannelBloc>(
-      () => _i926.JoinPrivateChannelBloc(
-        gh<_i78.JoinPrivateChannelUsecase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
@@ -924,30 +927,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i961.VectorSearchService>(),
       ),
     );
-    gh.lazySingleton<_i689.GetChannelMessagesUseCase>(
-      () =>
-          _i689.GetChannelMessagesUseCase(gh<_i964.ChannelMessageRepository>()),
-    );
-    gh.lazySingleton<_i689.GetChannelMessagesAfterUseCase>(
-      () => _i689.GetChannelMessagesAfterUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageByIdUseCase>(
-      () => _i689.GetChannelMessageByIdUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageRepliesUseCase>(
-      () => _i689.GetChannelMessageRepliesUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
-    gh.lazySingleton<_i689.GetChannelMessageReplyCountUseCase>(
-      () => _i689.GetChannelMessageReplyCountUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-      ),
-    );
     gh.lazySingleton<_i63.FollowUserUseCase>(
       () => _i63.FollowUserUseCase(gh<_i849.FollowedUserRepository>()),
     );
@@ -985,6 +964,19 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
+    );
+    gh.factory<_i942.GanaFormBloc>(
+      () => _i942.GanaFormBloc(
+        gh<_i219.UpsertGanaUseCase>(),
+        gh<_i219.GetGanaByIdUseCase>(),
+        gh<_i219.DeleteGanaUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+      ),
     );
     gh.factory<_i437.ManasListBloc>(
       () => _i437.ManasListBloc(
@@ -1024,12 +1016,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.DeleteKnowledgeForNoteUseCase>(),
       ),
     );
-    gh.lazySingleton<_i524.CreateChannelMessageUseCase>(
-      () => _i524.CreateChannelMessageUseCase(
-        gh<_i964.ChannelMessageRepository>(),
-        gh<_i1039.EventQueueRepository>(),
-      ),
-    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -1049,17 +1035,11 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserUseCase>(),
         gh<_i391.GetOwnProfileUseCase>(),
         gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
         gh<_i63.GetFollowedUsersUseCase>(),
         gh<_i985.GetRelaysUseCase>(),
         gh<_i214.Isar>(),
-      ),
-    );
-    gh.factory<_i750.JoinChannelBloc>(
-      () => _i750.JoinChannelBloc(
-        gh<_i433.SaveRelayUseCase>(),
-        gh<_i67.SaveChannelUseCase>(),
       ),
     );
     gh.lazySingleton<_i918.HasActiveLlmModelUseCase>(
@@ -1153,19 +1133,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i850.EmbeddingModelDownloader>(),
       ),
     );
-    gh.factory<_i942.GanaFormBloc>(
-      () => _i942.GanaFormBloc(
-        gh<_i219.UpsertGanaUseCase>(),
-        gh<_i219.GetGanaByIdUseCase>(),
-        gh<_i219.DeleteGanaUseCase>(),
-        gh<_i977.GetManasListUseCase>(),
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i894.GetDownloadedModelIdsUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i918.SaveOpenRouterKeyUseCase>(
       () =>
           _i918.SaveOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
@@ -1176,6 +1143,28 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.HasOpenRouterKeyUseCase>(
       () => _i918.HasOpenRouterKeyUseCase(gh<_i819.LlmCredentialsRepository>()),
+    );
+    gh.lazySingleton<_i932.GetGroupMessagesUseCase>(
+      () => _i932.GetGroupMessagesUseCase(gh<_i546.GroupMessageRepository>()),
+    );
+    gh.lazySingleton<_i932.GetGroupMessagesAfterUseCase>(
+      () => _i932.GetGroupMessagesAfterUseCase(
+        gh<_i546.GroupMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i932.GetGroupMessageByIdUseCase>(
+      () =>
+          _i932.GetGroupMessageByIdUseCase(gh<_i546.GroupMessageRepository>()),
+    );
+    gh.lazySingleton<_i932.GetGroupMessageRepliesUseCase>(
+      () => _i932.GetGroupMessageRepliesUseCase(
+        gh<_i546.GroupMessageRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i932.GetGroupMessageReplyCountUseCase>(
+      () => _i932.GetGroupMessageReplyCountUseCase(
+        gh<_i546.GroupMessageRepository>(),
+      ),
     );
     gh.factory<_i174.GanaListBloc>(
       () => _i174.GanaListBloc(
@@ -1203,6 +1192,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i837.MarkFeedItemSeenUseCase>(
       () => _i837.MarkFeedItemSeenUseCase(gh<_i250.FeedRepository>()),
+    );
+    gh.lazySingleton<_i815.CreateGroupMessageUseCase>(
+      () => _i815.CreateGroupMessageUseCase(
+        gh<_i546.GroupMessageRepository>(),
+        gh<_i1039.EventQueueRepository>(),
+      ),
     );
     gh.lazySingleton<_i638.NatarajGenerator>(
       () => _i638.NatarajGenerator(
@@ -1233,16 +1228,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i907.SetAutoDeleteOldNotesDaysUseCase>(),
         gh<_i907.GetRecentSyncWindowDaysUseCase>(),
         gh<_i907.SetRecentSyncWindowDaysUseCase>(),
-      ),
-    );
-    gh.factory<_i1019.ShareRepository>(
-      () => _i593.ShareRepositoryImpl(
-        gh<_i789.NoteResolverRepository>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
       ),
     );
     gh.factory<_i630.ManasFormBloc>(
@@ -1302,6 +1287,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
+    gh.factory<_i1019.ShareRepository>(
+      () => _i593.ShareRepositoryImpl(
+        gh<_i789.NoteResolverRepository>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+      ),
+    );
     gh.lazySingleton<_i681.RagPipeline>(
       () => _i681.RagPipeline(
         gh<_i587.EmbeddingService>(),
@@ -1337,17 +1332,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1.ShareNoteUseCase>(
       () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
     );
-    gh.factory<_i574.ShareSheetBloc>(
-      () => _i574.ShareSheetBloc(
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i1.ShareNoteUseCase>(),
-        gh<_i629.UploadMediaUseCase>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i858.ResolveNotesByIdsUseCase>(),
-      ),
-    );
     gh.factory<_i886.BrahmaCreateBloc>(
       () => _i886.BrahmaCreateBloc(
         gh<_i799.GetActiveUserKeysUseCase>(),
@@ -1381,18 +1365,21 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i63.WatchFollowedUsersUseCase>(),
       ),
     );
-    gh.lazySingleton<_i426.GanaEngine>(
-      () => _i426.GanaEngine(
-        gh<_i214.Isar>(),
-        gh<_i937.AIModelRunner>(),
-        gh<_i107.AppSettingsStore>(),
-        gh<_i103.UserRepository>(),
+    gh.factory<_i939.ReceiveShareBloc>(
+      () => _i939.ReceiveShareBloc(
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i629.SaveLocalMediaUseCase>(),
         gh<_i475.PublishNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
         gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i651.ManasContextLoader>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i537.SaveDraftUseCase>(),
       ),
     );
     gh.factoryParam<_i226.NoteCardCubit, _i697.NoteEntity, dynamic>(
@@ -1421,32 +1408,40 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
-    gh.factory<_i939.ReceiveShareBloc>(
-      () => _i939.ReceiveShareBloc(
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i629.UploadMediaUseCase>(),
-        gh<_i629.SaveLocalMediaUseCase>(),
+    gh.lazySingleton<_i426.GanaEngine>(
+      () => _i426.GanaEngine(
+        gh<_i214.Isar>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i103.UserRepository>(),
         gh<_i475.PublishNoteUseCase>(),
-        gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
         gh<_i1023.SendDmUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
-        gh<_i537.SaveDraftUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i651.ManasContextLoader>(),
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(
       () => _i924.PostReplyUseCase(
         gh<_i475.PublishNoteUseCase>(),
         gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i524.CreateChannelMessageUseCase>(),
-        gh<_i78.SendPrivateChannelMessageUsecase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
         gh<_i1023.SendDmUseCase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
+      ),
+    );
+    gh.factory<_i574.ShareSheetBloc>(
+      () => _i574.ShareSheetBloc(
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i1.ShareNoteUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i858.ResolveNotesByIdsUseCase>(),
       ),
     );
     gh.factory<_i190.ShivAIBloc>(

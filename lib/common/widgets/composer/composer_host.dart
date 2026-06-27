@@ -19,8 +19,8 @@ import 'package:uniun/l10n/app_localizations.dart';
 
 /// Stateful owner for [UniunComposer]: holds the text controller, focus node,
 /// the "has text" flag, picked references, attached media blobs, and loads the
-/// active user's avatar. Every surface (thread, channel feed, DM, private
-/// channel) plugs in just one thing — [onSend]. Reference picking and media
+/// active user's avatar. Every surface (thread, group feed, DM, private
+/// group) plugs in just one thing — [onSend]. Reference picking and media
 /// upload are self-contained here.
 class ComposerHost extends StatefulWidget {
   const ComposerHost({
@@ -38,8 +38,8 @@ class ComposerHost extends StatefulWidget {
   final String hintText;
   final bool isSending;
 
-  /// Recent messages of the surface this composer lives in (thread / channel /
-  /// DM / private channel), already flattened to short `"author: text"` lines.
+  /// Recent messages of the surface this composer lives in (thread / group /
+  /// DM / private group), already flattened to short `"author: text"` lines.
   /// Fed to the Manas-chat (WS4) so Shiv can answer about THIS conversation.
   /// Empty for surfaces with no conversation context (e.g. Brahma compose).
   final List<String> entityContext;

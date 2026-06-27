@@ -27,9 +27,9 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     @Default(0) int cachedReplyCount,
     /// Saved-scoped outgoing reference count (saved notes this one references).
     @Default(0) int referenceCount,
-    /// Source channel id if the saved item was a Kind-42 public channel msg.
-    String? sourceChannelId,
-    /// Source group id if the saved item was a NIP-29 private channel msg.
+    /// Source group id if the saved item was a Kind-42 public group msg.
+    String? sourceGroupId,
+    /// Source group id if the saved item was a NIP-29 private group msg.
     String? sourcePrivateGroupId,
 
     /// Resolved from the embedded-by-value snapshot at read time
@@ -47,7 +47,7 @@ extension SavedNoteToNote on SavedNoteEntity {
   /// so the ref count matches what savedOnly ThreadPage will actually show.
   /// [sourceLabel] is resolved at the cubit layer via
   /// [ResolveSourceLabelsUseCase] and passed in so the NoteCard can render
-  /// the channel/group chip without the entity needing to know about Isar.
+  /// the group/group chip without the entity needing to know about Isar.
   NoteEntity toNoteEntity({
     Set<String>? savedEventIds,
     String? sourceLabel,
@@ -68,7 +68,7 @@ extension SavedNoteToNote on SavedNoteEntity {
         replyToEventId: replyToEventId,
         cachedReplyCount: cachedReplyCount,
         referenceCount: referenceCount,
-        sourceChannelId: sourceChannelId,
+        sourceGroupId: sourceGroupId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         sourceLabel: sourceLabel,
         quotedNote: quotedNote,

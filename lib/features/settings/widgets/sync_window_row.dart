@@ -5,7 +5,7 @@ import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Sync-window picker — how many days of history the capped sync surfaces
-/// (feed / public-channel / private-channel messages) pull. Default 7.
+/// (feed / public-group / private-group messages) pull. Default 7.
 ///
 /// Followed notes, DMs, and the MLS control plane always pull full history.
 /// Change takes effect on next app launch (the Gateway isolate reads the

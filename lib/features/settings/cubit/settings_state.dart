@@ -11,7 +11,7 @@ class SettingsState {
     this.nsec,
     this.avatarUrl,
     this.dmNotifications = true,
-    this.channelAlerts = false,
+    this.groupAlerts = false,
     this.nsecVisible = false,
     this.error,
   });
@@ -24,7 +24,7 @@ class SettingsState {
   final String? nsec;        // only populated after user reveals
   final String? avatarUrl;
   final bool dmNotifications;
-  final bool channelAlerts;
+  final bool groupAlerts;
   final bool nsecVisible;
   final String? error;
 
@@ -37,7 +37,7 @@ class SettingsState {
     String? nsec,
     String? avatarUrl,
     bool? dmNotifications,
-    bool? channelAlerts,
+    bool? groupAlerts,
     bool? nsecVisible,
     String? error,
   }) {
@@ -50,7 +50,7 @@ class SettingsState {
       nsec: nsec ?? this.nsec,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       dmNotifications: dmNotifications ?? this.dmNotifications,
-      channelAlerts: channelAlerts ?? this.channelAlerts,
+      groupAlerts: groupAlerts ?? this.groupAlerts,
       nsecVisible: nsecVisible ?? this.nsecVisible,
       error: error ?? this.error,
     );

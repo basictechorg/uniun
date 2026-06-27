@@ -18,8 +18,8 @@ abstract class NoteEntity with _$NoteEntity {
     required String content,
     String? subject,
 
-    /// Nostr event kind: 1 feed note, 42 channel message, 14/15 DM,
-    /// 9023 private channel message. Stored discriminator of the unified Note
+    /// Nostr event kind: 1 feed note, 42 group message, 14/15 DM,
+    /// 9023 private group message. Stored discriminator of the unified Note
     /// collection. Note *roles* (reply/root/reference) are still derived from
     /// rootEventId/replyToEventId, not from kind.
     @Default(1) int kind,
@@ -42,18 +42,18 @@ abstract class NoteEntity with _$NoteEntity {
     @Default(0) int cachedReplyCount,
     /// Outgoing reference count — notes this one references. From the edge table.
     @Default(0) int referenceCount,
-    /// Non-null when this entity was projected from a Kind-42 public channel
-    /// message — used by the Vishnu feed to route taps to the channel page
+    /// Non-null when this entity was projected from a Kind-42 public group
+    /// message — used by the Vishnu feed to route taps to the group page
     /// instead of the regular thread page. Null for native Kind-1 notes.
-    String? sourceChannelId,
-    /// Non-null when this entity was projected from a NIP-29 private channel
-    /// message. Mutually exclusive with [sourceChannelId].
+    String? sourceGroupId,
+    /// Non-null when this entity was projected from a NIP-29 private group
+    /// message. Mutually exclusive with [sourceGroupId].
     String? sourcePrivateGroupId,
     /// Pre-rendered chip text shown next to the timestamp on the NoteCard:
-    ///   - `#<name>`  for public channel messages
-    ///   - `🔒 <name>` for private channel messages
+    ///   - `#<name>`  for public group messages
+    ///   - `🔒 <name>` for private group messages
     ///   - `null`     for native Kind-1 Vishnu notes
-    /// Resolved by [FeedRepository] at query time from the channel/group rows.
+    /// Resolved by [FeedRepository] at query time from the group/group rows.
     String? sourceLabel,
 
     /// Raw self-contained snapshot of the embedded original (the
@@ -89,16 +89,16 @@ abstract class NoteEntity with _$NoteEntity {
 /// The transport a reply to a note must be posted through. Derived from the
 /// note itself ([NoteReplyRouting.replyTransport]) — the read side is uniform
 /// `NoteEntity`; only the encrypted write transport differs per surface.
-enum NoteSource { feed, channel, privateChannel, dm }
+enum NoteSource { feed, group, privateGroup, dm }
 
 extension NoteReplyRouting on NoteEntity {
   /// Which transport a reply must use, derived from [kind] + container fields.
   NoteSource get replyTransport {
-    if (kind == kChannelMessageKind || sourceChannelId != null) {
-      return NoteSource.channel;
+    if (kind == kGroupMessageKind || sourceGroupId != null) {
+      return NoteSource.group;
     }
-    if (kind == kPrivateChannelKind || sourcePrivateGroupId != null) {
-      return NoteSource.privateChannel;
+    if (kind == kPrivateGroupKind || sourcePrivateGroupId != null) {
+      return NoteSource.privateGroup;
     }
     if (conversationId != null || kind == kDmTextKind || kind == kDmFileKind) {
       return NoteSource.dm;

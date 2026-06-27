@@ -23,7 +23,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// [compact] caps image height tight for feeds / DMs / quotes; false gives
 /// the thread parent more room.
 class MediaAttachmentView extends StatelessWidget {
-  /// Render from a [NoteEntity] (feed / DM / channel cards have an enriched
+  /// Render from a [NoteEntity] (feed / DM / group cards have an enriched
   /// note in hand).
   const MediaAttachmentView({
     super.key,

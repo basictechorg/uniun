@@ -26,12 +26,12 @@ class UnreadRepositoryImpl extends UnreadRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> markChannelSeen(String channelId) async {
+  Future<Either<Failure, Unit>> markGroupSeen(String groupId) async {
     try {
       await isar.writeTxn(() async {
         await isar.unreadNoteModels
             .filter()
-            .channelIdEqualTo(channelId)
+            .groupIdEqualTo(groupId)
             .deleteAll();
       });
       return const Right(unit);
@@ -41,12 +41,12 @@ class UnreadRepositoryImpl extends UnreadRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> markPrivateChannelSeen(String groupId) async {
+  Future<Either<Failure, Unit>> markPrivateGroupSeen(String privateGroupId) async {
     try {
       await isar.writeTxn(() async {
         await isar.unreadNoteModels
             .filter()
-            .groupIdEqualTo(groupId)
+            .groupIdEqualTo(privateGroupId)
             .deleteAll();
       });
       return const Right(unit);
@@ -71,13 +71,13 @@ class UnreadRepositoryImpl extends UnreadRepository {
   }
 
   @override
-  Future<Either<Failure, DateTime?>> oldestUnreadTimeForChannel(
-    String channelId,
+  Future<Either<Failure, DateTime?>> oldestUnreadTimeForGroup(
+    String groupId,
   ) async {
     try {
       final row = await isar.unreadNoteModels
           .filter()
-          .channelIdEqualTo(channelId)
+          .groupIdEqualTo(groupId)
           .sortByCreated()
           .findFirst();
       return Right(row?.created);

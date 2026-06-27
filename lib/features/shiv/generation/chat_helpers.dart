@@ -31,8 +31,8 @@ List<ShivMessageEntity> buildBranch(
   return branch;
 }
 
-/// Flatten the current surface's recent notes (a thread / channel / DM /
-/// private channel) into short `"@author: text"` context lines for the
+/// Flatten the current surface's recent notes (a thread / group / DM /
+/// private group) into short `"@author: text"` context lines for the
 /// composer-chat (WS4). Keeps the most recent [max], oldest first, each trimmed
 /// to [maxChars]. Surface-agnostic — every surface holds [NoteEntity]s.
 List<String> entityContextLines(

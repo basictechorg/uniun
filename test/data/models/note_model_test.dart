@@ -16,8 +16,8 @@ void main() {
   group('NoteModel.toDomain — kind discriminator', () {
     NoteModel base({
       required int kind,
-      String? channelId,
       String? groupId,
+      String? privateGroupId,
       int? conversationId,
     }) {
       return NoteModel(
@@ -26,8 +26,8 @@ void main() {
         authorPubkey: 'pk',
         content: 'hi',
         kind: kind,
-        channelId: channelId,
         groupId: groupId,
+        privateGroupId: privateGroupId,
         conversationId: conversationId,
         type: NoteType.text,
         eTagRefs: const [],
@@ -40,16 +40,16 @@ void main() {
     test('kind 1 → top-level feed note (no container)', () {
       final e = base(kind: kNoteKind).toDomain();
       expect(e.kind, kNoteKind);
-      expect(e.sourceChannelId, isNull);
+      expect(e.sourceGroupId, isNull);
       expect(e.sourcePrivateGroupId, isNull);
       expect(e.conversationId, isNull);
     });
 
-    test('kind 42 → channel message carries sourceChannelId', () {
+    test('kind 42 → group message carries sourceGroupId', () {
       final e =
-          base(kind: kChannelMessageKind, channelId: 'ch1').toDomain();
-      expect(e.kind, kChannelMessageKind);
-      expect(e.sourceChannelId, 'ch1');
+          base(kind: kGroupMessageKind, groupId: 'ch1').toDomain();
+      expect(e.kind, kGroupMessageKind);
+      expect(e.sourceGroupId, 'ch1');
       expect(e.sourcePrivateGroupId, isNull);
       expect(e.conversationId, isNull);
     });
@@ -58,16 +58,16 @@ void main() {
       final e = base(kind: kDmTextKind, conversationId: 7).toDomain();
       expect(e.kind, kDmTextKind);
       expect(e.conversationId, 7);
-      expect(e.sourceChannelId, isNull);
+      expect(e.sourceGroupId, isNull);
       expect(e.sourcePrivateGroupId, isNull);
     });
 
-    test('kind 9023 → private channel carries sourcePrivateGroupId', () {
+    test('kind 9023 → private group carries sourcePrivateGroupId', () {
       final e =
-          base(kind: kPrivateChannelKind, groupId: 'grp:abc').toDomain();
-      expect(e.kind, kPrivateChannelKind);
+          base(kind: kPrivateGroupKind, privateGroupId: 'grp:abc').toDomain();
+      expect(e.kind, kPrivateGroupKind);
       expect(e.sourcePrivateGroupId, 'grp:abc');
-      expect(e.sourceChannelId, isNull);
+      expect(e.sourceGroupId, isNull);
       expect(e.conversationId, isNull);
     });
   });

@@ -7,7 +7,7 @@ import 'package:uniun/features/shiv/generation/prompt/prompt_parts.dart';
 /// This is a DISTINCT use case with its OWN system instruction — it is NOT the
 /// Shiv-tab persona ([PromptBuilder.buildSystemInstruction]). The composer-chat
 /// answers about the conversation the user is currently reading (a thread /
-/// channel / DM / private channel), grounded in the picked Manas's notes.
+/// group / DM / private group), grounded in the picked Manas's notes.
 class ComposerChatPromptTemplate {
   const ComposerChatPromptTemplate._();
 

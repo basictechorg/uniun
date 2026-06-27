@@ -15,8 +15,8 @@ import 'package:uniun/l10n/app_localizations.dart';
 
 /// Universal QR scanner. Decodes any [UniunQrPayload] and dispatches:
 ///   - user           → see [UniunQrScanIntent] (profile / auto-follow / auto-dm)
-///   - publicChannel  → JoinChannelPage (UniunQrPayload argument)
-///   - privateChannel → JoinPrivateChannelPage (UniunQrPayload argument)
+///   - publicGroup  → JoinGroupPage (UniunQrPayload argument)
+///   - privateGroup → JoinPrivateGroupPage (UniunQrPayload argument)
 ///
 /// Intent is read from the route argument and only affects user QRs:
 ///   - [generic]: open the user's profile page.
@@ -72,8 +72,8 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
 
     final route = switch (payload.kind) {
       UniunQrKind.user => AppRoutes.userProfile, // unreachable, handled above
-      UniunQrKind.publicChannel => AppRoutes.joinChannel,
-      UniunQrKind.privateChannel => AppRoutes.joinPrivateChannel,
+      UniunQrKind.publicGroup => AppRoutes.joinGroup,
+      UniunQrKind.privateGroup => AppRoutes.joinPrivateGroup,
     };
     context.pushReplacementNamed(route, extra: payload);
   }
@@ -186,7 +186,7 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'Scan a UNIUN QR — user, public channel, or private channel',
+                'Scan a UNIUN QR — user, public group, or private group',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 14),
               ),

@@ -20,7 +20,7 @@ class UnreadNoteModel {
   @Index(unique: true, replace: true)
   late String eventId;
 
-  /// Nostr kind — 1 (feed) / 42 (channel) / 14|15 (DM) / 9023 (private channel).
+  /// Nostr kind — 1 (feed) / 42 (group) / 14|15 (DM) / 9023 (private group).
   @Index()
   late int kind;
 
@@ -29,13 +29,15 @@ class UnreadNoteModel {
   @Index()
   late String authorPubkey;
 
-  /// NIP-28 channel root id. Non-null only for kind 42. (drawer count)
-  @Index()
-  String? channelId;
-
-  /// NIP-29 group id. Non-null only for kind 9023. (drawer count)
+  /// NIP-28 group root id. Non-null only for kind 42. (drawer count)
+  @Name('channelId') // stored name preserved across channel→group rename
   @Index()
   String? groupId;
+
+  /// NIP-29 group id. Non-null only for kind 9023. (drawer count)
+  @Name('groupId') // stored name preserved (was UnreadNoteModel.groupId)
+  @Index()
+  String? privateGroupId;
 
   /// DM conversation FK. Non-null only for kind 14/15. (drawer count)
   @Index()
@@ -55,8 +57,8 @@ Future<void> putUnreadRowInTxn(Isar isar, NoteModel m) {
       ..eventId = m.eventId
       ..kind = m.kind
       ..authorPubkey = m.authorPubkey
-      ..channelId = m.channelId
       ..groupId = m.groupId
+      ..privateGroupId = m.privateGroupId
       ..conversationId = m.conversationId
       ..created = m.created,
   );

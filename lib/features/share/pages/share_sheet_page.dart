@@ -375,41 +375,41 @@ class _DestinationList extends StatelessWidget {
             selected: selected == const ShareDestination.feed(),
             onTap: () => onPick(const ShareDestination.feed()),
           ),
-          if (state.publicChannels.isNotEmpty)
+          if (state.publicGroups.isNotEmpty)
             CollapsibleSection(
-              label: l10n.shareSectionPublicChannels,
+              label: l10n.shareSectionPublicGroups,
               child: Column(
-                children: state.publicChannels
+                children: state.publicGroups
                     .map(
                       (c) => DestinationTile(
                         icon: Icons.tag_rounded,
                         title: c.name,
                         subtitle: c.about.isEmpty ? null : c.about,
                         selected: selected ==
-                            ShareDestination.publicChannel(
-                                channelId: c.channelId),
+                            ShareDestination.publicGroup(
+                                groupId: c.groupId),
                         onTap: () => onPick(
-                          ShareDestination.publicChannel(channelId: c.channelId),
+                          ShareDestination.publicGroup(groupId: c.groupId),
                         ),
                       ),
                     )
                     .toList(),
               ),
             ),
-          if (state.privateChannels.isNotEmpty)
+          if (state.privateGroups.isNotEmpty)
             CollapsibleSection(
-              label: l10n.shareSectionPrivateChannels,
+              label: l10n.shareSectionPrivateGroups,
               child: Column(
-                children: state.privateChannels
+                children: state.privateGroups
                     .map(
                       (g) => DestinationTile(
                         icon: Icons.lock_outline,
                         title: g.name,
                         subtitle: g.description.isEmpty ? null : g.description,
                         selected: selected ==
-                            ShareDestination.privateChannel(groupId: g.groupId),
+                            ShareDestination.privateGroup(groupId: g.groupId),
                         onTap: () => onPick(
-                          ShareDestination.privateChannel(groupId: g.groupId),
+                          ShareDestination.privateGroup(groupId: g.groupId),
                         ),
                       ),
                     )

@@ -11,10 +11,10 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/repositories/share_repository.dart';
-import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
+import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 /// Dispatcher only — every destination publishes through its existing kind-
@@ -27,17 +27,17 @@ class ShareRepositoryImpl implements ShareRepository {
   final NoteResolverRepository _resolver;
   final GetActiveUserKeysUseCase _getKeys;
   final PublishMediaNoteUseCase _publishFeed;
-  final CreateChannelMessageUseCase _publishChannel;
+  final CreateGroupMessageUseCase _publishGroup;
   final SendDmUseCase _publishDm;
-  final SendPrivateChannelMessageUsecase _publishPrivateChannel;
+  final SendPrivateGroupMessageUsecase _publishPrivateGroup;
 
   ShareRepositoryImpl(
     this._resolver,
     this._getKeys,
     this._publishFeed,
-    this._publishChannel,
+    this._publishGroup,
     this._publishDm,
-    this._publishPrivateChannel,
+    this._publishPrivateGroup,
   );
 
   @override
@@ -67,17 +67,17 @@ class ShareRepositoryImpl implements ShareRepository {
                     attachments: input.attachments,
                     snapshotJson: snapshotJson,
                   );
-                case ShareToPublicChannel(channelId: final id):
-                  return _dispatchChannel(
+                case ShareToPublicGroup(groupId: final id):
+                  return _dispatchGroup(
                     privkey: keys.privkeyHex,
-                    channelId: id,
+                    groupId: id,
                     content: content,
                     referenceIds: input.referenceIds,
                     attachments: input.attachments,
                     snapshotJson: snapshotJson,
                   );
-                case ShareToPrivateChannel(groupId: final id):
-                  return _dispatchPrivateChannel(
+                case ShareToPrivateGroup(groupId: final id):
+                  return _dispatchPrivateGroup(
                     keys: keys,
                     groupId: id,
                     content: content,
@@ -147,17 +147,17 @@ class ShareRepositoryImpl implements ShareRepository {
     return result.fold((f) => Left(f), (_) => const Right(unit));
   }
 
-  Future<Either<Failure, Unit>> _dispatchChannel({
+  Future<Either<Failure, Unit>> _dispatchGroup({
     required String privkey,
-    required String channelId,
+    required String groupId,
     required String content,
     required List<String> referenceIds,
     required List<MediaBlobEntity> attachments,
     required String snapshotJson,
   }) async {
-    final result = await _publishChannel(
-      CreateChannelMessageInput(
-        channelId: channelId,
+    final result = await _publishGroup(
+      CreateGroupMessageInput(
+        groupId: groupId,
         content: content,
         privateKey: privkey,
         mentionRefs: referenceIds,
@@ -168,7 +168,7 @@ class ShareRepositoryImpl implements ShareRepository {
     return result.fold((f) => Left(f), (_) => const Right(unit));
   }
 
-  Future<Either<Failure, Unit>> _dispatchPrivateChannel({
+  Future<Either<Failure, Unit>> _dispatchPrivateGroup({
     required UserSigningKeys keys,
     required String groupId,
     required String content,
@@ -176,7 +176,7 @@ class ShareRepositoryImpl implements ShareRepository {
     required List<MediaBlobEntity> attachments,
     required String snapshotJson,
   }) async {
-    await _publishPrivateChannel.execute(
+    await _publishPrivateGroup.execute(
       groupId: groupId,
       content: content,
       authorPubkey: keys.pubkeyHex,

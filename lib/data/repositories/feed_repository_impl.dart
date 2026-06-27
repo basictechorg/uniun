@@ -120,7 +120,7 @@ class FeedRepositoryImpl extends FeedRepository {
   /// `created` desc, skipping anything in [excludeIds] (the already-loaded set).
   /// Served from the `UnreadNote` collection (indexed) then hydrated from the
   /// `Note` collection. Feed-eligible kinds: Kind 1 (gated to [authors]),
-  /// Kind 42 public channel, Kind 9023 private channel — re-filtered live so a
+  /// Kind 42 public group, Kind 9023 private group — re-filtered live so a
   /// follow/unfollow takes effect immediately. DMs (14/15) never appear.
   ///
   /// NOT bounded by `feedLoadedAt`: newly arrived unread notes are drained too.
@@ -143,9 +143,9 @@ class FeedRepositoryImpl extends FeedRepository {
               .and()
               .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
           .or()
-          .kindEqualTo(kChannelMessageKind)
+          .kindEqualTo(kGroupMessageKind)
           .or()
-          .kindEqualTo(kPrivateChannelKind));
+          .kindEqualTo(kPrivateGroupKind));
       if (cursor != null) {
         q = q.and().createdLessThan(cursor, include: true);
       }
@@ -203,9 +203,9 @@ class FeedRepositoryImpl extends FeedRepository {
               .and()
               .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
           .or()
-          .kindEqualTo(kChannelMessageKind)
+          .kindEqualTo(kGroupMessageKind)
           .or()
-          .kindEqualTo(kPrivateChannelKind));
+          .kindEqualTo(kPrivateGroupKind));
       if (cursor != null) {
         q = q.and().createdLessThan(cursor, include: true);
       }
@@ -241,22 +241,22 @@ class FeedRepositoryImpl extends FeedRepository {
                 .and()
                 .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
             .or()
-            .kindEqualTo(kChannelMessageKind)
+            .kindEqualTo(kGroupMessageKind)
             .or()
-            .kindEqualTo(kPrivateChannelKind))
+            .kindEqualTo(kPrivateGroupKind))
         .eventIdProperty()
         .findAll();
     return ids.toSet();
   }
 
   /// Map rows → NoteEntity, attaching live reply/reference counts (edge table)
-  /// and channel/group source labels (shared [SourceLabelRepository]).
+  /// and group/group source labels (shared [SourceLabelRepository]).
   Future<List<NoteEntity>> _toEntities(List<NoteModel> rows) async {
     if (rows.isEmpty) return const [];
     final labels = await _sourceLabels.resolveMany([
       for (final m in rows)
-        if (m.channelId != null || m.groupId != null)
-          (eventId: m.eventId, channelId: m.channelId, groupId: m.groupId),
+        if (m.groupId != null || m.privateGroupId != null)
+          (eventId: m.eventId, groupId: m.groupId, privateGroupId: m.privateGroupId),
     ]);
     final base = <NoteEntity>[
       for (final m in rows)
@@ -286,9 +286,9 @@ class FeedRepositoryImpl extends FeedRepository {
                     .and()
                     .anyOf(authors, (qq, a) => qq.authorPubkeyEqualTo(a)))
                 .or()
-                .kindEqualTo(kChannelMessageKind)
+                .kindEqualTo(kGroupMessageKind)
                 .or()
-                .kindEqualTo(kPrivateChannelKind))
+                .kindEqualTo(kPrivateGroupKind))
             .and()
             .createdGreaterThan(loadedAt)
             .count();

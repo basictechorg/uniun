@@ -14,10 +14,10 @@ import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
-import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
+import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
@@ -36,7 +36,7 @@ import 'package:uuid/uuid.dart';
 ///   • Direct calls to `AIModelRunner.generateOneShot` (which routes through
 ///     `LocalInferenceQueue.runLow` so Shiv chat (`runHigh`) preempts).
 ///   • Direct calls to publish use cases (NIP-17 DM gift-wrap, NIP-29 MLS
-///     private channels) without going through a pending-table dispatcher.
+///     private groups) without going through a pending-table dispatcher.
 ///   • Direct access to `EmbeddingService` for Manas vector retrieval.
 ///
 /// Trade-off: prompt building + Isar reads + result handling run on the main
@@ -57,9 +57,9 @@ class GanaEngine {
     this._settings,
     this._userRepo,
     this._publishNote,
-    this._channelMessage,
+    this._groupMessage,
     this._dm,
-    this._privateChannel,
+    this._privateGroup,
     this._embedAndStore,
     this._manasLoader,
   );
@@ -69,9 +69,9 @@ class GanaEngine {
   final AppSettingsStore _settings;
   final UserRepository _userRepo;
   final PublishNoteUseCase _publishNote;
-  final CreateChannelMessageUseCase _channelMessage;
+  final CreateGroupMessageUseCase _groupMessage;
   final SendDmUseCase _dm;
-  final SendPrivateChannelMessageUsecase _privateChannel;
+  final SendPrivateGroupMessageUsecase _privateGroup;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final ManasContextLoader _manasLoader;
 
@@ -448,11 +448,11 @@ class GanaEngine {
     switch (g.outputType) {
       case GanaOutputType.feed:
         return await _publishFeed(body, privkeyHex, pubkeyHex);
-      case GanaOutputType.channel:
-        return await _publishChannel(g.outputChannelId, body, privkeyHex);
-      case GanaOutputType.privateChannel:
-        return await _publishPrivateChannel(
-            g.outputGroupId, body, privkeyHex, pubkeyHex);
+      case GanaOutputType.group:
+        return await _publishGroup(g.outputGroupId, body, privkeyHex);
+      case GanaOutputType.privateGroup:
+        return await _publishPrivateGroup(
+            g.outputPrivateGroupId, body, privkeyHex, pubkeyHex);
       case GanaOutputType.dm:
         return await _publishDm(
             g.outputDmConversationId, body, pubkeyHex);
@@ -489,16 +489,16 @@ class GanaEngine {
     );
   }
 
-  Future<String> _publishChannel(
-    String? channelId,
+  Future<String> _publishGroup(
+    String? groupId,
     String body,
     String privkeyHex,
   ) async {
-    if (channelId == null) {
-      throw StateError('channel outputType requires outputChannelId');
+    if (groupId == null) {
+      throw StateError('group outputType requires outputGroupId');
     }
-    final res = await _channelMessage.call(CreateChannelMessageInput(
-      channelId: channelId,
+    final res = await _groupMessage.call(CreateGroupMessageInput(
+      groupId: groupId,
       content: body,
       privateKey: privkeyHex,
     ));
@@ -508,19 +508,19 @@ class GanaEngine {
     );
   }
 
-  Future<String> _publishPrivateChannel(
+  Future<String> _publishPrivateGroup(
     String? groupId,
     String body,
     String privkeyHex,
     String pubkeyHex,
   ) async {
     if (groupId == null) {
-      throw StateError('privateChannel outputType requires outputGroupId');
+      throw StateError('privateGroup outputType requires outputPrivateGroupId');
     }
     // `execute` returns void; the transport writes a NoteModel synchronously.
     // Snapshot before/after to recover the eventId.
     final before = await _latestSelfEventIdInGroup(groupId, pubkeyHex);
-    await _privateChannel.execute(
+    await _privateGroup.execute(
       groupId: groupId,
       content: body,
       authorPubkey: pubkeyHex,

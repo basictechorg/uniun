@@ -103,10 +103,10 @@ void _openInputTypeSheet(
       label: l10n.ganaFormInputStandalone,
     ),
     options: [
-      _PickOption(value: GanaInputType.channel, label: l10n.ganaFormInputChannel),
+      _PickOption(value: GanaInputType.group, label: l10n.ganaFormInputGroup),
       _PickOption(
-          value: GanaInputType.privateChannel,
-          label: l10n.ganaFormInputPrivateChannel),
+          value: GanaInputType.privateGroup,
+          label: l10n.ganaFormInputPrivateGroup),
       _PickOption(value: GanaInputType.dm, label: l10n.ganaFormInputDm),
       _PickOption(value: GanaInputType.user, label: l10n.ganaFormInputUser),
       _PickOption(
@@ -130,10 +130,10 @@ void _openOutputTypeSheet(
     options: [
       _PickOption(value: GanaOutputType.feed, label: l10n.ganaFormOutputFeed),
       _PickOption(
-          value: GanaOutputType.channel, label: l10n.ganaFormOutputChannel),
+          value: GanaOutputType.group, label: l10n.ganaFormOutputGroup),
       _PickOption(
-          value: GanaOutputType.privateChannel,
-          label: l10n.ganaFormOutputPrivateChannel),
+          value: GanaOutputType.privateGroup,
+          label: l10n.ganaFormOutputPrivateGroup),
       _PickOption(value: GanaOutputType.dm, label: l10n.ganaFormOutputDm),
     ],
     onPicked: (v) {
@@ -272,10 +272,10 @@ class _SheetRow extends StatelessWidget {
 String _inputTypeLabel(AppLocalizations l10n, GanaInputType? type) {
   if (type == null) return l10n.ganaFormInputStandalone;
   switch (type) {
-    case GanaInputType.channel:
-      return l10n.ganaFormInputChannel;
-    case GanaInputType.privateChannel:
-      return l10n.ganaFormInputPrivateChannel;
+    case GanaInputType.group:
+      return l10n.ganaFormInputGroup;
+    case GanaInputType.privateGroup:
+      return l10n.ganaFormInputPrivateGroup;
     case GanaInputType.dm:
       return l10n.ganaFormInputDm;
     case GanaInputType.user:
@@ -289,25 +289,25 @@ String _outputTypeLabel(AppLocalizations l10n, GanaOutputType type) {
   switch (type) {
     case GanaOutputType.feed:
       return l10n.ganaFormOutputFeed;
-    case GanaOutputType.channel:
-      return l10n.ganaFormOutputChannel;
-    case GanaOutputType.privateChannel:
-      return l10n.ganaFormOutputPrivateChannel;
+    case GanaOutputType.group:
+      return l10n.ganaFormOutputGroup;
+    case GanaOutputType.privateGroup:
+      return l10n.ganaFormOutputPrivateGroup;
     case GanaOutputType.dm:
       return l10n.ganaFormOutputDm;
   }
 }
 
-String? _channelName(List<ChannelEntity> all, String? id) {
+String? _groupName(List<GroupEntity> all, String? id) {
   if (id == null) return null;
   for (final c in all) {
-    if (c.channelId == id) return c.name;
+    if (c.groupId == id) return c.name;
   }
   return id.substring(0, id.length < 12 ? id.length : 12);
 }
 
-String? _privateChannelName(
-    List<PrivateChannelEntity> all, String? id) {
+String? _privateGroupName(
+    List<PrivateGroupEntity> all, String? id) {
   if (id == null) return null;
   for (final c in all) {
     if (c.groupId == id) return c.name;
