@@ -31,6 +31,12 @@ class ChannelEntryChooser extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
+        centerTitle: true,
+        shape: Border(
+          bottom: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
         leading: UniunBackButton(
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -38,51 +44,61 @@ class ChannelEntryChooser extends StatelessWidget {
           title,
           style: const TextStyle(
             color: AppColors.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
           ),
         ),
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(icon, size: 56, color: AppColors.primary),
-              const SizedBox(height: 16),
+              // Brand hero — tinted circle behind the surface glyph.
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                  ),
+                  child: Icon(icon, size: 34, color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 22,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.onSurface,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
+                  height: 1.45,
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
               _EntryCard(
                 icon: Icons.login_rounded,
                 label: joinLabel,
                 onTap: onJoin,
-                filled: true,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _EntryCard(
                 icon: Icons.add_rounded,
                 label: createLabel,
                 onTap: onCreate,
-                filled: false,
               ),
             ],
           ),
@@ -92,51 +108,71 @@ class ChannelEntryChooser extends StatelessWidget {
   }
 }
 
+// One contained choice card: tinted icon-square + label + chevron. Both the
+// join and create actions render identically — single accent, peer choices.
 class _EntryCard extends StatelessWidget {
   const _EntryCard({
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.filled,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    final bg = filled ? AppColors.primary : Colors.transparent;
-    final fg = filled ? AppColors.onPrimary : AppColors.primary;
-    final border = filled
-        ? const Border.fromBorderSide(BorderSide.none)
-        : Border.all(color: AppColors.primary, width: 1.4);
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: bg,
-          border: border,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: fg),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: fg,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 22, color: AppColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: fg),
-          ],
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 22,
+                color: AppColors.outlineVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -124,10 +124,10 @@ abstract class AppLocalizations {
   /// **'SHIV'**
   String get navShiv;
 
-  /// Copy button label (uppercase)
+  /// Copy button label
   ///
   /// In en, this message translates to:
-  /// **'COPY'**
+  /// **'Copy'**
   String get actionCopy;
 
   /// Feedback after copying
@@ -256,6 +256,36 @@ abstract class AppLocalizations {
   /// **'No channels yet'**
   String get drawerNoChannels;
 
+  /// Drawer header button — open my QR code
+  ///
+  /// In en, this message translates to:
+  /// **'My QR code'**
+  String get drawerMyQrCode;
+
+  /// Drawer header button — open QR scanner
+  ///
+  /// In en, this message translates to:
+  /// **'Scan code'**
+  String get drawerScanCode;
+
+  /// Drawer private-channel row subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get drawerPrivateLabel;
+
+  /// Drawer search result subtitle — DM
+  ///
+  /// In en, this message translates to:
+  /// **'Direct message'**
+  String get drawerSearchKindDm;
+
+  /// Drawer search result subtitle — followed user
+  ///
+  /// In en, this message translates to:
+  /// **'Following'**
+  String get drawerSearchKindUser;
+
   /// App bar title for the join channel page
   ///
   /// In en, this message translates to:
@@ -328,6 +358,30 @@ abstract class AppLocalizations {
   /// **'Join by QR'**
   String get joinChannelByQr;
 
+  /// Title on the scan-QR card at the top of the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a channel QR'**
+  String get joinChannelScanCardTitle;
+
+  /// Subtitle on the scan-QR card on the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at a UNIUN channel code'**
+  String get joinChannelScanCardSubtitle;
+
+  /// Divider label between scan-QR and paste-id on the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get joinChannelOr;
+
+  /// Placeholder for the channel id input on the join channel page
+  ///
+  /// In en, this message translates to:
+  /// **'Paste channel ID'**
+  String get joinChannelIdHint;
+
   /// App bar title for the QR scanner page
   ///
   /// In en, this message translates to:
@@ -357,6 +411,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Channel joined successfully.'**
   String get joinChannelSuccess;
+
+  /// Validation error when the channel id is not 64 hex characters
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid 64-character channel id.'**
+  String get joinChannelErrorInvalidId;
+
+  /// Validation error when no relay is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one relay.'**
+  String get joinChannelErrorNoRelay;
+
+  /// Error when a relay could not be saved to the local database
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save relay locally.'**
+  String get joinChannelErrorRelaySaveFailed;
+
+  /// Error when saving the joined channel fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t join the channel. Please try again.'**
+  String get joinChannelErrorSaveFailed;
 
   /// Placeholder text in the channel message composer input
   ///
@@ -502,12 +580,6 @@ abstract class AppLocalizations {
   /// **'No results'**
   String get composerReferenceEmpty;
 
-  /// Badge on an already-selected reference in the picker
-  ///
-  /// In en, this message translates to:
-  /// **'Added'**
-  String get composerReferenceSelected;
-
   /// Reference picker tab showing all candidate notes
   ///
   /// In en, this message translates to:
@@ -519,6 +591,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved'**
   String get composerReferenceTabSaved;
+
+  /// Reference picker tab showing only the user's own notes
+  ///
+  /// In en, this message translates to:
+  /// **'My notes'**
+  String get composerReferenceTabOwn;
+
+  /// Reference picker tab showing only local drafts
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get composerReferenceTabDrafts;
+
+  /// Reference picker confirm button; shows the selected count when non-zero
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get composerReferenceAdd;
+
+  /// Title of the Manas picker bottom sheet that grounds the inline Shiv chat
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with your notes'**
+  String get composerChatPickerTitle;
+
+  /// Subtitle under the Manas picker title
+  ///
+  /// In en, this message translates to:
+  /// **'Scope to a Manas'**
+  String get composerChatPickerSubtitle;
+
+  /// Brand title shown in the in-composer AI chat header
+  ///
+  /// In en, this message translates to:
+  /// **'Shiv'**
+  String get composerChatBrand;
+
+  /// Manas picker row that scopes Shiv to the user's whole library
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get composerChatAllNotes;
+
+  /// Subtitle of the All notes row in the Manas picker
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Brahma'**
+  String get composerChatAllNotesSubtitle;
+
+  /// Note count shown under each Manas row in the picker
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note} other{{count} notes}}'**
+  String composerChatManasNotes(int count);
+
+  /// Eyebrow under the 'Shiv' title in the inline composer-chat header; shows the grounding scope (a Manas name or 'All notes'). Rendered uppercase.
+  ///
+  /// In en, this message translates to:
+  /// **'{scope} · on-device'**
+  String composerChatScopeEyebrow(String scope);
+
+  /// Empty-state hint pill in the inline composer-chat, shown before the first question. {scope} is a Manas name or 'All notes'.
+  ///
+  /// In en, this message translates to:
+  /// **'Grounded in {scope}'**
+  String composerChatGroundedHint(String scope);
+
+  /// Placeholder shown in the AI answer bubble while the first tokens are still streaming
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking…'**
+  String get composerChatThinking;
+
+  /// Button that stops the in-flight inline composer-chat answer
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get composerChatStop;
+
+  /// Shown in the inline composer-chat when no on-device model is installed
+  ///
+  /// In en, this message translates to:
+  /// **'No AI model is active. Download one from the Shiv tab.'**
+  String get composerChatNoModel;
+
+  /// Fallback error text in the inline composer-chat
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong.'**
+  String get composerChatError;
+
+  /// Action under an AI answer that moves its text into the composer as an editable reply draft
+  ///
+  /// In en, this message translates to:
+  /// **'Use as reply'**
+  String get composerChatUseAsReply;
 
   /// Header above the notes a thread note references (mentions)
   ///
@@ -838,6 +1006,42 @@ abstract class AppLocalizations {
   /// **'Storage'**
   String get settingsStorage;
 
+  /// Settings section label — about
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// Settings About row label — app version
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get settingsVersion;
+
+  /// Settings log out button label
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get settingsLogout;
+
+  /// Log out confirmation dialog title
+  ///
+  /// In en, this message translates to:
+  /// **'Log out?'**
+  String get settingsLogoutTitle;
+
+  /// Log out confirmation dialog body
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need your private key (nsec) to sign back in. Make sure it\'s backed up before logging out.'**
+  String get settingsLogoutBody;
+
+  /// Log out confirmation dialog confirm action
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get settingsLogoutConfirm;
+
   /// Settings section label — alerts
   ///
   /// In en, this message translates to:
@@ -879,12 +1083,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Relays'**
   String get identityRelays;
-
-  /// Identity card row — export backup
-  ///
-  /// In en, this message translates to:
-  /// **'Export Backup'**
-  String get identityExportBackup;
 
   /// Identity card row — privacy policy
   ///
@@ -1024,6 +1222,24 @@ abstract class AppLocalizations {
   /// **'Remove Data'**
   String get storageRemoveData;
 
+  /// Settings → Storage row that opens the storage-breakdown bottom sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Show metrics'**
+  String get storageShowMetrics;
+
+  /// Header label above the total used figure in the storage metrics sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get storageUsed;
+
+  /// Free-disk label in the storage metrics sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} free'**
+  String storageFree(String size);
+
   /// Title of the delete feed notes confirmation dialog
   ///
   /// In en, this message translates to:
@@ -1137,6 +1353,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select Model'**
   String get aiSelectModel;
+
+  /// Settings → AI · Shiv row label for the on-device (local) model selector.
+  ///
+  /// In en, this message translates to:
+  /// **'Device AI model'**
+  String get settingsDeviceAiModel;
 
   /// Subtitle in AI card when no model is active
   ///
@@ -1365,6 +1587,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save Profile'**
   String get editProfileSaveButton;
+
+  /// Uppercase eyebrow label above the edit-profile headline
+  ///
+  /// In en, this message translates to:
+  /// **'Public profile'**
+  String get editProfileEyebrow;
+
+  /// Body subtitle on the edit-profile screen
+  ///
+  /// In en, this message translates to:
+  /// **'Update how others see you across UNIUN.'**
+  String get editProfileSubtitle;
+
+  /// Privacy reassurance chip on the edit-profile screen
+  ///
+  /// In en, this message translates to:
+  /// **'Only your public details are shared.'**
+  String get editProfileEncrypted;
 
   /// Hero tagline on welcome screen. Words wrapped in *asterisks* are rendered in the brand accent color; everything else is muted.
   ///
@@ -1660,6 +1900,12 @@ abstract class AppLocalizations {
   /// **'Create your avatar and start building your second brain. It only takes a moment.'**
   String get howItWorksReadyBody;
 
+  /// Uppercase eyebrow label above the headline on the about-you onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Create your avatar'**
+  String get aboutYouEyebrow;
+
   /// Heading on the about-you onboarding page
   ///
   /// In en, this message translates to:
@@ -1741,7 +1987,7 @@ abstract class AppLocalizations {
   /// Heading on the import-identity page
   ///
   /// In en, this message translates to:
-  /// **'Restore Your Avatar'**
+  /// **'Welcome Back'**
   String get importTitle;
 
   /// Body subtitle on the import-identity page
@@ -1798,6 +2044,30 @@ abstract class AppLocalizations {
   /// **'Invalid key. Please check and try again.'**
   String get importInvalidKey;
 
+  /// Uppercase eyebrow above the import-page title
+  ///
+  /// In en, this message translates to:
+  /// **'Restore your avatar'**
+  String get importEyebrow;
+
+  /// Secondary action on import page to scan a key QR
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR instead'**
+  String get importScanQrButton;
+
+  /// App bar title on the key QR scanner page
+  ///
+  /// In en, this message translates to:
+  /// **'Scan your key QR'**
+  String get importScanTitle;
+
+  /// Helper text on the key QR scanner page
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at a QR that contains your private key'**
+  String get importScanHint;
+
   /// Heading on the identity-keys onboarding page
   ///
   /// In en, this message translates to:
@@ -1809,6 +2079,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One is for sharing. One is for your eyes only.'**
   String get keysSubtitle;
+
+  /// Uppercase eyebrow label above the headline on the identity-keys onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Your avatar keys'**
+  String get keysEyebrow;
+
+  /// Serif display headline on the identity-keys onboarding page
+  ///
+  /// In en, this message translates to:
+  /// **'Your keys are your avatar.'**
+  String get keysHeadline;
 
   /// KeyCard title for npub
   ///
@@ -1845,12 +2127,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save & Continue'**
   String get keysSaveAndContinue;
-
-  /// Secondary action on identity-keys page
-  ///
-  /// In en, this message translates to:
-  /// **'Download Backup'**
-  String get keysDownloadBackup;
 
   /// Badge on identity-keys page footer
   ///
@@ -1899,18 +2175,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save keys: {error}'**
   String keysFailedToSave(String error);
-
-  /// Snackbar after saving backup file
-  ///
-  /// In en, this message translates to:
-  /// **'Backup saved to {path}'**
-  String keysBackupSaved(String path);
-
-  /// Error snackbar when backup write fails
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to save backup'**
-  String get keysBackupFailed;
 
   /// Hint shown in place of private key card until npub is copied
   ///
@@ -2065,7 +2329,7 @@ abstract class AppLocalizations {
   /// No description provided for @termsResponsibilityBody.
   ///
   /// In en, this message translates to:
-  /// **'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, or violates others\' rights.'**
+  /// **'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, hateful, sexually explicit, or that violates others\' rights. Objectionable content and abusive behavior are not welcome on UNIUN.'**
   String get termsResponsibilityBody;
 
   /// No description provided for @termsNoAbuseTitle.
@@ -2077,7 +2341,7 @@ abstract class AppLocalizations {
   /// No description provided for @termsNoAbuseBody.
   ///
   /// In en, this message translates to:
-  /// **'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network.'**
+  /// **'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network. UNIUN is decentralized: any note menu includes a Report option (categories: nudity, malware, profanity, illegal, spam, impersonation, other) and any user can be blocked from Settings → Blocked Users. Reported notes are immediately hidden from your feed and blocked users\' content never reaches you. Reports are also published on the Nostr network so other clients and relay operators can act on them.'**
   String get termsNoAbuseBody;
 
   /// No description provided for @termsPrivateKeyTitle.
@@ -2302,6 +2566,48 @@ abstract class AppLocalizations {
   /// **'Ask Shiv anything…'**
   String get shivInputHint;
 
+  /// Hero headline on the Shiv home landing screen
+  ///
+  /// In en, this message translates to:
+  /// **'How can I help you?'**
+  String get shivHomeHeadline;
+
+  /// Tooltip for the history button on the Shiv home app bar
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get shivHomeHistoryTooltip;
+
+  /// Label for the Gana action button on the Shiv home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Gana'**
+  String get shivHomeGana;
+
+  /// Label for the Nataraj action button on the Shiv home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Nataraj'**
+  String get shivHomeNataraj;
+
+  /// Suggested prompt chip on the Shiv home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize my week'**
+  String get shivHomeSuggestSummarize;
+
+  /// Suggested prompt chip on the Shiv home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Connect two ideas'**
+  String get shivHomeSuggestConnect;
+
+  /// Suggested prompt chip on the Shiv home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Draft from a note'**
+  String get shivHomeSuggestDraft;
+
   /// Composer-chat input hint reflecting the grounding scope, e.g. 'Ask Brahma' (all notes) or 'Ask <manas name>'
   ///
   /// In en, this message translates to:
@@ -2374,13 +2680,13 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get graphLegendSaved;
 
-  /// Graph legend label for own published notes (green nodes)
+  /// Graph legend label for own published notes (blue-300 nodes)
   ///
   /// In en, this message translates to:
   /// **'Own'**
   String get graphLegendOwn;
 
-  /// Graph legend label for draft notes (amber nodes)
+  /// Graph legend label for draft notes (blue-800 nodes)
   ///
   /// In en, this message translates to:
   /// **'Draft'**
@@ -2410,6 +2716,36 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get graphDraftDelete;
 
+  /// Scope chip label when the graph shows the whole library (no Manas scope)
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get graphScopeAllNotes;
+
+  /// Placeholder in the graph search field
+  ///
+  /// In en, this message translates to:
+  /// **'Search graph…'**
+  String get graphSearchHint;
+
+  /// Tooltip on the graph search icon button
+  ///
+  /// In en, this message translates to:
+  /// **'Search graph'**
+  String get graphSearchTooltip;
+
+  /// Tooltip on the graph header menu button
+  ///
+  /// In en, this message translates to:
+  /// **'Open Manas drawer'**
+  String get graphMenuTooltip;
+
+  /// Tooltip on the button that closes/clears graph search
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get graphSearchClear;
+
   /// Title of the public channel entry/chooser screen
   ///
   /// In en, this message translates to:
@@ -2437,7 +2773,7 @@ abstract class AppLocalizations {
   /// Title of the private channel entry/chooser screen
   ///
   /// In en, this message translates to:
-  /// **'Private Channels'**
+  /// **'Private channels'**
   String get privateChannelEntryTitle;
 
   /// Subtitle on the private channel entry chooser
@@ -2464,17 +2800,29 @@ abstract class AppLocalizations {
   /// **'Channel'**
   String get createChannelTitle;
 
+  /// App bar title on the create channel page (redesign)
+  ///
+  /// In en, this message translates to:
+  /// **'Create channel'**
+  String get createChannelHeaderTitle;
+
   /// Section heading for channel details on create channel page
   ///
   /// In en, this message translates to:
   /// **'Channel Details'**
   String get createChannelDetailsHeading;
 
-  /// Text field label for channel name
+  /// Section label for channel name field
   ///
   /// In en, this message translates to:
-  /// **'Channel Name'**
+  /// **'Channel name'**
   String get createChannelNameLabel;
+
+  /// Placeholder in the channel name field
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. design'**
+  String get createChannelNamePlaceholder;
 
   /// Text field label for channel about/description
   ///
@@ -2482,11 +2830,35 @@ abstract class AppLocalizations {
   /// **'About (Theme/Rules)'**
   String get createChannelAboutLabel;
 
+  /// Section label for the channel description field
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get createChannelDescriptionLabel;
+
+  /// Placeholder in the channel description field
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s this channel about?'**
+  String get createChannelAboutPlaceholder;
+
   /// Text field label for optional channel picture url
   ///
   /// In en, this message translates to:
   /// **'Picture URL (Optional)'**
   String get createChannelPictureLabel;
+
+  /// Info note explaining channel permanence on create
+  ///
+  /// In en, this message translates to:
+  /// **'The channel\'s first event becomes its permanent ID — it can never be deleted.'**
+  String get createChannelPermanenceNote;
+
+  /// Collapsible advanced relays section header on create channel
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced · relays'**
+  String get createChannelAdvancedRelays;
 
   /// Section heading for publish relays on create channel page
   ///
@@ -2503,7 +2875,7 @@ abstract class AppLocalizations {
   /// Primary create channel button label
   ///
   /// In en, this message translates to:
-  /// **'Create Channel'**
+  /// **'Create channel'**
   String get createChannelAction;
 
   /// Snackbar shown after a channel is created
@@ -2515,8 +2887,32 @@ abstract class AppLocalizations {
   /// App bar title on the create private channel page
   ///
   /// In en, this message translates to:
-  /// **'Create Private Channel'**
+  /// **'Create private channel'**
   String get createPrivateChannelTitle;
+
+  /// Eyebrow label above the encrypted private-channel form
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted'**
+  String get createPrivateChannelEncrypted;
+
+  /// Placeholder for the private channel name field
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. core team'**
+  String get createPrivateChannelNameHint;
+
+  /// Placeholder for the private channel description field
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s this channel about?'**
+  String get createPrivateChannelDescHint;
+
+  /// Muted footer note explaining the creator becomes the admin
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re the admin — you control who joins.'**
+  String get createPrivateChannelAdminNote;
 
   /// Heading on the create private channel page
   ///
@@ -2554,11 +2950,59 @@ abstract class AppLocalizations {
   /// **'Private channel created successfully!'**
   String get createPrivateChannelSuccess;
 
+  /// App bar title on the new direct message page
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get createDmTitle;
+
+  /// Section label above the DM recipient field
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient'**
+  String get createDmRecipientLabel;
+
+  /// Placeholder for the DM recipient public-key field
+  ///
+  /// In en, this message translates to:
+  /// **'Public key — hex or npub'**
+  String get createDmRecipientHint;
+
+  /// Helper text under the DM relays section
+  ///
+  /// In en, this message translates to:
+  /// **'Select the relays this message is sent through.'**
+  String get createDmRelaysNote;
+
+  /// Info card explaining DM encryption on the new message page
+  ///
+  /// In en, this message translates to:
+  /// **'Direct messages are end-to-end encrypted (NIP-17). Only the recipient can read them.'**
+  String get createDmEncryptedNote;
+
+  /// Secondary button to scan a user QR on the new message page
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR code'**
+  String get createDmScanQr;
+
+  /// Primary button to start a direct message chat
+  ///
+  /// In en, this message translates to:
+  /// **'Start chat'**
+  String get createDmAction;
+
   /// App bar title on the join private channel page
   ///
   /// In en, this message translates to:
-  /// **'Join Private Channel'**
+  /// **'Join private channel'**
   String get joinPrivateChannelTitle;
+
+  /// Eyebrow label signalling the channel is end-to-end encrypted
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted'**
+  String get joinPrivateChannelEncrypted;
 
   /// Heading on the join private channel page
   ///
@@ -2581,8 +3025,14 @@ abstract class AppLocalizations {
   /// Hint text in the group id input
   ///
   /// In en, this message translates to:
-  /// **'uniun\'...'**
+  /// **'Paste group ID…'**
   String get joinPrivateChannelGroupIdHint;
+
+  /// Helper text under the group id and relay inputs
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the channel admin for the group ID and relay.'**
+  String get joinPrivateChannelGroupIdHelper;
 
   /// Secondary button to open the QR scanner
   ///
@@ -2590,10 +3040,28 @@ abstract class AppLocalizations {
   /// **'Scan QR'**
   String get joinPrivateChannelScanQr;
 
+  /// Title of the prominent scan-QR card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a private channel QR'**
+  String get joinPrivateChannelScanCardTitle;
+
+  /// Subtitle of the prominent scan-QR card
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at a code shared by the admin'**
+  String get joinPrivateChannelScanCardSubtitle;
+
+  /// Info card explaining admin approval is required
+  ///
+  /// In en, this message translates to:
+  /// **'Your request goes to the admin for approval before you can read messages.'**
+  String get joinPrivateChannelApprovalInfo;
+
   /// Primary submit button on join private channel page
   ///
   /// In en, this message translates to:
-  /// **'Send Join Request'**
+  /// **'Send join request'**
   String get joinPrivateChannelAction;
 
   /// Snackbar after submitting a join request to a private channel
@@ -2601,6 +3069,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Join request sent! Wait for admin approval.'**
   String get joinPrivateChannelSuccess;
+
+  /// Lowercase divider word between two alternative actions
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get commonOr;
 
   /// Empty-state label inside the relay selector field
   ///
@@ -2926,6 +3400,24 @@ abstract class AppLocalizations {
   /// **'No notes yet'**
   String get userProfileNoNotes;
 
+  /// Message button on the user profile page that opens a direct message with the user
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get userProfileMessage;
+
+  /// Section label above the user's recent notes on the user profile page
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get userProfileNotesLabel;
+
+  /// Tooltip on the copy button next to the npub on the user profile page
+  ///
+  /// In en, this message translates to:
+  /// **'Copy npub'**
+  String get userProfileCopyNpub;
+
   /// Button in the QR card that opens the native share sheet with the QR image and deep link
   ///
   /// In en, this message translates to:
@@ -2938,11 +3430,53 @@ abstract class AppLocalizations {
   /// **'Couldn\'t share QR code'**
   String get qrShareFailed;
 
+  /// Caption under the QR code on a user identity card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this to add you on UNIUN.'**
+  String get qrCaptionUser;
+
+  /// Caption under the QR code on a public channel card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to join this channel.'**
+  String get qrCaptionPublicChannel;
+
+  /// Caption under the QR code on a private channel card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to join this private channel.'**
+  String get qrCaptionPrivateChannel;
+
+  /// Caption under the QR code on a direct-message card
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to start a chat on UNIUN.'**
+  String get qrCaptionDm;
+
   /// Title of the in-app share bottom sheet
   ///
   /// In en, this message translates to:
   /// **'Share note'**
   String get shareSheetTitle;
+
+  /// Eyebrow label above the quoted-note preview card at the top of the share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Quoting'**
+  String get shareQuotingLabel;
+
+  /// Eyebrow label above the destination list in the share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Share to'**
+  String get shareToLabel;
+
+  /// Label of the primary button that publishes the share to the selected destination
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareActionShare;
 
   /// Placeholder for the optional caption above the embedded shared note
   ///
@@ -3055,14 +3589,44 @@ abstract class AppLocalizations {
   /// App bar title of the blocked users management screen
   ///
   /// In en, this message translates to:
-  /// **'Blocked Users'**
+  /// **'Blocked users'**
   String get blockedUsersTitle;
+
+  /// Explainer paragraph at the top of the blocked users screen
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked people can\'t message you and their notes stay hidden from your feed. Notes are never deleted — unblocking brings them back.'**
+  String get blockedUsersDescription;
+
+  /// Section label above the blocked users list, with the number of blocked users
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked · {count}'**
+  String blockedUsersSectionCount(int count);
+
+  /// Per-row meta line showing how long ago a user was blocked
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked {time} ago'**
+  String blockedUsersBlockedAgo(String time);
+
+  /// Per-row meta line when a user was blocked less than a minute ago
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked just now'**
+  String get blockedUsersBlockedJustNow;
 
   /// Empty state on the blocked users screen when no users are blocked
   ///
   /// In en, this message translates to:
   /// **'You haven\'t blocked anyone'**
   String get blockedUsersEmpty;
+
+  /// Helper subtitle below the empty-state title on the blocked users screen
+  ///
+  /// In en, this message translates to:
+  /// **'People you block will appear here, so you can unblock them anytime.'**
+  String get blockedUsersEmptyHint;
 
   /// Button that unblocks a user on the blocked users screen
   ///
@@ -3838,11 +4402,41 @@ abstract class AppLocalizations {
   /// **'Pick an icon'**
   String get manasIconPickerTitle;
 
-  /// Section header above the Ganas list in the Shiv drawer
+  /// App bar title on the Gana agents list page
   ///
   /// In en, this message translates to:
-  /// **'GANAS'**
-  String get ganaDrawerSectionTitle;
+  /// **'Gana'**
+  String get ganaListTitle;
+
+  /// Label for the create-new-Gana button on the Gana list page
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get ganaListNew;
+
+  /// Intro line below the app bar on the Gana list page
+  ///
+  /// In en, this message translates to:
+  /// **'Autonomous agents that watch a surface, reason over a Manas, and publish for you.'**
+  String get ganaListSubtitle;
+
+  /// Status line on a Gana card when the agent is disabled
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get ganaListPaused;
+
+  /// Gana card scope label when no Manas is selected (whole library)
+  ///
+  /// In en, this message translates to:
+  /// **'All notes'**
+  String get ganaListScopeAll;
+
+  /// Gana card scope label showing how many Manas the agent reasons over
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 Manas} other{{count} Manas}}'**
+  String ganaListScopeCount(int count);
 
   /// Empty-state title in the Ganas section
   ///
@@ -3855,12 +4449,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create an AI worker that watches a surface and publishes for you.'**
   String get ganaDrawerEmptyBody;
-
-  /// Add-new button in the Ganas section header
-  ///
-  /// In en, this message translates to:
-  /// **'+ New Gana'**
-  String get ganaDrawerNewButton;
 
   /// Status pill on a Gana tile when it is disabled
   ///
@@ -3921,6 +4509,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed · {when}'**
   String ganaTileLastRunFailed(String when);
+
+  /// Relative time for an event less than a minute ago
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get ganaRelativeJustNow;
+
+  /// Relative time in minutes
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String ganaRelativeMinutes(int count);
+
+  /// Relative time in hours
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String ganaRelativeHours(int count);
+
+  /// Relative time in days
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d ago'**
+  String ganaRelativeDays(int count);
 
   /// AppBar title in create mode
   ///
@@ -4569,6 +5181,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add text or media first'**
   String get receiveShareNothingToShare;
+
+  /// Tooltip on the floating button that scrolls a chat to the newest message and marks the surface read
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to latest'**
+  String get jumpToLatest;
 }
 
 class _AppLocalizationsDelegate

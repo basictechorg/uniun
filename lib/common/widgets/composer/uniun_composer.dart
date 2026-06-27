@@ -9,11 +9,22 @@ import 'package:uniun/l10n/app_localizations.dart';
 
 /// A lightweight reference shown as a chip above the composer text.
 /// [id] is the referenced event id; [label] is a human preview of it.
+///
+/// [authorPubkey] and [created] are optional metadata used by the reference
+/// picker to render thread-style rows (avatar + name·time). They are ignored by
+/// the composer chip, which only renders [label].
 class ComposerReference {
-  const ComposerReference({required this.id, required this.label});
+  const ComposerReference({
+    required this.id,
+    required this.label,
+    this.authorPubkey,
+    this.created,
+  });
 
   final String id;
   final String label;
+  final String? authorPubkey;
+  final DateTime? created;
 }
 
 /// Shared chat-style composer used across the app (thread replies, channel

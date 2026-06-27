@@ -51,6 +51,7 @@ app.*.map.json
 otodo.md
 # Uniun backend
 uniun-backend/db/
+UNIUNDesignSystem/
 
 # environment variables
 .env

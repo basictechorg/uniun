@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/cubit/reference_picker_cubit.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
+import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/utils/formatters.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Full-screen picker for attaching note/message references to a composer.
 ///
 /// Self-contained: queries the unified `Note` collection via
-/// [ReferencePickerCubit] (recent + search) and the saved-note table, with an
-/// All / Saved tab filter. The page maintains the working selection and returns
-/// the final `List<ComposerReference>` via `Navigator.pop`.
+/// [ReferencePickerCubit] (recent + search), the saved-note table, the user's
+/// own notes, and local drafts, with an All / Saved / My notes / Drafts filter.
+/// Rows render thread-style (avatar + name·time + faded content). The page
+/// maintains the working selection and returns the final
+/// `List<ComposerReference>` via `Navigator.pop`.
 class ReferencePickerPage extends StatelessWidget {
   const ReferencePickerPage({
     super.key,
     required this.title,
     required this.searchHint,
     required this.emptyLabel,
-    required this.selectedLabel,
     this.initialSelected = const [],
   });
 
   final String title;
   final String searchHint;
   final String emptyLabel;
-  final String selectedLabel;
   final List<ComposerReference> initialSelected;
 
   @override
@@ -38,7 +41,6 @@ class ReferencePickerPage extends StatelessWidget {
         title: title,
         searchHint: searchHint,
         emptyLabel: emptyLabel,
-        selectedLabel: selectedLabel,
         initialSelected: initialSelected,
       ),
     );
@@ -50,14 +52,12 @@ class _ReferencePickerView extends StatefulWidget {
     required this.title,
     required this.searchHint,
     required this.emptyLabel,
-    required this.selectedLabel,
     required this.initialSelected,
   });
 
   final String title;
   final String searchHint;
   final String emptyLabel;
-  final String selectedLabel;
   final List<ComposerReference> initialSelected;
 
   @override
@@ -91,16 +91,40 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
     context.read<ReferencePickerCubit>().setTab(tab);
   }
 
+  String _tabLabel(ReferenceTab tab, AppLocalizations l10n) {
+    switch (tab) {
+      case ReferenceTab.all:
+        return l10n.composerReferenceTabAll;
+      case ReferenceTab.saved:
+        return l10n.composerReferenceTabSaved;
+      case ReferenceTab.own:
+        return l10n.composerReferenceTabOwn;
+      case ReferenceTab.drafts:
+        return l10n.composerReferenceTabDrafts;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final pickerState = context.watch<ReferencePickerCubit>().state;
 
-    // Selected first, then results not already selected.
+    // Mono-blue source dots (matches the Brahma graph) — null for "All".
+    const dots = <ReferenceTab, Color?>{
+      ReferenceTab.all: null,
+      ReferenceTab.saved: AppColors.graphNodeSaved,
+      ReferenceTab.own: AppColors.graphNodeOwn,
+      ReferenceTab.drafts: AppColors.graphNodeDraft,
+    };
+
+    // Enrich the held selection with profile/time metadata when the active tab
+    // surfaces the same note, then show selected-first.
+    final byId = {for (final r in pickerState.results) r.id: r};
     final rows = <ComposerReference>[
-      ..._selected,
+      ..._selected.map((s) => byId[s.id] ?? s),
       ...pickerState.results.where((r) => !_selected.any((s) => s.id == r.id)),
     ];
+    final count = _selected.length;
 
     return PopScope(
       canPop: false,
@@ -112,47 +136,54 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
         appBar: AppBar(
           backgroundColor: AppColors.surface,
           elevation: 0,
+          centerTitle: true,
           surfaceTintColor: Colors.transparent,
-          leading: UniunBackButton(
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
+            tooltip: l10n.actionBack,
             onPressed: () => Navigator.pop(context, _selected),
           ),
           title: Text(
             widget.title,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: AppColors.onSurface,
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, _selected),
-              child: const Icon(Icons.check_rounded, color: AppColors.primary),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, _selected),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  minimumSize: const Size(0, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: Text(count > 0
+                    ? '${l10n.composerReferenceAdd} ($count)'
+                    : l10n.composerReferenceAdd),
+              ),
             ),
           ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(height: 1, color: AppColors.borderSubtle),
+          ),
         ),
         body: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: SegmentedButton<ReferenceTab>(
-                segments: [
-                  ButtonSegment(
-                    value: ReferenceTab.all,
-                    label: Text(l10n.composerReferenceTabAll),
-                  ),
-                  ButtonSegment(
-                    value: ReferenceTab.saved,
-                    label: Text(l10n.composerReferenceTabSaved),
-                  ),
-                ],
-                selected: {pickerState.tab},
-                showSelectedIcon: false,
-                onSelectionChanged: (s) => _onTabChanged(s.first),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: TextField(
                 controller: _searchController,
                 autofocus: true,
@@ -176,6 +207,27 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: SizedBox(
+                height: 34,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: ReferenceTab.values.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final tab = ReferenceTab.values[i];
+                    return _FilterChip(
+                      label: _tabLabel(tab, l10n),
+                      dot: dots[tab],
+                      active: pickerState.tab == tab,
+                      onTap: () => _onTabChanged(tab),
+                    );
+                  },
+                ),
+              ),
+            ),
             Expanded(
               child: rows.isEmpty
                   ? Center(
@@ -195,10 +247,13 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
                         final ref = rows[i];
                         final isSelected =
                             _selected.any((s) => s.id == ref.id);
+                        final pubkey = ref.authorPubkey;
                         return _ResultTile(
                           reference: ref,
+                          profile: pubkey == null
+                              ? null
+                              : pickerState.profiles[pubkey],
                           isSelected: isSelected,
-                          selectedLabel: widget.selectedLabel,
                           onTap: () => _toggle(ref),
                         );
                       },
@@ -211,71 +266,174 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
   }
 }
 
-class _ResultTile extends StatelessWidget {
-  const _ResultTile({
-    required this.reference,
-    required this.isSelected,
-    required this.selectedLabel,
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.dot,
+    required this.active,
     required this.onTap,
   });
 
-  final ComposerReference reference;
-  final bool isSelected;
-  final String selectedLabel;
+  final String label;
+  final Color? dot;
+  final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final preview = reference.label.trim();
-    final label = preview.length > 100
-        ? '${preview.substring(0, 100)}…'
-        : preview.isEmpty
-            ? '…'
-            : preview;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : AppColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (dot != null) ...[
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: active ? AppColors.onPrimary : dot,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color:
+                    active ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultTile extends StatelessWidget {
+  const _ResultTile({
+    required this.reference,
+    required this.profile,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final ComposerReference reference;
+  final ProfileEntity? profile;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pubkey = reference.authorPubkey;
+    final fromProfile = profile?.name ?? profile?.username;
+    final displayName = (fromProfile != null && fromProfile.trim().isNotEmpty)
+        ? fromProfile
+        : (pubkey != null && pubkey.isNotEmpty)
+            ? formatShortPubkey(pubkey)
+            : '';
+    final seed = (pubkey != null && pubkey.isNotEmpty) ? pubkey : reference.id;
+    final preview = stripMarkdownPreview(reference.label).trim();
 
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : Colors.transparent,
+          border: const Border(
+            bottom: BorderSide(color: AppColors.borderSubtle),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.12)
-                    : AppColors.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                isSelected ? Icons.check_rounded : Icons.article_outlined,
-                size: 16,
-                color:
-                    isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
-              ),
+            UserAvatar(
+              seed: seed,
+              photoUrl: profile?.avatarUrl,
+              size: 38,
+              borderRadius: 19,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 11),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: AppColors.onSurface,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (displayName.isNotEmpty)
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      if (displayName.isNotEmpty && reference.created != null)
+                        const SizedBox(width: 6),
+                      if (reference.created != null)
+                        Text(
+                          '· ${formatTimeAgo(reference.created!)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    preview.isEmpty ? '…' : preview,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: AppColors.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (isSelected)
-              Text(
-                selectedLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary.withValues(alpha: 0.8),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      isSelected ? AppColors.primary : Colors.transparent,
+                  border: isSelected
+                      ? null
+                      : Border.all(color: AppColors.outlineVariant, width: 2),
                 ),
+                child: isSelected
+                    ? const Icon(Icons.check_rounded,
+                        size: 16, color: AppColors.onPrimary)
+                    : null,
               ),
+            ),
           ],
         ),
       ),

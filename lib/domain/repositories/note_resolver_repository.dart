@@ -16,8 +16,10 @@ abstract class NoteResolverRepository {
   /// Returns `null` (as `Right(null)`) when not found anywhere.
   Future<Either<Failure, NoteEntity?>> resolveNoteById(String id);
 
-  /// Direct replies to [id] — `replyToEventId == id` across all collections,
-  /// merged, de-duplicated and sorted oldest→newest.
+  /// Comments on [id] — every note that references it in the edge table
+  /// (NIP-10 replies AND mention-references), sorted oldest→newest. Matches the
+  /// note's comment count; the thread root is excluded (deep replies belong
+  /// under their direct parent).
   Future<Either<Failure, List<NoteEntity>>> resolveReplies(String id);
 
   /// Resolves each id in [ids], skipping any that aren't found.

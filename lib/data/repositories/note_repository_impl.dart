@@ -245,8 +245,9 @@ class NoteRepositoryImpl extends NoteRepository {
           .authorPubkeyEqualTo(pubkeyHex)
           .sortByCreatedDesc()
           .findAll();
-      final entities = notes.map((m) => m.toDomain()).toList();
-      return Right(await _resolver.enrichWithQuotes(entities));
+      // Stitch edge-table reference/comment counts (same as getFeed) so own
+      // notes shown in the Brahma graph carry real numbers, not zeros.
+      return Right(await _withReplyCounts(notes));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

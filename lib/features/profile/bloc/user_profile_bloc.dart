@@ -82,15 +82,12 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
       (v) => emit(state.copyWith(isFollowing: v)),
     );
 
+    // Show the page immediately from local data. If the profile isn't cached
+    // yet, ask the Gateway to fetch Kind 0 — the live `watchProfile`
+    // subscription above fills the header in reactively when it arrives, so we
+    // never block the whole screen on the relay round-trip.
     if (state.profile == null) {
       await _requestProfileFetch.call(event.pubkeyHex);
-      // Give the relay a window to return Kind 0 before showing fallback UI.
-      await Future.any([
-        stream
-            .firstWhere((s) => s.profile != null)
-            .then((_) => null),
-        Future<void>.delayed(const Duration(seconds: 4)),
-      ]);
     }
 
     emit(state.copyWith(loading: false));

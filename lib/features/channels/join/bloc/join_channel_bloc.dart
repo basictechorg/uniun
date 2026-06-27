@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
-import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_channel_usecase.dart';
 import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 
@@ -13,56 +12,14 @@ final _hex64 = RegExp(r'^[0-9a-fA-F]{64}$');
 
 @injectable
 class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
-  final GetRelaysUseCase _getRelaysUseCase;
   final SaveRelayUseCase _saveRelayUseCase;
   final SaveChannelUseCase _saveChannelUseCase;
 
   JoinChannelBloc(
-    this._getRelaysUseCase,
     this._saveRelayUseCase,
     this._saveChannelUseCase,
   ) : super(const JoinChannelState()) {
-    on<LoadJoinRelaysEvent>(_onLoadRelays);
-    on<AddJoinRelayEvent>(_onAddRelay);
     on<SubmitJoinChannelEvent>(_onSubmitJoin);
-  }
-
-  Future<void> _onLoadRelays(
-    LoadJoinRelaysEvent event,
-    Emitter<JoinChannelState> emit,
-  ) async {
-    emit(state.copyWith(isLoadingRelays: true, errorMessage: null));
-
-    final result = await _getRelaysUseCase.call();
-    result.fold(
-      (failure) => emit(
-        state.copyWith(isLoadingRelays: false, errorMessage: failure.message),
-      ),
-      (relays) => emit(
-        state.copyWith(
-          isLoadingRelays: false,
-          availableRelays: relays.map((relay) => relay.url).toList(),
-          errorMessage: null,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _onAddRelay(
-    AddJoinRelayEvent event,
-    Emitter<JoinChannelState> emit,
-  ) async {
-    final relayUrl = event.url.trim();
-
-    final saveResult = await _saveRelayUseCase.call(relayUrl);
-    await saveResult.fold(
-      (failure) async {
-        emit(state.copyWith(errorMessage: failure.message));
-      },
-      (_) async {
-        add(const LoadJoinRelaysEvent());
-      },
-    );
   }
 
   Future<void> _onSubmitJoin(
@@ -72,9 +29,7 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
     final channelId = event.channelId.trim();
     final channelName = event.channelName.trim();
     if (!_hex64.hasMatch(channelId)) {
-      emit(
-        state.copyWith(errorMessage: 'Enter a valid 64-character channel id.'),
-      );
+      emit(state.copyWith(error: JoinChannelError.invalidId));
       return;
     }
 
@@ -84,11 +39,11 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
         .toSet()
         .toList();
     if (selectedRelays.isEmpty) {
-      emit(state.copyWith(errorMessage: 'Please select at least one relay.'));
+      emit(state.copyWith(error: JoinChannelError.noRelay));
       return;
     }
 
-    emit(state.copyWith(isSubmitting: true, errorMessage: null));
+    emit(state.copyWith(isSubmitting: true, error: null));
 
     for (final relay in selectedRelays) {
       final relaySaveResult = await _saveRelayUseCase.call(relay);
@@ -96,7 +51,7 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
         emit(
           state.copyWith(
             isSubmitting: false,
-            errorMessage: 'Failed to save relay locally.',
+            error: JoinChannelError.relaySaveFailed,
           ),
         );
         return;
@@ -118,16 +73,15 @@ class JoinChannelBloc extends Bloc<JoinChannelEvent, JoinChannelState> {
 
     saveResult.fold(
       (failure) => emit(
-        state.copyWith(isSubmitting: false, errorMessage: failure.message),
+        state.copyWith(isSubmitting: false, error: JoinChannelError.saveFailed),
       ),
       (_) => emit(
         state.copyWith(
           isSubmitting: false,
           isSuccess: true,
-          errorMessage: null,
+          error: null,
         ),
       ),
     );
   }
-
 }

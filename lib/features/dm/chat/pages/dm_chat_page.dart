@@ -9,6 +9,7 @@ import 'package:uniun/common/qr/uniun_qr_button.dart';
 import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
 import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -49,9 +50,14 @@ class _DmChatViewState extends State<_DmChatView> {
   // To identify if a message is ours.
   String? _myPubkeyHex;
   String? _myNpub;
+  String? _myAvatarUrl;
   List<String> _conversationRelays = const [];
 
   final Set<String> _everVisible = <String>{};
+
+  /// Whether the jump-to-latest button is showing (set when scrolled above the
+  /// bottom — on this reversed list, that means away from the minimum offset).
+  bool _showJumpButton = false;
 
   @override
   void initState() {
@@ -68,6 +74,25 @@ class _DmChatViewState extends State<_DmChatView> {
     if (pos.pixels <= pos.minScrollExtent + 8) {
       context.read<DmChatBloc>().add(DmChatMarkAllSeenEvent());
     }
+
+    final showJump =
+        pos.pixels - pos.minScrollExtent > kJumpToBottomTolerance;
+    if (showJump != _showJumpButton) {
+      setState(() => _showJumpButton = showJump);
+    }
+  }
+
+  /// Jumps to the newest message (offset 0 on this reversed list) and marks the
+  /// conversation read.
+  void _jumpToLatest() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.minScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
+    context.read<DmChatBloc>().add(DmChatMarkAllSeenEvent());
   }
 
   void _onMessageVisibility(String eventId, VisibilityInfo info) {
@@ -89,6 +114,7 @@ class _DmChatViewState extends State<_DmChatView> {
         setState(() {
           _myPubkeyHex = profile.pubkeyHex;
           _myNpub = Nip19.encodePubkey(profile.pubkeyHex);
+          _myAvatarUrl = profile.avatarUrl;
         });
       });
     }
@@ -103,14 +129,23 @@ class _DmChatViewState extends State<_DmChatView> {
     });
   }
 
-  void _showQr(String otherPubkeyHex) {
-    if (_myNpub == null) return;
+  void _showQr(DmChatState state) {
+    final otherPubkeyHex = state.otherPubkey;
+    if (otherPubkeyHex == null || _myNpub == null) return;
     final partnerNpub = Nip19.encodePubkey(otherPubkeyHex);
-    showDialog<void>(
-      context: context,
-      builder: (_) => UniunQrCard.dmConversation(
+    final partner = state.profiles[otherPubkeyHex];
+    final me = _myPubkeyHex != null ? state.profiles[_myPubkeyHex!] : null;
+    UniunQrCard.show(
+      context,
+      card: UniunQrCard.dmConversation(
         partnerNpub: partnerNpub,
+        partnerName: partner?.name,
+        partnerSeed: otherPubkeyHex,
+        partnerAvatarUrl: partner?.avatarUrl,
         myNpub: _myNpub!,
+        myName: me?.name,
+        mySeed: _myPubkeyHex,
+        myAvatarUrl: _myAvatarUrl,
         conversationRelays: _conversationRelays,
       ),
     );
@@ -208,7 +243,7 @@ class _DmChatViewState extends State<_DmChatView> {
             actions: [
               if (state.otherPubkey != null && _myNpub != null)
                 UniunQrButton(
-                  onTap: () => _showQr(state.otherPubkey!),
+                  onTap: () => _showQr(state),
                   tooltip: 'Share keys',
                 ),
             ],
@@ -216,46 +251,59 @@ class _DmChatViewState extends State<_DmChatView> {
           body: Column(
             children: [
               Expanded(
-                child: state.isLoading && state.messages.isEmpty
-                    ? const Center(child: DropLoadingIndicator())
-                    : ListView.builder(
-                        controller: _scrollController,
-                        reverse: true, // show latest at bottom
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        itemCount: state.messages.length,
-                        itemBuilder: (context, index) {
-                          final msg = state.messages[index];
-                          final isMe = _myPubkeyHex != null &&
-                              msg.authorPubkey == _myPubkeyHex;
-                          // The DM cards self-load their profile via NoteCardCubit.
-                          final card = isMe
-                              ? DmOwnNoteCard(
-                                  key: ValueKey(msg.id),
-                                  note: msg,
-                                  onTap: () => _openThread(context, msg.id),
-                                  onReply: () => context
-                                      .read<DmChatBloc>()
-                                      .add(DmChatStartReplyEvent(msg)),
-                                )
-                              : DmNoteCard(
-                                  key: ValueKey(msg.id),
-                                  note: msg,
-                                  onTap: () => _openThread(context, msg.id),
-                                  onReply: () => context
-                                      .read<DmChatBloc>()
-                                      .add(DmChatStartReplyEvent(msg)),
-                                );
-                          return VisibilityDetector(
-                            key: ValueKey('dm-${msg.id}'),
-                            onVisibilityChanged: (info) =>
-                                _onMessageVisibility(msg.id, info),
-                            child: card,
-                          );
-                        },
+                child: Stack(
+                  children: [
+                    state.isLoading && state.messages.isEmpty
+                        ? const Center(child: DropLoadingIndicator())
+                        : ListView.builder(
+                            controller: _scrollController,
+                            reverse: true, // show latest at bottom
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            itemCount: state.messages.length,
+                            itemBuilder: (context, index) {
+                              final msg = state.messages[index];
+                              final isMe = _myPubkeyHex != null &&
+                                  msg.authorPubkey == _myPubkeyHex;
+                              // The DM cards self-load their profile via NoteCardCubit.
+                              final card = isMe
+                                  ? DmOwnNoteCard(
+                                      key: ValueKey(msg.id),
+                                      note: msg,
+                                      onTap: () => _openThread(context, msg.id),
+                                      onReply: () => context
+                                          .read<DmChatBloc>()
+                                          .add(DmChatStartReplyEvent(msg)),
+                                    )
+                                  : DmNoteCard(
+                                      key: ValueKey(msg.id),
+                                      note: msg,
+                                      onTap: () => _openThread(context, msg.id),
+                                      onReply: () => context
+                                          .read<DmChatBloc>()
+                                          .add(DmChatStartReplyEvent(msg)),
+                                    );
+                              return VisibilityDetector(
+                                key: ValueKey('dm-${msg.id}'),
+                                onVisibilityChanged: (info) =>
+                                    _onMessageVisibility(msg.id, info),
+                                child: card,
+                              );
+                            },
+                          ),
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
+                      child: JumpToBottomButton(
+                        visible: _showJumpButton,
+                        onPressed: _jumpToLatest,
+                        tooltip: AppLocalizations.of(context)!.jumpToLatest,
                       ),
+                    ),
+                  ],
+                ),
               ),
               ComposerHost(
                 hintText: l10n.chatMessageHint,

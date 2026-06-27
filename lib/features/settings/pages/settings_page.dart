@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 import 'package:uniun/features/settings/widgets/ai_card.dart';
+import 'package:uniun/features/settings/widgets/app_version_row.dart';
 import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
+import 'package:uniun/features/settings/widgets/logout_button.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/features/settings/widgets/media_row.dart';
 import 'package:uniun/features/settings/widgets/retention_row.dart';
 import 'package:uniun/features/settings/widgets/sync_window_row.dart';
@@ -39,11 +43,41 @@ class _SettingsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surfaceContainerLow,
       appBar: SettingsAppBar(title: AppLocalizations.of(context)!.settingsTitle),
-      body: BlocBuilder<SettingsCubit, SettingsState>(
-        builder: (context, state) {
-          if (state.isLoading) {
+      body: BlocListener<StorageCubit, StorageState>(
+        listenWhen: (a, b) =>
+            a.deleteSuccess != b.deleteSuccess ||
+            a.deleteChatHistorySuccess != b.deleteChatHistorySuccess ||
+            a.deleteError != b.deleteError,
+        listener: (context, state) {
+          final l10n = AppLocalizations.of(context)!;
+          final messenger = ScaffoldMessenger.of(context);
+          if (state.deleteSuccess) {
+            messenger.showSnackBar(SnackBar(
+              content: Text(l10n.storageDeleteSuccess(state.deletedCount)),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
+          if (state.deleteChatHistorySuccess) {
+            messenger.showSnackBar(SnackBar(
+              content: Text(l10n.storageDeleteChatHistorySuccess),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
+          if (state.deleteError != null) {
+            messenger.showSnackBar(SnackBar(
+              content: Text(state.deleteError!),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
+        },
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, state) {
+            if (state.isLoading) {
             return const Center(
               child: DropLoadingIndicator(color: AppColors.primary),
             );
@@ -57,80 +91,64 @@ class _SettingsContent extends StatelessWidget {
               bottom: 48,
             ),
             children: [
-              // ── Account ───────────────────────────────────────────────────
-              SettingsSectionLabel(l10n.settingsAccount),
-              const SizedBox(height: 12),
+              // ── Profile header (tap → edit profile) ───────────────────────
               ProfileCard(state: state),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // ── Identity ──────────────────────────────────────────────────
-              SettingsSectionLabel(
-                l10n.settingsIdentity,
-                icon: Icons.lock_outline_rounded,
-              ),
-              const SizedBox(height: 12),
+              // ── Account ───────────────────────────────────────────────────
+              SettingsSectionLabel(l10n.settingsAccount),
+              const SizedBox(height: 10),
               IdentityCard(state: state),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              // ── AI · Shiv ─────────────────────────────────────────────────
-              SettingsSectionLabel(
-                l10n.settingsAiShiv,
-                leading: const DropIcon(
-                  size: 14,
-                  color: AppColors.onSurfaceVariant,
-                ),
+              // ── AI · Shiv (on-device model + cloud provider) ──────────────
+              SettingsSectionLabel(l10n.settingsAiShiv),
+              const SizedBox(height: 10),
+              const SettingsGroup(
+                children: [AICard(), CloudProviderCard()],
               ),
-              const SizedBox(height: 12),
-              const AICard(),
 
-              const SizedBox(height: 16),
-
-              // ── Cloud AI ──────────────────────────────────────────────────
-              SettingsSectionLabel(
-                l10n.settingsCloudProvider,
-                icon: Icons.cloud_outlined,
-              ),
-              const SizedBox(height: 12),
-              const CloudProviderCard(),
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // ── Storage ───────────────────────────────────────────────────
-              SettingsSectionLabel(
-                l10n.settingsStorage,
-                icon: Icons.storage_rounded,
+              SettingsSectionLabel(l10n.settingsStorage),
+              const SizedBox(height: 10),
+              const SettingsGroup(
+                children: [
+                  MediaRow(),
+                  RetentionRow(),
+                  SyncWindowRow(),
+                  StorageMetricsRow(),
+                  RemoveDataRow(),
+                ],
               ),
-              const SizedBox(height: 12),
-              const StorageCard(),
 
-              const SizedBox(height: 12),
-              const MediaRow(),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 12),
-              const RetentionRow(),
-
-              const SizedBox(height: 12),
-              const SyncWindowRow(),
-
-              const SizedBox(height: 36),
-
-              // ── Version ───────────────────────────────────────────────────
-              Center(
-                child: Text(
-                  l10n.appVersion,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.4,
-                    color: AppColors.outline,
+              // ── About ─────────────────────────────────────────────────────
+              SettingsSectionLabel(l10n.settingsAbout),
+              const SizedBox(height: 10),
+              SettingsGroup(
+                children: [
+                  SettingsRow(
+                    icon: Icons.privacy_tip_outlined,
+                    label: l10n.identityPrivacyPolicy,
+                    onTap: () => context.pushNamed(AppRoutes.privacyPolicy),
                   ),
-                ),
+                  const AppVersionRow(),
+                ],
               ),
+
+              const SizedBox(height: 28),
+
+              // ── Log out ───────────────────────────────────────────────────
+              const LogoutButton(),
             ],
           );
-        },
+          },
+        ),
       ),
     );
   }

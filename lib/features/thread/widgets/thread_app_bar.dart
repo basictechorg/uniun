@@ -23,7 +23,12 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white.withValues(alpha: 0.80),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderSubtle),
+        ),
+      ),
       child: SafeArea(
         bottom: false,
         child: SizedBox(
@@ -36,16 +41,16 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
               Expanded(
                 child: Text(
                   AppLocalizations.of(context)!.threadTitle,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
                     color: AppColors.onSurface,
-                    letterSpacing: -0.4,
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.share_outlined,
+                icon: const Icon(Icons.ios_share,
                     color: AppColors.onSurfaceVariant),
                 onPressed: sourceEventId == null
                     ? null

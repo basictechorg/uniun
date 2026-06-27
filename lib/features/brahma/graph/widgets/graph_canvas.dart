@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
+import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/graph/painters/dot_pattern_painter.dart';
@@ -19,6 +20,8 @@ class GraphCanvas extends StatefulWidget {
     required this.onNodeTap,
     required this.onCanvasTap,
     this.onInteractingChanged,
+    this.isSearching = false,
+    this.matchedNodeIds = const {},
   });
 
   final List<GraphNodeData> nodes;
@@ -27,6 +30,10 @@ class GraphCanvas extends StatefulWidget {
   final void Function(String nodeId) onNodeTap;
   final VoidCallback onCanvasTap;
   final ValueChanged<bool>? onInteractingChanged;
+
+  /// When true, [matchedNodeIds] stay lit and every other node dims.
+  final bool isSearching;
+  final Set<String> matchedNodeIds;
 
   @override
   State<GraphCanvas> createState() => _GraphCanvasState();
@@ -111,7 +118,10 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
     final added = <String>{};
     for (final n in nodes) {
-      for (final ref in n.eTagRefs) {
+      // refEdges = canonical reference/reply parents (NIP-10 root excluded),
+      // so the drawn graph matches the adjacency and the comment/reference
+      // counts — one edge per pair, no thread-root hub.
+      for (final ref in n.refEdges) {
         if (allIds.contains(ref) && ref != n.eventId) {
           final key = ([n.eventId, ref]..sort()).join('|');
           if (added.add(key)) {
@@ -408,17 +418,13 @@ class _GraphCanvasState extends State<GraphCanvas> {
                 });
               }
 
-              return InteractiveViewer(
+              return SafeInteractiveViewer(
                 constrained: false,
-                // Use a large but FINITE boundary margin — double.infinity can
-                // produce NaN scale values and trip the internal
-                // `scale != 0.0` assertion during pinch gestures.
-                boundaryMargin: const EdgeInsets.all(4000),
                 minScale: 0.3,
                 maxScale: 4.0,
-                onInteractionStart: (_) =>
+                onInteractionStart: () =>
                     widget.onInteractingChanged?.call(true),
-                onInteractionEnd: (_) =>
+                onInteractionEnd: () =>
                     widget.onInteractingChanged?.call(false),
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -428,6 +434,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       painter: EdgePainter(
                         graph: _graph,
                         selectedNodeId: widget.selectedNodeId,
+                        dim: widget.isSearching,
                       ),
                     ),
 
@@ -451,10 +458,19 @@ class _GraphCanvasState extends State<GraphCanvas> {
                               ) ??
                               false);
                       final hasSelection = widget.selectedNodeId != null;
-                      final opacity =
-                          hasSelection && !isSelected && !isConnected
-                          ? 0.25
-                          : 1.0;
+                      // A search match glows like a connected node; while
+                      // searching, search highlighting takes precedence over
+                      // the selection dim.
+                      final isSearchMatch = widget.isSearching &&
+                          widget.matchedNodeIds.contains(nodeId);
+                      final double opacity;
+                      if (widget.isSearching) {
+                        opacity = isSearchMatch ? 1.0 : 0.18;
+                      } else {
+                        opacity = hasSelection && !isSelected && !isConnected
+                            ? 0.25
+                            : 1.0;
+                      }
 
                       return Positioned(
                         left: node.x - (_labelWidth - nodeSize) / 2,
@@ -503,10 +519,12 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                   height: nodeSize,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isSelected || isConnected
+                                    color: isSelected ||
+                                            isConnected ||
+                                            isSearchMatch
                                         ? color
                                         : color.withValues(alpha: 0.85),
-                                    border: isSelected
+                                    border: isSelected || isSearchMatch
                                         ? Border.all(
                                             color: Colors.white.withValues(
                                               alpha: 0.7,
@@ -514,7 +532,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                             width: 2.5,
                                           )
                                         : null,
-                                    boxShadow: isSelected
+                                    boxShadow: isSelected || isSearchMatch
                                         ? [
                                             BoxShadow(
                                               color: color.withValues(
@@ -542,14 +560,14 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                   child: Text(
                                     _labelFor(nodeId),
                                     style: TextStyle(
-                                      fontSize: 9,
-                                      color: isSelected
+                                      fontSize: 10,
+                                      color: isSelected || isSearchMatch
                                           ? color
                                           : AppColors.onSurfaceVariant,
-                                      fontWeight: isSelected
+                                      fontWeight: isSelected || isSearchMatch
                                           ? FontWeight.w600
                                           : FontWeight.w400,
-                                      height: 1.3,
+                                      height: 1.2,
                                     ),
                                     textAlign: TextAlign.center,
                                     maxLines: 2,

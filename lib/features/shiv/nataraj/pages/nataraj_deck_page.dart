@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
@@ -10,6 +9,10 @@ import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/scheduler_usecases.dart';
+import 'package:uniun/domain/entities/manas/manas_entity.dart';
+import 'package:uniun/domain/usecases/app_settings_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
+import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
 import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
@@ -18,6 +21,7 @@ import 'package:uniun/features/shiv/nataraj/widgets/nataraj_coach_overlay.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_edge_labels.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_drawer.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_empty_state.dart';
+import 'package:uniun/features/shiv/nataraj/widgets/nataraj_scope_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// The Nataraj swipe-deck screen — Shiv tab's home in Task 15.
@@ -25,7 +29,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// Provides its own [NatarajBloc] and dispatches [NatarajEvent.loadDeck] on
 /// mount. Model gate: if no LLM is installed, redirects to AI model selection.
 ///
-/// Header: scope pill (left) + new-chat + history (right).
+/// Header: back (left) + title + Manas selector (right).
 /// Body: switches on [NatarajStatus]:
 ///   - loading   → spinner + [l10n.natarajGenerating]
 ///   - ready     → swipe deck (card + edge labels + buttons + coach overlay)
@@ -153,39 +157,24 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
     }
   }
 
-  /// Opens a new (unseeded) chat the same way [_ShivLanding] does in
-  /// shiv_page.dart: checks the model via [HasActiveLlmModelUseCase], then
-  /// fires [ShivAIEvent.createConversation] on the ambient bloc, or pushes a
-  /// standalone chat in the non-Shiv context.
-  Future<void> _onNewChat(BuildContext context) async {
-    final hasModel = await getIt<HasActiveLlmModelUseCase>().call();
-    if (!context.mounted) return;
-    if (!hasModel) {
-      context.pushNamed(AppRoutes.aiModelSelection);
-      return;
-    }
+  /// Leaves the Nataraj deck (a pushed route) and returns to the Shiv home.
+  void _onBack(BuildContext context) {
+    if (context.canPop()) context.pop();
+  }
 
-    ShivAIBloc? ambientBloc;
-    try {
-      ambientBloc = context.read<ShivAIBloc>();
-    } catch (_) {
-      ambientBloc = null;
-    }
-
-    if (ambientBloc != null) {
-      ambientBloc.add(const ShivAIEvent.createConversation());
-    } else {
-      final freshBloc = getIt<ShivAIBloc>()
-        ..add(const ShivAIEvent.createConversation());
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => BlocProvider<ShivAIBloc>.value(
-            value: freshBloc,
-            child: ShivChatPage(onDrawerChanged: (_) {}),
-          ),
-        ),
-      );
-    }
+  /// Opens the Manas scope selector as a bottom sheet and, on pick, dispatches
+  /// [NatarajEvent.changeScope] on the deck's [NatarajBloc] — the same event
+  /// the drawer's scope list fires. Reads the Manas options + current scope
+  /// straight off the bloc state.
+  void _onPickManas(BuildContext context) {
+    final bloc = context.read<NatarajBloc>();
+    final state = bloc.state;
+    showNatarajScopeSheet(
+      context,
+      options: state.manasOptions,
+      selectedIds: state.manasIds,
+      onSelect: (ids) => bloc.add(NatarajEvent.changeScope(ids)),
+    );
   }
 
   @override
@@ -213,8 +202,8 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
               // ── Header ─────────────────────────────────────────────────────
               _NatarajHeader(
                 top: top,
-                onLogoTap: () => Scaffold.of(ctx).openDrawer(),
-                onNewChat: () => _onNewChat(ctx),
+                onBack: () => _onBack(ctx),
+                onPickManas: () => _onPickManas(ctx),
               ),
 
               // ── Revisiting banner ───────────────────────────────────────────
@@ -308,13 +297,13 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
 class _NatarajHeader extends StatelessWidget {
   const _NatarajHeader({
     required this.top,
-    required this.onLogoTap,
-    required this.onNewChat,
+    required this.onBack,
+    required this.onPickManas,
   });
 
   final double top;
-  final VoidCallback onLogoTap;
-  final VoidCallback onNewChat;
+  final VoidCallback onBack;
+  final VoidCallback onPickManas;
 
   @override
   Widget build(BuildContext context) {
@@ -322,10 +311,10 @@ class _NatarajHeader extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 8,
-        top: top + 10,
-        bottom: 10,
+        left: 4,
+        right: 12,
+        top: top + 8,
+        bottom: 8,
       ),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.9),
@@ -339,38 +328,95 @@ class _NatarajHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // SHIV logo — tap to open the drawer (matches the Shiv chat page).
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onLogoTap,
-            child: SvgPicture.asset(
-              'assets/images/tabs/shiva.svg',
-              height: 30,
-              colorFilter: const ColorFilter.mode(
-                AppColors.onSurfaceVariant,
-                BlendMode.srcIn,
-              ),
+          // Back — leaves the Nataraj deck (pushed route).
+          IconButton(
+            onPressed: onBack,
+            tooltip: l10n.actionBack,
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              size: 24,
+              color: AppColors.onSurface,
             ),
           ),
           const Spacer(),
-          // New chat button
-          Tooltip(
-            message: l10n.natarajNewChatTooltip,
-            child: InkWell(
-              onTap: onNewChat,
-              borderRadius: BorderRadius.circular(99),
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(
-                  Icons.self_improvement_rounded,
-                  size: 22,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
+          // Manas selector — opens the scope sheet.
+          _ManasSelectorButton(onTap: onPickManas),
         ],
       ),
+    );
+  }
+}
+
+/// Header pill reflecting the current Nataraj scope and opening the Manas
+/// selector. Reads `manasIds` + `manasOptions` from the ambient [NatarajBloc]
+/// to render the active scope's icon + label.
+class _ManasSelectorButton extends StatelessWidget {
+  const _ManasSelectorButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return BlocSelector<NatarajBloc, NatarajState,
+        (List<String>, List<ManasEntity>)>(
+      selector: (s) => (s.manasIds, s.manasOptions),
+      builder: (context, data) {
+        final ids = data.$1;
+        final options = data.$2;
+
+        IconData icon = kNatarajAllNotesIcon;
+        String label = l10n.natarajScopeAllNotes;
+        if (ids.isNotEmpty) {
+          final selected = options.where((m) => ids.contains(m.manasId));
+          if (selected.isNotEmpty) {
+            icon = ManasIcons.byName(selected.first.iconName);
+            label = ids.length == 1
+                ? selected.first.name
+                : l10n.natarajScopeManasCount(ids.length);
+          }
+        }
+
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(99),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 168),
+            padding: const EdgeInsets.fromLTRB(10, 7, 6, 7),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.expand_more_rounded,
+                  size: 18,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -423,10 +469,9 @@ class _DeckBody extends StatelessWidget {
     final bloc = context.read<NatarajBloc>();
     final card = state.currentCard!;
     final showCoach = state.showCoach && !coachDismissed;
-    // ShivPage overlays the FloatingNav at bottom:0 on top of this deck, so the
-    // action buttons must sit above it. Reserve the nav's height (~56) + the
-    // bottom safe-area inset + a small gap, or the buttons hide behind the nav.
-    final navClearance = MediaQuery.of(context).padding.bottom + 64;
+    // Nataraj is a pushed full-screen route (no FloatingNav on top), so reserve
+    // only the bottom safe-area inset plus a small gap under the action buttons.
+    final bottomGap = MediaQuery.of(context).padding.bottom + 12;
 
     return Stack(
       children: [
@@ -446,31 +491,22 @@ class _DeckBody extends StatelessWidget {
                       // Edge labels — static (Offset.zero = no live-drag at page level;
                       // the card animates drag internally).
                       const NatarajEdgeLabels(drag: Offset.zero),
-                      // Swipe card — sized to its content. Wrapped in a scroll
-                      // view so a long note grows past the screen and scrolls
-                      // instead of overflowing; ConstrainedBox(minHeight) keeps
-                      // a short card centered.
+                      // Swipe card — capped to the available height so a long
+                      // note can't hide behind the action buttons. The card
+                      // scrolls its generated-note body internally (see
+                      // NatarajCardWidget); a short card hugs its content and
+                      // the outer Stack (alignment: center) keeps it centered.
                       LayoutBuilder(
-                        builder: (context, constraints) =>
-                            SingleChildScrollView(
-                          // NeverScrollable: the card grows to its content and a
-                          // too-long card clips (no crash), but the scroll view
-                          // does NOT absorb vertical drags — so the card's 4-way
-                          // swipe (↑ publish / ↓ discuss) keeps working.
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
-                            ),
-                            child: Center(
-                              child: NatarajCardWidget(
-                                card: card,
-                                peek: state.nextCard,
-                                controller: cardController,
-                                onSwipe: (dir) =>
-                                    bloc.add(NatarajEvent.swipeCard(dir)),
-                              ),
-                            ),
+                        builder: (context, constraints) => ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: constraints.maxHeight,
+                          ),
+                          child: NatarajCardWidget(
+                            card: card,
+                            peek: state.nextCard,
+                            controller: cardController,
+                            onSwipe: (dir) =>
+                                bloc.add(NatarajEvent.swipeCard(dir)),
                           ),
                         ),
                       ),
@@ -488,7 +524,7 @@ class _DeckBody extends StatelessWidget {
                 onDiscuss: () => cardController.swipe(NatarajDirection.down),
                 l10n: l10n,
               ),
-              SizedBox(height: navClearance),
+              SizedBox(height: bottomGap),
             ],
           ),
         ),
@@ -525,31 +561,33 @@ class _FallbackButtons extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _ActionButton(
             icon: Icons.close_rounded,
             label: l10n.natarajEdgeDiscard,
-            color: AppColors.error,
             onTap: onDiscard,
           ),
+          const SizedBox(width: 20),
           _ActionButton(
             icon: Icons.chat_bubble_outline_rounded,
             label: l10n.natarajEdgeDiscuss,
-            color: AppColors.primary,
             onTap: onDiscuss,
           ),
+          const SizedBox(width: 20),
           _ActionButton(
             icon: Icons.bookmark_border_rounded,
             label: l10n.natarajEdgeDraft,
-            color: AppColors.secondary,
             onTap: onDraft,
           ),
+          const SizedBox(width: 20),
+          // Publish — the headline action, rendered as the primary accent CTA.
           _ActionButton(
             icon: Icons.publish_rounded,
             label: l10n.natarajEdgePublish,
-            color: AppColors.tertiary,
             onTap: onPublish,
+            primary: true,
           ),
         ],
       ),
@@ -561,43 +599,59 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
+    this.primary = false,
   });
 
   final IconData icon;
   final String label;
-  final Color color;
   final VoidCallback onTap;
+  final bool primary;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
+    final double diameter = primary ? 62 : 52;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: diameter,
+            height: diameter,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.12),
-              border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+              color: primary ? AppColors.primary : AppColors.surface,
+              border:
+                  primary ? null : Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: primary
+                      ? AppColors.primary.withValues(alpha: 0.30)
+                      : Colors.black.withValues(alpha: 0.06),
+                  blurRadius: primary ? 18 : 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            child: Icon(icon, size: 22, color: color),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: color,
+            child: Icon(
+              icon,
+              size: primary ? 28 : 23,
+              color:
+                  primary ? AppColors.onPrimary : AppColors.onSurfaceVariant,
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: primary ? AppColors.primary : AppColors.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

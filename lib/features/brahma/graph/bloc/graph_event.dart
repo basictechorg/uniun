@@ -31,3 +31,10 @@ final class DeleteDraftNodeEvent extends GraphEvent {
   const DeleteDraftNodeEvent(this.draftId);
   final String draftId;
 }
+
+/// Filter the graph by a free-text query — matching nodes stay lit, the rest
+/// dim. An empty/blank query clears the search.
+final class SearchGraphEvent extends GraphEvent {
+  const SearchGraphEvent(this.query);
+  final String query;
+}

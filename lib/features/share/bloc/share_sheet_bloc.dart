@@ -6,12 +6,14 @@ import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/domain/entities/channel/channel_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/get_channels_usecase.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/share_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
@@ -27,6 +29,7 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
   final ShareNoteUseCase _shareNote;
   final UploadMediaUseCase _uploadMedia;
   final GetActiveUserUseCase _getActiveUser;
+  final ResolveNotesByIdsUseCase _resolveNotes;
 
   ShareSheetBloc(
     this._getChannels,
@@ -35,8 +38,11 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
     this._shareNote,
     this._uploadMedia,
     this._getActiveUser,
+    this._resolveNotes,
   ) : super(const ShareSheetState()) {
     on<LoadDestinations>(_onLoad);
+    on<SelectDestination>(
+        (e, emit) => emit(state.copyWith(selectedDestination: e.destination)));
     on<ContentChanged>((e, emit) => emit(state.copyWith(content: e.value)));
     on<SetReferences>((e, emit) => emit(state.copyWith(references: e.references)));
     on<RemoveReference>((e, emit) => emit(state.copyWith(
@@ -75,12 +81,21 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
       (list) => list,
     );
 
+    // Resolve the original note for the "Quoting" preview card. Degrades to
+    // null (card hidden) when the note can't be resolved.
+    final quotedResult = await _resolveNotes([event.sourceEventId]);
+    final quotedNote = quotedResult.fold<NoteEntity?>(
+      (_) => null,
+      (notes) => notes.isEmpty ? null : notes.first,
+    );
+
     emit(state.copyWith(
       loading: false,
       authorPubkey: authorPubkey,
       publicChannels: publicChannels,
       privateChannels: privateChannels,
       dmConversations: dms,
+      quotedNote: quotedNote,
     ));
   }
 

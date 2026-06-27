@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
@@ -27,6 +28,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
   final GetProfileUseCase _getProfile;
   final GetNoteIdsForManasUseCase _getNoteIdsForManas;
   final GetManasByIdUseCase _getManasById;
+  final GetNoteRelationCountsUseCase _getRelationCounts;
   final Isar _isar;
 
   StreamSubscription<void>? _deletedNoteWatcher;
@@ -40,12 +42,14 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     this._getProfile,
     this._getNoteIdsForManas,
     this._getManasById,
+    this._getRelationCounts,
     this._isar,
   ) : super(const GraphState()) {
     on<LoadGraphEvent>(_onLoad);
     on<SelectGraphNodeEvent>(_onSelect);
     on<DeselectGraphNodeEvent>(_onDeselect);
     on<DeleteDraftNodeEvent>(_onDeleteDraft);
+    on<SearchGraphEvent>(_onSearch);
 
     // Deleting a note tombstones it in deletedNoteModels and removes its
     // NoteModel row. Rebuild the graph so the deleted node disappears —
@@ -95,6 +99,10 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
               authorPubkey: n.authorPubkey,
               sig: n.sig,
               created: n.created,
+              rootEventId: n.rootEventId,
+              replyToEventId: n.replyToEventId,
+              referenceCount: n.referenceCount,
+              cachedReplyCount: n.cachedReplyCount,
               tTags: n.tTags,
               pTagRefs: n.pTagRefs,
               attachments: n.attachments,
@@ -118,6 +126,8 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
           // renders the avatar/name and resolves the own profile.
           authorPubkey: pubkeyHex,
           created: d.updatedAt,
+          rootEventId: d.rootEventId,
+          replyToEventId: d.replyToEventId,
           tTags: d.tTags,
           pTagRefs: d.pTagRefs,
           attachments: d.attachments,
@@ -135,6 +145,10 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
               authorPubkey: n.authorPubkey,
               sig: n.sig,
               created: n.created,
+              rootEventId: n.rootEventId,
+              replyToEventId: n.replyToEventId,
+              referenceCount: n.referenceCount,
+              cachedReplyCount: n.cachedReplyCount,
               tTags: n.tTags,
               pTagRefs: n.pTagRefs,
               attachments: n.attachments,
@@ -164,14 +178,43 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
       ];
     }
 
+    // ── 6. Global counts ─────────────────────────────────────────────────────
+    // Override each node's reference/comment counts with the GLOBAL edge-table
+    // counts. Saved nodes otherwise carry saved-scoped counts that miss the
+    // user's own (unsaved) notes — so a referenced note wouldn't show a freshly
+    // created note as a comment. Drafts have no edges → 0, which is correct.
+    final countsRes =
+        await _getRelationCounts.call([for (final n in allNodes) n.eventId]);
+    final counts = countsRes.fold(
+      (f) {
+        // Graceful degrade: nodes fall back to their saved-scoped counts below.
+        // Log so "counts look wrong" reports are diagnosable.
+        log('Graph global relation counts failed: ${f.message}',
+            name: 'GraphBloc');
+        return const <String, RelationCounts>{};
+      },
+      (m) => m,
+    );
+    allNodes = [
+      for (final n in allNodes)
+        n.withCounts(
+          referenceCount: counts[n.eventId]?.references ?? n.referenceCount,
+          cachedReplyCount: counts[n.eventId]?.comments ?? n.cachedReplyCount,
+        ),
+    ];
+
     emit(state.copyWith(
       status: GraphStatus.loaded,
       nodes: allNodes,
-      adjacency: _buildAdjacency(allNodes),
+      adjacency: buildAdjacency(allNodes),
       scopedManasId: event.manasId,
       scopedManasName: scopeName,
       scopedManasIconName: scopeIcon,
       clearScope: event.manasId == null,
+      // Keep the active search consistent with the freshly-loaded node set.
+      matchedNodeIds: state.searchQuery.isEmpty
+          ? const {}
+          : _matchNodes(state.searchQuery, allNodes),
     ));
   }
 
@@ -201,6 +244,25 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     emit(state.copyWith(clearSelection: true));
   }
 
+  void _onSearch(SearchGraphEvent event, Emitter<GraphState> emit) {
+    final q = event.query.trim();
+    emit(state.copyWith(
+      searchQuery: q,
+      matchedNodeIds: q.isEmpty ? const {} : _matchNodes(q, state.nodes),
+    ));
+  }
+
+  /// Node ids whose content or hashtags contain [query] (case-insensitive).
+  static Set<String> _matchNodes(String query, List<GraphNodeData> nodes) {
+    final q = query.toLowerCase();
+    return {
+      for (final n in nodes)
+        if (n.content.toLowerCase().contains(q) ||
+            n.tTags.any((t) => t.toLowerCase().contains(q)))
+          n.eventId,
+    };
+  }
+
   Future<void> _onDeleteDraft(
       DeleteDraftNodeEvent event, Emitter<GraphState> emit) async {
     await _deleteDraft.call(event.draftId);
@@ -210,13 +272,17 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
     ));
   }
 
-  static Map<String, Set<String>> _buildAdjacency(List<GraphNodeData> nodes) {
+  /// Builds the undirected adjacency map from each node's [GraphNodeData.refEdges]
+  /// (the canonical reference/reply parents — NIP-10 root excluded), so a graph
+  /// edge is exactly one comment↔reference pair and matches the counts.
+  /// Public so the edge rule can be unit-tested without driving the full bloc.
+  static Map<String, Set<String>> buildAdjacency(List<GraphNodeData> nodes) {
     final allIds = {for (final n in nodes) n.eventId};
     final adj = <String, Set<String>>{
       for (final n in nodes) n.eventId: <String>{},
     };
     for (final node in nodes) {
-      for (final ref in node.eTagRefs) {
+      for (final ref in node.refEdges) {
         if (ref != node.eventId && allIds.contains(ref)) {
           adj[node.eventId]!.add(ref);
           adj[ref]!.add(node.eventId);

@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navShiv => 'SHIV';
 
   @override
-  String get actionCopy => 'COPY';
+  String get actionCopy => 'Copy';
 
   @override
   String get actionCopied => 'Copied';
@@ -90,6 +90,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerNoChannels => 'No channels yet';
 
   @override
+  String get drawerMyQrCode => 'My QR code';
+
+  @override
+  String get drawerScanCode => 'Scan code';
+
+  @override
+  String get drawerPrivateLabel => 'Private';
+
+  @override
+  String get drawerSearchKindDm => 'Direct message';
+
+  @override
+  String get drawerSearchKindUser => 'Following';
+
+  @override
   String get joinChannelTitle => 'Join Channel';
 
   @override
@@ -129,6 +144,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinChannelByQr => 'Join by QR';
 
   @override
+  String get joinChannelScanCardTitle => 'Scan a channel QR';
+
+  @override
+  String get joinChannelScanCardSubtitle =>
+      'Point your camera at a UNIUN channel code';
+
+  @override
+  String get joinChannelOr => 'or';
+
+  @override
+  String get joinChannelIdHint => 'Paste channel ID';
+
+  @override
   String get joinChannelQrTitle => 'Scan Channel QR';
 
   @override
@@ -144,6 +172,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get joinChannelSuccess => 'Channel joined successfully.';
+
+  @override
+  String get joinChannelErrorInvalidId =>
+      'Enter a valid 64-character channel id.';
+
+  @override
+  String get joinChannelErrorNoRelay => 'Please select at least one relay.';
+
+  @override
+  String get joinChannelErrorRelaySaveFailed => 'Failed to save relay locally.';
+
+  @override
+  String get joinChannelErrorSaveFailed =>
+      'Couldn\'t join the channel. Please try again.';
 
   @override
   String get channelMessageHint => 'Message channel…';
@@ -221,13 +263,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get composerReferenceEmpty => 'No results';
 
   @override
-  String get composerReferenceSelected => 'Added';
-
-  @override
   String get composerReferenceTabAll => 'All';
 
   @override
   String get composerReferenceTabSaved => 'Saved';
+
+  @override
+  String get composerReferenceTabOwn => 'My notes';
+
+  @override
+  String get composerReferenceTabDrafts => 'Drafts';
+
+  @override
+  String get composerReferenceAdd => 'Add';
+
+  @override
+  String get composerChatPickerTitle => 'Chat with your notes';
+
+  @override
+  String get composerChatPickerSubtitle => 'Scope to a Manas';
+
+  @override
+  String get composerChatBrand => 'Shiv';
+
+  @override
+  String get composerChatAllNotes => 'All notes';
+
+  @override
+  String get composerChatAllNotesSubtitle => 'Ask Brahma';
+
+  @override
+  String composerChatManasNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes',
+      one: '1 note',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String composerChatScopeEyebrow(String scope) {
+    return '$scope · on-device';
+  }
+
+  @override
+  String composerChatGroundedHint(String scope) {
+    return 'Grounded in $scope';
+  }
+
+  @override
+  String get composerChatThinking => 'Thinking…';
+
+  @override
+  String get composerChatStop => 'Stop';
+
+  @override
+  String get composerChatNoModel =>
+      'No AI model is active. Download one from the Shiv tab.';
+
+  @override
+  String get composerChatError => 'Something went wrong.';
+
+  @override
+  String get composerChatUseAsReply => 'Use as reply';
 
   @override
   String get threadReferencesLabel => 'REFERENCES';
@@ -419,6 +519,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsStorage => 'Storage';
 
   @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get settingsVersion => 'Version';
+
+  @override
+  String get settingsLogout => 'Log out';
+
+  @override
+  String get settingsLogoutTitle => 'Log out?';
+
+  @override
+  String get settingsLogoutBody =>
+      'You\'ll need your private key (nsec) to sign back in. Make sure it\'s backed up before logging out.';
+
+  @override
+  String get settingsLogoutConfirm => 'Log out';
+
+  @override
   String get settingsAlerts => 'Alerts';
 
   @override
@@ -438,9 +557,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get identityRelays => 'Relays';
-
-  @override
-  String get identityExportBackup => 'Export Backup';
 
   @override
   String get identityPrivacyPolicy => 'Privacy & Policy';
@@ -514,6 +630,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storageRemoveData => 'Remove Data';
 
   @override
+  String get storageShowMetrics => 'Show metrics';
+
+  @override
+  String get storageUsed => 'Used';
+
+  @override
+  String storageFree(String size) {
+    return '$size free';
+  }
+
+  @override
   String get storageDeleteDialogTitle => 'Delete Feed Notes';
 
   @override
@@ -577,6 +704,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSelectModel => 'Select Model';
+
+  @override
+  String get settingsDeviceAiModel => 'Device AI model';
 
   @override
   String get aiModelNoneSelected => 'No model downloaded';
@@ -699,6 +829,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editProfileSaveButton => 'Save Profile';
+
+  @override
+  String get editProfileEyebrow => 'Public profile';
+
+  @override
+  String get editProfileSubtitle => 'Update how others see you across UNIUN.';
+
+  @override
+  String get editProfileEncrypted => 'Only your public details are shared.';
 
   @override
   String get welcomeTagline => '*Create* · *Share*\n*Reflect* · *Transform*';
@@ -855,6 +994,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create your avatar and start building your second brain. It only takes a moment.';
 
   @override
+  String get aboutYouEyebrow => 'Create your avatar';
+
+  @override
   String get aboutYouTitle => 'About You';
 
   @override
@@ -895,7 +1037,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutYouUsernameRequired => 'Username is required';
 
   @override
-  String get importTitle => 'Restore Your Avatar';
+  String get importTitle => 'Welcome Back';
 
   @override
   String get importSubtitle =>
@@ -927,10 +1069,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importInvalidKey => 'Invalid key. Please check and try again.';
 
   @override
+  String get importEyebrow => 'Restore your avatar';
+
+  @override
+  String get importScanQrButton => 'Scan a QR instead';
+
+  @override
+  String get importScanTitle => 'Scan your key QR';
+
+  @override
+  String get importScanHint =>
+      'Point your camera at a QR that contains your private key';
+
+  @override
   String get keysTitle => 'Your Avatar Keys';
 
   @override
   String get keysSubtitle => 'One is for sharing. One is for your eyes only.';
+
+  @override
+  String get keysEyebrow => 'Your avatar keys';
+
+  @override
+  String get keysHeadline => 'Your keys are your avatar.';
 
   @override
   String get keysPublicKeyTitle => 'Public Key';
@@ -951,9 +1112,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keysSaveAndContinue => 'Save & Continue';
-
-  @override
-  String get keysDownloadBackup => 'Download Backup';
 
   @override
   String get keysE2eEncrypted => 'E2E ENCRYPTED';
@@ -982,14 +1140,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String keysFailedToSave(String error) {
     return 'Failed to save keys: $error';
   }
-
-  @override
-  String keysBackupSaved(String path) {
-    return 'Backup saved to $path';
-  }
-
-  @override
-  String get keysBackupFailed => 'Failed to save backup';
 
   @override
   String get keysCopyPublicAbove =>
@@ -1077,14 +1227,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get termsResponsibilityBody =>
-      'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, or violates others\' rights.';
+      'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, hateful, sexually explicit, or that violates others\' rights. Objectionable content and abusive behavior are not welcome on UNIUN.';
 
   @override
   String get termsNoAbuseTitle => 'No Abuse or Spam';
 
   @override
   String get termsNoAbuseBody =>
-      'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network.';
+      'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network. UNIUN is decentralized: any note menu includes a Report option (categories: nudity, malware, profanity, illegal, spam, impersonation, other) and any user can be blocked from Settings → Blocked Users. Reported notes are immediately hidden from your feed and blocked users\' content never reaches you. Reports are also published on the Nostr network so other clients and relay operators can act on them.';
 
   @override
   String get termsPrivateKeyTitle => 'Keep Your Private Key Safe';
@@ -1223,6 +1373,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shivInputHint => 'Ask Shiv anything…';
 
   @override
+  String get shivHomeHeadline => 'How can I help you?';
+
+  @override
+  String get shivHomeHistoryTooltip => 'History';
+
+  @override
+  String get shivHomeGana => 'Gana';
+
+  @override
+  String get shivHomeNataraj => 'Nataraj';
+
+  @override
+  String get shivHomeSuggestSummarize => 'Summarize my week';
+
+  @override
+  String get shivHomeSuggestConnect => 'Connect two ideas';
+
+  @override
+  String get shivHomeSuggestDraft => 'Draft from a note';
+
+  @override
   String composerAskScope(String scope) {
     return 'Ask $scope';
   }
@@ -1286,6 +1457,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get graphDraftDelete => 'Delete';
 
   @override
+  String get graphScopeAllNotes => 'All notes';
+
+  @override
+  String get graphSearchHint => 'Search graph…';
+
+  @override
+  String get graphSearchTooltip => 'Search graph';
+
+  @override
+  String get graphMenuTooltip => 'Open Manas drawer';
+
+  @override
+  String get graphSearchClear => 'Clear search';
+
+  @override
   String get channelEntryTitle => 'Channels';
 
   @override
@@ -1299,7 +1485,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelEntryCreate => 'Create a channel';
 
   @override
-  String get privateChannelEntryTitle => 'Private Channels';
+  String get privateChannelEntryTitle => 'Private channels';
 
   @override
   String get privateChannelEntrySubtitle =>
@@ -1315,16 +1501,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createChannelTitle => 'Channel';
 
   @override
+  String get createChannelHeaderTitle => 'Create channel';
+
+  @override
   String get createChannelDetailsHeading => 'Channel Details';
 
   @override
-  String get createChannelNameLabel => 'Channel Name';
+  String get createChannelNameLabel => 'Channel name';
+
+  @override
+  String get createChannelNamePlaceholder => 'e.g. design';
 
   @override
   String get createChannelAboutLabel => 'About (Theme/Rules)';
 
   @override
+  String get createChannelDescriptionLabel => 'Description';
+
+  @override
+  String get createChannelAboutPlaceholder => 'What\'s this channel about?';
+
+  @override
   String get createChannelPictureLabel => 'Picture URL (Optional)';
+
+  @override
+  String get createChannelPermanenceNote =>
+      'The channel\'s first event becomes its permanent ID — it can never be deleted.';
+
+  @override
+  String get createChannelAdvancedRelays => 'Advanced · relays';
 
   @override
   String get createChannelPublishRelays => 'Publish Relays';
@@ -1334,13 +1539,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select the relays this channel should be broadcasted on.';
 
   @override
-  String get createChannelAction => 'Create Channel';
+  String get createChannelAction => 'Create channel';
 
   @override
   String get createChannelSuccess => 'Channel created successfully';
 
   @override
-  String get createPrivateChannelTitle => 'Create Private Channel';
+  String get createPrivateChannelTitle => 'Create private channel';
+
+  @override
+  String get createPrivateChannelEncrypted => 'Encrypted';
+
+  @override
+  String get createPrivateChannelNameHint => 'e.g. core team';
+
+  @override
+  String get createPrivateChannelDescHint => 'What\'s this channel about?';
+
+  @override
+  String get createPrivateChannelAdminNote =>
+      'You\'re the admin — you control who joins.';
 
   @override
   String get createPrivateChannelHeading => 'Start a new Private Channel';
@@ -1363,7 +1581,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Private channel created successfully!';
 
   @override
-  String get joinPrivateChannelTitle => 'Join Private Channel';
+  String get createDmTitle => 'New message';
+
+  @override
+  String get createDmRecipientLabel => 'Recipient';
+
+  @override
+  String get createDmRecipientHint => 'Public key — hex or npub';
+
+  @override
+  String get createDmRelaysNote =>
+      'Select the relays this message is sent through.';
+
+  @override
+  String get createDmEncryptedNote =>
+      'Direct messages are end-to-end encrypted (NIP-17). Only the recipient can read them.';
+
+  @override
+  String get createDmScanQr => 'Scan QR code';
+
+  @override
+  String get createDmAction => 'Start chat';
+
+  @override
+  String get joinPrivateChannelTitle => 'Join private channel';
+
+  @override
+  String get joinPrivateChannelEncrypted => 'Encrypted';
 
   @override
   String get joinPrivateChannelHeading => 'Request to Join';
@@ -1376,17 +1620,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get joinPrivateChannelGroupIdLabel => 'Group ID';
 
   @override
-  String get joinPrivateChannelGroupIdHint => 'uniun\'...';
+  String get joinPrivateChannelGroupIdHint => 'Paste group ID…';
+
+  @override
+  String get joinPrivateChannelGroupIdHelper =>
+      'Ask the channel admin for the group ID and relay.';
 
   @override
   String get joinPrivateChannelScanQr => 'Scan QR';
 
   @override
-  String get joinPrivateChannelAction => 'Send Join Request';
+  String get joinPrivateChannelScanCardTitle => 'Scan a private channel QR';
+
+  @override
+  String get joinPrivateChannelScanCardSubtitle =>
+      'Point your camera at a code shared by the admin';
+
+  @override
+  String get joinPrivateChannelApprovalInfo =>
+      'Your request goes to the admin for approval before you can read messages.';
+
+  @override
+  String get joinPrivateChannelAction => 'Send join request';
 
   @override
   String get joinPrivateChannelSuccess =>
       'Join request sent! Wait for admin approval.';
+
+  @override
+  String get commonOr => 'or';
 
   @override
   String get relaySelectorPlaceholder => 'Select Relays';
@@ -1562,13 +1824,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userProfileNoNotes => 'No notes yet';
 
   @override
+  String get userProfileMessage => 'Message';
+
+  @override
+  String get userProfileNotesLabel => 'Notes';
+
+  @override
+  String get userProfileCopyNpub => 'Copy npub';
+
+  @override
   String get qrShareAction => 'Share';
 
   @override
   String get qrShareFailed => 'Couldn\'t share QR code';
 
   @override
+  String get qrCaptionUser => 'Scan this to add you on UNIUN.';
+
+  @override
+  String get qrCaptionPublicChannel => 'Scan to join this channel.';
+
+  @override
+  String get qrCaptionPrivateChannel => 'Scan to join this private channel.';
+
+  @override
+  String get qrCaptionDm => 'Scan to start a chat on UNIUN.';
+
+  @override
   String get shareSheetTitle => 'Share note';
+
+  @override
+  String get shareQuotingLabel => 'Quoting';
+
+  @override
+  String get shareToLabel => 'Share to';
+
+  @override
+  String get shareActionShare => 'Share';
 
   @override
   String get shareSheetCommentHint => 'Add a comment (optional)';
@@ -1627,10 +1919,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsBlockedUsers => 'Blocked Users';
 
   @override
-  String get blockedUsersTitle => 'Blocked Users';
+  String get blockedUsersTitle => 'Blocked users';
+
+  @override
+  String get blockedUsersDescription =>
+      'Blocked people can\'t message you and their notes stay hidden from your feed. Notes are never deleted — unblocking brings them back.';
+
+  @override
+  String blockedUsersSectionCount(int count) {
+    return 'Blocked · $count';
+  }
+
+  @override
+  String blockedUsersBlockedAgo(String time) {
+    return 'Blocked $time ago';
+  }
+
+  @override
+  String get blockedUsersBlockedJustNow => 'Blocked just now';
 
   @override
   String get blockedUsersEmpty => 'You haven\'t blocked anyone';
+
+  @override
+  String get blockedUsersEmptyHint =>
+      'People you block will appear here, so you can unblock them anytime.';
 
   @override
   String get actionUnblock => 'Unblock';
@@ -2067,7 +2380,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manasIconPickerTitle => 'Pick an icon';
 
   @override
-  String get ganaDrawerSectionTitle => 'GANAS';
+  String get ganaListTitle => 'Gana';
+
+  @override
+  String get ganaListNew => 'New';
+
+  @override
+  String get ganaListSubtitle =>
+      'Autonomous agents that watch a surface, reason over a Manas, and publish for you.';
+
+  @override
+  String get ganaListPaused => 'Paused';
+
+  @override
+  String get ganaListScopeAll => 'All notes';
+
+  @override
+  String ganaListScopeCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Manas',
+      one: '1 Manas',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get ganaDrawerEmptyTitle => 'No Ganas yet';
@@ -2075,9 +2412,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get ganaDrawerEmptyBody =>
       'Create an AI worker that watches a surface and publishes for you.';
-
-  @override
-  String get ganaDrawerNewButton => '+ New Gana';
 
   @override
   String get ganaTileDisabled => 'Off';
@@ -2117,6 +2451,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String ganaTileLastRunFailed(String when) {
     return 'Failed · $when';
+  }
+
+  @override
+  String get ganaRelativeJustNow => 'just now';
+
+  @override
+  String ganaRelativeMinutes(int count) {
+    return '${count}m ago';
+  }
+
+  @override
+  String ganaRelativeHours(int count) {
+    return '${count}h ago';
+  }
+
+  @override
+  String ganaRelativeDays(int count) {
+    return '${count}d ago';
   }
 
   @override
@@ -2473,4 +2825,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiveShareNothingToShare => 'Add text or media first';
+
+  @override
+  String get jumpToLatest => 'Jump to latest';
 }

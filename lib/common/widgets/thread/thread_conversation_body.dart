@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/large_note_card.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
 import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
+import 'package:uniun/features/thread/widgets/thread_section_label.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 /// Shared thread layout used by the feed, channel, private-channel and DM
 /// thread views. Pure UI: parent context → mentioned refs → root card →
@@ -34,50 +37,52 @@ class ThreadConversationBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasTopContext = parentNotes.isNotEmpty || mentionedNotes.isNotEmpty;
-
     return CustomScrollView(
       slivers: [
-        // ── Immediate NIP-10 parent (1 level only) ────────────────────────────
-        if (parentNotes.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
-            sliver: SliverToBoxAdapter(
-              child: ThreadParentContext(
-                notes: parentNotes,
-                profiles: profiles,
-                onNoteTap: onOpenThread,
+        // ── Reference / parent context — a grey full-bleed band above the root
+        // so the "context" zone reads distinctly from the white root + replies.
+        // Content stays inset 16px to align with the root note's avatar below.
+        if (parentNotes.isNotEmpty || mentionedNotes.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              color: AppColors.surfaceLow,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Immediate NIP-10 parent (1 level only).
+                  if (parentNotes.isNotEmpty)
+                    ThreadParentContext(
+                      notes: parentNotes,
+                      profiles: profiles,
+                      onNoteTap: onOpenThread,
+                    ),
+                  // Outgoing references — sibling group pointing at the root.
+                  if (mentionedNotes.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(
+                          top: parentNotes.isNotEmpty ? 14 : 0),
+                      child: ThreadParentContext(
+                        notes: mentionedNotes,
+                        profiles: profiles,
+                        isSiblingGroup: true,
+                        onNoteTap: onOpenThread,
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
 
-        // ── Outgoing references — rendered as sibling "parents" above the root.
-        if (mentionedNotes.isNotEmpty)
-          SliverPadding(
-            padding: EdgeInsets.only(
-                top: parentNotes.isEmpty ? 16 : 0, left: 20, right: 20),
-            sliver: SliverToBoxAdapter(
-              child: ThreadParentContext(
-                notes: mentionedNotes,
-                profiles: profiles,
-                isSiblingGroup: true,
-                onNoteTap: onOpenThread,
-              ),
-            ),
-          ),
-
-        // ── Focused / root note card ───────────────────────────────────────────
-        SliverPadding(
-          padding: EdgeInsets.only(
-            top: hasTopContext ? 0 : 16,
-            left: 20,
-            right: 20,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: LargeNoteCard(
-              note: root,
-              replyCount: replyCount ?? replies.length,
-            ),
+        // ── Focused / root note ───────────────────────────────────────────────
+        // Flat full-bleed (no card) so references → root → replies read as one
+        // continuous surface — its own internal padding handles the gutter.
+        SliverToBoxAdapter(
+          child: LargeNoteCard(
+            note: root,
+            replyCount: replyCount ?? replies.length,
+            contained: false,
           ),
         ),
 
@@ -87,10 +92,20 @@ class ThreadConversationBody extends StatelessWidget {
             hasScrollBody: false,
             child: ThreadEmptyReplies(),
           )
-        else
+        else ...[
           SliverPadding(
-            padding: const EdgeInsets.only(
-                left: 20, right: 20, top: 12, bottom: 120),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 4),
+            sliver: SliverToBoxAdapter(
+              child: ThreadSectionLabel(
+                '${AppLocalizations.of(context)!.threadReplies} · '
+                '${replyCount ?? replies.length}',
+                icon: Icons.chat_bubble_outline_rounded,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 8, bottom: 120),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (ctx, i) {
@@ -105,6 +120,7 @@ class ThreadConversationBody extends StatelessWidget {
               ),
             ),
           ),
+        ],
       ],
     );
   }

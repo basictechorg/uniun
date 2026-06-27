@@ -5,7 +5,10 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 
+/// Compact profile header row (UNIUNDesignSystem Settings.jsx): avatar + name +
+/// npub + chevron, the whole row tapping through to Edit profile.
 class ProfileCard extends StatelessWidget {
   const ProfileCard({super.key, required this.state});
 
@@ -13,91 +16,58 @@ class ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              UserAvatar(
-                seed: state.pubkeyHex ?? state.npub ?? '',
-                photoUrl: state.avatarUrl,
-                size: 88,
-                showBorder: true,
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.surfaceContainerLowest,
-                      width: 3,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.edit_rounded,
-                    size: 13,
-                    color: Colors.white,
+      decoration: kSettingsCardDecoration,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kSettingsCardRadius),
+        child: InkWell(
+          onTap: () => context.pushNamed(AppRoutes.editProfile),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                UserAvatar(
+                  seed: state.pubkeyHex ?? state.npub ?? '',
+                  photoUrl: state.avatarUrl,
+                  size: 48,
+                  showBorder: true,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.userName ?? l10n.profileAnonymous,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        state.handle ?? '',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            state.userName ?? AppLocalizations.of(context)!.profileAnonymous,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.4,
-              color: AppColors.onSurface,
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 20, color: AppColors.outline),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            state.handle ?? '',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => context.pushNamed(AppRoutes.editProfile),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                AppLocalizations.of(context)!.profileEditProfile,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

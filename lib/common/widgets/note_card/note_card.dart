@@ -57,7 +57,7 @@ class _NoteCardView extends StatelessWidget {
             decoration: const BoxDecoration(
               color: AppColors.surface,
               border: Border(
-                bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+                bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
               ),
             ),
             child: Row(
@@ -127,7 +127,7 @@ class _NoteCardView extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: AppColors.outline,
+                                    color: AppColors.textMuted,
                                   ),
                                 ),
                                 if (note.sourceLabel != null) ...[
@@ -188,7 +188,7 @@ class _NoteCardView extends StatelessWidget {
                           onTap: onTap,
                           style: const TextStyle(
                             fontSize: 15,
-                            color: Color(0xFF1E293B),
+                            color: AppColors.textBody,
                             height: 1.55,
                           ),
                         ),
@@ -237,58 +237,61 @@ class _NoteCardView extends StatelessWidget {
                           saved: s.isSaved,
                           followed: s.isFollowed,
                         ),
-                        builder: (context, a) => Padding(
-                          padding: const EdgeInsets.only(right: 32),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Reply count
-                              _ActionChip(
-                                icon: Icons.chat_bubble_outline_rounded,
-                                label: '${note.cachedReplyCount}',
-                                color: AppColors.onSurfaceVariant,
-                                onTap: onTap,
-                              ),
+                        builder: (context, a) => Row(
+                          children: [
+                            // Reply count
+                            _ActionChip(
+                              icon: Icons.chat_bubble_outline_rounded,
+                              label: '${note.cachedReplyCount}',
+                              color: AppColors.onSurfaceVariant,
+                              onTap: onTap,
+                            ),
+                            const SizedBox(width: 28),
 
-                              // Reference count — outgoing refs from the edge table
-                              _ActionChip(
-                                icon: Icons.link_rounded,
-                                label: '${note.referenceCount}',
-                                color: AppColors.onSurfaceVariant,
-                                onTap: onTap,
-                              ),
+                            // Reference count — outgoing refs from the edge table.
+                            // Reads as active (primary) when the note has any.
+                            _ActionChip(
+                              icon: Icons.link_rounded,
+                              label: '${note.referenceCount}',
+                              color: note.referenceCount > 0
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceVariant,
+                              onTap: onTap,
+                            ),
 
-                              // Save toggle — hidden on own notes (kept forever
-                              // already; saving is for others').
-                              if (!a.isOwn)
-                                _ActionChip(
-                                  icon: a.saved
-                                      ? Icons.bookmark_rounded
-                                      : Icons.bookmark_border_rounded,
-                                  color: a.saved
-                                      ? AppColors.primary
-                                      : AppColors.onSurfaceVariant,
-                                  onTap: () => handleSaveToggle(context, cubit),
-                                ),
-
-                              // Follow / Following — owned by the cubit
+                            // Save toggle — hidden on own notes (kept forever
+                            // already; saving is for others').
+                            if (!a.isOwn) ...[
+                              const SizedBox(width: 28),
                               _ActionChip(
-                                icon: a.followed
-                                    ? Icons.notifications
-                                    : Icons.notifications_none,
-                                color: a.followed
+                                icon: a.saved
+                                    ? Icons.bookmark_rounded
+                                    : Icons.bookmark_border_rounded,
+                                color: a.saved
                                     ? AppColors.primary
                                     : AppColors.onSurfaceVariant,
-                                onTap: () => cubit.toggleFollow(),
-                              ),
-                              _ActionChip(
-                                icon: Icons.share_outlined,
-                                color: AppColors.onSurfaceVariant,
-                                onTap: () =>
-                                    ShareSheetPage.show(context, note.id),
+                                onTap: () => handleSaveToggle(context, cubit),
                               ),
                             ],
-                          ),
+                            const SizedBox(width: 28),
+
+                            // Follow / Following — owned by the cubit
+                            _ActionChip(
+                              icon: a.followed
+                                  ? Icons.notifications
+                                  : Icons.notifications_none,
+                              color: a.followed
+                                  ? AppColors.primary
+                                  : AppColors.onSurfaceVariant,
+                              onTap: () => cubit.toggleFollow(),
+                            ),
+                            const Spacer(),
+                            _ActionChip(
+                              icon: Icons.ios_share_rounded,
+                              color: AppColors.onSurfaceVariant,
+                              onTap: () => ShareSheetPage.show(context, note.id),
+                            ),
+                          ],
                         ),
                       ),
                     ],

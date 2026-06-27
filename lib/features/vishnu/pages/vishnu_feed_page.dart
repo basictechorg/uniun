@@ -181,7 +181,11 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
 
   @override
   Widget build(BuildContext context) {
+    // Bottom inset is intentionally NOT reserved here: the feed extends
+    // edge-to-edge behind the floating glass nav (the list adds its own bottom
+    // padding for the inset + nav), so no white safe-area strip shows.
     return SafeArea(
+      bottom: false,
       child: Column(
         children: [
           // ── Header ──────────────────────────────────────────────────
