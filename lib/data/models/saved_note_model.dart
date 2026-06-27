@@ -40,6 +40,7 @@ class SavedNoteModel {
   /// Source group id if this saved item was originally a Kind-42 public
   /// group message. Used by the saved-notes UI to render the "#group"
   /// chip and to route taps to the group thread page.
+  @Name('sourceChannelId') // stored name preserved across channel→group rename
   String? sourceGroupId;
 
   /// Source group id if this saved item was a NIP-29 private group message.

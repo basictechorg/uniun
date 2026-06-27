@@ -46,7 +46,7 @@ class UnreadRepositoryImpl extends UnreadRepository {
       await isar.writeTxn(() async {
         await isar.unreadNoteModels
             .filter()
-            .groupIdEqualTo(privateGroupId)
+            .privateGroupIdEqualTo(privateGroupId)
             .deleteAll();
       });
       return const Right(unit);

@@ -33,7 +33,7 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   Future<List<NoteEntity>> getMessages(String groupId) async {
     final models = await isar.noteModels
         .filter()
-        .groupIdEqualTo(groupId)
+        .privateGroupIdEqualTo(groupId)
         .sortByCreated()
         .findAll();
     return _attachments
@@ -44,7 +44,7 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   Stream<List<NoteEntity>> watchMessages(String groupId) {
     return isar.noteModels
         .filter()
-        .groupIdEqualTo(groupId)
+        .privateGroupIdEqualTo(groupId)
         .sortByCreated()
         .watch(fireImmediately: true)
         .asyncMap((models) =>

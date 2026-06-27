@@ -519,14 +519,14 @@ class GanaEngine {
     }
     // `execute` returns void; the transport writes a NoteModel synchronously.
     // Snapshot before/after to recover the eventId.
-    final before = await _latestSelfEventIdInGroup(groupId, pubkeyHex);
+    final before = await _latestSelfEventIdInPrivateGroup(groupId, pubkeyHex);
     await _privateGroup.execute(
       groupId: groupId,
       content: body,
       authorPubkey: pubkeyHex,
       privkeyHex: privkeyHex,
     );
-    final after = await _latestSelfEventIdInGroup(groupId, pubkeyHex);
+    final after = await _latestSelfEventIdInPrivateGroup(groupId, pubkeyHex);
     if (after != null && after != before) return after;
     return 'pc:$groupId:${DateTime.now().millisecondsSinceEpoch}';
   }
@@ -561,13 +561,13 @@ class GanaEngine {
     );
   }
 
-  Future<String?> _latestSelfEventIdInGroup(
+  Future<String?> _latestSelfEventIdInPrivateGroup(
     String groupId,
     String selfPubkey,
   ) async {
     final row = await _isar.noteModels
         .filter()
-        .groupIdEqualTo(groupId)
+        .privateGroupIdEqualTo(groupId)
         .authorPubkeyEqualTo(selfPubkey)
         .sortByCreatedDesc()
         .findFirst();

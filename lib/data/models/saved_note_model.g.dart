@@ -67,9 +67,9 @@ const SavedNoteModelSchema = CollectionSchema(
       type: IsarType.dateTime,
     ),
     r'sig': PropertySchema(id: 11, name: r'sig', type: IsarType.string),
-    r'sourceGroupId': PropertySchema(
+    r'sourceChannelId': PropertySchema(
       id: 12,
-      name: r'sourceGroupId',
+      name: r'sourceChannelId',
       type: IsarType.string,
     ),
     r'sourcePrivateGroupId': PropertySchema(
@@ -2486,7 +2486,7 @@ extension SavedNoteModelQueryFilter
   sourceGroupIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNull(property: r'sourceGroupId'),
+        const FilterCondition.isNull(property: r'sourceChannelId'),
       );
     });
   }
@@ -2495,7 +2495,7 @@ extension SavedNoteModelQueryFilter
   sourceGroupIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        const FilterCondition.isNotNull(property: r'sourceGroupId'),
+        const FilterCondition.isNotNull(property: r'sourceChannelId'),
       );
     });
   }
@@ -2505,7 +2505,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2523,7 +2523,7 @@ extension SavedNoteModelQueryFilter
       return query.addFilterCondition(
         FilterCondition.greaterThan(
           include: include,
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2541,7 +2541,7 @@ extension SavedNoteModelQueryFilter
       return query.addFilterCondition(
         FilterCondition.lessThan(
           include: include,
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2560,7 +2560,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.between(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -2576,7 +2576,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2589,7 +2589,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2602,7 +2602,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           value: value,
           caseSensitive: caseSensitive,
         ),
@@ -2615,7 +2615,7 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
-          property: r'sourceGroupId',
+          property: r'sourceChannelId',
           wildcard: pattern,
           caseSensitive: caseSensitive,
         ),
@@ -2627,7 +2627,7 @@ extension SavedNoteModelQueryFilter
   sourceGroupIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'sourceGroupId', value: ''),
+        FilterCondition.equalTo(property: r'sourceChannelId', value: ''),
       );
     });
   }
@@ -2636,7 +2636,7 @@ extension SavedNoteModelQueryFilter
   sourceGroupIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'sourceGroupId', value: ''),
+        FilterCondition.greaterThan(property: r'sourceChannelId', value: ''),
       );
     });
   }
@@ -3277,14 +3277,14 @@ extension SavedNoteModelQuerySortBy
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   sortBySourceGroupId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'sourceGroupId', Sort.asc);
+      return query.addSortBy(r'sourceChannelId', Sort.asc);
     });
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   sortBySourceGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'sourceGroupId', Sort.desc);
+      return query.addSortBy(r'sourceChannelId', Sort.desc);
     });
   }
 
@@ -3452,14 +3452,14 @@ extension SavedNoteModelQuerySortThenBy
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   thenBySourceGroupId() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'sourceGroupId', Sort.asc);
+      return query.addSortBy(r'sourceChannelId', Sort.asc);
     });
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   thenBySourceGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'sourceGroupId', Sort.desc);
+      return query.addSortBy(r'sourceChannelId', Sort.desc);
     });
   }
 
@@ -3578,7 +3578,7 @@ extension SavedNoteModelQueryWhereDistinct
   distinctBySourceGroupId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
-        r'sourceGroupId',
+        r'sourceChannelId',
         caseSensitive: caseSensitive,
       );
     });
@@ -3699,7 +3699,7 @@ extension SavedNoteModelQueryProperty
   QueryBuilder<SavedNoteModel, String?, QQueryOperations>
   sourceGroupIdProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'sourceGroupId');
+      return query.addPropertyName(r'sourceChannelId');
     });
   }
 

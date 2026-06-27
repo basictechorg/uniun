@@ -514,13 +514,13 @@ class _OutputRefPicker extends StatelessWidget {
         return _SelectorTile(
           icon: Icons.lock_outline,
           title: l10n.ganaFormOutputPrivateGroup,
-          subtitle: _privateGroupName(state.privateGroups, state.outputGroupId) ??
+          subtitle: _privateGroupName(state.privateGroups, state.outputPrivateGroupId) ??
               l10n.ganaFormOutputPickHint,
-          empty: state.outputGroupId == null,
+          empty: state.outputPrivateGroupId == null,
           onTap: () => _openSheet<String>(
             context: context,
             title: l10n.ganaFormOutputPrivateGroup,
-            current: state.outputGroupId,
+            current: state.outputPrivateGroupId,
             options: [
               for (final c in state.privateGroups)
                 _PickOption(value: c.groupId, label: c.name),

@@ -52,7 +52,7 @@ class GanaInputFilter {
       case GanaInputType.privateGroup:
         rows = await isar.noteModels
             .filter()
-            .groupIdEqualTo(gana.inputRefId)
+            .privateGroupIdEqualTo(gana.inputRefId)
             .kindEqualTo(kPrivateGroupKind)
             .createdGreaterThan(after)
             .sortByCreatedDesc()
