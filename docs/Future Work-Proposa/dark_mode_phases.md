@@ -100,6 +100,11 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
   final Color storageOther;
   final Color success;
   final Color onSuccess;
+  // Elevation / shadow tints introduced by the redesign — keep them in the
+  // extension so dark mode can dial them down without re-discovering hex.
+  final Color navShadow;
+  final Color elevationMd;
+  final Color shadowPrimary;
 
   static const light = AppCustomColors(
     graphNodeSaved:     Color(0xFF319BED),
@@ -113,6 +118,9 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     storageOther:       Color(0xFF9E9E9E),
     success:            Color(0xFF22C55E),
     onSuccess:          Color(0xFFFFFFFF),
+    navShadow:          Color(0x24005AB6),
+    elevationMd:        Color(0x1415181C),
+    shadowPrimary:      Color(0x3D0075F2),
   );
 
   static const dark = AppCustomColors(
@@ -127,6 +135,11 @@ class AppCustomColors extends ThemeExtension<AppCustomColors> {
     storageOther:       Color(0xFFBDBDBD),
     success:            Color(0xFF4ADE80),
     onSuccess:          Color(0xFF000000),
+    // Dial shadows down ~50% in dark — large blue lifts read too strong
+    // against a deep surface and cause the "halo" look.
+    navShadow:          Color(0x1200334D),
+    elevationMd:        Color(0x29000000),
+    shadowPrimary:      Color(0x1F0075F2),
   );
 
   @override
@@ -231,7 +244,7 @@ The toggle UI already exists. Wire tap → `context.read<ThemeCubit>().setMode(.
 
 ---
 
-## Phase 2 — Shared widgets (~4 files, highest leverage)
+## Phase 2 — Shared widgets (~5 files, highest leverage)
 
 These are used on every screen — fixing them fixes the most UI at once.
 
@@ -239,51 +252,65 @@ For each file: replace `AppColors.xxx` → `Theme.of(context).colorScheme.xxx` o
 
 | File | Replacements |
 |---|---|
-| `lib/common/widgets/floating_nav.dart` | surface → colorScheme, outlineVariant, primary, onSurfaceVariant |
+| `lib/common/widgets/floating_nav.dart` | surface → colorScheme, outlineVariant, primary, onSurfaceVariant + new redesigned glass-pill shadows `0x24005AB6` / `0x1415181C` / `0x3D0075F2` → `AppCustomColors.navShadow` / `elevationMd` / `shadowPrimary` |
 | `lib/common/widgets/user_avatar.dart` | surface, primary, outline |
-| `lib/vishnu/widgets/note_card.dart` | surface, onSurface, onSurfaceVariant, primary, outline, outlineVariant + hardcoded `0xFF1E293B` → onSurface, `0xFFF1F5F9` → surfaceContainerHigh |
-| `lib/vishnu/widgets/feed_filter_chips.dart` | surface, primary, onSurfaceVariant |
+| `lib/common/widgets/note_card/note_card.dart` | surface, onSurface, onSurfaceVariant, primary, outline, outlineVariant + hardcoded `0xFF1E293B` → onSurface, `0xFFF1F5F9` → surfaceContainerHigh |
+| `lib/common/widgets/note_card/large_note_card.dart` + `embedded_note_card.dart` + `reference_note_card.dart` + `dm_note_card.dart` + `dm_own_note_card.dart` | Same palette as `note_card.dart` |
+| `lib/features/vishnu/widgets/feed_filter_chips.dart` | surface, primary, onSurfaceVariant |
 
 ---
 
 ## Phase 3 — Feature modules (one PR per sub-phase)
 
+> **Path note:** the codebase moved every feature module under `lib/features/<feature>/`. Old `lib/<feature>/` paths in the original draft are no longer valid.
+
 ### 3A — Vishnu
-- `lib/vishnu/pages/vishnu_feed_page.dart`
-- `lib/vishnu/drawer/widgets/vishnu_drawer.dart` — `0xFF334155` → onSurfaceVariant, `0x1A6750A4` → primary.withValues(alpha:)
+- `lib/features/vishnu/pages/vishnu_feed_page.dart`
+- `lib/features/vishnu/drawer/widgets/vishnu_drawer.dart` — `0xFF334155` → onSurfaceVariant, `0x1A6750A4` → primary.withValues(alpha:)
 
 ### 3B — Thread
-- `lib/thread/pages/thread_page.dart`
-- `lib/thread/widgets/` (thread_app_bar, thread_reply_composer, thread_segmented_toggle)
+- `lib/features/thread/pages/thread_page.dart`
+- `lib/features/thread/widgets/` (thread_app_bar, thread_reply_composer, thread_segmented_toggle)
 
 ### 3C — Brahma
-- `lib/brahma/graph/pages/graph_page.dart`
-- `lib/brahma/graph/widgets/graph_header.dart` — graphNodeTypeColors → `custom.graphNodeSaved/Own/Draft`
-- `lib/brahma/graph/widgets/graph_canvas.dart`
-- `lib/brahma/graph/widgets/graph_node_panel.dart`
-- `lib/brahma/graph/widgets/compose_action_bar.dart`
-- `lib/brahma/graph/widgets/compose_header.dart`
-- `lib/brahma/graph/painters/dot_pattern_painter.dart` — dot color → `custom.graphDotPattern`
-- `lib/brahma/graph/painters/edge_painter.dart` — edge color → `custom.graphEdge`
+- `lib/features/brahma/graph/pages/graph_page.dart`
+- `lib/features/brahma/graph/widgets/graph_header.dart` — graphNodeTypeColors → `custom.graphNodeSaved/Own/Draft`
+- `lib/features/brahma/graph/widgets/graph_canvas.dart`
+- `lib/features/brahma/graph/widgets/graph_node_panel.dart`
+- `lib/features/brahma/graph/widgets/compose_action_bar.dart`
+- `lib/features/brahma/graph/widgets/compose_header.dart`
+- `lib/features/brahma/graph/painters/dot_pattern_painter.dart` — dot color → `custom.graphDotPattern`
+- `lib/features/brahma/graph/painters/edge_painter.dart` — edge color → `custom.graphEdge`
 
 ### 3D — Shiv
-- `lib/shiv/pages/shiv_page.dart`
-- `lib/shiv/chat/pages/shiv_chat_page.dart`
-- `lib/shiv/chat/widgets/` (all widgets)
-- `lib/shiv/chat/tree/widgets/branch_tree_graph.dart`
-- `lib/shiv/model_select/pages/` + `widgets/` — `0xFF22C55E` → `custom.success`
+- `lib/features/shiv/pages/shiv_page.dart`
+- `lib/features/shiv/pages/shiv_home_page.dart` (new in redesign)
+- `lib/features/shiv/chat/pages/shiv_chat_page.dart`
+- `lib/features/shiv/chat/widgets/` (all widgets)
+- `lib/features/shiv/chat/tree/widgets/branch_tree_graph.dart`
+- `lib/features/shiv/composer_chat/` (cubit + widgets — new in redesign)
+- `lib/features/shiv/gana/form/widgets/` + `gana/detail/pages/` (new in redesign — `gana_form_atoms.dart`, `gana_form_controls.dart`, `gana_form_sections.dart`, `gana_detail_page.dart`)
+- `lib/features/shiv/nataraj/pages/` + `widgets/`
+- `lib/features/shiv/model_select/pages/` + `widgets/` — `0xFF22C55E` → `custom.success`
 
 ### 3E — Settings
-- `lib/settings/pages/settings_page.dart`
-- `lib/settings/widgets/storage_card.dart` — storage bar colors → `custom.storageModel/ChatHistory/Other`
-- `lib/settings/widgets/` (ai_card, identity_card, style_card, profile_card, settings_buttons)
+- `lib/features/settings/pages/settings_page.dart`
+- `lib/features/settings/pages/edit_profile_page.dart` (rewrote in redesign — uses Newsreader display font, ambient backdrop, bottom-pinned CTA)
+- `lib/features/settings/pages/blocked_users_page.dart`
+- `lib/features/settings/widgets/settings_card.dart` — new shared `SettingsGroup` / `SettingsRow` / `SettingsRowDivider` atoms; migrate these once and every settings row picks it up
+- `lib/features/settings/widgets/storage_card.dart` — storage bar colors → `custom.storageModel/ChatHistory/Other`
+- `lib/features/settings/widgets/` (ai_card, identity_card, style_card, profile_card, settings_buttons, section_label, media_row, cloud_provider_card, logout_button)
 
 ---
 
 ## Phase 4 — Onboarding (lowest priority — seen once)
 
-- `lib/onboarding/pages/` (splash, welcome, about_you, identity_keys, import_identity)
-- `lib/onboarding/widgets/` (key_card, generated_avatar)
+- `lib/features/onboarding/pages/` (splash, welcome, how_it_works, about_you, your_identity_keys, import_identity)
+- `lib/features/onboarding/widgets/` (key_card, generated_avatar, terms_checkbox, onboarding_app_bar, field_label, key_qr_scanner_page)
+
+The redesign added an ambient blob backdrop on every onboarding screen (decorative radial gradients) — these read `AppColors.primary.withValues(alpha:)` today and should switch to `colorScheme.primary.withValues(alpha:)`.
+
+`TermsCheckbox` is the App-Review gating control; its underlined link style needs both light and dark treatments (use `colorScheme.primary` instead of the inline `0x...` decoration colour).
 
 ---
 
@@ -343,6 +370,10 @@ For each file: replace `AppColors.xxx` → `Theme.of(context).colorScheme.xxx` o
 | storage bar: chat `0xFFFF9800` | `storageChatHistory` |
 | storage bar: other `0xFF9E9E9E` | `storageOther` |
 | success green `0xFF22C55E` | `success` |
+| floating-nav blue lift `0x24005AB6` | `navShadow` |
+| neutral elevation md `0x1415181C` | `elevationMd` |
+| primary FAB elevation `0x3D0075F2` | `shadowPrimary` |
+| ambient onboarding blob (primary @ ~0.07–0.10 alpha) | derived from `colorScheme.primary.withValues(alpha:)` — no extension slot needed |
 
 ---
 
