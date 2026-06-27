@@ -65,8 +65,8 @@ class _GraphHeaderState extends State<GraphHeader> {
                   IconButton(
                     icon: SvgPicture.asset(
                       'assets/images/tabs/brahma.svg',
-                      width: 26,
-                      height: 26,
+                      width: 32,
+                      height: 32,
                       theme: const SvgTheme(
                         currentColor: AppColors.onSurfaceVariant,
                       ),

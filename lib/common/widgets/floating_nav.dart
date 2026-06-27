@@ -71,7 +71,7 @@ class FloatingNav extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _NavSide(
-                            asset: 'assets/images/tabs/vishnu.svg',
+                            asset: 'assets/images/tabs/vishnu2.svg',
                             label: l10n.navVishnu,
                             selected: currentIndex == 0,
                             onTap: () => onTap(0),
@@ -81,7 +81,7 @@ class FloatingNav extends StatelessWidget {
                         const SizedBox(width: _fabSize),
                         Expanded(
                           child: _NavSide(
-                            asset: 'assets/images/tabs/shiva.svg',
+                            asset: 'assets/images/tabs/shiv2.svg',
                             label: l10n.navShiv,
                             selected: currentIndex == 2,
                             onTap: () => onTap(2),

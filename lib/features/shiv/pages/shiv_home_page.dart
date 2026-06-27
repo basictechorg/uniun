@@ -128,8 +128,8 @@ class _HomeAppBar extends StatelessWidget {
             onTap: onMenu,
             child: SvgPicture.asset(
               'assets/images/tabs/shiva.svg',
-              width: 28,
-              height: 28,
+              width: 32,
+              height: 32,
               colorFilter: const ColorFilter.mode(
                 AppColors.onSurfaceVariant,
                 BlendMode.srcIn,

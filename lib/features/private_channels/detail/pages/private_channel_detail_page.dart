@@ -67,7 +67,7 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
 
   /// Reaching the bottom (newest message) marks the whole channel read.
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
+    if (!mounted || !_scrollController.hasClients) return;
     final pos = _scrollController.position;
     if (pos.pixels >= pos.maxScrollExtent - 8) {
       context
@@ -97,6 +97,9 @@ class _PrivateChannelDetailViewState extends State<_PrivateChannelDetailView> {
   }
 
   void _onMessageVisibility(String eventId, VisibilityInfo info) {
+    // VisibilityDetector callbacks are scheduler-driven and can fire AFTER
+    // the page is popped — guard against using a defunct State.context.
+    if (!mounted) return;
     if (info.visibleFraction >= 0.5) {
       _everVisible.add(eventId);
     } else if (info.visibleFraction == 0 && _everVisible.contains(eventId)) {

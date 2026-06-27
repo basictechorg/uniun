@@ -261,11 +261,19 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         emit(state.copyWith(
           triggerMode: GanaTriggerMode.recurring,
           triggerReactive: false,
+          // Default interval to 5min when missing. Required for fromFields()
+          // to resolve back to onSchedule on the next rebuild; without it
+          // the radio appears un-selected because the state collapses to no
+          // preset.
+          triggerIntervalMinutes: state.triggerIntervalMinutes ?? 5,
         ));
       case GanaTriggerPreset.messageOrSchedule:
         emit(state.copyWith(
           triggerMode: GanaTriggerMode.recurring,
           triggerReactive: true,
+          // Same as onSchedule above — interval is what disambiguates this
+          // preset from everyMessage in fromFields().
+          triggerIntervalMinutes: state.triggerIntervalMinutes ?? 5,
         ));
     }
   }

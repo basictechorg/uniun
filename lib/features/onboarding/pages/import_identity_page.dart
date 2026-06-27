@@ -13,6 +13,7 @@ import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/onboarding/widgets/key_qr_scanner_page.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
+import 'package:uniun/features/onboarding/widgets/terms_checkbox.dart';
 
 /// Login screen — "Reclaim Your Avatar".
 class ImportIdentityPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class ImportIdentityPage extends StatefulWidget {
 
 class _ImportIdentityPageState extends State<ImportIdentityPage> {
   final _controller = TextEditingController();
+  bool _termsAccepted = false;
 
   @override
   void initState() {
@@ -37,7 +39,8 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
     super.dispose();
   }
 
-  bool get _canContinue => _controller.text.trim().isNotEmpty;
+  bool get _canContinue =>
+      _controller.text.trim().isNotEmpty && _termsAccepted;
 
   Future<void> _pasteFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -307,7 +310,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                     ),
                   ),
 
-                  // ── Bottom-pinned primary CTA ─────────────────────────
+                  // ── Bottom-pinned terms + primary CTA ─────────────────
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       24,
@@ -315,40 +318,57 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                       24,
                       MediaQuery.of(context).padding.bottom + 16,
                     ),
-                    child: AnimatedOpacity(
-                      opacity: _canContinue ? 1.0 : 0.45,
-                      duration: const Duration(milliseconds: 150),
-                      child: GestureDetector(
-                        onTap: _canContinue ? _onContinue : null,
-                        child: Container(
-                          width: double.infinity,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: _canContinue
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.22),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ]
-                                : null,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TermsCheckbox(
+                          accepted: _termsAccepted,
+                          onChanged: (v) =>
+                              setState(() => _termsAccepted = v),
+                          onOpenTerms: () => context.pushNamed(
+                            AppRoutes.privacyPolicy,
+                            extra: true,
                           ),
-                          child: Center(
-                            child: Text(
-                              l10n.importContinue,
-                              style: const TextStyle(
-                                color: AppColors.onPrimary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                          onOpenPrivacy: () =>
+                              context.pushNamed(AppRoutes.privacyPolicy),
+                        ),
+                        const SizedBox(height: 12),
+                        AnimatedOpacity(
+                          opacity: _canContinue ? 1.0 : 0.45,
+                          duration: const Duration(milliseconds: 150),
+                          child: GestureDetector(
+                            onTap: _canContinue ? _onContinue : null,
+                            child: Container(
+                              width: double.infinity,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: _canContinue
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.22),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  l10n.importContinue,
+                                  style: const TextStyle(
+                                    color: AppColors.onPrimary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],

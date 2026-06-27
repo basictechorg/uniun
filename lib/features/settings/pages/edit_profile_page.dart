@@ -167,9 +167,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
 
                               // ── Avatar preview ─────────────────────────────
                               UserAvatar(
-                                seed: state.username.isNotEmpty
-                                    ? state.username
-                                    : state.name,
+                                seed: state.pubkeyHex,
                                 photoUrl: state.avatarUrl.isNotEmpty
                                     ? state.avatarUrl
                                     : null,

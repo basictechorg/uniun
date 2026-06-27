@@ -2329,7 +2329,7 @@ abstract class AppLocalizations {
   /// No description provided for @termsResponsibilityBody.
   ///
   /// In en, this message translates to:
-  /// **'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, or violates others\' rights.'**
+  /// **'You are solely responsible for all content you publish on UNIUN. By using the app, you agree not to post content that is illegal, abusive, harassing, hateful, sexually explicit, or that violates others\' rights. Objectionable content and abusive behavior are not welcome on UNIUN.'**
   String get termsResponsibilityBody;
 
   /// No description provided for @termsNoAbuseTitle.
@@ -2341,7 +2341,7 @@ abstract class AppLocalizations {
   /// No description provided for @termsNoAbuseBody.
   ///
   /// In en, this message translates to:
-  /// **'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network.'**
+  /// **'Do not use UNIUN to spam, harass, impersonate others, or conduct automated activity that disrupts the Nostr network. UNIUN is decentralized: any note menu includes a Report option (categories: nudity, malware, profanity, illegal, spam, impersonation, other) and any user can be blocked from Settings → Blocked Users. Reported notes are immediately hidden from your feed and blocked users\' content never reaches you. Reports are also published on the Nostr network so other clients and relay operators can act on them.'**
   String get termsNoAbuseBody;
 
   /// No description provided for @termsPrivateKeyTitle.
