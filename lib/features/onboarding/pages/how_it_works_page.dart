@@ -161,28 +161,9 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Skip (hidden + inert on the last slide) ──────────────────
-            SizedBox(
-              height: 48,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: AnimatedOpacity(
-                  opacity: isLast ? 0 : 1,
-                  duration: const Duration(milliseconds: 200),
-                  child: TextButton(
-                    onPressed: isLast ? null : () => _close(context),
-                    child: Text(
-                      l10n.howItWorksSkip,
-                      style: const TextStyle(
-                        color: AppColors.onSurfaceVariant,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // ── Progress dots (top) ──────────────────────────────────────
+            const SizedBox(height: 20),
+            _Dots(count: slides.length, index: _index),
 
             // ── Slides ───────────────────────────────────────────────────
             Expanded(
@@ -194,17 +175,40 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
               ),
             ),
 
-            const SizedBox(height: 8),
-            _Dots(count: slides.length, index: _index),
-            const SizedBox(height: 24),
-
-            // ── Next / Get started ───────────────────────────────────────
+            // ── Next / Get started, with Skip below (hidden + inert on
+            //    the last slide) ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 24),
-              child: _PrimaryButton(
-                onPressed: () => isLast ? _close(context) : _next(),
-                label: isLast ? l10n.howItWorksGetStarted : l10n.howItWorksNext,
-                showArrow: !isLast,
+              padding: const EdgeInsets.fromLTRB(32, 8, 32, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PrimaryButton(
+                    onPressed: () => isLast ? _close(context) : _next(),
+                    label: isLast
+                        ? l10n.howItWorksGetStarted
+                        : l10n.howItWorksNext,
+                    showArrow: !isLast,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 44,
+                    child: AnimatedOpacity(
+                      opacity: isLast ? 0 : 1,
+                      duration: const Duration(milliseconds: 200),
+                      child: TextButton(
+                        onPressed: isLast ? null : () => _close(context),
+                        child: Text(
+                          l10n.howItWorksSkip,
+                          style: const TextStyle(
+                            color: AppColors.outline,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -266,11 +270,20 @@ class _SlideView extends StatelessWidget {
                 Text(
                   slide.title,
                   textAlign: TextAlign.center,
+                  // Display serif (--font-display Newsreader) — the design
+                  // system reserves this for brand/onboarding headlines.
+                  // h1 28 · semibold · -0.02em tracking. Variable-font axes
+                  // pin the weight + an optical size suited to display.
                   style: const TextStyle(
+                    fontFamily: 'Newsreader',
+                    fontVariations: [
+                      FontVariation('wght', 600),
+                      FontVariation('opsz', 28),
+                    ],
                     color: AppColors.onSurface,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.56,
                     height: 1.2,
                   ),
                 ),
@@ -283,7 +296,7 @@ class _SlideView extends StatelessWidget {
                       color: AppColors.onSurfaceVariant,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      height: 1.5,
+                      height: 1.55,
                     ),
                   ),
                 ],

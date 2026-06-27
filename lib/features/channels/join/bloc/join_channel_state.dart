@@ -1,34 +1,30 @@
 part of 'join_channel_bloc.dart';
 
+/// Validation/failure reasons surfaced to the join-channel UI. The widget layer
+/// maps these to localized strings (the bloc has no BuildContext).
+enum JoinChannelError { invalidId, noRelay, relaySaveFailed, saveFailed }
+
 @immutable
 class JoinChannelState {
   const JoinChannelState({
-    this.isLoadingRelays = false,
-    this.availableRelays = const [],
     this.isSubmitting = false,
     this.isSuccess = false,
-    this.errorMessage,
+    this.error,
   });
 
-  final bool isLoadingRelays;
-  final List<String> availableRelays;
   final bool isSubmitting;
   final bool isSuccess;
-  final String? errorMessage;
+  final JoinChannelError? error;
 
   JoinChannelState copyWith({
-    bool? isLoadingRelays,
-    List<String>? availableRelays,
     bool? isSubmitting,
     bool? isSuccess,
-    String? errorMessage,
+    JoinChannelError? error,
   }) {
     return JoinChannelState(
-      isLoadingRelays: isLoadingRelays ?? this.isLoadingRelays,
-      availableRelays: availableRelays ?? this.availableRelays,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage,
+      error: error,
     );
   }
 }

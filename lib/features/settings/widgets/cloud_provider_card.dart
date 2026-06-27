@@ -5,16 +5,19 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Settings card for cloud LLM credentials (OpenRouter, today).
+/// Settings row for cloud LLM credentials (OpenRouter, today). Lives inside the
+/// AI · Shiv group alongside the on-device model row, so it renders as a single
+/// [SettingsRow] (not its own card).
 ///
-/// Empty state: shows a CTA that opens a paste-key dialog.
-/// Connected state: shows the active model, a backend toggle (cloud vs
-/// on-device), and a Disconnect action.
+/// Empty state: the whole row opens a paste-key bottom sheet.
+/// Connected state: the whole row opens a manage bottom sheet (active model,
+/// backend toggle cloud vs on-device, and Disconnect).
 ///
 /// Self-contained — uses use cases directly rather than a cubit, since the
-/// card has only a handful of states and lives in the slow-changing Settings
+/// row has only a handful of states and lives in the slow-changing Settings
 /// page. If multiple surfaces grow to share this state, lift to a cubit.
 class CloudProviderCard extends StatefulWidget {
   const CloudProviderCard({super.key});
@@ -59,9 +62,14 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
   Future<void> _connect() async {
     final l10n = AppLocalizations.of(context)!;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final entered = await showDialog<String>(
+    final entered = await showModalBottomSheet<String>(
       context: context,
-      builder: (_) => const _PasteKeyDialog(),
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => const _PasteKeySheet(),
     );
     if (entered == null || entered.trim().isEmpty) return;
 
@@ -125,144 +133,167 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
     await _load();
   }
 
+  /// Connected-state controls (active model · backend toggle · disconnect),
+  /// lifted into a bottom sheet so the row itself stays a single tappable row
+  /// inside the AI settings group.
+  Future<void> _openManageSheet() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.outlineVariant,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      l10n.cloudProviderTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Active model line
+                    Row(
+                      children: [
+                        const Icon(Icons.cloud_outlined,
+                            size: 16, color: AppColors.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _activeModelId ?? l10n.cloudProviderNoActiveModel,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Backend toggle
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _activeBackend == LlmBackendType.openRouter
+                                ? l10n.cloudProviderUseCloud
+                                : l10n.cloudProviderUseLocal,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _activeBackend == LlmBackendType.openRouter,
+                          activeColor: AppColors.primary,
+                          onChanged: (useCloud) async {
+                            await _toggleBackend(useCloud);
+                            setSheetState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Divider(color: AppColors.outlineVariant, height: 1),
+                    const SizedBox(height: 4),
+                    // Disconnect action
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          await _disconnect();
+                          if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+                        },
+                        icon: const Icon(Icons.link_off_rounded, size: 18),
+                        label: Text(l10n.cloudProviderDisconnect),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     if (_loading) {
-      return Container(
-        height: 84,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        alignment: Alignment.center,
-        child: const DropLoadingIndicator(
-          color: AppColors.primary,
+      return SettingsRow(
+        icon: Icons.cloud_outlined,
+        label: l10n.cloudProviderTitle,
+        showChevron: false,
+        trailing: const SizedBox(
+          width: 18,
+          height: 18,
+          child: DropLoadingIndicator(size: 18, color: AppColors.primary),
         ),
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row — tappable when connected, opens manage flow
-          GestureDetector(
-            onTap: _hasKey ? null : _connect,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.cloudProviderTitle,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _hasKey
-                            ? l10n.cloudProviderConnectedSubtitle
-                            : l10n.cloudProviderEmptySubtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: _hasKey
-                              ? AppColors.primary
-                              : AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (!_hasKey)
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.onSurfaceVariant),
-              ],
-            ),
-          ),
-          if (_hasKey) ...[
-            const SizedBox(height: 16),
-            // Active model line
-            Row(
-              children: [
-                const Icon(Icons.cloud_outlined,
-                    size: 16, color: AppColors.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _activeModelId ?? l10n.cloudProviderNoActiveModel,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Backend toggle
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _activeBackend == LlmBackendType.openRouter
-                        ? l10n.cloudProviderUseCloud
-                        : l10n.cloudProviderUseLocal,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                Switch.adaptive(
-                  value: _activeBackend == LlmBackendType.openRouter,
-                  onChanged: _toggleBackend,
-                  activeColor: AppColors.primary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Disconnect action
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _disconnect,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-                child: Text(l10n.cloudProviderDisconnect),
-              ),
-            ),
-          ],
-        ],
-      ),
+    if (!_hasKey) {
+      // Empty state — whole row opens the paste-key sheet.
+      return SettingsRow(
+        icon: Icons.cloud_outlined,
+        label: l10n.cloudProviderTitle,
+        subtitle: l10n.cloudProviderEmptySubtitle,
+        onTap: _connect,
+      );
+    }
+
+    // Connected — whole row opens the manage sheet.
+    return SettingsRow(
+      icon: Icons.cloud_done_outlined,
+      label: l10n.cloudProviderTitle,
+      subtitle: l10n.cloudProviderConnectedSubtitle,
+      onTap: _openManageSheet,
     );
   }
 }
 
-class _PasteKeyDialog extends StatefulWidget {
-  const _PasteKeyDialog();
+/// Paste-key input as a bottom sheet (the app prefers bottom sheets over modal
+/// dialogs — see CLAUDE.md). Returns the entered key via `Navigator.pop`.
+class _PasteKeySheet extends StatefulWidget {
+  const _PasteKeySheet();
 
   @override
-  State<_PasteKeyDialog> createState() => _PasteKeyDialogState();
+  State<_PasteKeySheet> createState() => _PasteKeySheetState();
 }
 
-class _PasteKeyDialogState extends State<_PasteKeyDialog> {
+class _PasteKeySheetState extends State<_PasteKeySheet> {
   final _controller = TextEditingController();
 
   @override
@@ -281,47 +312,80 @@ class _PasteKeyDialogState extends State<_PasteKeyDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: Text(l10n.cloudProviderPasteKeyTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _controller,
-            obscureText: true,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: l10n.cloudProviderPasteKeyHint,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.content_paste_rounded),
-                onPressed: _paste,
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
               ),
-              border: const OutlineInputBorder(),
-            ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.cloudProviderPasteKeyTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _controller,
+                obscureText: true,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: l10n.cloudProviderPasteKeyHint,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste_rounded),
+                    onPressed: _paste,
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.cloudProviderPasteKeyHelper,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l10n.actionCancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary),
+                    onPressed: () =>
+                        Navigator.of(context).pop(_controller.text),
+                    child: Text(l10n.actionSave),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.cloudProviderPasteKeyHelper,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        ],
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.actionCancel),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(l10n.actionSave),
-        ),
-      ],
     );
   }
 }

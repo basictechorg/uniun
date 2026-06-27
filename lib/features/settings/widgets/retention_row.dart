@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Auto-delete picker for old public-note traffic (Kind 1 / Kind 42).
@@ -27,58 +27,25 @@ class RetentionRow extends StatelessWidget {
       buildWhen: (a, b) =>
           a.autoDeleteOldNotesDays != b.autoDeleteOldNotesDays,
       builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.storageRetentionTitle,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.storageRetentionSubtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              DropdownButton<int?>(
-                value: state.autoDeleteOldNotesDays,
-                underline: const SizedBox.shrink(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-                items: [
-                  for (final v in _options)
-                    DropdownMenuItem<int?>(
-                      value: v,
-                      child: Text(_label(l10n, v)),
-                    ),
+        return SettingsRow(
+          icon: Icons.schedule_rounded,
+          label: l10n.storageRetentionTitle,
+          infoTooltip: l10n.storageRetentionSubtitle,
+          showChevron: false,
+          trailing: SettingsPickerButton(
+            label: _label(l10n, state.autoDeleteOldNotesDays),
+            onTap: () {
+              final cubit = context.read<StorageCubit>();
+              showSettingsOptionSheet<int?>(
+                context: context,
+                title: l10n.storageRetentionTitle,
+                selected: state.autoDeleteOldNotesDays,
+                options: [
+                  for (final v in _options) SettingsOption(v, _label(l10n, v)),
                 ],
-                onChanged: (v) {
-                  context.read<StorageCubit>().setAutoDeleteOldNotesDays(v);
-                },
-              ),
-            ],
+                onSelected: cubit.setAutoDeleteOldNotesDays,
+              );
+            },
           ),
         );
       },

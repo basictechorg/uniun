@@ -323,6 +323,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i836.FollowedNoteRepository>(
       () => _i107.FollowedNoteRepositoryImpl(isar: gh<_i214.Isar>()),
     );
+    gh.lazySingleton<_i475.GetNoteRelationCountsUseCase>(
+      () => _i475.GetNoteRelationCountsUseCase(
+        gh<_i1017.NoteRelationRepository>(),
+      ),
+    );
     gh.factory<_i699.ManasRepository>(
       () => _i395.ManasRepositoryImpl(isar: gh<_i214.Isar>()),
     );
@@ -526,6 +531,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i799.ImportKeyUseCase>(
       () => _i799.ImportKeyUseCase(gh<_i103.UserRepository>()),
+    );
+    gh.lazySingleton<_i799.LogoutUseCase>(
+      () => _i799.LogoutUseCase(gh<_i103.UserRepository>()),
     );
     gh.lazySingleton<_i179.DeleteKnowledgeForNoteUseCase>(
       () => _i179.DeleteKnowledgeForNoteUseCase(
@@ -958,13 +966,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i63.WatchFollowedUsersUseCase>(
       () => _i63.WatchFollowedUsersUseCase(gh<_i849.FollowedUserRepository>()),
     );
-    gh.factory<_i750.JoinChannelBloc>(
-      () => _i750.JoinChannelBloc(
-        gh<_i985.GetRelaysUseCase>(),
-        gh<_i433.SaveRelayUseCase>(),
-        gh<_i67.SaveChannelUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i894.GetAvailableAIModelsUseCase>(
       () => _i894.GetAvailableAIModelsUseCase(gh<_i646.AIModelRepository>()),
     );
@@ -1055,6 +1056,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i214.Isar>(),
       ),
     );
+    gh.factory<_i750.JoinChannelBloc>(
+      () => _i750.JoinChannelBloc(
+        gh<_i433.SaveRelayUseCase>(),
+        gh<_i67.SaveChannelUseCase>(),
+      ),
+    );
     gh.lazySingleton<_i918.HasActiveLlmModelUseCase>(
       () => _i918.HasActiveLlmModelUseCase(gh<_i205.LlmRepository>()),
     );
@@ -1125,6 +1132,17 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.HasActiveLlmModelUseCase>(),
       ),
     );
+    gh.factory<_i734.ReferencePickerCubit>(
+      () => _i734.ReferencePickerCubit(
+        gh<_i475.GetFeedUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
     gh.factory<_i687.SelectAIModelCubit>(
       () => _i687.SelectAIModelCubit(
         gh<_i894.GetAvailableAIModelsUseCase>(),
@@ -1133,19 +1151,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i894.DownloadAndActivateAIModelUseCase>(),
         gh<_i894.DeleteAIModelUseCase>(),
         gh<_i850.EmbeddingModelDownloader>(),
-      ),
-    );
-    gh.factory<_i830.GraphBloc>(
-      () => _i830.GraphBloc(
-        gh<_i858.GetAllSavedNotesUseCase>(),
-        gh<_i475.GetOwnNotesUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i799.GetActiveUserProfileUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i977.GetNoteIdsForManasUseCase>(),
-        gh<_i977.GetManasByIdUseCase>(),
-        gh<_i214.Isar>(),
       ),
     );
     gh.factory<_i942.GanaFormBloc>(
@@ -1254,13 +1259,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i537.GetDraftsUseCase>(),
       ),
     );
-    gh.factory<_i734.ReferencePickerCubit>(
-      () => _i734.ReferencePickerCubit(
-        gh<_i475.GetFeedUseCase>(),
-        gh<_i475.SearchNotesUseCase>(),
-        gh<_i858.GetAllSavedNotesUseCase>(),
-      ),
-    );
     gh.factory<_i395.NatarajBloc>(
       () => _i395.NatarajBloc(
         gh<_i638.NatarajGenerator>(),
@@ -1289,6 +1287,20 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i629.RemoveLocalMediaUseCase>(
       () => _i629.RemoveLocalMediaUseCase(gh<_i683.MediaRepository>()),
+    );
+    gh.factory<_i830.GraphBloc>(
+      () => _i830.GraphBloc(
+        gh<_i858.GetAllSavedNotesUseCase>(),
+        gh<_i475.GetOwnNotesUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i799.GetActiveUserProfileUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i977.GetNoteIdsForManasUseCase>(),
+        gh<_i977.GetManasByIdUseCase>(),
+        gh<_i475.GetNoteRelationCountsUseCase>(),
+        gh<_i214.Isar>(),
+      ),
     );
     gh.lazySingleton<_i681.RagPipeline>(
       () => _i681.RagPipeline(
@@ -1324,6 +1336,17 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i1.ShareNoteUseCase>(
       () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
+    );
+    gh.factory<_i574.ShareSheetBloc>(
+      () => _i574.ShareSheetBloc(
+        gh<_i722.GetChannelsUseCase>(),
+        gh<_i78.GetPrivateChannelsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i1.ShareNoteUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i858.ResolveNotesByIdsUseCase>(),
+      ),
     );
     gh.factory<_i886.BrahmaCreateBloc>(
       () => _i886.BrahmaCreateBloc(
@@ -1424,16 +1447,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1023.SendDmUseCase>(),
         gh<_i799.GetActiveUserKeysUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
-      ),
-    );
-    gh.factory<_i574.ShareSheetBloc>(
-      () => _i574.ShareSheetBloc(
-        gh<_i722.GetChannelsUseCase>(),
-        gh<_i78.GetPrivateChannelsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i1.ShareNoteUseCase>(),
-        gh<_i629.UploadMediaUseCase>(),
-        gh<_i799.GetActiveUserUseCase>(),
       ),
     );
     gh.factory<_i190.ShivAIBloc>(

@@ -138,7 +138,11 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         final activeGone =
             activeId != null && !list.any((c) => c.conversationId == activeId);
         emit(state.copyWith(
-          status: ShivChatStatus.idle,
+          // The watcher re-fires this path on every conversation mutation —
+          // including the create + auto-title update that land WHILE the first
+          // reply streams. Preserve an in-flight stream so the chat page keeps
+          // the live streaming bubble instead of swapping in an empty one.
+          status: refreshStatus(state.status, activeGone: activeGone),
           conversations: list,
           activeConversation: activeGone ? null : state.activeConversation,
           messages: activeGone ? const [] : state.messages,
@@ -543,6 +547,26 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  /// Resolves the chat [ShivChatStatus] when the background conversations
+  /// watcher refreshes the list mid-session. The watcher
+  /// (`shivConversationModels.watchLazy`) re-fires on EVERY conversation
+  /// mutation — including the conversation-create + auto-title update that land
+  /// WHILE the first reply is streaming. Downgrading an in-flight `streaming`
+  /// turn to `idle` here makes the chat page render the assistant placeholder
+  /// as a regular (non-streaming) bubble, hiding the typing dots AND the
+  /// streamed tokens until the turn ends. So a live stream is preserved;
+  /// everything else settles to `idle` (which also clears any prior error).
+  @visibleForTesting
+  static ShivChatStatus refreshStatus(
+    ShivChatStatus current, {
+    required bool activeGone,
+  }) {
+    if (!activeGone && current == ShivChatStatus.streaming) {
+      return ShivChatStatus.streaming;
+    }
+    return ShivChatStatus.idle;
+  }
 
   /// Creates a fresh InferenceChat session with the Shiv system instruction.
   /// On branch switch, [branchContext] adds a compact conversation summary so

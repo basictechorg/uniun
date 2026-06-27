@@ -1,8 +1,13 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
@@ -54,54 +59,108 @@ class _UserProfileView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: BlocBuilder<UserProfileBloc, UserProfileState>(
-          builder: (context, state) {
-            if (state.loading) {
-              return const Center(
+      body: BlocBuilder<UserProfileBloc, UserProfileState>(
+        builder: (context, state) {
+          if (state.loading) {
+            return const SafeArea(
+              child: Center(
                 child: DropLoadingIndicator(color: AppColors.primary),
-              );
-            }
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _Header(state: state, l10n: l10n)),
-                if (state.notes.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 60),
-                      child: Center(
-                        child: Text(
-                          l10n.userProfileNoNotes,
-                          style: const TextStyle(
-                            color: AppColors.onSurfaceVariant,
-                            fontSize: 14,
-                          ),
+              ),
+            );
+          }
+          return CustomScrollView(
+            slivers: [
+              _GlassAppBar(state: state),
+              SliverToBoxAdapter(child: _Header(state: state, l10n: l10n)),
+              SliverToBoxAdapter(child: _NotesSectionLabel(l10n: l10n)),
+              if (state.notes.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 60),
+                    child: Center(
+                      child: Text(
+                        l10n.userProfileNoNotes,
+                        style: const TextStyle(
+                          color: AppColors.onSurfaceVariant,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, i) {
-                        final note = state.notes[i];
-                        return NoteCard(
-                          key: ValueKey(note.id),
-                          note: note,
-                          onTap: () => context.pushNamed(
-                            AppRoutes.thread,
-                            pathParameters: {'noteId': note.id},
-                          ),
-                        );
-                      },
-                      childCount: state.notes.length,
-                    ),
                   ),
-              ],
-            );
-          },
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final note = state.notes[i];
+                      return NoteCard(
+                        key: ValueKey(note.id),
+                        note: note,
+                        onTap: () => context.pushNamed(
+                          AppRoutes.thread,
+                          pathParameters: {'noteId': note.id},
+                        ),
+                      );
+                    },
+                    childCount: state.notes.length,
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Pinned, translucent app bar. Keeps the user's name as the title.
+class _GlassAppBar extends StatelessWidget {
+  const _GlassAppBar({required this.state});
+
+  final UserProfileState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      pinned: true,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      titleSpacing: 0,
+      flexibleSpace: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surface.withValues(alpha: 0.80),
+              border: const Border(
+                bottom: BorderSide(color: AppColors.borderSubtle),
+              ),
+            ),
+          ),
         ),
+      ),
+      title: Row(
+        children: [
+          const SizedBox(width: 4),
+          UniunBackButton(onPressed: () => context.popOrHome()),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              _displayName(state),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -117,115 +176,178 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final hex = state.pubkeyHex ?? '';
     final profile = state.profile;
-    final hint = state.hintName?.trim();
-    final name = profile?.name?.trim().isNotEmpty == true
-        ? profile!.name!
-        : (profile?.username?.trim().isNotEmpty == true
-            ? profile!.username!
-            : (hint != null && hint.isNotEmpty
-                ? hint
-                : (hex.length > 12 ? '${hex.substring(0, 12)}…' : hex)));
-    final handle = profile?.username?.trim().isNotEmpty == true
-        ? '@${profile!.username!}'
-        : (hex.length > 16 ? '${hex.substring(0, 16)}…' : hex);
+    final name = _displayName(state);
+    final nip05 = profile?.nip05?.trim();
+    final about = profile?.about?.trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            UniunBackButton(
-              onPressed: () => context.popOrHome(),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar beside name + verified handle.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              UserAvatar(
+                seed: hex,
+                photoUrl: profile?.avatarUrl,
+                size: 64,
+                showBorder: true,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    if (nip05 != null && nip05.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.verified_rounded,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              nip05,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+            ],
+          ),
+
+          // npub + copy.
+          const SizedBox(height: 12),
+          _NpubRow(pubkeyHex: hex, l10n: l10n),
+
+          // about.
+          if (about != null && about.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              about,
+              style: const TextStyle(
+                fontSize: 14.5,
+                height: 1.55,
+                color: AppColors.textBody,
               ),
             ),
           ],
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  UserAvatar(
-                    seed: hex,
-                    photoUrl: profile?.avatarUrl,
-                    size: 84,
-                    showBorder: true,
-                  ),
-                  const Spacer(),
-                  if (!state.isSelf) ...[
-                    _FollowButton(state: state),
-                    const SizedBox(width: 8),
-                    _DmButton(pubkeyHex: hex),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                handle,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              if (profile?.about?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 12),
-                Text(
-                  profile!.about!,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.onSurface,
-                  ),
-                ),
+
+          // actions.
+          if (!state.isSelf) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _FollowButton(state: state)),
+                const SizedBox(width: 10),
+                Expanded(child: _MessageButton(pubkeyHex: hex)),
               ],
-              if (profile?.nip05?.trim().isNotEmpty == true) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.verified_rounded,
-                      size: 14,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      profile!.nip05!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NpubRow extends StatelessWidget {
+  const _NpubRow({required this.pubkeyHex, required this.l10n});
+
+  final String pubkeyHex;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final npub = Nip19.encodePubkey(pubkeyHex);
+    final shown = npub.length > 20
+        ? '${npub.substring(0, 14)}…${npub.substring(npub.length - 4)}'
+        : npub;
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            shown,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontFeatures: [FontFeature.tabularFigures()],
+              color: AppColors.textMuted,
+            ),
           ),
         ),
-        const Divider(height: 1, color: AppColors.outlineVariant),
+        const SizedBox(width: 2),
+        IconButton(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: npub));
+            AppSnackbar.success(context, l10n.drawerNpubCopied);
+          },
+          tooltip: l10n.userProfileCopyNpub,
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+          icon: const Icon(
+            Icons.content_copy_rounded,
+            size: 14,
+            color: AppColors.textMuted,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _NotesSectionLabel extends StatelessWidget {
+  const _NotesSectionLabel({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        border: Border(
+          top: BorderSide(color: AppColors.borderSubtle),
+          bottom: BorderSide(color: AppColors.borderSubtle),
+        ),
+      ),
+      child: Text(
+        l10n.userProfileNotesLabel.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: AppColors.textMuted,
+        ),
+      ),
     );
   }
 }
@@ -244,55 +366,71 @@ class _FollowButton extends StatelessWidget {
         : () => context.read<UserProfileBloc>().add(const ToggleFollowEvent());
 
     if (isFollowing) {
-      return OutlinedButton(
+      return OutlinedButton.icon(
         onPressed: onPressed,
+        icon: const Icon(Icons.check_rounded, size: 18),
+        label: Text(l10n.userProfileFollowing),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           side: const BorderSide(color: AppColors.primary),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
           ),
         ),
-        child: Text(l10n.userProfileFollowing),
       );
     }
-    return ElevatedButton(
+    return ElevatedButton.icon(
       onPressed: onPressed,
+      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+      label: Text(l10n.userProfileFollow),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 11),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
         ),
       ),
-      child: Text(l10n.userProfileFollow),
     );
   }
 }
 
-class _DmButton extends StatelessWidget {
-  const _DmButton({required this.pubkeyHex});
+class _MessageButton extends StatelessWidget {
+  const _MessageButton({required this.pubkeyHex});
 
   final String pubkeyHex;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    final l10n = AppLocalizations.of(context)!;
+    return OutlinedButton.icon(
       onPressed: () => context.pushNamed(
         AppRoutes.createDm,
         extra: pubkeyHex,
       ),
+      icon: const Icon(Icons.mail_outline_rounded, size: 18),
+      label: Text(l10n.userProfileMessage),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        side: const BorderSide(color: AppColors.outline),
+        foregroundColor: AppColors.onSurface,
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        side: const BorderSide(color: AppColors.outlineVariant),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
         ),
       ),
-      child: const Icon(Icons.mail_outline_rounded, size: 18),
     );
   }
+}
+
+/// Best display name: profile name → username → hint → truncated hex.
+String _displayName(UserProfileState state) {
+  final hex = state.pubkeyHex ?? '';
+  final profile = state.profile;
+  final hint = state.hintName?.trim();
+  if (profile?.name?.trim().isNotEmpty == true) return profile!.name!;
+  if (profile?.username?.trim().isNotEmpty == true) return profile!.username!;
+  if (hint != null && hint.isNotEmpty) return hint;
+  return hex.length > 12 ? '${hex.substring(0, 12)}…' : hex;
 }

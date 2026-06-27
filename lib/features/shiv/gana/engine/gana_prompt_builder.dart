@@ -60,6 +60,9 @@ class GanaPromptBuilder {
           'this token and nothing else: $noopSentinel')
       ..writeln('- Output ONLY the message body. No quotes, no JSON, no '
           'function calls, no labels.')
+      ..writeln('- You MAY use light Markdown when it aids clarity: '
+          '**bold**, *italics*, `inline code`, and `- ` bullet lists. '
+          'Do not use headings (#) or block code fences.')
       ..writeln();
 
     // ── USER task ──────────────────────────────────────────────────────────

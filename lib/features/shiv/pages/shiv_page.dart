@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
+import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
-import 'package:uniun/features/shiv/nataraj/pages/nataraj_deck_page.dart';
+import 'package:uniun/features/shiv/pages/shiv_home_page.dart';
 import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
 
 /// Shiv AI assistant tab root.
 ///
 /// Provides the [ShivAIBloc], loads conversations on mount, then:
-/// - If no conversation is active → [NatarajDeckPage] (swipe-deck home).
-/// - If a conversation is active → [ShivChatPage].
+/// - If no conversation is active → [ShivHomePage] (the hero landing).
+/// - If a conversation is active → [ShivChatPage] (full-screen, no bottom tab).
 ///
 /// Redirects to the AI model selection screen if no model is installed.
 class ShivPage extends StatefulWidget {
@@ -76,37 +78,43 @@ class _ShivPageState extends State<ShivPage> {
       );
     }
 
-    // Show Shiv UI once model exists — FloatingNav overlaid via Stack
+    // Show Shiv UI once model exists — FloatingNav overlaid via Stack.
+    // The bloc wraps the whole Stack so the nav overlay can read the active
+    // conversation and hide itself while the chat is open (chat is full-screen,
+    // no bottom tab — same slide it already uses for the keyboard/drawer).
     if (_hasModel == true) {
-      return Stack(
-        children: [
-          BlocProvider(
-            create: (_) =>
-                getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
-            child: _ShivRoot(
+      return BlocProvider(
+        create: (_) =>
+            getIt<ShivAIBloc>()..add(const ShivAIEvent.loadConversations()),
+        child: Stack(
+          children: [
+            _ShivRoot(
               currentIndex: widget.currentIndex,
               onDrawerChanged: _onDrawerChanged,
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: KeyboardVisibilityBuilder(
-              builder: (context, isKeyboardVisible) => AnimatedSlide(
-                offset: (isKeyboardVisible || _drawerOpen)
-                    ? const Offset(0, 1.5)
-                    : Offset.zero,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeInOut,
-                child: FloatingNav(
-                  currentIndex: widget.currentIndex,
-                  onTap: widget.onSwitchTab,
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: BlocSelector<ShivAIBloc, ShivAIState, bool>(
+                selector: (state) => state.activeConversation != null,
+                builder: (context, inChat) => KeyboardVisibilityBuilder(
+                  builder: (context, isKeyboardVisible) => AnimatedSlide(
+                    offset: (isKeyboardVisible || _drawerOpen || inChat)
+                        ? const Offset(0, 1.5)
+                        : Offset.zero,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeInOut,
+                    child: FloatingNav(
+                      currentIndex: widget.currentIndex,
+                      onTap: widget.onSwitchTab,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -170,7 +178,17 @@ class _ShivRootState extends State<_ShivRoot> {
         if (state.activeConversation != null) {
           return ShivChatPage(onDrawerChanged: widget.onDrawerChanged);
         }
-        return NatarajDeckPage(onDrawerChanged: widget.onDrawerChanged);
+        return ShivHomePage(
+          onDrawerChanged: widget.onDrawerChanged,
+          onAsk: () => context
+              .read<ShivAIBloc>()
+              .add(const ShivAIEvent.createConversation()),
+          onSuggest: (text) => context
+              .read<ShivAIBloc>()
+              .add(ShivAIEvent.createConversationSeeded(text)),
+          onOpenGana: () => context.pushNamed(AppRoutes.shivGanaList),
+          onOpenNataraj: () => context.pushNamed(AppRoutes.shivNataraj),
+        );
       },
     );
   }

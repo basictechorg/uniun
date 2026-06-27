@@ -1,234 +1,172 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
-/// Card displaying a Nostr key (npub or nsec) with copy + optional reveal toggle.
+/// A single Nostr key row: an uppercase label, a muted helper line, and an
+/// inset field showing the key value (mono) with a copy control and, for the
+/// secret key, a reveal toggle.
 class KeyCard extends StatelessWidget {
   const KeyCard({
     super.key,
-    required this.title,
-    required this.subtitle,
+    required this.label,
+    required this.helper,
     required this.keyValue,
-    required this.icon,
-    required this.iconColor,
-    required this.iconBg,
     required this.isSecret,
     required this.isVisible,
     required this.onToggle,
     required this.isCopied,
     required this.onCopy,
-    this.warning,
   });
 
-  final String title;
-  final String subtitle;
+  final String label;
+  final String helper;
   final String keyValue;
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBg;
   final bool isSecret;
   final bool isVisible;
   final VoidCallback? onToggle;
   final bool isCopied;
   final VoidCallback onCopy;
-  final String? warning;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final display =
-        (isSecret && !isVisible) ? '• • • • • • • • • • • •' : keyValue;
+    final hidden = isSecret && !isVisible;
+    final display = hidden ? '• • • • • • • • • • • •' : keyValue;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+            color: AppColors.onSurfaceVariant,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        ),
+        const SizedBox(height: 2),
+        Text(
+          helper,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: AppColors.outline,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.6),
+            ),
+          ),
+          child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                    color: iconBg, borderRadius: BorderRadius.circular(9)),
-                child: Icon(icon, color: iconColor, size: 16),
-              ),
-              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface)),
-                    Text(subtitle,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant)),
-                  ],
+                child: Text(
+                  display,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 14,
+                    height: 1.2,
+                    color: hidden
+                        ? AppColors.onSurfaceVariant
+                        : AppColors.onSurface,
+                  ),
                 ),
               ),
+              if (onToggle != null)
+                _KeyIconButton(
+                  icon: isVisible
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  onTap: onToggle,
+                ),
+              const SizedBox(width: 2),
+              _CopyButton(isCopied: isCopied, onCopy: onCopy),
             ],
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    display,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: isSecret && !isVisible
-                          ? AppColors.onSurfaceVariant
-                          : AppColors.primary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (onToggle != null)
-                  GestureDetector(
-                    onTap: onToggle,
-                    child: Icon(
-                      isVisible
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      size: 16,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: isCopied ? null : onCopy,
-                  child: isCopied
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.check_circle_rounded,
-                                size: 14,
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.8)),
-                            const SizedBox(width: 4),
-                            Text(
-                              l10n.actionCopied,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            l10n.actionCopy,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                ),
-              ],
-            ),
-          ),
-          if (warning != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.errorContainer.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_rounded,
-                      color: AppColors.error, size: 14),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(warning!,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.onErrorContainer,
-                            fontWeight: FontWeight.w500)),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Compact circular tap target for the in-field key actions (copy / reveal).
+class _KeyIconButton extends StatelessWidget {
+  const _KeyIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 22,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: 18,
+          color: AppColors.onSurfaceVariant,
+        ),
       ),
     );
   }
 }
 
-/// Placeholder shown in place of the private key card until the public key is copied.
-class PrivKeyHint extends StatelessWidget {
-  const PrivKeyHint({super.key});
+/// Labeled "Copy" action rendered as a tinted pill so the control clearly reads
+/// as a tappable button (not just an icon). Flips to a check + "Copied" once
+/// tapped, matching the key-card's copy-to-proceed flow.
+class _CopyButton extends StatelessWidget {
+  const _CopyButton({required this.isCopied, required this.onCopy});
+
+  final bool isCopied;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: AppColors.outlineVariant.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: const Icon(Icons.lock_rounded,
-                color: AppColors.outlineVariant, size: 16),
+    final l10n = AppLocalizations.of(context)!;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isCopied ? null : onCopy,
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: isCopied ? 0.0 : 0.10),
+            borderRadius: BorderRadius.circular(999),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppLocalizations.of(context)!.keysCopyPublicAbove,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.onSurfaceVariant,
-                height: 1.4,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isCopied
+                    ? Icons.check_rounded
+                    : Icons.content_copy_rounded,
+                size: 15,
+                color: AppColors.primary,
               ),
-            ),
+              const SizedBox(width: 5),
+              Text(
+                isCopied ? l10n.actionCopied : l10n.actionCopy,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

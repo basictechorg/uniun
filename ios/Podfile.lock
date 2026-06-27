@@ -40,7 +40,7 @@ PODS:
   - Flutter (1.0.0)
   - flutter_file_dialog (0.0.1):
     - Flutter
-  - flutter_gemma (0.16.3):
+  - flutter_gemma (1.0.3):
     - Flutter
   - flutter_gemma_mediapipe (0.1.0):
     - Flutter
@@ -91,6 +91,8 @@ PODS:
     - FlutterMacOS
   - open_filex (0.0.2):
     - Flutter
+  - package_info_plus (0.4.5):
+    - Flutter
   - receive_sharing_intent (1.8.1):
     - Flutter
   - SDWebImage (5.21.7):
@@ -136,6 +138,7 @@ DEPENDENCIES:
   - large_file_handler (from `.symlinks/plugins/large_file_handler/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - open_filex (from `.symlinks/plugins/open_filex/ios`)
+  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -194,6 +197,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
   open_filex:
     :path: ".symlinks/plugins/open_filex/ios"
+  package_info_plus:
+    :path: ".symlinks/plugins/package_info_plus/ios"
   receive_sharing_intent:
     :path: ".symlinks/plugins/receive_sharing_intent/ios"
   share_plus:
@@ -219,7 +224,7 @@ SPEC CHECKSUMS:
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_file_dialog: ca8d7fbd1772d4f0c2777b4ab20a7787ef4e7dd8
-  flutter_gemma: 31b3b10fd402a40e19191fe38de113421058d818
+  flutter_gemma: 5e1c11add491439c2dae9a83b0f091787445a1a0
   flutter_gemma_mediapipe: 4b7c676ab06a0ba2888e926885f451aec10847b2
   flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
   flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
@@ -236,6 +241,7 @@ SPEC CHECKSUMS:
   MediaPipeTasksGenAIC: cb098ecea44e248efe8fe7e2f62b4cb0df781802
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   open_filex: 432f3cd11432da3e39f47fcc0df2b1603854eff1
+  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377

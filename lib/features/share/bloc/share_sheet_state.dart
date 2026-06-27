@@ -22,6 +22,14 @@ abstract class ShareSheetState with _$ShareSheetState {
     @Default(<ChannelEntity>[]) List<ChannelEntity> publicChannels,
     @Default(<PrivateChannelEntity>[]) List<PrivateChannelEntity> privateChannels,
     @Default(<DmConversationEntity>[]) List<DmConversationEntity> dmConversations,
+
+    /// The original note being shared, resolved for the "Quoting" preview card.
+    /// Null while loading or if it can't be resolved (the card is then hidden).
+    NoteEntity? quotedNote,
+
+    /// Destination highlighted by the user; the bottom Share button publishes
+    /// it. Null until the user picks one (button stays disabled).
+    ShareDestination? selectedDestination,
     String? error,
   }) = _ShareSheetState;
 }

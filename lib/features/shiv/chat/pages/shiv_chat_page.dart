@@ -78,7 +78,7 @@ class _ShivChatPageState extends State<ShivChatPage> {
               children: [
                 _ShivChatHeader(
                   threadTitle: conv?.title ?? l10n.shivDefaultConversationTitle,
-                  onNatarajTap: () => context
+                  onBack: () => context
                       .read<ShivAIBloc>()
                       .add(const ShivAIEvent.closeConversation()),
                   onHistoryTap: () => Scaffold.of(ctx).openDrawer(),
@@ -181,13 +181,13 @@ class _StreamingBubble extends StatelessWidget {
 class _ShivChatHeader extends StatelessWidget {
   const _ShivChatHeader({
     required this.threadTitle,
-    required this.onNatarajTap,
+    required this.onBack,
     required this.onHistoryTap,
     required this.onTreeTap,
   });
 
   final String threadTitle;
-  final VoidCallback onNatarajTap;
+  final VoidCallback onBack;
   final VoidCallback onHistoryTap;
   final VoidCallback onTreeTap;
 
@@ -197,7 +197,7 @@ class _ShivChatHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      padding: EdgeInsets.only(left: 20, right: 8, top: top + 8, bottom: 8),
+      padding: EdgeInsets.only(left: 8, right: 8, top: top + 8, bottom: 8),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.85),
         boxShadow: [
@@ -210,20 +210,13 @@ class _ShivChatHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // SHIV icon — tap to open the drawer (matches Vishnu/Brahma).
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onHistoryTap,
-            child: SvgPicture.asset(
-              'assets/images/tabs/shiva.svg',
-              height: 30,
-              colorFilter: const ColorFilter.mode(
-                AppColors.onSurfaceVariant,
-                BlendMode.srcIn,
-              ),
-            ),
+          // Back — return to the Shiv home (closes the active conversation).
+          _HeaderIcon(
+            icon: Icons.arrow_back_rounded,
+            onTap: onBack,
+            tooltip: l10n.actionBack,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           Expanded(
             child: Text(
               threadTitle,
@@ -237,15 +230,11 @@ class _ShivChatHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Nataraj — back to the spark deck (Shiv home).
+          // Conversation history — opens the history drawer sheet.
           _HeaderIcon(
-            onTap: onNatarajTap,
-            tooltip: l10n.natarajTileAction,
-            child: const Icon(
-              Icons.sports_gymnastics_rounded,
-              size: 22,
-              color: AppColors.onSurfaceVariant,
-            ),
+            icon: Icons.history_rounded,
+            onTap: onHistoryTap,
+            tooltip: l10n.shivConversationsTooltip,
           ),
           // Tree — branch graph for this conversation
           _HeaderIcon(

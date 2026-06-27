@@ -18,6 +18,11 @@ abstract class SavedNoteEntity with _$SavedNoteEntity {
     required List<String> tTags,
     required DateTime created,
     required DateTime savedAt,
+
+    /// NIP-10 threading markers — let the knowledge graph exclude the thread
+    /// root from edges (a deep saved reply links to its direct parent only).
+    String? rootEventId,
+    String? replyToEventId,
     /// Saved-scoped incoming reply count (saved replies to this note).
     @Default(0) int cachedReplyCount,
     /// Saved-scoped outgoing reference count (saved notes this one references).
@@ -59,6 +64,8 @@ extension SavedNoteToNote on SavedNoteEntity {
         pTagRefs: pTagRefs,
         tTags: tTags,
         created: created,
+        rootEventId: rootEventId,
+        replyToEventId: replyToEventId,
         cachedReplyCount: cachedReplyCount,
         referenceCount: referenceCount,
         sourceChannelId: sourceChannelId,

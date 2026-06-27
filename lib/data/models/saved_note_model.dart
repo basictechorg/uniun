@@ -71,6 +71,8 @@ extension SavedNoteModelExtension on SavedNoteModel {
         tTags: tTags,
         created: created,
         savedAt: savedAt,
+        rootEventId: rootEventId,
+        replyToEventId: replyToEventId,
         sourceChannelId: sourceChannelId,
         sourcePrivateGroupId: sourcePrivateGroupId,
         quotedNote: decodeEmbeddedNote(embeddedNoteJson),

@@ -10,10 +10,12 @@ class DmDestinationTile extends StatefulWidget {
     super.key,
     required this.otherPubkeyHex,
     required this.onTap,
+    this.selected = false,
   });
 
   final String otherPubkeyHex;
   final VoidCallback onTap;
+  final bool selected;
 
   @override
   State<DmDestinationTile> createState() => _DmDestinationTileState();
@@ -48,11 +50,12 @@ class _DmDestinationTileState extends State<DmDestinationTile> {
       leading: UserAvatar(
         seed: widget.otherPubkeyHex,
         photoUrl: _avatarUrl,
-        size: 36,
-        borderRadius: 18,
+        size: 38,
+        borderRadius: 19,
       ),
       title: _name ?? _shortPubkey(widget.otherPubkeyHex),
       onTap: widget.onTap,
+      selected: widget.selected,
     );
   }
 

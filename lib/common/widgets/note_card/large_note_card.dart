@@ -28,6 +28,7 @@ class LargeNoteCard extends StatelessWidget {
     required this.note,
     this.replyCount,
     this.showActions = true,
+    this.contained = true,
   });
 
   final NoteEntity note;
@@ -40,6 +41,12 @@ class LargeNoteCard extends StatelessWidget {
   /// Defaults to true so all existing callers are unaffected.
   final bool showActions;
 
+  /// When false the card drops its border + soft shadow + radius and renders
+  /// flat full-bleed with a single bottom hairline — used as the thread root so
+  /// the thread reads as one continuous surface (no floating card). Defaults to
+  /// true so all existing callers keep the contained Card look.
+  final bool contained;
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -48,6 +55,7 @@ class LargeNoteCard extends StatelessWidget {
         note: note,
         replyCount: replyCount,
         showActions: showActions,
+        contained: contained,
       ),
     );
   }
@@ -58,11 +66,13 @@ class _LargeNoteCardView extends StatelessWidget {
     required this.note,
     this.replyCount,
     this.showActions = true,
+    this.contained = true,
   });
 
   final NoteEntity note;
   final int? replyCount;
   final bool showActions;
+  final bool contained;
 
   @override
   Widget build(BuildContext context) {
@@ -80,18 +90,45 @@ class _LargeNoteCardView extends StatelessWidget {
         : '@${formatShortPubkey(note.authorPubkey)}';
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
+      // The thread root ([contained] == false) renders flat full-bleed with a
+      // single bottom hairline, so references → root → replies read as one
+      // continuous surface (no floating card). A [contained] root keeps the
+      // design-system Card look (radius-lg + border + soft shadow-sm). When
+      // [showActions] is false the card is embedded inside another surface
+      // (e.g. the Nataraj deck card), so it renders fully flat with no border
+      // to avoid a card-within-a-card.
+      decoration: !showActions
+          ? null
+          : contained
+              ? BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border, width: 1),
+                  // --shadow-sm: restrained, neutral elevation.
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x12151A1C),
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
+                    BoxShadow(
+                      color: Color(0x0A151A1C),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                )
+              : const BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
+                  ),
+                ),
+      padding: !showActions
+          ? EdgeInsets.zero
+          : contained
+              ? const EdgeInsets.all(20)
+              : const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -130,7 +167,7 @@ class _LargeNoteCardView extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.onSurfaceVariant,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -160,7 +197,7 @@ class _LargeNoteCardView extends StatelessWidget {
               content: note.content,
               style: const TextStyle(
                 fontSize: 17,
-                color: AppColors.onSurface,
+                color: AppColors.textBody,
                 height: 1.6,
                 fontWeight: FontWeight.w400,
               ),
@@ -189,58 +226,61 @@ class _LargeNoteCardView extends StatelessWidget {
             ),
           ],
           if (showActions) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
               child: Divider(
-                color: AppColors.outlineVariant.withValues(alpha: 0.15),
+                color: AppColors.borderSubtle,
                 height: 1,
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 32),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+            Row(
+              children: [
+                _LargeActionChip(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  label: '${replyCount ?? note.cachedReplyCount}',
+                  color: AppColors.onSurfaceVariant,
+                  onTap: () {},
+                ),
+                const SizedBox(width: 28),
+                _LargeActionChip(
+                  icon: Icons.link_rounded,
+                  label: '${note.referenceCount}',
+                  color: note.referenceCount > 0
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
+                  onTap: () {},
+                ),
+                // Save hidden on own notes (kept forever already; saving is
+                // for others' notes).
+                if (!cardState.isOwnNote) ...[
+                  const SizedBox(width: 28),
                   _LargeActionChip(
-                    icon: Icons.chat_bubble_outline_rounded,
-                    label: '${replyCount ?? note.cachedReplyCount}',
-                    color: AppColors.onSurfaceVariant,
-                    onTap: () {},
-                  ),
-                  _LargeActionChip(
-                    icon: Icons.link_rounded,
-                    label: '${note.referenceCount}',
-                    color: AppColors.onSurfaceVariant,
-                    onTap: () {},
-                  ),
-                  // Save hidden on own notes (kept forever already; saving is
-                  // for others' notes).
-                  if (!cardState.isOwnNote)
-                    _LargeActionChip(
-                      icon: cardState.isSaved
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                      color: cardState.isSaved
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
-                      onTap: () => handleSaveToggle(context, cubit),
-                    ),
-                  _LargeActionChip(
-                    icon: isFollowed
-                        ? Icons.notifications
-                        : Icons.notifications_none,
-                    color: isFollowed
+                    icon: cardState.isSaved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    color: cardState.isSaved
                         ? AppColors.primary
                         : AppColors.onSurfaceVariant,
-                    onTap: () => cubit.toggleFollow(),
-                  ),
-                  _LargeActionChip(
-                    icon: Icons.share_outlined,
-                    color: AppColors.onSurfaceVariant,
-                    onTap: () => ShareSheetPage.show(context, note.id),
+                    onTap: () => handleSaveToggle(context, cubit),
                   ),
                 ],
-              ),
+                const SizedBox(width: 28),
+                _LargeActionChip(
+                  icon: isFollowed
+                      ? Icons.notifications
+                      : Icons.notifications_none,
+                  color: isFollowed
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
+                  onTap: () => cubit.toggleFollow(),
+                ),
+                const Spacer(),
+                _LargeActionChip(
+                  icon: Icons.ios_share_rounded,
+                  color: AppColors.onSurfaceVariant,
+                  onTap: () => ShareSheetPage.show(context, note.id),
+                ),
+              ],
             ),
           ],
         ],

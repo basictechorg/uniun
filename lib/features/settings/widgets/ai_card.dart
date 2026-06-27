@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
+import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 
@@ -35,55 +35,19 @@ class _AICardContent extends StatelessWidget {
             ? activeModelId.displayName(l10n)
             : l10n.aiModelNoneSelected;
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: // Model selector row
-              GestureDetector(
-                onTap: () async {
-                  await context.pushNamed(AppRoutes.aiModelSelection);
-                  // Refresh active model state + storage stats after returning.
-                  if (context.mounted) {
-                    context.read<SelectAIModelCubit>().refresh();
-                    context.read<StorageCubit>().loadStats();
-                  }
-                },
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.aiSelectModel,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: activeModelId != null
-                                  ? AppColors.primary
-                                  : AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.onSurfaceVariant),
-                  ],
-                ),
-              ),
+        return SettingsRow(
+          icon: Icons.memory_rounded,
+          label: l10n.settingsDeviceAiModel,
+          value: subtitle,
+          valueAccent: activeModelId != null,
+          onTap: () async {
+            await context.pushNamed(AppRoutes.aiModelSelection);
+            // Refresh active model state + storage stats after returning.
+            if (context.mounted) {
+              context.read<SelectAIModelCubit>().refresh();
+              context.read<StorageCubit>().loadStats();
+            }
+          },
         );
       },
     );

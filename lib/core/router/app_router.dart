@@ -17,6 +17,7 @@ import 'package:uniun/features/brahma/manas/pages/manas_form_page.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/gana/detail/pages/gana_detail_page.dart';
 import 'package:uniun/features/shiv/gana/form/pages/gana_form_page.dart';
+import 'package:uniun/features/shiv/gana/list/pages/gana_list_page.dart';
 import 'package:uniun/features/shiv/nataraj/pages/nataraj_deck_page.dart';
 import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
 import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
@@ -232,6 +233,11 @@ final GoRouter appRouter = GoRouter(
         final args = _asMap(state.extra);
         return ManasFormPage(manasId: args?['manasId'] as String?);
       },
+    ),
+    GoRoute(
+      name: AppRoutes.shivGanaList,
+      path: '/shiv/gana',
+      builder: (_, __) => const GanaListPage(),
     ),
     GoRoute(
       name: AppRoutes.shivGanaForm,

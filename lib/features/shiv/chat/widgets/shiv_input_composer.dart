@@ -59,7 +59,7 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
   }
 
   Future<void> _pickScope() async {
-    final scope = await showManasChatPicker(context);
+    final scope = await showManasChatPicker(context, current: _scope);
     if (scope == null || !mounted) return;
     setState(() => _scope = scope);
   }
@@ -71,9 +71,11 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final safeBottom = MediaQuery.of(context).padding.bottom;
+    // The Shiv chat is full-screen (no FloatingNav), so the composer only needs
+    // to clear the device safe-area — not reserve space for the bottom tab.
     final bottomPad = keyboardHeight > 0
         ? keyboardHeight + 10.0
-        : 80.0 + safeBottom;
+        : safeBottom + 12.0;
     final scopeLabel = _scope.name ?? 'All notes';
 
     // Full-width, rounded-top, surfaceContainerLow — same as the Vishnu/thread

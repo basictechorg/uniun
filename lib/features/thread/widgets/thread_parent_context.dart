@@ -3,6 +3,7 @@ import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/features/thread/widgets/thread_section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Renders the ancestor chain ABOVE the focused note (X/Twitter style).
@@ -51,92 +52,88 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
         : notes;
     final hiddenCount = notes.length - visible.length;
 
+    final rows = <Widget>[
+      ...List.generate(visible.length, (i) {
+        final isLast = i == visible.length - 1;
+        // Sibling/reference mode: each reference chains DOWN to the next, so
+        // the stick sits ABOVE every following reference and the last one has
+        // no stick beneath it. A reply/parent chain instead connects every
+        // row down to the root note below.
+        final showConnector = widget.isSiblingGroup ? !isLast : true;
+        // Sibling connectors bridge the inter-row gap so the line flows into
+        // the next reference's avatar; the parent stem stops at its own row.
+        final double connectorBottom = widget.isSiblingGroup ? -10 : 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              if (showConnector)
+                Positioned(
+                  left: 18,
+                  top: 40,
+                  bottom: connectorBottom,
+                  child: Container(
+                    width: 2,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.30),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ReferenceNoteCard(
+                note: visible[i],
+                profile: widget.profiles[visible[i].authorPubkey],
+                onTap: () => widget.onNoteTap(visible[i].id),
+              ),
+            ],
+          ),
+        );
+      }),
+      if (collapse)
+        Padding(
+          padding: const EdgeInsets.only(left: 52, top: 4, bottom: 4),
+          child: GestureDetector(
+            onTap: () => setState(() => _expanded = true),
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Text(
+                  'Show $hiddenCount more '
+                  '${hiddenCount == 1 ? 'reference' : 'references'}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.expand_more_rounded,
+                    size: 16, color: AppColors.primary),
+              ],
+            ),
+          ),
+        ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 8),
-          child: Row(
-            children: [
-              Icon(
-                  widget.isSiblingGroup
-                      ? Icons.link_rounded
-                      : Icons.reply_rounded,
-                  size: 12,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.75)),
-              const SizedBox(width: 4),
-              Text(
-                widget.isSiblingGroup
-                    ? l10n.threadReferencesLabel
-                    : l10n.threadReplyingToLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.only(left: 2, bottom: 10),
+          child: ThreadSectionLabel(
+            widget.isSiblingGroup
+                ? l10n.threadReferencesLabel
+                : l10n.threadReplyingToLabel,
+            icon: widget.isSiblingGroup
+                ? Icons.link_rounded
+                : Icons.reply_rounded,
           ),
         ),
-        ...List.generate(visible.length, (i) {
-          final isLast = i == visible.length - 1;
-          // Sibling mode: only the last VISIBLE row connects down to root
-          // (unless collapsed — then the "Show more" button bridges).
-          final showConnector = widget.isSiblingGroup
-              ? (isLast && !collapse)
-              : true;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Stack(
-              children: [
-                if (showConnector)
-                  Positioned(
-                    left: 18,
-                    top: 40,
-                    bottom: 0,
-                    child: Container(
-                      width: 2,
-                      decoration: BoxDecoration(
-                        color:
-                            AppColors.outlineVariant.withValues(alpha: 0.30),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                ReferenceNoteCard(
-                  note: visible[i],
-                  profile: widget.profiles[visible[i].authorPubkey],
-                  onTap: () => widget.onNoteTap(visible[i].id),
-                ),
-              ],
-            ),
-          );
-        }),
-        if (collapse)
-          Padding(
-            padding: const EdgeInsets.only(left: 52, top: 4, bottom: 8),
-            child: GestureDetector(
-              onTap: () => setState(() => _expanded = true),
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                children: [
-                  Text(
-                    'Show $hiddenCount more '
-                    '${hiddenCount == 1 ? 'reference' : 'references'}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.expand_more_rounded,
-                      size: 16, color: AppColors.primary),
-                ],
-              ),
-            ),
-          ),
+        // References (and the reply/parent chain) stay flat and transparent on
+        // the thread background — no card fill — matching the design-system
+        // mock's reference notes.
+        ...rows,
       ],
     );
   }

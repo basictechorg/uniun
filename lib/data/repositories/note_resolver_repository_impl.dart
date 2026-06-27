@@ -57,9 +57,23 @@ class NoteResolverRepositoryImpl implements NoteResolverRepository {
   @override
   Future<Either<Failure, List<NoteEntity>>> resolveReplies(String id) async {
     try {
+      // A "comment" is any note that references [id] in the edge table — NIP-10
+      // replies AND mention-references (the Brahma "add reference" flow). Read
+      // from the edge table (childIdsOf) so this matches the comment count
+      // exactly; `replyToEventIdEqualTo` alone would drop mention-references.
+      // The edge table already excludes the thread root, so deep replies don't
+      // surface here — they belong under their direct parent's thread.
+      final childIds = await _relations.childIdsOf(id);
+      if (childIds.isEmpty) return const Right([]);
+      // Note: this returns only the child notes whose rows still exist in Isar.
+      // `cachedReplyCount` counts edges, so if a child was evicted by retention
+      // (or hasn't synced yet) the edge persists but its row is gone — the
+      // thread reply list is then intentionally shorter than the comment badge.
+      // The badge reflects the true reference count; this list reflects what is
+      // actually renderable. The divergence is expected, not a bug.
       final replies = await isar.noteModels
           .filter()
-          .replyToEventIdEqualTo(id)
+          .anyOf(childIds.toSet(), (q, cid) => q.eventIdEqualTo(cid))
           .findAll();
       final out = [for (final m in replies) await _withCounts(m)]
         ..sort((a, b) => a.created.compareTo(b.created));

@@ -5,6 +5,7 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/note_input.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
+import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/note_repository.dart';
 
 // ── GetFeedUseCase ────────────────────────────────────────────────────────────
@@ -117,6 +118,47 @@ class GetThreadReplyCountUseCase extends UseCase<Either<Failure, int>, String> {
   @override
   Future<Either<Failure, int>> call(String rootEventId, {bool cached = false}) {
     return _repository.getThreadReplyCount(rootEventId);
+  }
+}
+
+// ── GetNoteRelationCountsUseCase ──────────────────────────────────────────────
+
+/// Global edge-table counts for one note: [comments] = incoming references
+/// (notes that reference this one), [references] = outgoing references.
+class RelationCounts {
+  const RelationCounts({required this.comments, required this.references});
+  final int comments;
+  final int references;
+}
+
+/// Global reference/comment counts for a set of notes, straight from the edge
+/// table — NOT saved-scoped. The Brahma graph uses this so a node's comment
+/// count includes EVERY note that references it (e.g. your own freshly created
+/// note), regardless of whether those notes are saved.
+@lazySingleton
+class GetNoteRelationCountsUseCase
+    extends UseCase<Either<Failure, Map<String, RelationCounts>>,
+        List<String>> {
+  final NoteRelationRepository _relations;
+  const GetNoteRelationCountsUseCase(this._relations);
+
+  @override
+  Future<Either<Failure, Map<String, RelationCounts>>> call(
+    List<String> ids, {
+    bool cached = false,
+  }) async {
+    try {
+      final out = <String, RelationCounts>{};
+      for (final id in ids) {
+        out[id] = RelationCounts(
+          comments: await _relations.replyCount(id),
+          references: await _relations.referenceCount(id),
+        );
+      }
+      return Right(out);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
   }
 }
 

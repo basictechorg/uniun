@@ -16,8 +16,8 @@
   "navShiv": "SHIV",
   "@navShiv": { "description": "Floating nav label for the AI assistant tab" },
 
-  "actionCopy": "COPY",
-  "@actionCopy": { "description": "Copy button label (uppercase)" },
+  "actionCopy": "Copy",
+  "@actionCopy": { "description": "Copy button label" },
 
   "actionCopied": "Copied",
   "@actionCopied": { "description": "Feedback after copying" },
@@ -82,6 +82,21 @@
   "drawerNoChannels": "No channels yet",
   "@drawerNoChannels": { "description": "Empty state for channels in drawer" },
 
+  "drawerMyQrCode": "My QR code",
+  "@drawerMyQrCode": { "description": "Drawer header button — open my QR code" },
+
+  "drawerScanCode": "Scan code",
+  "@drawerScanCode": { "description": "Drawer header button — open QR scanner" },
+
+  "drawerPrivateLabel": "Private",
+  "@drawerPrivateLabel": { "description": "Drawer private-channel row subtitle" },
+
+  "drawerSearchKindDm": "Direct message",
+  "@drawerSearchKindDm": { "description": "Drawer search result subtitle — DM" },
+
+  "drawerSearchKindUser": "Following",
+  "@drawerSearchKindUser": { "description": "Drawer search result subtitle — followed user" },
+
   "joinChannelTitle": "Join Channel",
   "@joinChannelTitle": { "description": "App bar title for the join channel page" },
 
@@ -123,6 +138,18 @@
   "joinChannelByQr": "Join by QR",
   "@joinChannelByQr": { "description": "Secondary CTA to scan a QR code and join a channel" },
 
+  "joinChannelScanCardTitle": "Scan a channel QR",
+  "@joinChannelScanCardTitle": { "description": "Title on the scan-QR card at the top of the join channel page" },
+
+  "joinChannelScanCardSubtitle": "Point your camera at a UNIUN channel code",
+  "@joinChannelScanCardSubtitle": { "description": "Subtitle on the scan-QR card on the join channel page" },
+
+  "joinChannelOr": "or",
+  "@joinChannelOr": { "description": "Divider label between scan-QR and paste-id on the join channel page" },
+
+  "joinChannelIdHint": "Paste channel ID",
+  "@joinChannelIdHint": { "description": "Placeholder for the channel id input on the join channel page" },
+
   "joinChannelQrTitle": "Scan Channel QR",
   "@joinChannelQrTitle": { "description": "App bar title for the QR scanner page" },
 
@@ -137,6 +164,18 @@
 
   "joinChannelSuccess": "Channel joined successfully.",
   "@joinChannelSuccess": { "description": "Snackbar after successfully joining a channel" },
+
+  "joinChannelErrorInvalidId": "Enter a valid 64-character channel id.",
+  "@joinChannelErrorInvalidId": { "description": "Validation error when the channel id is not 64 hex characters" },
+
+  "joinChannelErrorNoRelay": "Please select at least one relay.",
+  "@joinChannelErrorNoRelay": { "description": "Validation error when no relay is selected" },
+
+  "joinChannelErrorRelaySaveFailed": "Failed to save relay locally.",
+  "@joinChannelErrorRelaySaveFailed": { "description": "Error when a relay could not be saved to the local database" },
+
+  "joinChannelErrorSaveFailed": "Couldn't join the channel. Please try again.",
+  "@joinChannelErrorSaveFailed": { "description": "Error when saving the joined channel fails" },
 
   "channelMessageHint": "Message channel…",
   "@channelMessageHint": { "description": "Placeholder text in the channel message composer input" },
@@ -215,14 +254,68 @@
   "composerReferenceEmpty": "No results",
   "@composerReferenceEmpty": { "description": "Empty state in the reference picker" },
 
-  "composerReferenceSelected": "Added",
-  "@composerReferenceSelected": { "description": "Badge on an already-selected reference in the picker" },
-
   "composerReferenceTabAll": "All",
   "@composerReferenceTabAll": { "description": "Reference picker tab showing all candidate notes" },
 
   "composerReferenceTabSaved": "Saved",
   "@composerReferenceTabSaved": { "description": "Reference picker tab showing only saved notes" },
+
+  "composerReferenceTabOwn": "My notes",
+  "@composerReferenceTabOwn": { "description": "Reference picker tab showing only the user's own notes" },
+
+  "composerReferenceTabDrafts": "Drafts",
+  "@composerReferenceTabDrafts": { "description": "Reference picker tab showing only local drafts" },
+
+  "composerReferenceAdd": "Add",
+  "@composerReferenceAdd": { "description": "Reference picker confirm button; shows the selected count when non-zero" },
+
+  "composerChatPickerTitle": "Chat with your notes",
+  "@composerChatPickerTitle": { "description": "Title of the Manas picker bottom sheet that grounds the inline Shiv chat" },
+
+  "composerChatPickerSubtitle": "Scope to a Manas",
+  "@composerChatPickerSubtitle": { "description": "Subtitle under the Manas picker title" },
+
+  "composerChatBrand": "Shiv",
+  "@composerChatBrand": { "description": "Brand title shown in the in-composer AI chat header" },
+
+  "composerChatAllNotes": "All notes",
+  "@composerChatAllNotes": { "description": "Manas picker row that scopes Shiv to the user's whole library" },
+
+  "composerChatAllNotesSubtitle": "Ask Brahma",
+  "@composerChatAllNotesSubtitle": { "description": "Subtitle of the All notes row in the Manas picker" },
+
+  "composerChatManasNotes": "{count, plural, =1{1 note} other{{count} notes}}",
+  "@composerChatManasNotes": {
+    "description": "Note count shown under each Manas row in the picker",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "composerChatScopeEyebrow": "{scope} · on-device",
+  "@composerChatScopeEyebrow": {
+    "description": "Eyebrow under the 'Shiv' title in the inline composer-chat header; shows the grounding scope (a Manas name or 'All notes'). Rendered uppercase.",
+    "placeholders": { "scope": { "type": "String" } }
+  },
+
+  "composerChatGroundedHint": "Grounded in {scope}",
+  "@composerChatGroundedHint": {
+    "description": "Empty-state hint pill in the inline composer-chat, shown before the first question. {scope} is a Manas name or 'All notes'.",
+    "placeholders": { "scope": { "type": "String" } }
+  },
+
+  "composerChatThinking": "Thinking…",
+  "@composerChatThinking": { "description": "Placeholder shown in the AI answer bubble while the first tokens are still streaming" },
+
+  "composerChatStop": "Stop",
+  "@composerChatStop": { "description": "Button that stops the in-flight inline composer-chat answer" },
+
+  "composerChatNoModel": "No AI model is active. Download one from the Shiv tab.",
+  "@composerChatNoModel": { "description": "Shown in the inline composer-chat when no on-device model is installed" },
+
+  "composerChatError": "Something went wrong.",
+  "@composerChatError": { "description": "Fallback error text in the inline composer-chat" },
+
+  "composerChatUseAsReply": "Use as reply",
+  "@composerChatUseAsReply": { "description": "Action under an AI answer that moves its text into the composer as an editable reply draft" },
 
   "threadReferencesLabel": "REFERENCES",
   "@threadReferencesLabel": { "description": "Header above the notes a thread note references (mentions)" },
@@ -409,6 +502,24 @@
   "settingsStorage": "Storage",
   "@settingsStorage": { "description": "Settings section label — storage" },
 
+  "settingsAbout": "About",
+  "@settingsAbout": { "description": "Settings section label — about" },
+
+  "settingsVersion": "Version",
+  "@settingsVersion": { "description": "Settings About row label — app version" },
+
+  "settingsLogout": "Log out",
+  "@settingsLogout": { "description": "Settings log out button label" },
+
+  "settingsLogoutTitle": "Log out?",
+  "@settingsLogoutTitle": { "description": "Log out confirmation dialog title" },
+
+  "settingsLogoutBody": "You'll need your private key (nsec) to sign back in. Make sure it's backed up before logging out.",
+  "@settingsLogoutBody": { "description": "Log out confirmation dialog body" },
+
+  "settingsLogoutConfirm": "Log out",
+  "@settingsLogoutConfirm": { "description": "Log out confirmation dialog confirm action" },
+
   "settingsAlerts": "Alerts",
   "@settingsAlerts": { "description": "Settings section label — alerts" },
 
@@ -429,9 +540,6 @@
 
   "identityRelays": "Relays",
   "@identityRelays": { "description": "Identity card row — relays" },
-
-  "identityExportBackup": "Export Backup",
-  "@identityExportBackup": { "description": "Identity card row — export backup" },
 
   "identityPrivacyPolicy": "Privacy & Policy",
   "@identityPrivacyPolicy": { "description": "Identity card row — privacy policy" },
@@ -502,6 +610,15 @@
   "storageRemoveData": "Remove Data",
   "@storageRemoveData": { "description": "Storage card button — opens removal dialog" },
 
+  "storageShowMetrics": "Show metrics",
+  "@storageShowMetrics": { "description": "Settings → Storage row that opens the storage-breakdown bottom sheet." },
+
+  "storageUsed": "Used",
+  "@storageUsed": { "description": "Header label above the total used figure in the storage metrics sheet." },
+
+  "storageFree": "{size} free",
+  "@storageFree": { "description": "Free-disk label in the storage metrics sheet.", "placeholders": { "size": { "type": "String" } } },
+
   "storageDeleteDialogTitle": "Delete Feed Notes",
   "@storageDeleteDialogTitle": { "description": "Title of the delete feed notes confirmation dialog" },
 
@@ -558,6 +675,9 @@
 
   "aiSelectModel": "Select Model",
   "@aiSelectModel": { "description": "AI card row — model selector" },
+
+  "settingsDeviceAiModel": "Device AI model",
+  "@settingsDeviceAiModel": { "description": "Settings → AI · Shiv row label for the on-device (local) model selector." },
 
   "aiModelNoneSelected": "No model downloaded",
   "@aiModelNoneSelected": { "description": "Subtitle in AI card when no model is active" },
@@ -677,6 +797,15 @@
 
   "editProfileSaveButton": "Save Profile",
   "@editProfileSaveButton": { "description": "Save profile button" },
+
+  "editProfileEyebrow": "Public profile",
+  "@editProfileEyebrow": { "description": "Uppercase eyebrow label above the edit-profile headline" },
+
+  "editProfileSubtitle": "Update how others see you across UNIUN.",
+  "@editProfileSubtitle": { "description": "Body subtitle on the edit-profile screen" },
+
+  "editProfileEncrypted": "Only your public details are shared.",
+  "@editProfileEncrypted": { "description": "Privacy reassurance chip on the edit-profile screen" },
 
   "welcomeTagline": "*Create* · *Share*\n*Reflect* · *Transform*",
   "@welcomeTagline": { "description": "Hero tagline on welcome screen. Words wrapped in *asterisks* are rendered in the brand accent color; everything else is muted." },
@@ -815,6 +944,9 @@
   "howItWorksReadyBody": "Create your avatar and start building your second brain. It only takes a moment.",
   "@howItWorksReadyBody": { "description": "Body of the final intro carousel slide inviting the user to start." },
 
+  "aboutYouEyebrow": "Create your avatar",
+  "@aboutYouEyebrow": { "description": "Uppercase eyebrow label above the headline on the about-you onboarding page" },
+
   "aboutYouTitle": "About You",
   "@aboutYouTitle": { "description": "Heading on the about-you onboarding page" },
 
@@ -854,7 +986,7 @@
   "aboutYouUsernameRequired": "Username is required",
   "@aboutYouUsernameRequired": { "description": "Validation error for username" },
 
-  "importTitle": "Restore Your Avatar",
+  "importTitle": "Welcome Back",
   "@importTitle": { "description": "Heading on the import-identity page" },
 
   "importSubtitle": "Paste your private key to restore your existing avatar.",
@@ -884,11 +1016,29 @@
   "importInvalidKey": "Invalid key. Please check and try again.",
   "@importInvalidKey": { "description": "Error snackbar for unrecognised key format" },
 
+  "importEyebrow": "Restore your avatar",
+  "@importEyebrow": { "description": "Uppercase eyebrow above the import-page title" },
+
+  "importScanQrButton": "Scan a QR instead",
+  "@importScanQrButton": { "description": "Secondary action on import page to scan a key QR" },
+
+  "importScanTitle": "Scan your key QR",
+  "@importScanTitle": { "description": "App bar title on the key QR scanner page" },
+
+  "importScanHint": "Point your camera at a QR that contains your private key",
+  "@importScanHint": { "description": "Helper text on the key QR scanner page" },
+
   "keysTitle": "Your Avatar Keys",
   "@keysTitle": { "description": "Heading on the identity-keys onboarding page" },
 
   "keysSubtitle": "One is for sharing. One is for your eyes only.",
   "@keysSubtitle": { "description": "Subtitle on the identity-keys onboarding page" },
+
+  "keysEyebrow": "Your avatar keys",
+  "@keysEyebrow": { "description": "Uppercase eyebrow label above the headline on the identity-keys onboarding page" },
+
+  "keysHeadline": "Your keys are your avatar.",
+  "@keysHeadline": { "description": "Serif display headline on the identity-keys onboarding page" },
 
   "keysPublicKeyTitle": "Public Key",
   "@keysPublicKeyTitle": { "description": "KeyCard title for npub" },
@@ -907,9 +1057,6 @@
 
   "keysSaveAndContinue": "Save & Continue",
   "@keysSaveAndContinue": { "description": "CTA button on identity-keys page" },
-
-  "keysDownloadBackup": "Download Backup",
-  "@keysDownloadBackup": { "description": "Secondary action on identity-keys page" },
 
   "keysE2eEncrypted": "E2E ENCRYPTED",
   "@keysE2eEncrypted": { "description": "Badge on identity-keys page footer" },
@@ -939,17 +1086,6 @@
       "error": { "type": "String" }
     }
   },
-
-  "keysBackupSaved": "Backup saved to {path}",
-  "@keysBackupSaved": {
-    "description": "Snackbar after saving backup file",
-    "placeholders": {
-      "path": { "type": "String" }
-    }
-  },
-
-  "keysBackupFailed": "Failed to save backup",
-  "@keysBackupFailed": { "description": "Error snackbar when backup write fails" },
 
   "keysCopyPublicAbove": "Copy your public key above to reveal your private key.",
   "@keysCopyPublicAbove": { "description": "Hint shown in place of private key card until npub is copied" },
@@ -1140,6 +1276,27 @@
   "shivInputHint": "Ask Shiv anything…",
   "@shivInputHint": { "description": "Hint text inside the Shiv chat input field" },
 
+  "shivHomeHeadline": "How can I help you?",
+  "@shivHomeHeadline": { "description": "Hero headline on the Shiv home landing screen" },
+
+  "shivHomeHistoryTooltip": "History",
+  "@shivHomeHistoryTooltip": { "description": "Tooltip for the history button on the Shiv home app bar" },
+
+  "shivHomeGana": "Gana",
+  "@shivHomeGana": { "description": "Label for the Gana action button on the Shiv home screen" },
+
+  "shivHomeNataraj": "Nataraj",
+  "@shivHomeNataraj": { "description": "Label for the Nataraj action button on the Shiv home screen" },
+
+  "shivHomeSuggestSummarize": "Summarize my week",
+  "@shivHomeSuggestSummarize": { "description": "Suggested prompt chip on the Shiv home screen" },
+
+  "shivHomeSuggestConnect": "Connect two ideas",
+  "@shivHomeSuggestConnect": { "description": "Suggested prompt chip on the Shiv home screen" },
+
+  "shivHomeSuggestDraft": "Draft from a note",
+  "@shivHomeSuggestDraft": { "description": "Suggested prompt chip on the Shiv home screen" },
+
   "composerAskScope": "Ask {scope}",
   "@composerAskScope": {
     "description": "Composer-chat input hint reflecting the grounding scope, e.g. 'Ask Brahma' (all notes) or 'Ask <manas name>'",
@@ -1197,10 +1354,10 @@
   "@graphLegendSaved": { "description": "Graph legend label for saved notes (blue nodes)" },
 
   "graphLegendOwn": "Own",
-  "@graphLegendOwn": { "description": "Graph legend label for own published notes (green nodes)" },
+  "@graphLegendOwn": { "description": "Graph legend label for own published notes (blue-300 nodes)" },
 
   "graphLegendDraft": "Draft",
-  "@graphLegendDraft": { "description": "Graph legend label for draft notes (amber nodes)" },
+  "@graphLegendDraft": { "description": "Graph legend label for draft notes (blue-800 nodes)" },
 
   "graphFabTextNote": "Text note",
   "@graphFabTextNote": { "description": "FAB option to create a plain text note from the graph" },
@@ -1214,6 +1371,21 @@
   "graphDraftDelete": "Delete",
   "@graphDraftDelete": { "description": "Delete action on a draft node panel" },
 
+  "graphScopeAllNotes": "All notes",
+  "@graphScopeAllNotes": { "description": "Scope chip label when the graph shows the whole library (no Manas scope)" },
+
+  "graphSearchHint": "Search graph…",
+  "@graphSearchHint": { "description": "Placeholder in the graph search field" },
+
+  "graphSearchTooltip": "Search graph",
+  "@graphSearchTooltip": { "description": "Tooltip on the graph search icon button" },
+
+  "graphMenuTooltip": "Open Manas drawer",
+  "@graphMenuTooltip": { "description": "Tooltip on the graph header menu button" },
+
+  "graphSearchClear": "Clear search",
+  "@graphSearchClear": { "description": "Tooltip on the button that closes/clears graph search" },
+
   "channelEntryTitle": "Channels",
   "@channelEntryTitle": { "description": "Title of the public channel entry/chooser screen" },
   "channelEntrySubtitle": "Join an existing public channel using its ID or QR, or start a new one.",
@@ -1223,7 +1395,7 @@
   "channelEntryCreate": "Create a channel",
   "@channelEntryCreate": { "description": "Create option on the public channel entry chooser" },
 
-  "privateChannelEntryTitle": "Private Channels",
+  "privateChannelEntryTitle": "Private channels",
   "@privateChannelEntryTitle": { "description": "Title of the private channel entry/chooser screen" },
   "privateChannelEntrySubtitle": "Request to join an existing private channel, or create your own.",
   "@privateChannelEntrySubtitle": { "description": "Subtitle on the private channel entry chooser" },
@@ -1234,25 +1406,45 @@
 
   "createChannelTitle": "Channel",
   "@createChannelTitle": { "description": "App bar title on the create channel page" },
+  "createChannelHeaderTitle": "Create channel",
+  "@createChannelHeaderTitle": { "description": "App bar title on the create channel page (redesign)" },
   "createChannelDetailsHeading": "Channel Details",
   "@createChannelDetailsHeading": { "description": "Section heading for channel details on create channel page" },
-  "createChannelNameLabel": "Channel Name",
-  "@createChannelNameLabel": { "description": "Text field label for channel name" },
+  "createChannelNameLabel": "Channel name",
+  "@createChannelNameLabel": { "description": "Section label for channel name field" },
+  "createChannelNamePlaceholder": "e.g. design",
+  "@createChannelNamePlaceholder": { "description": "Placeholder in the channel name field" },
   "createChannelAboutLabel": "About (Theme/Rules)",
   "@createChannelAboutLabel": { "description": "Text field label for channel about/description" },
+  "createChannelDescriptionLabel": "Description",
+  "@createChannelDescriptionLabel": { "description": "Section label for the channel description field" },
+  "createChannelAboutPlaceholder": "What's this channel about?",
+  "@createChannelAboutPlaceholder": { "description": "Placeholder in the channel description field" },
   "createChannelPictureLabel": "Picture URL (Optional)",
   "@createChannelPictureLabel": { "description": "Text field label for optional channel picture url" },
+  "createChannelPermanenceNote": "The channel's first event becomes its permanent ID — it can never be deleted.",
+  "@createChannelPermanenceNote": { "description": "Info note explaining channel permanence on create" },
+  "createChannelAdvancedRelays": "Advanced · relays",
+  "@createChannelAdvancedRelays": { "description": "Collapsible advanced relays section header on create channel" },
   "createChannelPublishRelays": "Publish Relays",
   "@createChannelPublishRelays": { "description": "Section heading for publish relays on create channel page" },
   "createChannelPublishRelaysBody": "Select the relays this channel should be broadcasted on.",
   "@createChannelPublishRelaysBody": { "description": "Helper text under publish relays section on create channel page" },
-  "createChannelAction": "Create Channel",
+  "createChannelAction": "Create channel",
   "@createChannelAction": { "description": "Primary create channel button label" },
   "createChannelSuccess": "Channel created successfully",
   "@createChannelSuccess": { "description": "Snackbar shown after a channel is created" },
 
-  "createPrivateChannelTitle": "Create Private Channel",
+  "createPrivateChannelTitle": "Create private channel",
   "@createPrivateChannelTitle": { "description": "App bar title on the create private channel page" },
+  "createPrivateChannelEncrypted": "Encrypted",
+  "@createPrivateChannelEncrypted": { "description": "Eyebrow label above the encrypted private-channel form" },
+  "createPrivateChannelNameHint": "e.g. core team",
+  "@createPrivateChannelNameHint": { "description": "Placeholder for the private channel name field" },
+  "createPrivateChannelDescHint": "What's this channel about?",
+  "@createPrivateChannelDescHint": { "description": "Placeholder for the private channel description field" },
+  "createPrivateChannelAdminNote": "You're the admin — you control who joins.",
+  "@createPrivateChannelAdminNote": { "description": "Muted footer note explaining the creator becomes the admin" },
   "createPrivateChannelHeading": "Start a new Private Channel",
   "@createPrivateChannelHeading": { "description": "Heading on the create private channel page" },
   "createPrivateChannelDescription": "Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.",
@@ -1266,22 +1458,49 @@
   "createPrivateChannelSuccess": "Private channel created successfully!",
   "@createPrivateChannelSuccess": { "description": "Snackbar shown after a private channel is created" },
 
-  "joinPrivateChannelTitle": "Join Private Channel",
+  "createDmTitle": "New message",
+  "@createDmTitle": { "description": "App bar title on the new direct message page" },
+  "createDmRecipientLabel": "Recipient",
+  "@createDmRecipientLabel": { "description": "Section label above the DM recipient field" },
+  "createDmRecipientHint": "Public key — hex or npub",
+  "@createDmRecipientHint": { "description": "Placeholder for the DM recipient public-key field" },
+  "createDmRelaysNote": "Select the relays this message is sent through.",
+  "@createDmRelaysNote": { "description": "Helper text under the DM relays section" },
+  "createDmEncryptedNote": "Direct messages are end-to-end encrypted (NIP-17). Only the recipient can read them.",
+  "@createDmEncryptedNote": { "description": "Info card explaining DM encryption on the new message page" },
+  "createDmScanQr": "Scan QR code",
+  "@createDmScanQr": { "description": "Secondary button to scan a user QR on the new message page" },
+  "createDmAction": "Start chat",
+  "@createDmAction": { "description": "Primary button to start a direct message chat" },
+
+  "joinPrivateChannelTitle": "Join private channel",
   "@joinPrivateChannelTitle": { "description": "App bar title on the join private channel page" },
+  "joinPrivateChannelEncrypted": "Encrypted",
+  "@joinPrivateChannelEncrypted": { "description": "Eyebrow label signalling the channel is end-to-end encrypted" },
   "joinPrivateChannelHeading": "Request to Join",
   "@joinPrivateChannelHeading": { "description": "Heading on the join private channel page" },
   "joinPrivateChannelSubtitle": "Enter the Group ID to request access to a private channel.",
   "@joinPrivateChannelSubtitle": { "description": "Helper text under heading on join private channel page" },
   "joinPrivateChannelGroupIdLabel": "Group ID",
   "@joinPrivateChannelGroupIdLabel": { "description": "Text field label for private channel group id" },
-  "joinPrivateChannelGroupIdHint": "uniun'...",
+  "joinPrivateChannelGroupIdHint": "Paste group ID…",
   "@joinPrivateChannelGroupIdHint": { "description": "Hint text in the group id input" },
+  "joinPrivateChannelGroupIdHelper": "Ask the channel admin for the group ID and relay.",
+  "@joinPrivateChannelGroupIdHelper": { "description": "Helper text under the group id and relay inputs" },
   "joinPrivateChannelScanQr": "Scan QR",
   "@joinPrivateChannelScanQr": { "description": "Secondary button to open the QR scanner" },
-  "joinPrivateChannelAction": "Send Join Request",
+  "joinPrivateChannelScanCardTitle": "Scan a private channel QR",
+  "@joinPrivateChannelScanCardTitle": { "description": "Title of the prominent scan-QR card" },
+  "joinPrivateChannelScanCardSubtitle": "Point your camera at a code shared by the admin",
+  "@joinPrivateChannelScanCardSubtitle": { "description": "Subtitle of the prominent scan-QR card" },
+  "joinPrivateChannelApprovalInfo": "Your request goes to the admin for approval before you can read messages.",
+  "@joinPrivateChannelApprovalInfo": { "description": "Info card explaining admin approval is required" },
+  "joinPrivateChannelAction": "Send join request",
   "@joinPrivateChannelAction": { "description": "Primary submit button on join private channel page" },
   "joinPrivateChannelSuccess": "Join request sent! Wait for admin approval.",
   "@joinPrivateChannelSuccess": { "description": "Snackbar after submitting a join request to a private channel" },
+  "commonOr": "or",
+  "@commonOr": { "description": "Lowercase divider word between two alternative actions" },
 
   "relaySelectorPlaceholder": "Select Relays",
   "@relaySelectorPlaceholder": { "description": "Empty-state label inside the relay selector field" },
@@ -1437,13 +1656,39 @@
   "userProfileNoNotes": "No notes yet",
   "@userProfileNoNotes": { "description": "Empty state shown on the user profile page when the user has no notes locally" },
 
+  "userProfileMessage": "Message",
+  "@userProfileMessage": { "description": "Message button on the user profile page that opens a direct message with the user" },
+
+  "userProfileNotesLabel": "Notes",
+  "@userProfileNotesLabel": { "description": "Section label above the user's recent notes on the user profile page" },
+
+  "userProfileCopyNpub": "Copy npub",
+  "@userProfileCopyNpub": { "description": "Tooltip on the copy button next to the npub on the user profile page" },
+
   "qrShareAction": "Share",
   "@qrShareAction": { "description": "Button in the QR card that opens the native share sheet with the QR image and deep link" },
   "qrShareFailed": "Couldn't share QR code",
   "@qrShareFailed": { "description": "Snackbar shown when sharing the QR image fails" },
+  "qrCaptionUser": "Scan this to add you on UNIUN.",
+  "@qrCaptionUser": { "description": "Caption under the QR code on a user identity card" },
+  "qrCaptionPublicChannel": "Scan to join this channel.",
+  "@qrCaptionPublicChannel": { "description": "Caption under the QR code on a public channel card" },
+  "qrCaptionPrivateChannel": "Scan to join this private channel.",
+  "@qrCaptionPrivateChannel": { "description": "Caption under the QR code on a private channel card" },
+  "qrCaptionDm": "Scan to start a chat on UNIUN.",
+  "@qrCaptionDm": { "description": "Caption under the QR code on a direct-message card" },
 
   "shareSheetTitle": "Share note",
   "@shareSheetTitle": { "description": "Title of the in-app share bottom sheet" },
+
+  "shareQuotingLabel": "Quoting",
+  "@shareQuotingLabel": { "description": "Eyebrow label above the quoted-note preview card at the top of the share sheet" },
+
+  "shareToLabel": "Share to",
+  "@shareToLabel": { "description": "Eyebrow label above the destination list in the share sheet" },
+
+  "shareActionShare": "Share",
+  "@shareActionShare": { "description": "Label of the primary button that publishes the share to the selected destination" },
 
   "shareSheetCommentHint": "Add a comment (optional)",
   "@shareSheetCommentHint": { "description": "Placeholder for the optional caption above the embedded shared note" },
@@ -1503,11 +1748,26 @@
   "settingsBlockedUsers": "Blocked Users",
   "@settingsBlockedUsers": { "description": "Settings row that opens the blocked users management screen" },
 
-  "blockedUsersTitle": "Blocked Users",
+  "blockedUsersTitle": "Blocked users",
   "@blockedUsersTitle": { "description": "App bar title of the blocked users management screen" },
+
+  "blockedUsersDescription": "Blocked people can't message you and their notes stay hidden from your feed. Notes are never deleted — unblocking brings them back.",
+  "@blockedUsersDescription": { "description": "Explainer paragraph at the top of the blocked users screen" },
+
+  "blockedUsersSectionCount": "Blocked · {count}",
+  "@blockedUsersSectionCount": { "description": "Section label above the blocked users list, with the number of blocked users", "placeholders": { "count": { "type": "int" } } },
+
+  "blockedUsersBlockedAgo": "Blocked {time} ago",
+  "@blockedUsersBlockedAgo": { "description": "Per-row meta line showing how long ago a user was blocked", "placeholders": { "time": { "type": "String" } } },
+
+  "blockedUsersBlockedJustNow": "Blocked just now",
+  "@blockedUsersBlockedJustNow": { "description": "Per-row meta line when a user was blocked less than a minute ago" },
 
   "blockedUsersEmpty": "You haven't blocked anyone",
   "@blockedUsersEmpty": { "description": "Empty state on the blocked users screen when no users are blocked" },
+
+  "blockedUsersEmptyHint": "People you block will appear here, so you can unblock them anytime.",
+  "@blockedUsersEmptyHint": { "description": "Helper subtitle below the empty-state title on the blocked users screen" },
 
   "actionUnblock": "Unblock",
   "@actionUnblock": { "description": "Button that unblocks a user on the blocked users screen" },
@@ -1913,17 +2173,32 @@
   "manasIconPickerTitle": "Pick an icon",
   "@manasIconPickerTitle": { "description": "Title of the bottom sheet that picks a Manas icon" },
 
-  "ganaDrawerSectionTitle": "GANAS",
-  "@ganaDrawerSectionTitle": { "description": "Section header above the Ganas list in the Shiv drawer" },
+  "ganaListTitle": "Gana",
+  "@ganaListTitle": { "description": "App bar title on the Gana agents list page" },
+
+  "ganaListNew": "New",
+  "@ganaListNew": { "description": "Label for the create-new-Gana button on the Gana list page" },
+
+  "ganaListSubtitle": "Autonomous agents that watch a surface, reason over a Manas, and publish for you.",
+  "@ganaListSubtitle": { "description": "Intro line below the app bar on the Gana list page" },
+
+  "ganaListPaused": "Paused",
+  "@ganaListPaused": { "description": "Status line on a Gana card when the agent is disabled" },
+
+  "ganaListScopeAll": "All notes",
+  "@ganaListScopeAll": { "description": "Gana card scope label when no Manas is selected (whole library)" },
+
+  "ganaListScopeCount": "{count, plural, =1{1 Manas} other{{count} Manas}}",
+  "@ganaListScopeCount": {
+    "description": "Gana card scope label showing how many Manas the agent reasons over",
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "ganaDrawerEmptyTitle": "No Ganas yet",
   "@ganaDrawerEmptyTitle": { "description": "Empty-state title in the Ganas section" },
 
   "ganaDrawerEmptyBody": "Create an AI worker that watches a surface and publishes for you.",
   "@ganaDrawerEmptyBody": { "description": "Empty-state body in the Ganas section" },
-
-  "ganaDrawerNewButton": "+ New Gana",
-  "@ganaDrawerNewButton": { "description": "Add-new button in the Ganas section header" },
 
   "ganaTileDisabled": "Off",
   "@ganaTileDisabled": { "description": "Status pill on a Gana tile when it is disabled" },
@@ -1969,6 +2244,18 @@
     "description": "Last-run label when the most recent run failed",
     "placeholders": { "when": { "type": "String" } }
   },
+
+  "ganaRelativeJustNow": "just now",
+  "@ganaRelativeJustNow": { "description": "Relative time for an event less than a minute ago" },
+
+  "ganaRelativeMinutes": "{count}m ago",
+  "@ganaRelativeMinutes": { "description": "Relative time in minutes", "placeholders": { "count": { "type": "int" } } },
+
+  "ganaRelativeHours": "{count}h ago",
+  "@ganaRelativeHours": { "description": "Relative time in hours", "placeholders": { "count": { "type": "int" } } },
+
+  "ganaRelativeDays": "{count}d ago",
+  "@ganaRelativeDays": { "description": "Relative time in days", "placeholders": { "count": { "type": "int" } } },
 
   "ganaFormCreateTitle": "New Gana",
   "@ganaFormCreateTitle": { "description": "AppBar title in create mode" },
@@ -2301,5 +2588,8 @@
   "@receiveShareDraftNeedsText": { "description": "Error when trying to save a draft with no text (drafts are text-only)" },
 
   "receiveShareNothingToShare": "Add text or media first",
-  "@receiveShareNothingToShare": { "description": "Error when trying to publish with no text and no attachments" }
+  "@receiveShareNothingToShare": { "description": "Error when trying to publish with no text and no attachments" },
+
+  "jumpToLatest": "Jump to latest",
+  "@jumpToLatest": { "description": "Tooltip on the floating button that scrolls a chat to the newest message and marks the surface read" }
 }
