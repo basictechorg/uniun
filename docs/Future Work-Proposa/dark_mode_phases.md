@@ -297,7 +297,7 @@ For each file: replace `AppColors.xxx` → `Theme.of(context).colorScheme.xxx` o
 - `lib/features/settings/pages/settings_page.dart`
 - `lib/features/settings/pages/edit_profile_page.dart` (rewrote in redesign — uses Newsreader display font, ambient backdrop, bottom-pinned CTA)
 - `lib/features/settings/pages/blocked_users_page.dart`
-- `lib/features/settings/widgets/settings_card.dart` — new shared `SettingsGroup` / `SettingsRow` / `SettingsRowDivider` atoms; migrate these once and every settings row picks it up
+- `lib/features/settings/widgets/settings_card.dart` — new shared `SettingsGroup` / `SettingsRow` / `SettingsRowDivider` atoms; migrate these once and every settings row picks it up. `SettingsRow.valueAccent` paints the trailing value in primary — keep the same `colorScheme.primary` swap (already used by `StorageMetricsRow` for the live total, and by `SettingsPickerButton` for sync-window / retention values)
 - `lib/features/settings/widgets/storage_card.dart` — storage bar colors → `custom.storageModel/ChatHistory/Other`
 - `lib/features/settings/widgets/` (ai_card, identity_card, style_card, profile_card, settings_buttons, section_label, media_row, cloud_provider_card, logout_button)
 
