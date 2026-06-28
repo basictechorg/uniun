@@ -131,6 +131,7 @@ class GraphBloc extends Bloc<GraphEvent, GraphState> {
           tTags: d.tTags,
           pTagRefs: d.pTagRefs,
           attachments: d.attachments,
+          draftRefIds: d.draftRefIds,
         ));
       }
     });

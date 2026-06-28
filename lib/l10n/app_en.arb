@@ -380,6 +380,30 @@
   "brahmaTags": "tags",
   "@brahmaTags": { "description": "Tag count display in draft item" },
 
+  "brahmaPublishChainTitle": "This note links to other drafts",
+  "@brahmaPublishChainTitle": { "description": "Title of the bottom sheet asking how to handle draft → draft references at publish time" },
+
+  "brahmaPublishChainSubtitle": "Nostr notes are immutable once published — references to {count, plural, =1{1 unpublished draft} other{{count} unpublished drafts}} can only be added now, not later.",
+  "@brahmaPublishChainSubtitle": {
+    "description": "Sub-line on the publish-chain sheet — explains the Nostr immutability constraint",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "brahmaPublishChain": "Publish the whole chain",
+  "@brahmaPublishChain": { "description": "Sheet option: publish dependencies first, then this draft, with links restored" },
+
+  "brahmaPublishChainBody": "Publishes {count, plural, =1{1 linked draft} other{{count} linked drafts}} first, then this note with the links in its tags.",
+  "@brahmaPublishChainBody": {
+    "description": "Body for the 'publish chain' sheet option",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "brahmaPublishOnlyThis": "Publish only this",
+  "@brahmaPublishOnlyThis": { "description": "Sheet option: publish just this draft, dropping the unpublished draft references" },
+
+  "brahmaPublishOnlyThisSubtitle": "Drop the draft references from this note. The other drafts stay where they are.",
+  "@brahmaPublishOnlyThisSubtitle": { "description": "Body for the 'publish only this' sheet option" },
+
   "vishnuNoNotes": "No notes yet",
   "@vishnuNoNotes": { "description": "Empty-feed heading" },
 

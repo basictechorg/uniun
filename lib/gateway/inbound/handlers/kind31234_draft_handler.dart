@@ -82,8 +82,10 @@ class Kind31234DraftHandler implements KindHandler {
     final eTagRefs = <String>[];
     final pTagRefs = <String>[];
     final tTags = <String>[];
+    final draftRefIds = <String>[];
     String? rootEventId;
     String? replyToEventId;
+    String? publishedAsEventId;
     for (final raw in innerTags) {
       if (raw is! List || raw.isEmpty) continue;
       final name = raw[0];
@@ -97,6 +99,10 @@ class Kind31234DraftHandler implements KindHandler {
         pTagRefs.add(raw[1] as String);
       } else if (name == 't' && raw.length >= 2) {
         tTags.add(raw[1] as String);
+      } else if (name == 'd-ref' && raw.length >= 2) {
+        draftRefIds.add(raw[1] as String);
+      } else if (name == 'published-as' && raw.length >= 2) {
+        publishedAsEventId = raw[1] as String;
       }
     }
 
@@ -110,6 +116,8 @@ class Kind31234DraftHandler implements KindHandler {
         row.eTagRefs = eTagRefs;
         row.pTagRefs = pTagRefs;
         row.tTags = tTags;
+        row.draftRefIds = draftRefIds;
+        row.publishedAsEventId = publishedAsEventId;
         // Preserve original local createdAt if we already have the row.
         row.createdAt = existing?.createdAt ?? incomingCreatedAt;
         row.updatedAt = incomingCreatedAt;
@@ -119,6 +127,37 @@ class Kind31234DraftHandler implements KindHandler {
       });
     } catch (_) {
       return;
+    }
+
+    // Cross-device publish reconciliation: when a draft arrives as a
+    // tombstone (`published-as` set), sweep any local drafts whose
+    // `draftRefIds` still hold this UUID and rewrite UUID → event id into
+    // their `eTagRefs`. Republishing the swept drafts here would loop with
+    // other devices; the next user save / publish will carry the corrected
+    // refs onward.
+    if (publishedAsEventId != null) {
+      try {
+        final referencing = await isar.draftModels
+            .filter()
+            .draftRefIdsElementEqualTo(draftId)
+            .findAll();
+        if (referencing.isNotEmpty) {
+          final eid = publishedAsEventId;
+          await isar.writeTxn(() async {
+            for (final d in referencing) {
+              d.draftRefIds =
+                  d.draftRefIds.where((r) => r != draftId).toList();
+              if (!d.eTagRefs.contains(eid)) {
+                d.eTagRefs = [...d.eTagRefs, eid];
+              }
+              d.updatedAt = DateTime.now();
+              await isar.draftModels.put(d);
+            }
+          });
+        }
+      } catch (_) {
+        // Sweep is best-effort.
+      }
     }
   }
 

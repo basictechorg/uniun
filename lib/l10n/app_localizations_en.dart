@@ -393,6 +393,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get brahmaTags => 'tags';
 
   @override
+  String get brahmaPublishChainTitle => 'This note links to other drafts';
+
+  @override
+  String brahmaPublishChainSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unpublished drafts',
+      one: '1 unpublished draft',
+    );
+    return 'Nostr notes are immutable once published — references to $_temp0 can only be added now, not later.';
+  }
+
+  @override
+  String get brahmaPublishChain => 'Publish the whole chain';
+
+  @override
+  String brahmaPublishChainBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count linked drafts',
+      one: '1 linked draft',
+    );
+    return 'Publishes $_temp0 first, then this note with the links in its tags.';
+  }
+
+  @override
+  String get brahmaPublishOnlyThis => 'Publish only this';
+
+  @override
+  String get brahmaPublishOnlyThisSubtitle =>
+      'Drop the draft references from this note. The other drafts stay where they are.';
+
+  @override
   String get vishnuNoNotes => 'No notes yet';
 
   @override

@@ -171,6 +171,7 @@ class ReferencePickerCubit extends Cubit<ReferencePickerState> {
   ComposerReference _draftToRef(DraftEntity d) => ComposerReference(
         id: d.draftId,
         label: d.content,
+        kind: ComposerReferenceKind.draft,
         authorPubkey: _selfPubkey,
         created: d.updatedAt,
       );

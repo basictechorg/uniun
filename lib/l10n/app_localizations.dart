@@ -814,6 +814,42 @@ abstract class AppLocalizations {
   /// **'tags'**
   String get brahmaTags;
 
+  /// Title of the bottom sheet asking how to handle draft → draft references at publish time
+  ///
+  /// In en, this message translates to:
+  /// **'This note links to other drafts'**
+  String get brahmaPublishChainTitle;
+
+  /// Sub-line on the publish-chain sheet — explains the Nostr immutability constraint
+  ///
+  /// In en, this message translates to:
+  /// **'Nostr notes are immutable once published — references to {count, plural, =1{1 unpublished draft} other{{count} unpublished drafts}} can only be added now, not later.'**
+  String brahmaPublishChainSubtitle(int count);
+
+  /// Sheet option: publish dependencies first, then this draft, with links restored
+  ///
+  /// In en, this message translates to:
+  /// **'Publish the whole chain'**
+  String get brahmaPublishChain;
+
+  /// Body for the 'publish chain' sheet option
+  ///
+  /// In en, this message translates to:
+  /// **'Publishes {count, plural, =1{1 linked draft} other{{count} linked drafts}} first, then this note with the links in its tags.'**
+  String brahmaPublishChainBody(int count);
+
+  /// Sheet option: publish just this draft, dropping the unpublished draft references
+  ///
+  /// In en, this message translates to:
+  /// **'Publish only this'**
+  String get brahmaPublishOnlyThis;
+
+  /// Body for the 'publish only this' sheet option
+  ///
+  /// In en, this message translates to:
+  /// **'Drop the draft references from this note. The other drafts stay where they are.'**
+  String get brahmaPublishOnlyThisSubtitle;
+
   /// Empty-feed heading
   ///
   /// In en, this message translates to:

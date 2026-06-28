@@ -8,6 +8,7 @@ class BrahmaCreateState {
     this.errorMessage,
     this.drafts = const [],
     this.selectedMentions = const [],
+    this.selectedDraftMentions = const [],
     this.mentionResults = const [],
     this.isMentionSearching = false,
     this.pendingMedia = const [],
@@ -18,8 +19,15 @@ class BrahmaCreateState {
   final String? errorMessage;
   final List<DraftEntity> drafts;
 
-  /// Notes the user has selected to mention (e-tag with "mention" marker).
+  /// Published notes the user has selected to mention (real Nostr event ids).
+  /// Serialized into the published Kind-1's `e` tags with marker "mention" and
+  /// into the draft row's `eTagRefs`.
   final List<NoteEntity> selectedMentions;
+
+  /// Other drafts the user has selected to reference (draft UUIDs). Serialized
+  /// into the draft row's `draftRefIds`; at publish time either dropped
+  /// (publish-only-this) or rewritten to event ids (publish-chain).
+  final List<DraftEntity> selectedDraftMentions;
 
   /// Search results from the mention picker search.
   final List<NoteEntity> mentionResults;
@@ -43,6 +51,7 @@ class BrahmaCreateState {
     String? errorMessage,
     List<DraftEntity>? drafts,
     List<NoteEntity>? selectedMentions,
+    List<DraftEntity>? selectedDraftMentions,
     List<NoteEntity>? mentionResults,
     bool? isMentionSearching,
     List<PickedMedia>? pendingMedia,
@@ -53,6 +62,8 @@ class BrahmaCreateState {
       errorMessage: errorMessage,
       drafts: drafts ?? this.drafts,
       selectedMentions: selectedMentions ?? this.selectedMentions,
+      selectedDraftMentions:
+          selectedDraftMentions ?? this.selectedDraftMentions,
       mentionResults: mentionResults ?? this.mentionResults,
       isMentionSearching: isMentionSearching ?? this.isMentionSearching,
       pendingMedia: pendingMedia ?? this.pendingMedia,
@@ -60,4 +71,3 @@ class BrahmaCreateState {
     );
   }
 }
-

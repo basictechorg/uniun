@@ -31,39 +31,49 @@ const DraftModelSchema = CollectionSchema(
       type: IsarType.dateTime,
     ),
     r'draftId': PropertySchema(id: 3, name: r'draftId', type: IsarType.string),
-    r'eTagRefs': PropertySchema(
+    r'draftRefIds': PropertySchema(
       id: 4,
+      name: r'draftRefIds',
+      type: IsarType.stringList,
+    ),
+    r'eTagRefs': PropertySchema(
+      id: 5,
       name: r'eTagRefs',
       type: IsarType.stringList,
     ),
     r'lastSyncedCreatedAt': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'lastSyncedCreatedAt',
       type: IsarType.dateTime,
     ),
     r'lastSyncedEventId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'lastSyncedEventId',
       type: IsarType.string,
     ),
     r'pTagRefs': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
+    r'publishedAsEventId': PropertySchema(
+      id: 9,
+      name: r'publishedAsEventId',
+      type: IsarType.string,
+    ),
     r'replyToEventId': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'tTags': PropertySchema(id: 10, name: r'tTags', type: IsarType.stringList),
+    r'tTags': PropertySchema(id: 12, name: r'tTags', type: IsarType.stringList),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
@@ -118,6 +128,13 @@ int _draftModelEstimateSize(
   }
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.draftId.length * 3;
+  bytesCount += 3 + object.draftRefIds.length * 3;
+  {
+    for (var i = 0; i < object.draftRefIds.length; i++) {
+      final value = object.draftRefIds[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.eTagRefs.length * 3;
   {
     for (var i = 0; i < object.eTagRefs.length; i++) {
@@ -136,6 +153,12 @@ int _draftModelEstimateSize(
     for (var i = 0; i < object.pTagRefs.length; i++) {
       final value = object.pTagRefs[i];
       bytesCount += value.length * 3;
+    }
+  }
+  {
+    final value = object.publishedAsEventId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
     }
   }
   {
@@ -175,14 +198,16 @@ void _draftModelSerialize(
   writer.writeString(offsets[1], object.content);
   writer.writeDateTime(offsets[2], object.createdAt);
   writer.writeString(offsets[3], object.draftId);
-  writer.writeStringList(offsets[4], object.eTagRefs);
-  writer.writeDateTime(offsets[5], object.lastSyncedCreatedAt);
-  writer.writeString(offsets[6], object.lastSyncedEventId);
-  writer.writeStringList(offsets[7], object.pTagRefs);
-  writer.writeString(offsets[8], object.replyToEventId);
-  writer.writeString(offsets[9], object.rootEventId);
-  writer.writeStringList(offsets[10], object.tTags);
-  writer.writeDateTime(offsets[11], object.updatedAt);
+  writer.writeStringList(offsets[4], object.draftRefIds);
+  writer.writeStringList(offsets[5], object.eTagRefs);
+  writer.writeDateTime(offsets[6], object.lastSyncedCreatedAt);
+  writer.writeString(offsets[7], object.lastSyncedEventId);
+  writer.writeStringList(offsets[8], object.pTagRefs);
+  writer.writeString(offsets[9], object.publishedAsEventId);
+  writer.writeString(offsets[10], object.replyToEventId);
+  writer.writeString(offsets[11], object.rootEventId);
+  writer.writeStringList(offsets[12], object.tTags);
+  writer.writeDateTime(offsets[13], object.updatedAt);
 }
 
 DraftModel _draftModelDeserialize(
@@ -203,15 +228,17 @@ DraftModel _draftModelDeserialize(
   object.content = reader.readString(offsets[1]);
   object.createdAt = reader.readDateTime(offsets[2]);
   object.draftId = reader.readString(offsets[3]);
-  object.eTagRefs = reader.readStringList(offsets[4]) ?? [];
+  object.draftRefIds = reader.readStringList(offsets[4]) ?? [];
+  object.eTagRefs = reader.readStringList(offsets[5]) ?? [];
   object.id = id;
-  object.lastSyncedCreatedAt = reader.readDateTimeOrNull(offsets[5]);
-  object.lastSyncedEventId = reader.readStringOrNull(offsets[6]);
-  object.pTagRefs = reader.readStringList(offsets[7]) ?? [];
-  object.replyToEventId = reader.readStringOrNull(offsets[8]);
-  object.rootEventId = reader.readStringOrNull(offsets[9]);
-  object.tTags = reader.readStringList(offsets[10]) ?? [];
-  object.updatedAt = reader.readDateTime(offsets[11]);
+  object.lastSyncedCreatedAt = reader.readDateTimeOrNull(offsets[6]);
+  object.lastSyncedEventId = reader.readStringOrNull(offsets[7]);
+  object.pTagRefs = reader.readStringList(offsets[8]) ?? [];
+  object.publishedAsEventId = reader.readStringOrNull(offsets[9]);
+  object.replyToEventId = reader.readStringOrNull(offsets[10]);
+  object.rootEventId = reader.readStringOrNull(offsets[11]);
+  object.tTags = reader.readStringList(offsets[12]) ?? [];
+  object.updatedAt = reader.readDateTime(offsets[13]);
   return object;
 }
 
@@ -240,18 +267,22 @@ P _draftModelDeserializeProp<P>(
     case 4:
       return (reader.readStringList(offset) ?? []) as P;
     case 5:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
       return (reader.readStringList(offset) ?? []) as P;
-    case 8:
+    case 6:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 7:
       return (reader.readStringOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringList(offset) ?? []) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 13:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -865,6 +896,200 @@ extension DraftModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'draftId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'draftRefIds',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'draftRefIds',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'draftRefIds',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'draftRefIds', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'draftRefIds', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'draftRefIds', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'draftRefIds', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'draftRefIds', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'draftRefIds', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'draftRefIds', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  draftRefIdsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'draftRefIds',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
       );
     });
   }
@@ -1549,6 +1774,165 @@ extension DraftModelQueryFilter
   }
 
   QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'publishedAsEventId'),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'publishedAsEventId'),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'publishedAsEventId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'publishedAsEventId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'publishedAsEventId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'publishedAsEventId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
+  publishedAsEventIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'publishedAsEventId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2195,6 +2579,20 @@ extension DraftModelQuerySortBy
     });
   }
 
+  QueryBuilder<DraftModel, DraftModel, QAfterSortBy>
+  sortByPublishedAsEventId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'publishedAsEventId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterSortBy>
+  sortByPublishedAsEventIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'publishedAsEventId', Sort.desc);
+    });
+  }
+
   QueryBuilder<DraftModel, DraftModel, QAfterSortBy> sortByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -2310,6 +2708,20 @@ extension DraftModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<DraftModel, DraftModel, QAfterSortBy>
+  thenByPublishedAsEventId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'publishedAsEventId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QAfterSortBy>
+  thenByPublishedAsEventIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'publishedAsEventId', Sort.desc);
+    });
+  }
+
   QueryBuilder<DraftModel, DraftModel, QAfterSortBy> thenByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -2372,6 +2784,12 @@ extension DraftModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<DraftModel, DraftModel, QDistinct> distinctByDraftRefIds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'draftRefIds');
+    });
+  }
+
   QueryBuilder<DraftModel, DraftModel, QDistinct> distinctByETagRefs() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'eTagRefs');
@@ -2399,6 +2817,17 @@ extension DraftModelQueryWhereDistinct
   QueryBuilder<DraftModel, DraftModel, QDistinct> distinctByPTagRefs() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pTagRefs');
+    });
+  }
+
+  QueryBuilder<DraftModel, DraftModel, QDistinct> distinctByPublishedAsEventId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'publishedAsEventId',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -2467,6 +2896,13 @@ extension DraftModelQueryProperty
     });
   }
 
+  QueryBuilder<DraftModel, List<String>, QQueryOperations>
+  draftRefIdsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'draftRefIds');
+    });
+  }
+
   QueryBuilder<DraftModel, List<String>, QQueryOperations> eTagRefsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'eTagRefs');
@@ -2490,6 +2926,13 @@ extension DraftModelQueryProperty
   QueryBuilder<DraftModel, List<String>, QQueryOperations> pTagRefsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pTagRefs');
+    });
+  }
+
+  QueryBuilder<DraftModel, String?, QQueryOperations>
+  publishedAsEventIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'publishedAsEventId');
     });
   }
 

@@ -9,10 +9,19 @@ final class SubmitNoteEvent extends BrahmaCreateEvent {
     required this.content,
     this.rootEventId,
     this.replyToEventId,
+    this.publishChain = false,
   });
   final String content;
   final String? rootEventId;
   final String? replyToEventId;
+
+  /// When the composer holds any [BrahmaCreateState.selectedDraftMentions] and
+  /// [publishChain] is true, those drafts (and their own draft-ref deps) are
+  /// published first, bottom-up, and their freshly-minted event ids are
+  /// appended to this note's `e` mention tags. When false (default), draft
+  /// references are silently dropped — matches the "publish only this" branch
+  /// of the chain dialog.
+  final bool publishChain;
 }
 
 final class SaveDraftEvent extends BrahmaCreateEvent {
@@ -46,11 +55,21 @@ final class PublishDraftEvent extends BrahmaCreateEvent {
     required this.content,
     this.rootEventId,
     this.replyToEventId,
+    this.publishChain = false,
   });
   final String draftId;
   final String content;
   final String? rootEventId;
   final String? replyToEventId;
+
+  /// When true, walk the draft's `draftRefIds` graph and publish unpublished
+  /// dependencies first (bottom-up), rewriting their UUIDs to the freshly-
+  /// minted event ids before signing each parent. Topological order; cycles
+  /// abort with an error.
+  ///
+  /// When false (default), any unresolved `draftRefIds` on this draft are
+  /// silently dropped from the published Kind-1's `e` tags.
+  final bool publishChain;
 }
 
 final class ResetBrahmaEvent extends BrahmaCreateEvent {
@@ -69,6 +88,16 @@ final class AddMentionEvent extends BrahmaCreateEvent {
   final NoteEntity note;
 }
 
+/// Adds another *draft* as a reference. Held separately from [AddMentionEvent]
+/// (which is for published notes) because drafts ride in `draftRefIds`, not
+/// `eTagRefs`.
+final class AddDraftMentionEvent extends BrahmaCreateEvent {
+  const AddDraftMentionEvent(this.draft);
+  final DraftEntity draft;
+}
+
+/// Removes a selected reference by its identifier — works for either a note
+/// (event id) or a draft (UUID); the handler tries both lists.
 final class RemoveMentionEvent extends BrahmaCreateEvent {
   const RemoveMentionEvent(this.noteId);
   final String noteId;
@@ -78,12 +107,17 @@ final class ClearMentionSearchEvent extends BrahmaCreateEvent {
   const ClearMentionSearchEvent();
 }
 
-/// Sets the selected mentions from a list of note ids — loads each note from
-/// Isar so they appear as selected mentions in the compose UI. Fired both when
-/// pre-filling a draft for edit and when the reference picker returns.
+/// Sets the selected mentions from two id lists — published notes (event ids,
+/// resolved via the unified `Note` collection) and other drafts (UUIDs,
+/// resolved via the Draft collection). Fired both when pre-filling a draft for
+/// edit and when the reference picker returns. Either list may be empty.
 final class RestoreDraftMentionsEvent extends BrahmaCreateEvent {
-  const RestoreDraftMentionsEvent(this.mentionIds);
-  final List<String> mentionIds;
+  const RestoreDraftMentionsEvent({
+    this.noteIds = const [],
+    this.draftIds = const [],
+  });
+  final List<String> noteIds;
+  final List<String> draftIds;
 }
 
 // ── Media attachment events ───────────────────────────────────────────────────
