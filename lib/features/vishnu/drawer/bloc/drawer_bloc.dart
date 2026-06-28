@@ -5,13 +5,13 @@ import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/domain/entities/followed_user/followed_user_entity.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
-import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -26,14 +26,14 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetActiveUserUseCase _getActiveUser;
   final GetOwnProfileUseCase _getOwnProfile;
   final GetAllFollowedNotesUseCase _getAllFollowedNotes;
-  final GetChannelsUseCase _getChannels;
-  final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetGroupsUseCase _getGroups;
+  final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetFollowedUsersUseCase _getFollowedUsers;
   final GetRelaysUseCase _getRelays;
   final Isar _isar;
   StreamSubscription<void>? _dmWatcher;
-  StreamSubscription<void>? _channelWatcher;
-  StreamSubscription<void>? _privateChannelWatcher;
+  StreamSubscription<void>? _groupWatcher;
+  StreamSubscription<void>? _privateGroupWatcher;
   StreamSubscription<void>? _followedUsersWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
   StreamSubscription<void>? _unreadWatcher;
@@ -42,20 +42,20 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     this._getActiveUser,
     this._getOwnProfile,
     this._getAllFollowedNotes,
-    this._getChannels,
-    this._getPrivateChannels,
+    this._getGroups,
+    this._getPrivateGroups,
     this._getFollowedUsers,
     this._getRelays,
     this._isar,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
 
-    // NIP-28 public channels: creating/joining a channel writes a ChannelModel,
-    // so the new channel shows in the drawer immediately without a refresh.
-    _channelWatcher = _isar.channelModels.watchLazy().listen((_) {
+    // NIP-28 public groups: creating/joining a group writes a GroupModel,
+    // so the new group shows in the drawer immediately without a refresh.
+    _groupWatcher = _isar.groupModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
-    _privateChannelWatcher = _getPrivateChannels.execute().listen((_) {
+    _privateGroupWatcher = _getPrivateGroups.execute().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
     _followedUsersWatcher = _isar.followedUserModels.watchLazy().listen((_) {
@@ -93,14 +93,14 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       // Per-container unread counts from the UnreadNote collection (one batched
       // read; grouped in memory). Exactly one container field is set per row.
       final unreadRows = await _isar.unreadNoteModels.where().findAll();
-      final channelUnread = <String, int>{};
       final groupUnread = <String, int>{};
+      final privateGroupUnread = <String, int>{};
       final conversationUnread = <int, int>{};
       for (final r in unreadRows) {
-        if (r.channelId != null) {
-          channelUnread.update(r.channelId!, (v) => v + 1, ifAbsent: () => 1);
-        } else if (r.groupId != null) {
+        if (r.groupId != null) {
           groupUnread.update(r.groupId!, (v) => v + 1, ifAbsent: () => 1);
+        } else if (r.privateGroupId != null) {
+          privateGroupUnread.update(r.privateGroupId!, (v) => v + 1, ifAbsent: () => 1);
         } else if (r.conversationId != null) {
           conversationUnread.update(r.conversationId!, (v) => v + 1,
               ifAbsent: () => 1);
@@ -128,15 +128,15 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         }
       }
 
-      // Live query for NIP-28 channels
-      final channelsResult = await _getChannels.call();
-      final channels = channelsResult.fold(
-        (_) => <DrawerChannelItem>[],
+      // Live query for NIP-28 groups
+      final groupsResult = await _getGroups.call();
+      final groups = groupsResult.fold(
+        (_) => <DrawerGroupItem>[],
         (list) => list
-            .map((c) => DrawerChannelItem(
-                  id: c.channelId,
+            .map((c) => DrawerGroupItem(
+                  id: c.groupId,
                   name: c.name,
-                  hasUnread: (channelUnread[c.channelId] ?? 0) > 0,
+                  hasUnread: (groupUnread[c.groupId] ?? 0) > 0,
                 ))
             .toList(),
       );
@@ -164,11 +164,11 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
             .toList(),
       );
 
-      final privateChannelResult = await _getPrivateChannels.execute().first;
-      final privateChannels = privateChannelResult.map((c) => DrawerPrivateChannelItem(
+      final privateGroupResult = await _getPrivateGroups.execute().first;
+      final privateGroups = privateGroupResult.map((c) => DrawerPrivateGroupItem(
         id: c.groupId,
         name: c.name,
-        hasUnread: (groupUnread[c.groupId] ?? 0) > 0,
+        hasUnread: (privateGroupUnread[c.groupId] ?? 0) > 0,
       )).toList();
 
       final followedUsersResult = await _getFollowedUsers.call();
@@ -202,8 +202,8 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         pubkeyHex: user?.pubkeyHex ?? '',
         avatarUrl: avatarUrl,
         followedNotes: followedNotes,
-        channels: channels,
-        privateChannels: privateChannels,
+        groups: groups,
+        privateGroups: privateGroups,
         dms: dms,
         followedUsers: followedUsers,
         myRelays: myRelays,
@@ -216,8 +216,8 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   @override
   Future<void> close() {
     _dmWatcher?.cancel();
-    _channelWatcher?.cancel();
-    _privateChannelWatcher?.cancel();
+    _groupWatcher?.cancel();
+    _privateGroupWatcher?.cancel();
     _followedUsersWatcher?.cancel();
     _followedNotesWatcher?.cancel();
     _unreadWatcher?.cancel();

@@ -14,11 +14,11 @@ import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/data/models/shiv_conversation_model.dart';
 import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/data/models/encrypted_message_model.dart';
-import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/data/models/private_group_join_request_model.dart';
 import 'package:uniun/data/models/graph_node_model.dart';
 import 'package:uniun/data/models/graph_edge_model.dart';
 import 'package:uniun/data/models/memory_node_model.dart';
@@ -48,12 +48,12 @@ final List<CollectionSchema> isarSchemas = [
   ShivConversationModelSchema,
   ShivMessageModelSchema,
   RelayModelSchema,
-  ChannelModelSchema,
+  GroupModelSchema,
   EncryptedDmModelSchema,
   MissingProfilePubkeyModelSchema,
-  PrivateChannelModelSchema,
+  PrivateGroupModelSchema,
   EncryptedMessageModelSchema,
-  PrivateChannelJoinRequestModelSchema,
+  PrivateGroupJoinRequestModelSchema,
   GraphNodeModelSchema,
   GraphEdgeModelSchema,
   MemoryNodeModelSchema,

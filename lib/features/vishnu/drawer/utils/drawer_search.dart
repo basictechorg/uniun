@@ -2,10 +2,10 @@ import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart';
 
 /// The surface a drawer search hit belongs to. Drives both the leading type
 /// icon and the navigation target of a result row.
-enum DrawerSearchKind { channel, privateChannel, dm, followedNote, followedUser }
+enum DrawerSearchKind { group, privateGroup, dm, followedNote, followedUser }
 
 /// A single match in the unified drawer search list. [id] is the surface's
-/// natural identifier — channelId / groupId / pubkey / eventId — carried
+/// natural identifier — groupId / groupId / pubkey / eventId — carried
 /// through so the row can reuse the existing per-surface navigation.
 class DrawerSearchResult {
   const DrawerSearchResult({
@@ -37,18 +37,18 @@ List<DrawerSearchResult> buildDrawerSearchResults(
   bool match(String text) => text.toLowerCase().contains(q);
 
   return [
-    for (final c in state.channels)
+    for (final c in state.groups)
       if (match(c.name))
         DrawerSearchResult(
-          kind: DrawerSearchKind.channel,
+          kind: DrawerSearchKind.group,
           id: c.id,
           label: c.name,
           hasUnread: c.hasUnread,
         ),
-    for (final c in state.privateChannels)
+    for (final c in state.privateGroups)
       if (match(c.name))
         DrawerSearchResult(
-          kind: DrawerSearchKind.privateChannel,
+          kind: DrawerSearchKind.privateGroup,
           id: c.id,
           label: c.name,
           hasUnread: c.hasUnread,

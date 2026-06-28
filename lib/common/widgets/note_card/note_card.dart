@@ -275,11 +275,11 @@ class _NoteCardView extends StatelessWidget {
                             ],
                             const SizedBox(width: 28),
 
-                            // Follow / Following — owned by the cubit
+                            // Watch / Watching — owned by the cubit
                             _ActionChip(
                               icon: a.followed
-                                  ? Icons.notifications
-                                  : Icons.notifications_none,
+                                  ? Icons.visibility
+                                  : Icons.visibility_outlined,
                               color: a.followed
                                   ? AppColors.primary
                                   : AppColors.onSurfaceVariant,

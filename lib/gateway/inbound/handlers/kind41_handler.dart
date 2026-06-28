@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
-/// Kind 41 — NIP-28 channel metadata update.
+/// Kind 41 — NIP-28 group metadata update.
 ///
 /// Only the original creator can update metadata, and only if the incoming
 /// event is newer than the last known update.
@@ -20,8 +20,8 @@ class Kind41Handler implements KindHandler {
     final createdAt = event['created_at'] as int?;
     if (eventId == null || pubkey == null || createdAt == null) return;
 
-    final channelId = EventParser.firstTagValue(event, 'e');
-    if (channelId == null) return;
+    final groupId = EventParser.firstTagValue(event, 'e');
+    if (groupId == null) return;
 
     Map<String, dynamic> metadata;
     try {
@@ -32,27 +32,27 @@ class Kind41Handler implements KindHandler {
     }
 
     await isar.writeTxn(() async {
-      final channel = await isar.channelModels
+      final group = await isar.groupModels
           .where()
-          .channelIdEqualTo(channelId)
+          .groupIdEqualTo(groupId)
           .findFirst();
-      if (channel == null) return;
-      if (channel.creatorPubKey != pubkey) return;
-      if (createdAt <= channel.updatedAt) return;
+      if (group == null) return;
+      if (group.creatorPubKey != pubkey) return;
+      if (createdAt <= group.updatedAt) return;
 
-      channel.name = metadata['name'] as String? ?? channel.name;
-      channel.about = metadata['about'] as String? ?? channel.about;
-      channel.picture = metadata['picture'] as String? ?? channel.picture;
+      group.name = metadata['name'] as String? ?? group.name;
+      group.about = metadata['about'] as String? ?? group.about;
+      group.picture = metadata['picture'] as String? ?? group.picture;
 
       final relays = metadata['relays'];
       if (relays is List) {
-        channel.relays = relays.map((e) => e.toString()).toList();
+        group.relays = relays.map((e) => e.toString()).toList();
       }
 
-      channel.updatedAt = createdAt;
-      channel.lastMetaEvent = eventId;
+      group.updatedAt = createdAt;
+      group.lastMetaEvent = eventId;
 
-      await isar.channelModels.put(channel);
+      await isar.groupModels.put(group);
     });
   }
 }

@@ -33,7 +33,7 @@ class MissingProfileTracker {
     await trackPubkey(pubkey);
   }
 
-  /// Direct-pubkey entry point — used by decrypt paths (private channel MLS,
+  /// Direct-pubkey entry point — used by decrypt paths (private group MLS,
   /// NIP-17 DM seals) where there is no raw inbound event to inspect, only
   /// the sender pubkey extracted from the decrypted payload.
   Future<void> trackPubkey(String? pubkey) async {

@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
-/// Kind 40 — NIP-28 channel creation.
+/// Kind 40 — NIP-28 group creation.
 ///
-/// The Nostr event id IS the channel id forever. We only update existing
-/// [ChannelModel] rows (the channel must have been joined locally first).
+/// The Nostr event id IS the group id forever. We only update existing
+/// [GroupModel] rows (the group must have been joined locally first).
 class Kind40Handler implements KindHandler {
   @override
   Set<int> get kinds => const {40};
@@ -28,24 +28,24 @@ class Kind40Handler implements KindHandler {
     }
 
     await isar.writeTxn(() async {
-      final channel = await isar.channelModels
+      final group = await isar.groupModels
           .where()
-          .channelIdEqualTo(eventId)
+          .groupIdEqualTo(eventId)
           .findFirst();
-      if (channel == null) return;
+      if (group == null) return;
 
-      channel.creatorPubKey = pubkey;
-      channel.createdAt = createdAt;
-      channel.name = metadata['name'] as String? ?? channel.name;
-      channel.about = metadata['about'] as String? ?? channel.about;
-      channel.picture = metadata['picture'] as String? ?? channel.picture;
+      group.creatorPubKey = pubkey;
+      group.createdAt = createdAt;
+      group.name = metadata['name'] as String? ?? group.name;
+      group.about = metadata['about'] as String? ?? group.about;
+      group.picture = metadata['picture'] as String? ?? group.picture;
 
       final relays = metadata['relays'];
       if (relays is List) {
-        channel.relays = relays.map((e) => e.toString()).toList();
+        group.relays = relays.map((e) => e.toString()).toList();
       }
 
-      await isar.channelModels.put(channel);
+      await isar.groupModels.put(group);
     });
   }
 }

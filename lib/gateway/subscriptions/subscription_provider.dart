@@ -8,7 +8,7 @@ class SubscriptionContext {
   final Isar isar;
   final String? activePubkey;
 
-  /// How far back the capped surfaces (feed / channel / private-channel
+  /// How far back the capped surfaces (feed / group / private-group
   /// messages) pull. Defaults to [kRecentSyncWindow]; the Gateway overrides it
   /// from the user's setting at boot.
   final Duration recentSyncWindow;
@@ -24,7 +24,7 @@ class SubscriptionContext {
 ///
 /// Each provider knows: its sub id, how to build its filter from current Isar
 /// state, what local event ids to feed NIP-77 reconciliation, and (optionally)
-/// a side-channel REQ to issue right after the main sub opens.
+/// a side-group REQ to issue right after the main sub opens.
 abstract class SubscriptionProvider {
   /// REQ subscription id. Used both to open and close the sub.
   String get subId;
@@ -55,7 +55,7 @@ abstract class SubscriptionProvider {
   /// Companion REQs to fire right after the main subscription opens. Each is a
   /// plain (non-NIP-77) REQ — used for by-id metadata lookups (kind 40 / 9002)
   /// and for low-volume / crypto-critical events that must pull full history
-  /// (kind 41 channel metadata; the 9021/9022/9024/9025 MLS control plane).
+  /// (kind 41 group metadata; the 9021/9022/9024/9025 MLS control plane).
   /// Returns an empty list for providers with no companion.
   Future<List<({String subId, Map<String, dynamic> filter})>> companionRequests(
     SubscriptionContext ctx,

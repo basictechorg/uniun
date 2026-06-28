@@ -41,7 +41,7 @@ class AppSettingsStore {
 
   /// Days after which short-lived public notes (Kind 1 / Kind 42) get
   /// evicted by `CleanupManager`. `null` = disabled (the default — nothing
-  /// auto-deletes). Saved / own / followed / DM / private-channel notes
+  /// auto-deletes). Saved / own / followed / DM / private-group notes
   /// are never affected by this setting.
   int? get autoDeleteOldNotesDays {
     if (!_prefs.containsKey(_kAutoDeleteOldNotesDays)) return null;
@@ -57,7 +57,7 @@ class AppSettingsStore {
     }
   }
 
-  /// Days of history the capped sync surfaces (feed / channel / private-channel
+  /// Days of history the capped sync surfaces (feed / group / private-group
   /// messages) pull. Defaults to 7 when unset. Followed notes, DMs, and the MLS
   /// control plane ignore this — they always pull full history.
   int get recentSyncWindowDays {

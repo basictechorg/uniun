@@ -355,39 +355,39 @@ class _InputRefPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     switch (state.inputType!) {
-      case GanaInputType.channel:
+      case GanaInputType.group:
         return _SelectorTile(
           icon: Icons.forum_outlined,
-          title: l10n.ganaFormInputChannel,
-          subtitle: _channelName(state.channels, state.inputRefId) ??
+          title: l10n.ganaFormInputGroup,
+          subtitle: _groupName(state.groups, state.inputRefId) ??
               l10n.ganaFormInputPickHint,
           empty: state.inputRefId == null,
           onTap: () => _openSheet<String>(
             context: context,
-            title: l10n.ganaFormInputChannel,
+            title: l10n.ganaFormInputGroup,
             current: state.inputRefId,
             options: [
-              for (final c in state.channels)
-                _PickOption(value: c.channelId, label: c.name),
+              for (final c in state.groups)
+                _PickOption(value: c.groupId, label: c.name),
             ],
             onPicked: (v) => context
                 .read<GanaFormBloc>()
                 .add(GanaFormInputRefChangedEvent(v)),
           ),
         );
-      case GanaInputType.privateChannel:
+      case GanaInputType.privateGroup:
         return _SelectorTile(
           icon: Icons.lock_outline,
-          title: l10n.ganaFormInputPrivateChannel,
-          subtitle: _privateChannelName(state.privateChannels, state.inputRefId) ??
+          title: l10n.ganaFormInputPrivateGroup,
+          subtitle: _privateGroupName(state.privateGroups, state.inputRefId) ??
               l10n.ganaFormInputPickHint,
           empty: state.inputRefId == null,
           onTap: () => _openSheet<String>(
             context: context,
-            title: l10n.ganaFormInputPrivateChannel,
+            title: l10n.ganaFormInputPrivateGroup,
             current: state.inputRefId,
             options: [
-              for (final c in state.privateChannels)
+              for (final c in state.privateGroups)
                 _PickOption(value: c.groupId, label: c.name),
             ],
             onPicked: (v) => context
@@ -490,39 +490,39 @@ class _OutputRefPicker extends StatelessWidget {
     switch (state.outputType) {
       case GanaOutputType.feed:
         return const SizedBox.shrink();
-      case GanaOutputType.channel:
+      case GanaOutputType.group:
         return _SelectorTile(
           icon: Icons.forum_outlined,
-          title: l10n.ganaFormOutputChannel,
-          subtitle: _channelName(state.channels, state.outputChannelId) ??
+          title: l10n.ganaFormOutputGroup,
+          subtitle: _groupName(state.groups, state.outputGroupId) ??
               l10n.ganaFormOutputPickHint,
-          empty: state.outputChannelId == null,
+          empty: state.outputGroupId == null,
           onTap: () => _openSheet<String>(
             context: context,
-            title: l10n.ganaFormOutputChannel,
-            current: state.outputChannelId,
+            title: l10n.ganaFormOutputGroup,
+            current: state.outputGroupId,
             options: [
-              for (final c in state.channels)
-                _PickOption(value: c.channelId, label: c.name),
+              for (final c in state.groups)
+                _PickOption(value: c.groupId, label: c.name),
             ],
             onPicked: (v) => context
                 .read<GanaFormBloc>()
                 .add(GanaFormOutputRefChangedEvent(v)),
           ),
         );
-      case GanaOutputType.privateChannel:
+      case GanaOutputType.privateGroup:
         return _SelectorTile(
           icon: Icons.lock_outline,
-          title: l10n.ganaFormOutputPrivateChannel,
-          subtitle: _privateChannelName(state.privateChannels, state.outputGroupId) ??
+          title: l10n.ganaFormOutputPrivateGroup,
+          subtitle: _privateGroupName(state.privateGroups, state.outputPrivateGroupId) ??
               l10n.ganaFormOutputPickHint,
-          empty: state.outputGroupId == null,
+          empty: state.outputPrivateGroupId == null,
           onTap: () => _openSheet<String>(
             context: context,
-            title: l10n.ganaFormOutputPrivateChannel,
-            current: state.outputGroupId,
+            title: l10n.ganaFormOutputPrivateGroup,
+            current: state.outputPrivateGroupId,
             options: [
-              for (final c in state.privateChannels)
+              for (final c in state.privateGroups)
                 _PickOption(value: c.groupId, label: c.name),
             ],
             onPicked: (v) => context

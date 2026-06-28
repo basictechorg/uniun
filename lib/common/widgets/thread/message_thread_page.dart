@@ -9,8 +9,8 @@ import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// The single thread screen used by every surface (feed, channel, private
-/// channel, DM): app bar + [ThreadConversationBody] + a [ComposerHost].
+/// The single thread screen used by every surface (feed, group, private
+/// group, DM): app bar + [ThreadConversationBody] + a [ComposerHost].
 ///
 /// Data-source agnostic: callers pass the already-resolved
 /// [root]/[parentNotes]/[mentionedNotes]/[replies] plus the two actions that

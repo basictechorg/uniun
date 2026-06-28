@@ -20,12 +20,12 @@ abstract class SavedNoteRepository {
   Future<Either<Failure, int>> getSavedReplyCount(String eventId);
 
   /// Saved notes that reference [parentId] (its saved replies/references),
-  /// resolved via the reference edge table — so it works for channel messages
+  /// resolved via the reference edge table — so it works for group messages
   /// whose saved eTagRefs are stripped. Each carries its saved-scoped count.
   Future<Either<Failure, List<SavedNoteEntity>>> getSavedReplies(String parentId);
 
   /// Saved notes that [childId] references (its saved parents/references),
   /// resolved via the edge table — so the parent/reference card renders in the
-  /// saved thread even for channel messages with stripped eTagRefs.
+  /// saved thread even for group messages with stripped eTagRefs.
   Future<Either<Failure, List<SavedNoteEntity>>> getSavedReferences(String childId);
 }

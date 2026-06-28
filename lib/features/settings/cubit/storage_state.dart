@@ -46,7 +46,7 @@ class StorageState {
 
   /// `null` = auto-cleanup off (default). Otherwise the configured
   /// retention window applied to short-lived public traffic. Saved /
-  /// followed / own / DM / private-channel notes are never affected.
+  /// followed / own / DM / private-group notes are never affected.
   final int? autoDeleteOldNotesDays;
 
   /// Days of history the capped sync surfaces pull. Default 7. Takes effect on

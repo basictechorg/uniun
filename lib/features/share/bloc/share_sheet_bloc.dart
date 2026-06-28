@@ -3,16 +3,16 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
-import 'package:uniun/domain/entities/channel/channel_entity.dart';
+import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
-import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/share_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -23,8 +23,8 @@ part 'share_sheet_bloc.freezed.dart';
 
 @injectable
 class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
-  final GetChannelsUseCase _getChannels;
-  final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetGroupsUseCase _getGroups;
+  final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetDmConversationsUseCase _getDms;
   final ShareNoteUseCase _shareNote;
   final UploadMediaUseCase _uploadMedia;
@@ -32,8 +32,8 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
   final ResolveNotesByIdsUseCase _resolveNotes;
 
   ShareSheetBloc(
-    this._getChannels,
-    this._getPrivateChannels,
+    this._getGroups,
+    this._getPrivateGroups,
     this._getDms,
     this._shareNote,
     this._uploadMedia,
@@ -64,15 +64,15 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
     final authorPubkey =
         userResult.fold((_) => '', (u) => u.pubkeyHex);
 
-    final channelsResult = await _getChannels();
-    final publicChannels = channelsResult.fold<List<ChannelEntity>>(
+    final groupsResult = await _getGroups();
+    final publicGroups = groupsResult.fold<List<GroupEntity>>(
       (_) => const [],
       (list) => list,
     );
 
-    final privateChannels =
-        await _getPrivateChannels.execute().first.catchError(
-              (_) => const <PrivateChannelEntity>[],
+    final privateGroups =
+        await _getPrivateGroups.execute().first.catchError(
+              (_) => const <PrivateGroupEntity>[],
             );
 
     final dmsResult = await _getDms();
@@ -92,8 +92,8 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
     emit(state.copyWith(
       loading: false,
       authorPubkey: authorPubkey,
-      publicChannels: publicChannels,
-      privateChannels: privateChannels,
+      publicGroups: publicGroups,
+      privateGroups: privateGroups,
       dmConversations: dms,
       quotedNote: quotedNote,
     ));

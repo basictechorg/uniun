@@ -4,8 +4,8 @@
 /// Stored on `GanaModel` via `@Enumerated(EnumType.name)` so the on-disk
 /// value is the enum name (forward-compat with adding cases at the tail).
 enum GanaInputType {
-  channel,
-  privateChannel,
+  group,
+  privateGroup,
   dm,
   user,
   followedNote,

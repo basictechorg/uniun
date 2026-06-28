@@ -35,7 +35,7 @@
 //   2. BackgroundIsolateBinaryMessenger.ensureInitialized accepts the token.
 //   3. FlutterGemma.initialize() succeeds from the bg isolate (engine
 //      registration is the part most likely to fail — engines may be
-//      gated on main-isolate-only platform channels).
+//      gated on main-isolate-only platform groups).
 //   4. FlutterGemma.hasActiveModel() returns the same answer as the main
 //      isolate (shared state via SharedPreferences-equivalent storage).
 //   5. getActiveModel() returns a usable handle.
@@ -116,12 +116,12 @@ class _WorkerMessage {
 /// Worker isolate body. Must be top-level so `Isolate.spawn` can resolve it.
 Future<void> _workerEntry(_WorkerMessage msg) async {
   try {
-    // 1. Open the platform-channel bridge so plugin calls work.
+    // 1. Open the platform-group bridge so plugin calls work.
     BackgroundIsolateBinaryMessenger.ensureInitialized(msg.token);
 
     // 2. Initialize flutter_gemma 1.0.0. Engine registration MAY throw
     //    on a background isolate if any registered engine touches a
-    //    main-isolate-only channel during initialize() — that's exactly
+    //    main-isolate-only group during initialize() — that's exactly
     //    what we want to detect.
     await FlutterGemma.initialize(
       inferenceEngines: const [
@@ -150,7 +150,7 @@ Future<void> _workerEntry(_WorkerMessage msg) async {
     //    DIAGNOSTIC: time the model open. If this returns in <1s, the
     //    model wasn't actually loaded into THIS isolate's process space —
     //    flutter_gemma is delegating to the main-isolate native handle
-    //    via the platform channel. That works for "app alive, bg isolate
+    //    via the platform group. That works for "app alive, bg isolate
     //    speaking to main" (our current architecture) but does NOT prove
     //    the WorkManager-killed-app case. Annotate the result so we can
     //    tell which path the test actually exercised.

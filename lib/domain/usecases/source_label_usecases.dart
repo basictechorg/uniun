@@ -3,7 +3,7 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/repositories/source_label_repository.dart';
 
 /// Input type alias for [ResolveSourceLabelsUseCase].
-typedef SourceLabelItem = ({String eventId, String? channelId, String? groupId});
+typedef SourceLabelItem = ({String eventId, String? groupId, String? privateGroupId});
 
 @lazySingleton
 class ResolveSourceLabelsUseCase

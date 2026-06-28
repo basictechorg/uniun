@@ -10,8 +10,7 @@ import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
-import 'package:uniun/common/widgets/note_card/dm_note_card.dart';
-import 'package:uniun/common/widgets/note_card/dm_own_note_card.dart';
+import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
@@ -162,16 +161,10 @@ class _DmChatViewState extends State<_DmChatView> {
     context.pushNamed(AppRoutes.thread, pathParameters: {'noteId': messageId});
   }
 
-  /// Display name for the reply strip — the replied-to message's author
-  /// (either participant), falling back to a shortened pubkey.
-  String? _replyName(DmChatState state) {
-    final note = state.replyingToNote;
-    if (note == null) return null;
-    final name = state.profiles[note.authorPubkey]?.name?.trim();
-    if (name != null && name.isNotEmpty) return name;
-    final pk = note.authorPubkey;
-    return pk.length > 12 ? '${pk.substring(0, 12)}...' : pk;
-  }
+  /// Truncates a full npub to the `npub1q9x…k4ze` form shown under the name.
+  String _shortNpub(String npub) => npub.length > 14
+      ? '${npub.substring(0, 8)}…${npub.substring(npub.length - 4)}'
+      : npub;
 
   @override
   Widget build(BuildContext context) {
@@ -207,12 +200,15 @@ class _DmChatViewState extends State<_DmChatView> {
         final displayName = otherProfile?.name?.trim().isNotEmpty == true
             ? otherProfile!.name!.trim()
             : shortKey;
+        final otherNpub =
+            otherPubkey == null ? null : _shortNpub(Nip19.encodePubkey(otherPubkey));
 
         return Scaffold(
           backgroundColor: AppColors.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.glassFill,
             elevation: 0,
+            scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
             leading: UniunBackButton(
               onPressed: () => Navigator.pop(context),
@@ -227,15 +223,33 @@ class _DmChatViewState extends State<_DmChatView> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (otherNpub != null)
+                        Text(
+                          otherNpub,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -247,6 +261,14 @@ class _DmChatViewState extends State<_DmChatView> {
                   tooltip: 'Share keys',
                 ),
             ],
+            bottom: const PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.borderSubtle,
+              ),
+            ),
           ),
           body: Column(
             children: [
@@ -258,33 +280,26 @@ class _DmChatViewState extends State<_DmChatView> {
                         : ListView.builder(
                             controller: _scrollController,
                             reverse: true, // show latest at bottom
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            itemCount: state.messages.length,
+                            // No horizontal padding — the NoteCard supplies its
+                            // own 16px sides (matches the feed/group lists).
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            // +1 footer slot. On a reversed list the highest
+                            // index sits at the top of history, so the E2E
+                            // notice renders above the oldest message.
+                            itemCount: state.messages.length + 1,
                             itemBuilder: (context, index) {
+                              if (index == state.messages.length) {
+                                return const _EncryptedNoticePill();
+                              }
                               final msg = state.messages[index];
-                              final isMe = _myPubkeyHex != null &&
-                                  msg.authorPubkey == _myPubkeyHex;
-                              // The DM cards self-load their profile via NoteCardCubit.
-                              final card = isMe
-                                  ? DmOwnNoteCard(
-                                      key: ValueKey(msg.id),
-                                      note: msg,
-                                      onTap: () => _openThread(context, msg.id),
-                                      onReply: () => context
-                                          .read<DmChatBloc>()
-                                          .add(DmChatStartReplyEvent(msg)),
-                                    )
-                                  : DmNoteCard(
-                                      key: ValueKey(msg.id),
-                                      note: msg,
-                                      onTap: () => _openThread(context, msg.id),
-                                      onReply: () => context
-                                          .read<DmChatBloc>()
-                                          .add(DmChatStartReplyEvent(msg)),
-                                    );
+                              // Same redesigned NoteCard as the feed/groups —
+                              // it self-loads its profile and resolves own-vs-
+                              // other internally via NoteCardCubit.
+                              final card = NoteCard(
+                                key: ValueKey(msg.id),
+                                note: msg,
+                                onTap: () => _openThread(context, msg.id),
+                              );
                               return VisibilityDetector(
                                 key: ValueKey('dm-${msg.id}'),
                                 onVisibilityChanged: (info) =>
@@ -309,10 +324,6 @@ class _DmChatViewState extends State<_DmChatView> {
                 hintText: l10n.chatMessageHint,
                 isSending: state.isSending,
                 entityContext: entityContextLines(state.messages),
-                replyingToName: _replyName(state),
-                replyingToPreview: state.replyingToNote?.content,
-                onClearReply: () =>
-                    context.read<DmChatBloc>().add(DmChatCancelReplyEvent()),
                 onSend: (text, refs, attachments) =>
                     context.read<DmChatBloc>().add(
                           DmChatSendEvent(
@@ -326,6 +337,38 @@ class _DmChatViewState extends State<_DmChatView> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The end-to-end-encryption reassurance pill shown at the top of a DM
+/// conversation (NIP-17). Mirrors the `DmChat.jsx` design-system mockup.
+class _EncryptedNoticePill extends StatelessWidget {
+  const _EncryptedNoticePill();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLow,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_rounded, size: 14, color: AppColors.success),
+            const SizedBox(width: 6),
+            Text(
+              l10n.dmEncryptedNotice,
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

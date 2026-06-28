@@ -8,7 +8,7 @@ import 'package:uniun/core/theme/app_theme.dart';
 const double kJumpToBottomTolerance = 80;
 
 /// A floating circular "scroll to latest" affordance used by the chat-like
-/// surfaces (channel feed, private channel, DM). Purely presentational — the
+/// surfaces (group feed, private group, DM). Purely presentational — the
 /// parent owns the scroll state and decides [visible]; tapping calls
 /// [onPressed] (which both scrolls to the newest message and marks the surface
 /// read).

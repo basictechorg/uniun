@@ -54,7 +54,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Universal links: https://www.uniun.in/{channel|private|user}/...
+            <!-- Universal links: https://www.uniun.in/{group|channel|private|user}/...
                  Scoped to the deep-linkable path prefixes so unrelated
                  www.uniun.in URLs (marketing pages, etc.) open in the browser.
                  Requires https://www.uniun.in/.well-known/assetlinks.json
@@ -65,7 +65,10 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
                       android:host="www.uniun.in"
-                      android:pathPrefix="/channel"/>
+                      android:pathPrefix="/group"/>
+                <!-- Legacy public-group prefix (pre channel→group rename); the
+                     router redirects /channel/<id> → /group/<id>. -->
+                <data android:pathPrefix="/channel"/>
                 <data android:pathPrefix="/private"/>
                 <data android:pathPrefix="/user"/>
             </intent-filter>

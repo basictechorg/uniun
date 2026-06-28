@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 /// What a scanned QR represents. Drives downstream routing.
-enum UniunQrKind { user, publicChannel, privateChannel }
+enum UniunQrKind { user, publicGroup, privateGroup }
 
 /// Cross-feature QR payload. Encoded as JSON `{kind, id, name?, relays?}`.
 class UniunQrPayload {
@@ -14,11 +14,11 @@ class UniunQrPayload {
 
   /// The thing being shared:
   ///   - [UniunQrKind.user]           → npub (bech32 public key).
-  ///   - [UniunQrKind.publicChannel]  → 64-char hex channel id.
-  ///   - [UniunQrKind.privateChannel] → group id.
+  ///   - [UniunQrKind.publicGroup]  → 64-char hex group id.
+  ///   - [UniunQrKind.privateGroup] → group id.
   final String id;
 
-  /// Display label (channel name, user name). Optional.
+  /// Display label (group name, user name). Optional.
   final String? name;
 
   /// Relay URLs to use when acting on this payload. Empty for user kind.
@@ -30,8 +30,8 @@ class UniunQrPayload {
     return jsonEncode({
       'kind': switch (kind) {
         UniunQrKind.user => 'user',
-        UniunQrKind.publicChannel => 'public',
-        UniunQrKind.privateChannel => 'private',
+        UniunQrKind.publicGroup => 'public',
+        UniunQrKind.privateGroup => 'private',
       },
       'id': id,
       if (name != null) 'name': name,
@@ -69,8 +69,8 @@ class UniunQrPayload {
 
     final kind = switch (decoded['kind']) {
       'user' => UniunQrKind.user,
-      'public' => UniunQrKind.publicChannel,
-      'private' => UniunQrKind.privateChannel,
+      'public' => UniunQrKind.publicGroup,
+      'private' => UniunQrKind.privateGroup,
       _ => throw const FormatException('Unknown QR kind.'),
     };
     final id = (decoded['id'] as String? ?? '').trim();

@@ -18,7 +18,7 @@ abstract class AppSettingsRepository {
   /// Persist the auto-delete retention window (`null` = off).
   Future<Either<Failure, Unit>> setAutoDeleteOldNotesDays(int? days);
 
-  /// Days of history the capped sync surfaces (feed / channel / private-channel
+  /// Days of history the capped sync surfaces (feed / group / private-group
   /// messages) pull; defaults to 7. Read by the Gateway at boot.
   Future<Either<Failure, int>> getRecentSyncWindowDays();
 

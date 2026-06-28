@@ -10,7 +10,7 @@ import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/data/models/notes/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
-/// Kind 42 — NIP-28 channel message.
+/// Kind 42 — NIP-28 group message.
 ///
 /// Tag walk picks out root/reply e-tags via NIP-10 markers. Falls back to
 /// positional first/last when markers are absent (legacy NIP-10).
@@ -40,7 +40,7 @@ class Kind42Handler implements KindHandler {
     }
 
     final tags = event['tags'] as List<dynamic>? ?? [];
-    String? channelId;
+    String? groupId;
     String? replyEventId;
     String? embeddedNoteJson;
     final eTagRefs = <String>[];
@@ -53,7 +53,7 @@ class Kind42Handler implements KindHandler {
           eTagRefs.add(eRef);
           final marker = tag.length > 3 ? tag[3] as String? : null;
           if (marker == 'root') {
-            channelId = eRef;
+            groupId = eRef;
           } else if (marker == 'reply') {
             replyEventId = eRef;
           }
@@ -65,22 +65,22 @@ class Kind42Handler implements KindHandler {
       }
     }
 
-    if (channelId == null && eTagRefs.isNotEmpty) channelId = eTagRefs.first;
+    if (groupId == null && eTagRefs.isNotEmpty) groupId = eTagRefs.first;
     if (replyEventId == null && eTagRefs.length > 1) {
       replyEventId = eTagRefs.last;
     }
-    if (channelId == null) return;
+    if (groupId == null) return;
 
     final model = NoteModel(
       eventId: eventId,
       sig: sig,
       authorPubkey: pubkey,
       content: content,
-      kind: kChannelMessageKind,
-      channelId: channelId,
+      kind: kGroupMessageKind,
+      groupId: groupId,
       type: NoteType.text,
       eTagRefs: eTagRefs,
-      rootEventId: channelId,
+      rootEventId: groupId,
       replyToEventId: replyEventId,
       pTagRefs: const [],
       tTags: const [],
@@ -103,11 +103,11 @@ class Kind42Handler implements KindHandler {
           await putUnreadRowInTxn(isar, model);
         }
 
-        // Reference edges: reply target + mentions, minus the channel root.
+        // Reference edges: reply target + mentions, minus the group root.
         // Unique (parentId, childId) index keeps re-delivery idempotent.
         final parents = replyEdgeParentIds(
           replyToEventId: replyEventId,
-          rootEventId: channelId,
+          rootEventId: groupId,
           eTagRefs: eTagRefs,
         );
         for (final parentId in parents) {

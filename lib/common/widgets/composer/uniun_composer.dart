@@ -27,7 +27,7 @@ class ComposerReference {
   final DateTime? created;
 }
 
-/// Shared chat-style composer used across the app (thread replies, channel
+/// Shared chat-style composer used across the app (thread replies, group
 /// thread replies, Brahma note creation).
 ///
 /// Layout, top to bottom inside a single rounded card:
@@ -105,7 +105,7 @@ class UniunComposer extends StatefulWidget {
   /// Opens the reference picker. When null, the add-reference button is hidden.
   final VoidCallback? onAddReference;
 
-  /// Reply-target context pill (channel/thread replies).
+  /// Reply-target context pill (group/thread replies).
   final String? replyingToName;
 
   /// Optional one-line snippet of the message being replied to, shown beneath

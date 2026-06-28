@@ -6,19 +6,19 @@ import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/domain/entities/channel/channel_entity.dart';
+import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/gana_usecases.dart';
-import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uuid/uuid.dart';
 
 part 'gana_form_event.dart';
@@ -30,8 +30,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
   final GetGanaByIdUseCase _getById;
   final DeleteGanaUseCase _delete;
   final GetManasListUseCase _getManases;
-  final GetChannelsUseCase _getChannels;
-  final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetGroupsUseCase _getGroups;
+  final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetDmConversationsUseCase _getDms;
   final GetAllFollowedNotesUseCase _getFollowed;
   final GetDownloadedModelIdsUseCase _getModels;
@@ -41,8 +41,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     this._getById,
     this._delete,
     this._getManases,
-    this._getChannels,
-    this._getPrivateChannels,
+    this._getGroups,
+    this._getPrivateGroups,
     this._getDms,
     this._getFollowed,
     this._getModels,
@@ -95,19 +95,19 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
 
     // Load picker pools in parallel.
     final manasFuture = _getManases.call();
-    final channelsFuture = _getChannels.call();
+    final groupsFuture = _getGroups.call();
     final dmsFuture = _getDms.call();
     final followedFuture = _getFollowed.call();
     final modelsFuture = _getModels.call();
-    // Private channels are a stream; take first emission.
-    final privateChannels =
-        await _getPrivateChannels.execute().first.catchError((_) =>
-            <PrivateChannelEntity>[]);
+    // Private groups are a stream; take first emission.
+    final privateGroups =
+        await _getPrivateGroups.execute().first.catchError((_) =>
+            <PrivateGroupEntity>[]);
 
     final manases = (await manasFuture)
         .fold<List<ManasEntity>>((_) => const [], (l) => l);
-    final channels = (await channelsFuture)
-        .fold<List<ChannelEntity>>((_) => const [], (l) => l);
+    final groups = (await groupsFuture)
+        .fold<List<GroupEntity>>((_) => const [], (l) => l);
     final dms = (await dmsFuture)
         .fold<List<DmConversationEntity>>((_) => const [], (l) => l);
     final followed = (await followedFuture)
@@ -121,8 +121,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         ganaId: const Uuid().v4(),
         createdAt: DateTime.now(),
         manases: manases,
-        channels: channels,
-        privateChannels: privateChannels,
+        groups: groups,
+        privateGroups: privateGroups,
         dmConversations: dms,
         followedNotes: followed,
         availableModels: models.map((m) => m.name).toList(),
@@ -150,8 +150,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       inputType: gana.inputType,
       inputRefId: gana.inputRefId,
       outputType: gana.outputType,
-      outputChannelId: gana.outputChannelId,
       outputGroupId: gana.outputGroupId,
+      outputPrivateGroupId: gana.outputPrivateGroupId,
       outputDmConversationId: gana.outputDmConversationId,
       desiredModelId: gana.desiredModelId,
       triggerReactive: gana.triggerReactive,
@@ -161,8 +161,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       enabled: gana.enabled,
       createdAt: gana.createdAt,
       manases: manases,
-      channels: channels,
-      privateChannels: privateChannels,
+      groups: groups,
+      privateGroups: privateGroups,
       dmConversations: dms,
       followedNotes: followed,
       availableModels: models.map((m) => m.name).toList(),
@@ -197,11 +197,11 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       GanaFormOutputTypeChangedEvent event, Emitter<GanaFormState> emit) {
     emit(state.copyWith(
       outputType: event.value,
-      outputChannelId: null,
       outputGroupId: null,
+      outputPrivateGroupId: null,
       outputDmConversationId: null,
-      clearOutputChannelId: true,
       clearOutputGroupId: true,
+      clearOutputPrivateGroupId: true,
       clearOutputDmConversationId: true,
     ));
   }
@@ -213,16 +213,16 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       case GanaOutputType.feed:
         // No ref for feed; clear all.
         emit(state.copyWith(
-          clearOutputChannelId: true,
           clearOutputGroupId: true,
+          clearOutputPrivateGroupId: true,
           clearOutputDmConversationId: true,
         ));
         return;
-      case GanaOutputType.channel:
-        emit(state.copyWith(outputChannelId: event.value as String?));
-        return;
-      case GanaOutputType.privateChannel:
+      case GanaOutputType.group:
         emit(state.copyWith(outputGroupId: event.value as String?));
+        return;
+      case GanaOutputType.privateGroup:
+        emit(state.copyWith(outputPrivateGroupId: event.value as String?));
         return;
       case GanaOutputType.dm:
         emit(state.copyWith(outputDmConversationId: event.value as int?));
@@ -293,8 +293,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       inputType: state.inputType,
       inputRefId: state.inputRefId,
       outputType: state.outputType,
-      outputChannelId: state.outputChannelId,
       outputGroupId: state.outputGroupId,
+      outputPrivateGroupId: state.outputPrivateGroupId,
       outputDmConversationId: state.outputDmConversationId,
       desiredModelId: state.desiredModelId,
       triggerReactive: state.triggerReactive,

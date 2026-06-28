@@ -39,21 +39,21 @@ class GanaInputFilter {
     final fetchCap = _capPerRun * 2;
     List<NoteModel> rows = const [];
     switch (gana.inputType!) {
-      case GanaInputType.channel:
+      case GanaInputType.group:
         rows = await isar.noteModels
             .filter()
-            .channelIdEqualTo(gana.inputRefId)
-            .kindEqualTo(kChannelMessageKind)
+            .groupIdEqualTo(gana.inputRefId)
+            .kindEqualTo(kGroupMessageKind)
             .createdGreaterThan(after)
             .sortByCreatedDesc()
             .limit(fetchCap)
             .findAll();
         break;
-      case GanaInputType.privateChannel:
+      case GanaInputType.privateGroup:
         rows = await isar.noteModels
             .filter()
-            .groupIdEqualTo(gana.inputRefId)
-            .kindEqualTo(kPrivateChannelKind)
+            .privateGroupIdEqualTo(gana.inputRefId)
+            .kindEqualTo(kPrivateGroupKind)
             .createdGreaterThan(after)
             .sortByCreatedDesc()
             .limit(fetchCap)

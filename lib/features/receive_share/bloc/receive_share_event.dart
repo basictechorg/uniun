@@ -30,8 +30,8 @@ sealed class ReceiveShareEvent with _$ReceiveShareEvent {
   /// Save the composed text as a local draft (text-only).
   const factory ReceiveShareEvent.saveToDraft() = SaveReceiveDraft;
 
-  /// Publish the composed note to the chosen destination (feed / channel /
-  /// private channel / DM).
+  /// Publish the composed note to the chosen destination (feed / group /
+  /// private group / DM).
   const factory ReceiveShareEvent.submit(ShareDestination destination) =
       SubmitReceiveShare;
 }

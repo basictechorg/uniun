@@ -4,7 +4,7 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 
 /// Finds notes/messages in the unified `Note` collection by their
 /// globally-unique event id. This is what lets one thread screen render a note
-/// regardless of which surface (feed / channel / private channel / DM) produced
+/// regardless of which surface (feed / group / private group / DM) produced
 /// it, and lets a note reference a message from any other surface. Reply
 /// routing is derived from the resolved [NoteEntity] itself (see
 /// `NoteReplyRouting.replyTransport`).

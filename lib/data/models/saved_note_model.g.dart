@@ -209,7 +209,7 @@ int _savedNoteModelEstimateSize(
   }
   bytesCount += 3 + object.sig.length * 3;
   {
-    final value = object.sourceChannelId;
+    final value = object.sourceGroupId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -254,7 +254,7 @@ void _savedNoteModelSerialize(
   writer.writeString(offsets[9], object.rootEventId);
   writer.writeDateTime(offsets[10], object.savedAt);
   writer.writeString(offsets[11], object.sig);
-  writer.writeString(offsets[12], object.sourceChannelId);
+  writer.writeString(offsets[12], object.sourceGroupId);
   writer.writeString(offsets[13], object.sourcePrivateGroupId);
   writer.writeStringList(offsets[14], object.tTags);
   writer.writeString(offsets[15], object.type.name);
@@ -287,7 +287,7 @@ SavedNoteModel _savedNoteModelDeserialize(
   object.rootEventId = reader.readStringOrNull(offsets[9]);
   object.savedAt = reader.readDateTime(offsets[10]);
   object.sig = reader.readString(offsets[11]);
-  object.sourceChannelId = reader.readStringOrNull(offsets[12]);
+  object.sourceGroupId = reader.readStringOrNull(offsets[12]);
   object.sourcePrivateGroupId = reader.readStringOrNull(offsets[13]);
   object.tTags = reader.readStringList(offsets[14]) ?? [];
   object.type =
@@ -2483,7 +2483,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdIsNull() {
+  sourceGroupIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNull(property: r'sourceChannelId'),
@@ -2492,7 +2492,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdIsNotNull() {
+  sourceGroupIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNotNull(property: r'sourceChannelId'),
@@ -2501,7 +2501,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdEqualTo(String? value, {bool caseSensitive = true}) {
+  sourceGroupIdEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
@@ -2514,7 +2514,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdGreaterThan(
+  sourceGroupIdGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2532,7 +2532,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdLessThan(
+  sourceGroupIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2550,7 +2550,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdBetween(
+  sourceGroupIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -2572,7 +2572,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdStartsWith(String value, {bool caseSensitive = true}) {
+  sourceGroupIdStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
@@ -2585,7 +2585,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdEndsWith(String value, {bool caseSensitive = true}) {
+  sourceGroupIdEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
@@ -2598,7 +2598,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdContains(String value, {bool caseSensitive = true}) {
+  sourceGroupIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
@@ -2611,7 +2611,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdMatches(String pattern, {bool caseSensitive = true}) {
+  sourceGroupIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
@@ -2624,7 +2624,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdIsEmpty() {
+  sourceGroupIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'sourceChannelId', value: ''),
@@ -2633,7 +2633,7 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
-  sourceChannelIdIsNotEmpty() {
+  sourceGroupIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'sourceChannelId', value: ''),
@@ -3275,14 +3275,14 @@ extension SavedNoteModelQuerySortBy
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  sortBySourceChannelId() {
+  sortBySourceGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sourceChannelId', Sort.asc);
     });
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  sortBySourceChannelIdDesc() {
+  sortBySourceGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sourceChannelId', Sort.desc);
     });
@@ -3450,14 +3450,14 @@ extension SavedNoteModelQuerySortThenBy
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  thenBySourceChannelId() {
+  thenBySourceGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sourceChannelId', Sort.asc);
     });
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
-  thenBySourceChannelIdDesc() {
+  thenBySourceGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sourceChannelId', Sort.desc);
     });
@@ -3575,7 +3575,7 @@ extension SavedNoteModelQueryWhereDistinct
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
-  distinctBySourceChannelId({bool caseSensitive = true}) {
+  distinctBySourceGroupId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
         r'sourceChannelId',
@@ -3697,7 +3697,7 @@ extension SavedNoteModelQueryProperty
   }
 
   QueryBuilder<SavedNoteModel, String?, QQueryOperations>
-  sourceChannelIdProperty() {
+  sourceGroupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sourceChannelId');
     });

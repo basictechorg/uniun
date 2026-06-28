@@ -8,8 +8,8 @@ import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
-import 'package:uniun/domain/usecases/get_channel_by_id_usecase.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/get_group_by_id_usecase.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_compose_page.dart';
 import 'package:uniun/features/brahma/graph/pages/graph_page.dart';
@@ -19,10 +19,10 @@ import 'package:uniun/features/shiv/gana/detail/pages/gana_detail_page.dart';
 import 'package:uniun/features/shiv/gana/form/pages/gana_form_page.dart';
 import 'package:uniun/features/shiv/gana/list/pages/gana_list_page.dart';
 import 'package:uniun/features/shiv/nataraj/pages/nataraj_deck_page.dart';
-import 'package:uniun/features/channels/create/pages/create_channel_page.dart';
-import 'package:uniun/features/channels/entry/pages/channel_entry_page.dart';
-import 'package:uniun/features/channels/feed/pages/channel_feed_page.dart';
-import 'package:uniun/features/channels/join/pages/join_channel_page.dart';
+import 'package:uniun/features/groups/create/pages/create_group_page.dart';
+import 'package:uniun/features/groups/entry/pages/group_entry_page.dart';
+import 'package:uniun/features/groups/feed/pages/group_feed_page.dart';
+import 'package:uniun/features/groups/join/pages/join_group_page.dart';
 import 'package:uniun/features/dm/chat/pages/dm_chat_page.dart';
 import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
 import 'package:uniun/features/home/pages/home_page.dart';
@@ -32,10 +32,10 @@ import 'package:uniun/features/onboarding/pages/import_identity_page.dart';
 import 'package:uniun/features/onboarding/pages/splash_page.dart';
 import 'package:uniun/features/onboarding/pages/welcome_page.dart';
 import 'package:uniun/features/onboarding/pages/your_identity_keys_page.dart';
-import 'package:uniun/features/private_channels/create/pages/create_private_channel_page.dart';
-import 'package:uniun/features/private_channels/detail/pages/private_channel_detail_page.dart';
-import 'package:uniun/features/private_channels/entry/pages/private_channel_entry_page.dart';
-import 'package:uniun/features/private_channels/join/pages/join_private_channel_page.dart';
+import 'package:uniun/features/private_groups/create/pages/create_private_group_page.dart';
+import 'package:uniun/features/private_groups/detail/pages/private_group_detail_page.dart';
+import 'package:uniun/features/private_groups/entry/pages/private_group_entry_page.dart';
+import 'package:uniun/features/private_groups/join/pages/join_private_group_page.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
 import 'package:uniun/features/receive_share/pages/receive_share_sheet_page.dart';
 import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
@@ -126,20 +126,20 @@ final GoRouter appRouter = GoRouter(
       builder: (_, __) => const AIModelSelectionPage(),
     ),
     GoRoute(
-      name: AppRoutes.channelEntry,
-      path: '/channel-entry',
-      builder: (_, __) => const ChannelEntryPage(),
+      name: AppRoutes.groupEntry,
+      path: '/group-entry',
+      builder: (_, __) => const GroupEntryPage(),
     ),
     GoRoute(
-      name: AppRoutes.createChannel,
-      path: '/create-channel',
-      builder: (_, __) => const CreateChannelPage(),
+      name: AppRoutes.createGroup,
+      path: '/create-group',
+      builder: (_, __) => const CreateGroupPage(),
     ),
     GoRoute(
-      name: AppRoutes.joinChannel,
-      path: '/join-channel',
+      name: AppRoutes.joinGroup,
+      path: '/join-group',
       builder: (_, state) =>
-          JoinChannelPage(payload: _channelPayloadFrom(state)),
+          JoinGroupPage(payload: _groupPayloadFrom(state)),
     ),
     GoRoute(
       name: AppRoutes.savedNotes,
@@ -163,11 +163,11 @@ final GoRouter appRouter = GoRouter(
       path: '/blocked-users',
       builder: (_, __) => const BlockedUsersPage(),
     ),
-    // ── Deep-linkable: public channel ──────────────────────────────────────
-    // https://<host>/channel/<channelId>?dl=1&relays=...&name=...
+    // ── Deep-linkable: public group ──────────────────────────────────────
+    // https://<host>/group/<groupId>?dl=1&relays=...&name=...
     GoRoute(
-      name: AppRoutes.channelDetail,
-      path: '/$kChannelSegment/:channelId',
+      name: AppRoutes.groupDetail,
+      path: '/$kGroupSegment/:groupId',
       redirect: (_, state) async {
         // In-app navigation (no dl flag) → build the page directly; the user is
         // already a member, so skip the membership/relay/auth round-trips.
@@ -177,19 +177,29 @@ final GoRouter appRouter = GoRouter(
         if (gate != null) return gate;
         final relays = state.uri.queryParametersAll['relays'] ?? const [];
         await ensureRelays(relays);
-        final id = state.pathParameters['channelId']!;
-        final res = await getIt<GetChannelByIdUseCase>().call(id);
+        final id = state.pathParameters['groupId']!;
+        final res = await getIt<GetGroupByIdUseCase>().call(id);
         if (res.isRight()) return null; // joined → show detail
         // Not joined → carry hints to the pre-filled join page.
         final name = state.uri.queryParameters['name'];
-        return Uri(path: '/join-channel', queryParameters: {
+        return Uri(path: '/join-group', queryParameters: {
           'cid': id,
           if (name != null) 'name': name,
           if (relays.isNotEmpty) 'relays': relays,
         }).toString();
       },
       builder: (_, state) =>
-          ChannelFeedPage(channelId: state.pathParameters['channelId']!),
+          GroupFeedPage(groupId: state.pathParameters['groupId']!),
+    ),
+    // Legacy `/channel/<id>` deep links (pre channel→group rename) → forward to
+    // the canonical `/group/<id>` route, preserving query hints.
+    GoRoute(
+      path: '/$kLegacyGroupSegment/:groupId',
+      redirect: (_, state) {
+        final id = state.pathParameters['groupId']!;
+        final q = state.uri.query;
+        return '/$kGroupSegment/$id${q.isNotEmpty ? '?$q' : ''}';
+      },
     ),
     GoRoute(
       name: AppRoutes.graph,
@@ -268,25 +278,25 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      name: AppRoutes.privateChannelEntry,
-      path: '/private-channel-entry',
-      builder: (_, __) => const PrivateChannelEntryPage(),
+      name: AppRoutes.privateGroupEntry,
+      path: '/private-group-entry',
+      builder: (_, __) => const PrivateGroupEntryPage(),
     ),
     GoRoute(
-      name: AppRoutes.createPrivateChannel,
-      path: '/create-private-channel',
-      builder: (_, __) => const CreatePrivateChannelPage(),
+      name: AppRoutes.createPrivateGroup,
+      path: '/create-private-group',
+      builder: (_, __) => const CreatePrivateGroupPage(),
     ),
     GoRoute(
-      name: AppRoutes.joinPrivateChannel,
-      path: '/join-private-channel',
+      name: AppRoutes.joinPrivateGroup,
+      path: '/join-private-group',
       builder: (_, state) =>
-          JoinPrivateChannelPage(payload: _privatePayloadFrom(state)),
+          JoinPrivateGroupPage(payload: _privatePayloadFrom(state)),
     ),
-    // ── Deep-linkable: private channel ─────────────────────────────────────
+    // ── Deep-linkable: private group ─────────────────────────────────────
     // https://<host>/private/<groupId>?dl=1&relays=...&name=...
     GoRoute(
-      name: AppRoutes.privateChannelDetail,
+      name: AppRoutes.privateGroupDetail,
       path: '/$kPrivateSegment/:groupId',
       redirect: (_, state) async {
         if (state.uri.queryParameters[kDeepLinkFlag] != '1') return null;
@@ -295,18 +305,18 @@ final GoRouter appRouter = GoRouter(
         final relays = state.uri.queryParametersAll['relays'] ?? const [];
         await ensureRelays(relays);
         final id = state.pathParameters['groupId']!;
-        final channel =
-            await getIt<GetPrivateChannelEntityUsecase>().execute(id);
-        if (channel != null) return null; // joined → show detail
+        final group =
+            await getIt<GetPrivateGroupEntityUsecase>().execute(id);
+        if (group != null) return null; // joined → show detail
         final name = state.uri.queryParameters['name'];
-        return Uri(path: '/join-private-channel', queryParameters: {
+        return Uri(path: '/join-private-group', queryParameters: {
           'gid': id,
           if (name != null) 'name': name,
           if (relays.isNotEmpty) 'relays': relays,
         }).toString();
       },
       builder: (_, state) =>
-          PrivateChannelDetailPage(groupId: state.pathParameters['groupId']!),
+          PrivateGroupDetailPage(groupId: state.pathParameters['groupId']!),
     ),
     GoRoute(
       name: AppRoutes.scanQr,
@@ -375,15 +385,15 @@ String _normalizePubkey(String raw) {
   }
 }
 
-/// Rebuilds a public-channel [UniunQrPayload] from either the QR scanner's
+/// Rebuilds a public-group [UniunQrPayload] from either the QR scanner's
 /// `extra` or the not-joined redirect's query params.
-UniunQrPayload? _channelPayloadFrom(GoRouterState state) {
+UniunQrPayload? _groupPayloadFrom(GoRouterState state) {
   final extra = state.extra;
   if (extra is UniunQrPayload) return extra;
   final cid = state.uri.queryParameters['cid'];
   if (cid == null || cid.isEmpty) return null;
   return UniunQrPayload(
-    kind: UniunQrKind.publicChannel,
+    kind: UniunQrKind.publicGroup,
     id: cid,
     name: state.uri.queryParameters['name'],
     relays: state.uri.queryParametersAll['relays'] ?? const [],
@@ -396,7 +406,7 @@ UniunQrPayload? _privatePayloadFrom(GoRouterState state) {
   final gid = state.uri.queryParameters['gid'];
   if (gid == null || gid.isEmpty) return null;
   return UniunQrPayload(
-    kind: UniunQrKind.privateChannel,
+    kind: UniunQrKind.privateGroup,
     id: gid,
     name: state.uri.queryParameters['name'],
     relays: state.uri.queryParametersAll['relays'] ?? const [],

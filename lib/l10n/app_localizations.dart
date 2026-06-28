@@ -208,11 +208,11 @@ abstract class AppLocalizations {
   /// **'Saved Notes'**
   String get drawerSavedNotes;
 
-  /// Drawer section header — channels
+  /// Drawer section header — groups
   ///
   /// In en, this message translates to:
-  /// **'Channels'**
-  String get drawerChannels;
+  /// **'Groups'**
+  String get drawerGroups;
 
   /// Drawer section header — DMs
   ///
@@ -238,23 +238,23 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get drawerSettings;
 
-  /// Drawer section header — followed notes (uppercase)
+  /// Drawer section header — watched notes (uppercase)
   ///
   /// In en, this message translates to:
-  /// **'FOLLOWING NOTES'**
+  /// **'NOTE WATCH'**
   String get drawerFollowingNotes;
 
-  /// Empty state for followed notes in drawer
+  /// Empty state for watched notes in drawer
   ///
   /// In en, this message translates to:
-  /// **'No followed notes yet'**
+  /// **'Not watching any notes yet'**
   String get drawerNoFollowedNotes;
 
-  /// Empty state for channels in drawer
+  /// Empty state for groups in drawer
   ///
   /// In en, this message translates to:
-  /// **'No channels yet'**
-  String get drawerNoChannels;
+  /// **'No groups yet'**
+  String get drawerNoGroups;
 
   /// Drawer header button — open my QR code
   ///
@@ -268,7 +268,7 @@ abstract class AppLocalizations {
   /// **'Scan code'**
   String get drawerScanCode;
 
-  /// Drawer private-channel row subtitle
+  /// Drawer private-group row subtitle
   ///
   /// In en, this message translates to:
   /// **'Private'**
@@ -286,179 +286,185 @@ abstract class AppLocalizations {
   /// **'Following'**
   String get drawerSearchKindUser;
 
-  /// App bar title for the join channel page
+  /// App bar title for the join group page
   ///
   /// In en, this message translates to:
-  /// **'Join Channel'**
-  String get joinChannelTitle;
+  /// **'Join Group'**
+  String get joinGroupTitle;
 
-  /// Heading on the join channel page
+  /// Heading on the join group page
   ///
   /// In en, this message translates to:
-  /// **'Join Existing Channel'**
-  String get joinChannelHeading;
+  /// **'Join Existing Group'**
+  String get joinGroupHeading;
 
-  /// Primary join channel button label
+  /// Primary join group button label
   ///
   /// In en, this message translates to:
-  /// **'Join Channel'**
-  String get joinChannelAction;
+  /// **'Join Group'**
+  String get joinGroupAction;
 
-  /// Field label for channel id input
+  /// Field label for group id input
   ///
   /// In en, this message translates to:
-  /// **'Channel ID (Hex)'**
-  String get joinChannelIdLabel;
+  /// **'Group ID (Hex)'**
+  String get joinGroupIdLabel;
 
-  /// Section title for relay selection on join channel page
+  /// Section title for relay selection on join group page
   ///
   /// In en, this message translates to:
-  /// **'Channel Relays'**
-  String get joinChannelRelaysTitle;
+  /// **'Group Relays'**
+  String get joinGroupRelaysTitle;
 
-  /// Helper text under the relay selector on join channel page
+  /// Helper text under the relay selector on join group page
   ///
   /// In en, this message translates to:
-  /// **'Select the relays this channel operates on to start syncing.'**
-  String get joinChannelRelaysBody;
+  /// **'Select the relays this group operates on to start syncing.'**
+  String get joinGroupRelaysBody;
 
   /// Placeholder / dialog title for relay selection
   ///
   /// In en, this message translates to:
   /// **'Select Relays'**
-  String get joinChannelSelectRelays;
+  String get joinGroupSelectRelays;
 
-  /// Label showing how many relays are selected on join channel page
+  /// Label showing how many relays are selected on join group page
   ///
   /// In en, this message translates to:
   /// **'{count} Relays Selected'**
-  String joinChannelSelectedRelays(int count);
+  String joinGroupSelectedRelays(int count);
 
-  /// Title and tooltip for adding a relay from the join channel flow
+  /// Title and tooltip for adding a relay from the join group flow
   ///
   /// In en, this message translates to:
   /// **'Add Relay'**
-  String get joinChannelAddRelay;
+  String get joinGroupAddRelay;
 
   /// Confirm button for adding a relay
   ///
   /// In en, this message translates to:
   /// **'Add'**
-  String get joinChannelAddRelayAction;
+  String get joinGroupAddRelayAction;
 
   /// Hint text when adding a relay URL
   ///
   /// In en, this message translates to:
   /// **'wss://relay.example.com'**
-  String get joinChannelRelayHint;
+  String get joinGroupRelayHint;
 
-  /// Secondary CTA to scan a QR code and join a channel
+  /// Secondary CTA to scan a QR code and join a group
   ///
   /// In en, this message translates to:
   /// **'Join by QR'**
-  String get joinChannelByQr;
+  String get joinGroupByQr;
 
-  /// Title on the scan-QR card at the top of the join channel page
+  /// Title on the scan-QR card at the top of the join group page
   ///
   /// In en, this message translates to:
-  /// **'Scan a channel QR'**
-  String get joinChannelScanCardTitle;
+  /// **'Scan a group QR'**
+  String get joinGroupScanCardTitle;
 
-  /// Subtitle on the scan-QR card on the join channel page
+  /// Subtitle on the scan-QR card on the join group page
   ///
   /// In en, this message translates to:
-  /// **'Point your camera at a UNIUN channel code'**
-  String get joinChannelScanCardSubtitle;
+  /// **'Point your camera at a UNIUN group code'**
+  String get joinGroupScanCardSubtitle;
 
-  /// Divider label between scan-QR and paste-id on the join channel page
+  /// Divider label between scan-QR and paste-id on the join group page
   ///
   /// In en, this message translates to:
   /// **'or'**
-  String get joinChannelOr;
+  String get joinGroupOr;
 
-  /// Placeholder for the channel id input on the join channel page
+  /// Placeholder for the group id input on the join group page
   ///
   /// In en, this message translates to:
-  /// **'Paste channel ID'**
-  String get joinChannelIdHint;
+  /// **'Paste group ID'**
+  String get joinGroupIdHint;
 
   /// App bar title for the QR scanner page
   ///
   /// In en, this message translates to:
-  /// **'Scan Channel QR'**
-  String get joinChannelQrTitle;
+  /// **'Scan Group QR'**
+  String get joinGroupQrTitle;
 
-  /// Hint text on the join channel QR scanner page
+  /// Hint text on the join group QR scanner page
   ///
   /// In en, this message translates to:
-  /// **'Scan a QR code containing a channel id and relay list.'**
-  String get joinChannelQrHint;
+  /// **'Scan a QR code containing a group id and relay list.'**
+  String get joinGroupQrHint;
 
-  /// Tooltip for choosing a QR image from the gallery on the join channel scanner page
+  /// Tooltip for choosing a QR image from the gallery on the join group scanner page
   ///
   /// In en, this message translates to:
   /// **'Pick QR from gallery'**
-  String get joinChannelQrFromGallery;
+  String get joinGroupQrFromGallery;
 
   /// Snackbar shown when the chosen gallery image does not contain a decodable QR code
   ///
   /// In en, this message translates to:
   /// **'No valid QR code found in the selected image.'**
-  String get joinChannelQrGalleryError;
+  String get joinGroupQrGalleryError;
 
-  /// Snackbar after successfully joining a channel
+  /// Snackbar after successfully joining a group
   ///
   /// In en, this message translates to:
-  /// **'Channel joined successfully.'**
-  String get joinChannelSuccess;
+  /// **'Group joined successfully.'**
+  String get joinGroupSuccess;
 
-  /// Validation error when the channel id is not 64 hex characters
+  /// Validation error when the group id is not 64 hex characters
   ///
   /// In en, this message translates to:
-  /// **'Enter a valid 64-character channel id.'**
-  String get joinChannelErrorInvalidId;
+  /// **'That doesn\'t look like a valid group ID. Check it and try again.'**
+  String get joinGroupErrorInvalidId;
 
   /// Validation error when no relay is selected
   ///
   /// In en, this message translates to:
   /// **'Please select at least one relay.'**
-  String get joinChannelErrorNoRelay;
+  String get joinGroupErrorNoRelay;
 
   /// Error when a relay could not be saved to the local database
   ///
   /// In en, this message translates to:
   /// **'Failed to save relay locally.'**
-  String get joinChannelErrorRelaySaveFailed;
+  String get joinGroupErrorRelaySaveFailed;
 
-  /// Error when saving the joined channel fails
+  /// Error when saving the joined group fails
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t join the channel. Please try again.'**
-  String get joinChannelErrorSaveFailed;
+  /// **'Couldn\'t join the group. Please try again.'**
+  String get joinGroupErrorSaveFailed;
 
-  /// Placeholder text in the channel message composer input
+  /// Placeholder text in the group message composer input
   ///
   /// In en, this message translates to:
-  /// **'Message channel…'**
-  String get channelMessageHint;
+  /// **'Message group…'**
+  String get groupMessageHint;
 
-  /// Placeholder text in the DM and private channel composer input
+  /// Placeholder text in the DM and private group composer input
   ///
   /// In en, this message translates to:
   /// **'Message…'**
   String get chatMessageHint;
 
-  /// Title for the share-channel QR bottom sheet and tooltip
+  /// Pill shown at the top of a DM conversation reassuring that messages are E2E encrypted (NIP-17)
   ///
   /// In en, this message translates to:
-  /// **'Share Channel QR'**
-  String get channelShareQrTitle;
+  /// **'Messages are end-to-end encrypted'**
+  String get dmEncryptedNotice;
 
-  /// Helper text under the share-channel QR title
+  /// Title for the share-group QR bottom sheet and tooltip
   ///
   /// In en, this message translates to:
-  /// **'Let someone scan this QR to join the channel with the right relays.'**
-  String get channelShareQrBody;
+  /// **'Share Group QR'**
+  String get groupShareQrTitle;
+
+  /// Helper text under the share-group QR title
+  ///
+  /// In en, this message translates to:
+  /// **'Let someone scan this QR to join the group with the right relays.'**
+  String get groupShareQrBody;
 
   /// Empty state for DMs in drawer
   ///
@@ -1174,11 +1180,11 @@ abstract class AppLocalizations {
   /// **'DM Alerts'**
   String get alertsDmAlerts;
 
-  /// Toggle label for channel notifications
+  /// Toggle label for group notifications
   ///
   /// In en, this message translates to:
-  /// **'Channel Alerts'**
-  String get alertsChannelAlerts;
+  /// **'Group Alerts'**
+  String get alertsGroupAlerts;
 
   /// Storage card section heading
   ///
@@ -1792,28 +1798,28 @@ abstract class AppLocalizations {
   /// **'Follow people to shape your feed'**
   String get howItWorksDescPeople;
 
-  /// Feature-section name on the Vishnu slide: public channels.
+  /// Feature-section name on the Vishnu slide: public groups.
   ///
   /// In en, this message translates to:
-  /// **'Channels'**
-  String get howItWorksTileChannels;
+  /// **'Groups'**
+  String get howItWorksTileGroups;
 
-  /// Feature-section description on the Vishnu slide for Channels.
+  /// Feature-section description on the Vishnu slide for Groups.
   ///
   /// In en, this message translates to:
   /// **'Public rooms to gather around topics'**
-  String get howItWorksDescChannels;
+  String get howItWorksDescGroups;
 
-  /// Feature-section name on the Vishnu slide: private encrypted channels.
+  /// Feature-section name on the Vishnu slide: private encrypted groups.
   ///
   /// In en, this message translates to:
   /// **'Private'**
   String get howItWorksTilePrivate;
 
-  /// Feature-section description on the Vishnu slide for Private channels.
+  /// Feature-section description on the Vishnu slide for Private groups.
   ///
   /// In en, this message translates to:
-  /// **'Encrypted, invite-only channels'**
+  /// **'Encrypted, invite-only groups'**
   String get howItWorksDescPrivate;
 
   /// Feature-section name on the Vishnu slide: direct messages.
@@ -2233,7 +2239,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyStoredLocallyBody.
   ///
   /// In en, this message translates to:
-  /// **'UNIUN stores your notes, profile, saved items, channel messages, and settings directly on your device. This data is not sent to any server controlled by UNIUN.'**
+  /// **'UNIUN stores your notes, profile, saved items, group messages, and settings directly on your device. This data is not sent to any server controlled by UNIUN.'**
   String get privacyStoredLocallyBody;
 
   /// No description provided for @privacySharedPubliclyTitle.
@@ -2245,7 +2251,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacySharedPubliclyBody.
   ///
   /// In en, this message translates to:
-  /// **'When you publish a note or send a message in a public channel, that content is broadcast to Nostr relays. Nostr is an open public protocol — once published, your notes may be visible to anyone connected to those relays. UNIUN does not control third-party relays.'**
+  /// **'When you publish a note or send a message in a public group, that content is broadcast to Nostr relays. Nostr is an open public protocol — once published, your notes may be visible to anyone connected to those relays. UNIUN does not control third-party relays.'**
   String get privacySharedPubliclyBody;
 
   /// No description provided for @privacyIdentityKeysTitle.
@@ -2365,7 +2371,7 @@ abstract class AppLocalizations {
   /// No description provided for @termsPublicContentBody.
   ///
   /// In en, this message translates to:
-  /// **'Notes and channel messages you publish are sent to Nostr relays and may be visible to anyone on the network. Do not share sensitive personal information in public notes.'**
+  /// **'Notes and group messages you publish are sent to Nostr relays and may be visible to anyone on the network. Do not share sensitive personal information in public notes.'**
   String get termsPublicContentBody;
 
   /// No description provided for @termsAppMayChangeTitle.
@@ -2746,209 +2752,209 @@ abstract class AppLocalizations {
   /// **'Clear search'**
   String get graphSearchClear;
 
-  /// Title of the public channel entry/chooser screen
+  /// Title of the public group entry/chooser screen
   ///
   /// In en, this message translates to:
-  /// **'Channels'**
-  String get channelEntryTitle;
+  /// **'Groups'**
+  String get groupEntryTitle;
 
-  /// Subtitle on the public channel entry chooser
+  /// Subtitle on the public group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Join an existing public channel using its ID or QR, or start a new one.'**
-  String get channelEntrySubtitle;
+  /// **'Join an existing public group using its ID or QR, or start a new one.'**
+  String get groupEntrySubtitle;
 
-  /// Join option on the public channel entry chooser
+  /// Join option on the public group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Join a channel'**
-  String get channelEntryJoin;
+  /// **'Join a group'**
+  String get groupEntryJoin;
 
-  /// Create option on the public channel entry chooser
+  /// Create option on the public group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Create a channel'**
-  String get channelEntryCreate;
+  /// **'Create a group'**
+  String get groupEntryCreate;
 
-  /// Title of the private channel entry/chooser screen
+  /// Title of the private group entry/chooser screen
   ///
   /// In en, this message translates to:
-  /// **'Private channels'**
-  String get privateChannelEntryTitle;
+  /// **'Private groups'**
+  String get privateGroupEntryTitle;
 
-  /// Subtitle on the private channel entry chooser
+  /// Subtitle on the private group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Request to join an existing private channel, or create your own.'**
-  String get privateChannelEntrySubtitle;
+  /// **'Request to join an existing private group, or create your own.'**
+  String get privateGroupEntrySubtitle;
 
-  /// Join option on the private channel entry chooser
+  /// Join option on the private group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Join a private channel'**
-  String get privateChannelEntryJoin;
+  /// **'Join a private group'**
+  String get privateGroupEntryJoin;
 
-  /// Create option on the private channel entry chooser
+  /// Create option on the private group entry chooser
   ///
   /// In en, this message translates to:
-  /// **'Create a private channel'**
-  String get privateChannelEntryCreate;
+  /// **'Create a private group'**
+  String get privateGroupEntryCreate;
 
-  /// App bar title on the create channel page
+  /// App bar title on the create group page
   ///
   /// In en, this message translates to:
-  /// **'Channel'**
-  String get createChannelTitle;
+  /// **'Group'**
+  String get createGroupTitle;
 
-  /// App bar title on the create channel page (redesign)
+  /// App bar title on the create group page (redesign)
   ///
   /// In en, this message translates to:
-  /// **'Create channel'**
-  String get createChannelHeaderTitle;
+  /// **'Create group'**
+  String get createGroupHeaderTitle;
 
-  /// Section heading for channel details on create channel page
+  /// Section heading for group details on create group page
   ///
   /// In en, this message translates to:
-  /// **'Channel Details'**
-  String get createChannelDetailsHeading;
+  /// **'Group Details'**
+  String get createGroupDetailsHeading;
 
-  /// Section label for channel name field
+  /// Section label for group name field
   ///
   /// In en, this message translates to:
-  /// **'Channel name'**
-  String get createChannelNameLabel;
+  /// **'Group name'**
+  String get createGroupNameLabel;
 
-  /// Placeholder in the channel name field
+  /// Placeholder in the group name field
   ///
   /// In en, this message translates to:
   /// **'e.g. design'**
-  String get createChannelNamePlaceholder;
+  String get createGroupNamePlaceholder;
 
-  /// Text field label for channel about/description
+  /// Text field label for group about/description
   ///
   /// In en, this message translates to:
   /// **'About (Theme/Rules)'**
-  String get createChannelAboutLabel;
+  String get createGroupAboutLabel;
 
-  /// Section label for the channel description field
+  /// Section label for the group description field
   ///
   /// In en, this message translates to:
   /// **'Description'**
-  String get createChannelDescriptionLabel;
+  String get createGroupDescriptionLabel;
 
-  /// Placeholder in the channel description field
+  /// Placeholder in the group description field
   ///
   /// In en, this message translates to:
-  /// **'What\'s this channel about?'**
-  String get createChannelAboutPlaceholder;
+  /// **'What\'s this group about?'**
+  String get createGroupAboutPlaceholder;
 
-  /// Text field label for optional channel picture url
+  /// Text field label for optional group picture url
   ///
   /// In en, this message translates to:
   /// **'Picture URL (Optional)'**
-  String get createChannelPictureLabel;
+  String get createGroupPictureLabel;
 
-  /// Info note explaining channel permanence on create
+  /// Info note explaining group permanence on create
   ///
   /// In en, this message translates to:
-  /// **'The channel\'s first event becomes its permanent ID — it can never be deleted.'**
-  String get createChannelPermanenceNote;
+  /// **'The group\'s first event becomes its permanent ID — it can never be deleted.'**
+  String get createGroupPermanenceNote;
 
-  /// Collapsible advanced relays section header on create channel
+  /// Collapsible advanced relays section header on create group
   ///
   /// In en, this message translates to:
   /// **'Advanced · relays'**
-  String get createChannelAdvancedRelays;
+  String get createGroupAdvancedRelays;
 
-  /// Section heading for publish relays on create channel page
+  /// Section heading for publish relays on create group page
   ///
   /// In en, this message translates to:
   /// **'Publish Relays'**
-  String get createChannelPublishRelays;
+  String get createGroupPublishRelays;
 
-  /// Helper text under publish relays section on create channel page
+  /// Helper text under publish relays section on create group page
   ///
   /// In en, this message translates to:
-  /// **'Select the relays this channel should be broadcasted on.'**
-  String get createChannelPublishRelaysBody;
+  /// **'Select the relays this group should be broadcasted on.'**
+  String get createGroupPublishRelaysBody;
 
-  /// Primary create channel button label
+  /// Primary create group button label
   ///
   /// In en, this message translates to:
-  /// **'Create channel'**
-  String get createChannelAction;
+  /// **'Create group'**
+  String get createGroupAction;
 
-  /// Snackbar shown after a channel is created
+  /// Snackbar shown after a group is created
   ///
   /// In en, this message translates to:
-  /// **'Channel created successfully'**
-  String get createChannelSuccess;
+  /// **'Group created successfully'**
+  String get createGroupSuccess;
 
-  /// App bar title on the create private channel page
+  /// App bar title on the create private group page
   ///
   /// In en, this message translates to:
-  /// **'Create private channel'**
-  String get createPrivateChannelTitle;
+  /// **'Create private group'**
+  String get createPrivateGroupTitle;
 
-  /// Eyebrow label above the encrypted private-channel form
+  /// Eyebrow label above the encrypted private-group form
   ///
   /// In en, this message translates to:
   /// **'Encrypted'**
-  String get createPrivateChannelEncrypted;
+  String get createPrivateGroupEncrypted;
 
-  /// Placeholder for the private channel name field
+  /// Placeholder for the private group name field
   ///
   /// In en, this message translates to:
   /// **'e.g. core team'**
-  String get createPrivateChannelNameHint;
+  String get createPrivateGroupNameHint;
 
-  /// Placeholder for the private channel description field
+  /// Placeholder for the private group description field
   ///
   /// In en, this message translates to:
-  /// **'What\'s this channel about?'**
-  String get createPrivateChannelDescHint;
+  /// **'What\'s this group about?'**
+  String get createPrivateGroupDescHint;
 
   /// Muted footer note explaining the creator becomes the admin
   ///
   /// In en, this message translates to:
   /// **'You\'re the admin — you control who joins.'**
-  String get createPrivateChannelAdminNote;
+  String get createPrivateGroupAdminNote;
 
-  /// Heading on the create private channel page
+  /// Heading on the create private group page
   ///
   /// In en, this message translates to:
-  /// **'Start a new Private Channel'**
-  String get createPrivateChannelHeading;
+  /// **'Start a new Private Group'**
+  String get createPrivateGroupHeading;
 
-  /// Explanation of how private channels work
+  /// Explanation of how private groups work
   ///
   /// In en, this message translates to:
-  /// **'Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.'**
-  String get createPrivateChannelDescription;
+  /// **'Private groups are end-to-end encrypted. Members must request to join, and admins must approve them.'**
+  String get createPrivateGroupDescription;
 
-  /// Text field label for private channel name
+  /// Text field label for private group name
   ///
   /// In en, this message translates to:
-  /// **'Channel Name'**
-  String get createPrivateChannelNameLabel;
+  /// **'Group Name'**
+  String get createPrivateGroupNameLabel;
 
-  /// Text field label for private channel description
+  /// Text field label for private group description
   ///
   /// In en, this message translates to:
   /// **'Description'**
-  String get createPrivateChannelDescLabel;
+  String get createPrivateGroupDescLabel;
 
-  /// Primary create private channel button label
+  /// Primary create private group button label
   ///
   /// In en, this message translates to:
-  /// **'Create Channel'**
-  String get createPrivateChannelAction;
+  /// **'Create Group'**
+  String get createPrivateGroupAction;
 
-  /// Snackbar shown after a private channel is created
+  /// Snackbar shown after a private group is created
   ///
   /// In en, this message translates to:
-  /// **'Private channel created successfully!'**
-  String get createPrivateChannelSuccess;
+  /// **'Private group created successfully!'**
+  String get createPrivateGroupSuccess;
 
   /// App bar title on the new direct message page
   ///
@@ -2959,13 +2965,13 @@ abstract class AppLocalizations {
   /// Section label above the DM recipient field
   ///
   /// In en, this message translates to:
-  /// **'Recipient'**
+  /// **'Send to'**
   String get createDmRecipientLabel;
 
-  /// Placeholder for the DM recipient public-key field
+  /// Placeholder for the DM recipient field
   ///
   /// In en, this message translates to:
-  /// **'Public key — hex or npub'**
+  /// **'Paste their UNIUN code, or scan their QR'**
   String get createDmRecipientHint;
 
   /// Helper text under the DM relays section
@@ -2977,7 +2983,7 @@ abstract class AppLocalizations {
   /// Info card explaining DM encryption on the new message page
   ///
   /// In en, this message translates to:
-  /// **'Direct messages are end-to-end encrypted (NIP-17). Only the recipient can read them.'**
+  /// **'Direct messages are end-to-end encrypted. Only the recipient can read them.'**
   String get createDmEncryptedNote;
 
   /// Secondary button to scan a user QR on the new message page
@@ -2992,89 +2998,95 @@ abstract class AppLocalizations {
   /// **'Start chat'**
   String get createDmAction;
 
-  /// App bar title on the join private channel page
+  /// App bar title on the join private group page
   ///
   /// In en, this message translates to:
-  /// **'Join private channel'**
-  String get joinPrivateChannelTitle;
+  /// **'Join private group'**
+  String get joinPrivateGroupTitle;
 
-  /// Eyebrow label signalling the channel is end-to-end encrypted
+  /// Eyebrow label signalling the group is end-to-end encrypted
   ///
   /// In en, this message translates to:
   /// **'Encrypted'**
-  String get joinPrivateChannelEncrypted;
+  String get joinPrivateGroupEncrypted;
 
-  /// Heading on the join private channel page
+  /// Heading on the join private group page
   ///
   /// In en, this message translates to:
   /// **'Request to Join'**
-  String get joinPrivateChannelHeading;
+  String get joinPrivateGroupHeading;
 
-  /// Helper text under heading on join private channel page
+  /// Helper text under heading on join private group page
   ///
   /// In en, this message translates to:
-  /// **'Enter the Group ID to request access to a private channel.'**
-  String get joinPrivateChannelSubtitle;
+  /// **'Enter the Group ID to request access to a private group.'**
+  String get joinPrivateGroupSubtitle;
 
-  /// Text field label for private channel group id
+  /// Text field label for private group group id
   ///
   /// In en, this message translates to:
   /// **'Group ID'**
-  String get joinPrivateChannelGroupIdLabel;
+  String get joinPrivateGroupGroupIdLabel;
 
   /// Hint text in the group id input
   ///
   /// In en, this message translates to:
   /// **'Paste group ID…'**
-  String get joinPrivateChannelGroupIdHint;
+  String get joinPrivateGroupGroupIdHint;
 
-  /// Helper text under the group id and relay inputs
+  /// Helper text under the group id input
   ///
   /// In en, this message translates to:
-  /// **'Ask the channel admin for the group ID and relay.'**
-  String get joinPrivateChannelGroupIdHelper;
+  /// **'Ask the group admin for the group ID.'**
+  String get joinPrivateGroupGroupIdHelper;
 
   /// Secondary button to open the QR scanner
   ///
   /// In en, this message translates to:
   /// **'Scan QR'**
-  String get joinPrivateChannelScanQr;
+  String get joinPrivateGroupScanQr;
 
   /// Title of the prominent scan-QR card
   ///
   /// In en, this message translates to:
-  /// **'Scan a private channel QR'**
-  String get joinPrivateChannelScanCardTitle;
+  /// **'Scan a private group QR'**
+  String get joinPrivateGroupScanCardTitle;
 
   /// Subtitle of the prominent scan-QR card
   ///
   /// In en, this message translates to:
   /// **'Point your camera at a code shared by the admin'**
-  String get joinPrivateChannelScanCardSubtitle;
+  String get joinPrivateGroupScanCardSubtitle;
 
   /// Info card explaining admin approval is required
   ///
   /// In en, this message translates to:
   /// **'Your request goes to the admin for approval before you can read messages.'**
-  String get joinPrivateChannelApprovalInfo;
+  String get joinPrivateGroupApprovalInfo;
 
-  /// Primary submit button on join private channel page
+  /// Primary submit button on join private group page
   ///
   /// In en, this message translates to:
   /// **'Send join request'**
-  String get joinPrivateChannelAction;
+  String get joinPrivateGroupAction;
 
-  /// Snackbar after submitting a join request to a private channel
+  /// Snackbar after submitting a join request to a private group
   ///
   /// In en, this message translates to:
   /// **'Join request sent! Wait for admin approval.'**
-  String get joinPrivateChannelSuccess;
+  String get joinPrivateGroupSuccess;
 
   /// Lowercase divider word between two alternative actions
   ///
   /// In en, this message translates to:
   /// **'or'**
   String get commonOr;
+
+  /// Header for a collapsible section hiding advanced/optional settings (e.g. relays)
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get commonAdvanced;
 
   /// Empty-state label inside the relay selector field
   ///
@@ -3364,17 +3376,17 @@ abstract class AppLocalizations {
   /// **'Scan a QR'**
   String get vishnuFeedEmptyCta;
 
-  /// Drawer section header for private channels (uppercase)
+  /// Drawer section header for private groups (uppercase)
   ///
   /// In en, this message translates to:
-  /// **'PRIVATE CHANNELS'**
-  String get drawerPrivateChannels;
+  /// **'PRIVATE GROUPS'**
+  String get drawerPrivateGroups;
 
-  /// Empty hint shown in the drawer when no private channels are joined
+  /// Empty hint shown in the drawer when no private groups are joined
   ///
   /// In en, this message translates to:
-  /// **'No private channels joined'**
-  String get drawerNoPrivateChannels;
+  /// **'No private groups joined'**
+  String get drawerNoPrivateGroups;
 
   /// Error snackbar when the scanned user QR has an unparseable public key
   ///
@@ -3436,17 +3448,17 @@ abstract class AppLocalizations {
   /// **'Scan this to add you on UNIUN.'**
   String get qrCaptionUser;
 
-  /// Caption under the QR code on a public channel card
+  /// Caption under the QR code on a public group card
   ///
   /// In en, this message translates to:
-  /// **'Scan to join this channel.'**
-  String get qrCaptionPublicChannel;
+  /// **'Scan to join this group.'**
+  String get qrCaptionPublicGroup;
 
-  /// Caption under the QR code on a private channel card
+  /// Caption under the QR code on a private group card
   ///
   /// In en, this message translates to:
-  /// **'Scan to join this private channel.'**
-  String get qrCaptionPrivateChannel;
+  /// **'Scan to join this private group.'**
+  String get qrCaptionPrivateGroup;
 
   /// Caption under the QR code on a direct-message card
   ///
@@ -3496,17 +3508,17 @@ abstract class AppLocalizations {
   /// **'Visible on Vishnu'**
   String get shareDestFeedSubtitle;
 
-  /// Section header in the share sheet listing public channels
+  /// Section header in the share sheet listing public groups
   ///
   /// In en, this message translates to:
-  /// **'PUBLIC CHANNELS'**
-  String get shareSectionPublicChannels;
+  /// **'PUBLIC GROUPS'**
+  String get shareSectionPublicGroups;
 
-  /// Section header in the share sheet listing private channels
+  /// Section header in the share sheet listing private groups
   ///
   /// In en, this message translates to:
-  /// **'PRIVATE CHANNELS'**
-  String get shareSectionPrivateChannels;
+  /// **'PRIVATE GROUPS'**
+  String get shareSectionPrivateGroups;
 
   /// Section header in the share sheet listing DM conversations
   ///
@@ -3526,7 +3538,7 @@ abstract class AppLocalizations {
   /// **'Loading note…'**
   String get shareEmbedLoading;
 
-  /// Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-channel note shared to a public surface)
+  /// Placeholder shown when an embedded shared-note cannot be resolved (e.g. private-group note shared to a public surface)
   ///
   /// In en, this message translates to:
   /// **'Note not available'**
@@ -4030,7 +4042,7 @@ abstract class AppLocalizations {
   /// **'Media'**
   String get storageMedia;
 
-  /// Row title for the auto-cleanup retention dropdown in Settings → Storage. Affects only public feed / channel notes the user hasn't saved or followed.
+  /// Row title for the auto-cleanup retention dropdown in Settings → Storage. Affects only public feed / group notes the user hasn't saved or followed.
   ///
   /// In en, this message translates to:
   /// **'Auto-delete old notes'**
@@ -4039,7 +4051,7 @@ abstract class AppLocalizations {
   /// Subtitle/explanation under the auto-delete retention row — clarifies which notes are affected.
   ///
   /// In en, this message translates to:
-  /// **'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.'**
+  /// **'Public feed and group notes only. Saved, followed, your own, DMs, and private groups stay forever.'**
   String get storageRetentionSubtitle;
 
   /// Dropdown value for disabling auto-deletion (the default — nothing is removed).
@@ -4054,7 +4066,7 @@ abstract class AppLocalizations {
   /// **'{days} days'**
   String storageRetentionDays(int days);
 
-  /// Row title for the sync-window dropdown in Settings → Storage. Controls how many days of history feed/channels/groups pull.
+  /// Row title for the sync-window dropdown in Settings → Storage. Controls how many days of history feed/groups/groups pull.
   ///
   /// In en, this message translates to:
   /// **'Sync window'**
@@ -4063,7 +4075,7 @@ abstract class AppLocalizations {
   /// Subtitle under the sync-window row; explains scope and that it applies on next launch.
   ///
   /// In en, this message translates to:
-  /// **'How far back to sync feed, channel, and group messages. Followed notes and DMs always sync in full. Applies on next app launch.'**
+  /// **'How far back to sync feed and group messages. Followed notes and DMs always sync in full. Applies on next app launch.'**
   String get syncWindowSubtitle;
 
   /// Dropdown value for the sync-window length in days.
@@ -4645,7 +4657,7 @@ abstract class AppLocalizations {
   /// Save-blocker hint: input type set but ref empty
   ///
   /// In en, this message translates to:
-  /// **'Pick the input source — channel, DM, user, or note.'**
+  /// **'Pick the input source — group, DM, user, or note.'**
   String get ganaFormBlockerInputRef;
 
   /// Save-blocker hint: output type set but ref empty
@@ -4729,14 +4741,14 @@ abstract class AppLocalizations {
   /// Input-type option
   ///
   /// In en, this message translates to:
-  /// **'Public channel'**
-  String get ganaFormInputChannel;
+  /// **'Public group'**
+  String get ganaFormInputGroup;
 
   /// Input-type option
   ///
   /// In en, this message translates to:
-  /// **'Private channel'**
-  String get ganaFormInputPrivateChannel;
+  /// **'Private group'**
+  String get ganaFormInputPrivateGroup;
 
   /// Input-type option
   ///
@@ -4783,14 +4795,14 @@ abstract class AppLocalizations {
   /// Output destination
   ///
   /// In en, this message translates to:
-  /// **'Public channel'**
-  String get ganaFormOutputChannel;
+  /// **'Public group'**
+  String get ganaFormOutputGroup;
 
   /// Output destination
   ///
   /// In en, this message translates to:
-  /// **'Private channel'**
-  String get ganaFormOutputPrivateChannel;
+  /// **'Private group'**
+  String get ganaFormOutputPrivateGroup;
 
   /// Output destination
   ///

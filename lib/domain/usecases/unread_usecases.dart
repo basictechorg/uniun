@@ -17,24 +17,24 @@ class MarkUnreadSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
 }
 
 @lazySingleton
-class MarkChannelSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
+class MarkGroupSeenUseCase extends UseCase<Either<Failure, Unit>, String> {
   final UnreadRepository _repository;
-  const MarkChannelSeenUseCase(this._repository);
-
-  @override
-  Future<Either<Failure, Unit>> call(String channelId, {bool cached = false}) =>
-      _repository.markChannelSeen(channelId);
-}
-
-@lazySingleton
-class MarkPrivateChannelSeenUseCase
-    extends UseCase<Either<Failure, Unit>, String> {
-  final UnreadRepository _repository;
-  const MarkPrivateChannelSeenUseCase(this._repository);
+  const MarkGroupSeenUseCase(this._repository);
 
   @override
   Future<Either<Failure, Unit>> call(String groupId, {bool cached = false}) =>
-      _repository.markPrivateChannelSeen(groupId);
+      _repository.markGroupSeen(groupId);
+}
+
+@lazySingleton
+class MarkPrivateGroupSeenUseCase
+    extends UseCase<Either<Failure, Unit>, String> {
+  final UnreadRepository _repository;
+  const MarkPrivateGroupSeenUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(String groupId, {bool cached = false}) =>
+      _repository.markPrivateGroupSeen(groupId);
 }
 
 @lazySingleton
@@ -51,13 +51,13 @@ class MarkConversationSeenUseCase extends UseCase<Either<Failure, Unit>, int> {
 // ── Read→unread boundary ──────────────────────────────────────────────────────
 
 @lazySingleton
-class GetChannelOldestUnreadTimeUseCase
+class GetGroupOldestUnreadTimeUseCase
     extends UseCase<Either<Failure, DateTime?>, String> {
   final UnreadRepository _repository;
-  const GetChannelOldestUnreadTimeUseCase(this._repository);
+  const GetGroupOldestUnreadTimeUseCase(this._repository);
 
   @override
-  Future<Either<Failure, DateTime?>> call(String channelId,
+  Future<Either<Failure, DateTime?>> call(String groupId,
           {bool cached = false}) =>
-      _repository.oldestUnreadTimeForChannel(channelId);
+      _repository.oldestUnreadTimeForGroup(groupId);
 }
