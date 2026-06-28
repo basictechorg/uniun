@@ -16,6 +16,17 @@ abstract class DraftEntity with _$DraftEntity {
     required DateTime createdAt,
     required DateTime updatedAt,
 
+    /// References to OTHER drafts (by `draftId` UUID). Held separately from
+    /// [eTagRefs] (which only carries real event ids). Synced cross-device via
+    /// NIP-37 inner-event `["d-ref", uuid]` tags so the same UUIDs resolve on
+    /// every device. Dropped or rewritten to event ids at publish time.
+    @Default(<String>[]) List<String> draftRefIds,
+
+    /// Non-null once this draft has been published. The row becomes a brief
+    /// tombstone carrying the UUID→event-id mapping so referencing drafts
+    /// (on this and other devices) can resolve their [draftRefIds].
+    String? publishedAsEventId,
+
     /// Media attached to the draft. Staged **locally only** (bytes live in the
     /// shared media cache, keyed by sha256) — NOT uploaded to Blossom while a
     /// draft. `localPath` is patched in from the cache on read so the draft

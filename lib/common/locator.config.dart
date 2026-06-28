@@ -792,6 +792,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i537.DeleteDraftUseCase>(
       () => _i537.DeleteDraftUseCase(gh<_i170.DraftRepository>()),
     );
+    gh.lazySingleton<_i537.MarkDraftPublishedUseCase>(
+      () => _i537.MarkDraftPublishedUseCase(gh<_i170.DraftRepository>()),
+    );
     gh.lazySingleton<_i1023.SendDmUseCase>(
       () => _i1023.SendDmUseCase(
         gh<_i214.Isar>(),
@@ -1332,23 +1335,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1.ShareNoteUseCase>(
       () => _i1.ShareNoteUseCase(gh<_i1019.ShareRepository>()),
     );
-    gh.factory<_i886.BrahmaCreateBloc>(
-      () => _i886.BrahmaCreateBloc(
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i629.UploadMediaUseCase>(),
-        gh<_i629.SaveLocalMediaUseCase>(),
-        gh<_i629.ReadLocalMediaUseCase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i537.SaveDraftUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
-        gh<_i537.GetDraftByIdUseCase>(),
-        gh<_i537.DeleteDraftUseCase>(),
-        gh<_i475.SearchNotesUseCase>(),
-        gh<_i475.GetNoteByIdUseCase>(),
-      ),
-    );
     gh.factory<_i1039.VishnuFeedBloc>(
       () => _i1039.VishnuFeedBloc(
         gh<_i837.GetOrInitFeedLoadedAtUseCase>(),
@@ -1420,6 +1406,24 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1055.SendPrivateGroupMessageUsecase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
         gh<_i651.ManasContextLoader>(),
+      ),
+    );
+    gh.factory<_i886.BrahmaCreateBloc>(
+      () => _i886.BrahmaCreateBloc(
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i629.UploadMediaUseCase>(),
+        gh<_i629.SaveLocalMediaUseCase>(),
+        gh<_i629.ReadLocalMediaUseCase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i537.SaveDraftUseCase>(),
+        gh<_i537.GetDraftsUseCase>(),
+        gh<_i537.GetDraftByIdUseCase>(),
+        gh<_i537.DeleteDraftUseCase>(),
+        gh<_i537.MarkDraftPublishedUseCase>(),
+        gh<_i475.SearchNotesUseCase>(),
+        gh<_i475.GetNoteByIdUseCase>(),
       ),
     );
     gh.lazySingleton<_i924.PostReplyUseCase>(

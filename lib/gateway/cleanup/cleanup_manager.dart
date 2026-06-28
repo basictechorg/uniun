@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/models/draft_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/media/media_cache_model.dart';
@@ -66,11 +67,35 @@ class CleanupManager {
       await _evictNotes();
       await _gcMedia();
       await _pruneGanaRuns();
+      await _purgePublishedDraftTombstones();
     } catch (e, st) {
       debugPrint('CleanupManager run failed: $e\n$st');
     } finally {
       _running = false;
     }
+  }
+
+  // ── Phase 4: Published-draft tombstone retention ──────────────────────────
+  //
+  // When a draft is published we keep the row briefly as a UUID→event-id
+  // pointer (see [DraftRepository.markPublished]) so other devices' inbound
+  // handler can rewrite their `draftRefIds`. After this window the
+  // tombstone is no longer useful — drop it.
+  static const Duration _draftTombstoneRetention = Duration(days: 30);
+
+  Future<void> _purgePublishedDraftTombstones() async {
+    final cutoff = DateTime.now().subtract(_draftTombstoneRetention);
+    final stale = await isar.draftModels
+        .filter()
+        .publishedAsEventIdIsNotNull()
+        .updatedAtLessThan(cutoff)
+        .findAll();
+    if (stale.isEmpty) return;
+    await isar.writeTxn(() async {
+      for (final d in stale) {
+        await isar.draftModels.delete(d.id);
+      }
+    });
   }
 
   // ── Phase 3: Gana run-log retention ─────────────────────────────────────

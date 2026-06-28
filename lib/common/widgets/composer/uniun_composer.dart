@@ -7,22 +7,31 @@ import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
+/// Whether a [ComposerReference] points at a published note (id = Nostr event
+/// id, hex) or at another draft (id = draft UUID). Drafts behave differently
+/// at publish time — see `BrahmaCreateBloc._onPublishDraft`.
+enum ComposerReferenceKind { note, draft }
+
 /// A lightweight reference shown as a chip above the composer text.
-/// [id] is the referenced event id; [label] is a human preview of it.
+/// [id] is the referenced event id (when [kind] is note) or draft UUID (when
+/// draft); [label] is a human preview of it.
 ///
 /// [authorPubkey] and [created] are optional metadata used by the reference
 /// picker to render thread-style rows (avatar + name·time). They are ignored by
-/// the composer chip, which only renders [label].
+/// the composer chip, which only renders [label] (plus a "Draft" badge when
+/// [kind] is draft).
 class ComposerReference {
   const ComposerReference({
     required this.id,
     required this.label,
+    this.kind = ComposerReferenceKind.note,
     this.authorPubkey,
     this.created,
   });
 
   final String id;
   final String label;
+  final ComposerReferenceKind kind;
   final String? authorPubkey;
   final DateTime? created;
 }
@@ -643,7 +652,13 @@ class _ReferenceRow extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.link_rounded, size: 12, color: AppColors.primary),
+              Icon(
+                r.kind == ComposerReferenceKind.draft
+                    ? Icons.edit_note_rounded
+                    : Icons.link_rounded,
+                size: 12,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 5),
               Text(
                 label,
@@ -653,6 +668,26 @@ class _ReferenceRow extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              if (r.kind == ComposerReferenceKind.draft) ...[
+                const SizedBox(width: 5),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'DRAFT',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
               if (onRemove != null) ...[
                 const SizedBox(width: 5),
                 GestureDetector(

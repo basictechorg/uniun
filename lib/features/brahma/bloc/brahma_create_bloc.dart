@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
@@ -35,6 +36,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
   final GetDraftsUseCase _getDrafts;
   final GetDraftByIdUseCase _getDraftById;
   final DeleteDraftUseCase _deleteDraft;
+  final MarkDraftPublishedUseCase _markDraftPublished;
   final SearchNotesUseCase _searchNotes;
   final GetNoteByIdUseCase _getNoteById;
 
@@ -50,6 +52,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     this._getDrafts,
     this._getDraftById,
     this._deleteDraft,
+    this._markDraftPublished,
     this._searchNotes,
     this._getNoteById,
   ) : super(const BrahmaCreateState()) {
@@ -61,6 +64,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     on<ResetBrahmaEvent>(_onReset);
     on<SearchMentionsEvent>(_onSearchMentions, transformer: restartable());
     on<AddMentionEvent>(_onAddMention);
+    on<AddDraftMentionEvent>(_onAddDraftMention);
     on<RemoveMentionEvent>(_onRemoveMention);
     on<ClearMentionSearchEvent>(_onClearMentionSearch);
     on<RestoreDraftMentionsEvent>(_onRestoreDraftMentions);
@@ -90,11 +94,36 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     final privkeyHex = keys.privkeyHex;
     final pubkeyHex = keys.pubkeyHex;
 
-    // 2. Upload any pending attachments now (deferred from attach time). A
+    // 2. Publish any referenced drafts first (chain mode), or drop them
+    //    silently (default). The resolved map carries UUID → event id for
+    //    each newly-published draft + any already-published tombstones we
+    //    encountered along the way.
+    final draftDepUuids =
+        state.selectedDraftMentions.map((d) => d.draftId).toList();
+    var resolvedDraftRefs = <String, String>{};
+    if (draftDepUuids.isNotEmpty && event.publishChain) {
+      final chainRes = await _publishDraftDependencies(draftDepUuids);
+      final err = chainRes.fold((m) => m, (_) => null);
+      if (err != null) {
+        emit(state.copyWith(
+          status: BrahmaCreateStatus.error,
+          errorMessage: err,
+        ));
+        return;
+      }
+      resolvedDraftRefs = chainRes.getOrElse(() => const {});
+    }
+
+    // 3. Upload any pending attachments now (deferred from attach time). A
     //    failed upload aborts the publish but leaves the picks in state so the
     //    user can retry.
     final hashtags = extractHashtags(content);
-    final mentionIds = state.selectedMentions.map((m) => m.id).toList();
+    final noteMentionIds = state.selectedMentions.map((m) => m.id).toList();
+    final resolvedDraftIds = <String>[
+      for (final uuid in draftDepUuids)
+        if (resolvedDraftRefs[uuid] != null) resolvedDraftRefs[uuid]!,
+    ];
+    final mentionIds = [...noteMentionIds, ...resolvedDraftIds];
 
     final attached = <MediaBlobEntity>[];
     for (final media in state.pendingMedia) {
@@ -176,6 +205,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         emit(state.copyWith(
           status: BrahmaCreateStatus.success,
           selectedMentions: [],
+          selectedDraftMentions: [],
           pendingMedia: [],
         ));
         // Fire-and-forget: embed this note for RAG (no-op if model not ready yet).
@@ -275,6 +305,9 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
         ? state.drafts.where((d) => d.draftId == event.draftId).firstOrNull
         : null;
 
+    final draftRefIds =
+        state.selectedDraftMentions.map((d) => d.draftId).toList();
+
     final draft = DraftEntity(
       draftId: event.draftId ?? const Uuid().v4(),
       content: content,
@@ -287,6 +320,7 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       ],
       pTagRefs: const [],
       tTags: hashtags,
+      draftRefIds: draftRefIds,
       attachments: staged,
       createdAt: existing?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
@@ -344,47 +378,83 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     PublishDraftEvent event,
     Emitter<BrahmaCreateState> emit,
   ) async {
-    // Publish draft as a note, then delete the draft
-    final keysResult = await _getActiveUserKeys.call();
-    if (keysResult.isLeft()) {
-      emit(state.copyWith(
-        status: BrahmaCreateStatus.error,
-        errorMessage: keysResult.fold((f) => f.toMessage(), (_) => ''),
-      ));
+    emit(state.copyWith(status: BrahmaCreateStatus.submitting));
+
+    if (event.publishChain) {
+      await _publishDraftChain(event, emit);
       return;
     }
 
+    final res = await _publishOneDraft(
+      draftId: event.draftId,
+      content: event.content,
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+      resolvedDraftRefs: const {},
+    );
+    res.fold(
+      (msg) {
+        if (!isClosed) {
+          emit(state.copyWith(
+            status: BrahmaCreateStatus.error,
+            errorMessage: msg,
+          ));
+        }
+      },
+      (_) {
+        if (!isClosed) {
+          emit(state.copyWith(status: BrahmaCreateStatus.success));
+        }
+      },
+    );
+  }
+
+  /// Publishes a single draft and returns the freshly-minted event id (Right)
+  /// or an error message (Left). Status is NOT emitted here — callers manage
+  /// the surrounding state machine (chain publish wraps many calls).
+  ///
+  /// [resolvedDraftRefs] maps UUIDs in this draft's `draftRefIds` to the
+  /// event ids of just-published children — those event ids are appended to
+  /// the Kind-1's `e` mention tags. UUIDs not in the map are silently dropped.
+  Future<Either<String, String>> _publishOneDraft({
+    required String draftId,
+    required String content,
+    String? rootEventId,
+    String? replyToEventId,
+    required Map<String, String> resolvedDraftRefs,
+  }) async {
+    final keysResult = await _getActiveUserKeys.call();
+    if (keysResult.isLeft()) {
+      return Left(keysResult.fold((f) => f.toMessage(), (_) => ''));
+    }
     final keys = keysResult.getOrElse(() => throw StateError('unreachable'));
     final privkeyHex = keys.privkeyHex;
     final pubkeyHex = keys.pubkeyHex;
 
-    // Fetch the draft fresh — this bloc instance may not be the one that saved
-    // it (graph panel vs. compose page hold separate instances), so its cached
-    // `state.drafts` can be stale. The fetched copy carries current mentions +
-    // staged (cache-enriched) media.
-    final draftRes = await _getDraftById.call(event.draftId);
+    final draftRes = await _getDraftById.call(draftId);
     final draft = draftRes.fold((_) => null, (d) => d);
-    final mentionIds = draft != null
-        ? draft.eTagRefs
-            .where((id) => id != event.rootEventId && id != event.replyToEventId)
-            .toList()
-        : <String>[];
+    if (draft == null) return const Left('Draft no longer exists.');
 
-    emit(state.copyWith(status: BrahmaCreateStatus.submitting));
+    // Note-mention ids carried verbatim (already real event ids), filtered to
+    // skip root/reply so they're not duplicated.
+    final noteMentionIds = draft.eTagRefs
+        .where((id) => id != rootEventId && id != replyToEventId)
+        .toList();
+    // Resolved draft-mention ids (UUID → event id from a chain publish).
+    final resolvedIds = <String>[
+      for (final uuid in draft.draftRefIds)
+        if (resolvedDraftRefs[uuid] != null) resolvedDraftRefs[uuid]!,
+    ];
+    final mentionIds = [...noteMentionIds, ...resolvedIds];
 
     // Upload the draft's locally-staged media to Blossom now (deferred from
-    // save). Read each blob's bytes back from the cache → upload → imeta. A
-    // failure aborts the publish and leaves the draft intact.
+    // save).
     final attached = <MediaBlobEntity>[];
-    for (final blob in draft?.attachments ?? const <MediaBlobEntity>[]) {
+    for (final blob in draft.attachments) {
       final bytesRes = await _readLocalMedia.call(blob.sha256);
       final bytes = bytesRes.fold((_) => null, (b) => b);
       if (bytes == null) {
-        emit(state.copyWith(
-          status: BrahmaCreateStatus.error,
-          errorMessage: 'Draft media is no longer available on this device.',
-        ));
-        return;
+        return const Left('Draft media is no longer available on this device.');
       }
       final up = await _uploadMedia.call(UploadMediaInput(
         bytes: bytes,
@@ -396,19 +466,15 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       ));
       final uploaded = up.fold((_) => null, (b) => b);
       if (uploaded == null) {
-        emit(state.copyWith(
-          status: BrahmaCreateStatus.error,
-          errorMessage: up.fold((f) => f.toMessage(), (_) => ''),
-        ));
-        return;
+        return Left(up.fold((f) => f.toMessage(), (_) => ''));
       }
       attached.add(uploaded);
     }
 
-    final hashtags = extractHashtags(event.content);
+    final hashtags = extractHashtags(content);
     final tags = buildNoteTags(
-      rootEventId: event.rootEventId,
-      replyToEventId: event.replyToEventId,
+      rootEventId: rootEventId,
+      replyToEventId: replyToEventId,
       mentionIds: mentionIds,
       hashtags: hashtags,
     );
@@ -416,22 +482,17 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       tags.addAll(buildImetaTags(attached));
     }
 
-    // Sign
     late final Event signedEvent;
     try {
       signedEvent = signNostrEvent(
-          content: event.content, tags: tags, privkeyHex: privkeyHex);
+          content: content, tags: tags, privkeyHex: privkeyHex);
     } catch (e) {
-      emit(state.copyWith(
-          status: BrahmaCreateStatus.error,
-          errorMessage: 'Signing failed: $e'));
-      return;
+      return Left('Signing failed: $e');
     }
 
-    // Build NoteEntity
     final eTagRefs = [
-      if (event.rootEventId != null) event.rootEventId!,
-      if (event.replyToEventId != null) event.replyToEventId!,
+      if (rootEventId != null) rootEventId,
+      if (replyToEventId != null) replyToEventId,
       ...mentionIds,
     ];
     final note = noteEntityFromEvent(
@@ -439,8 +500,8 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       pubkeyHex: pubkeyHex,
       eTagRefs: eTagRefs,
       tTags: hashtags,
-      rootEventId: event.rootEventId,
-      replyToEventId: event.replyToEventId,
+      rootEventId: rootEventId,
+      replyToEventId: replyToEventId,
     ).copyWith(
       type: attached.any((b) => b.mime.startsWith('image/'))
           ? NoteType.image
@@ -448,7 +509,6 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
       attachments: attached,
     );
 
-    // Publish — media path when the draft carried attachments.
     final publishResult = attached.isEmpty
         ? await _publishUseCase.call(note)
         : await _publishMediaUseCase.call(PublishMediaNoteInput(
@@ -456,21 +516,176 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
             attachments: attached,
           ));
     if (publishResult.isLeft()) {
-      emit(state.copyWith(
-        status: BrahmaCreateStatus.error,
-        errorMessage: publishResult.fold((f) => f.toMessage(), (_) => ''),
-      ));
-      return;
+      return Left(publishResult.fold((f) => f.toMessage(), (_) => ''));
     }
 
-    // Published — delete the draft, then signal success. The delete is awaited
-    // (not fire-and-forget) so we never `add`/`emit` after the surface disposed
-    // this bloc on navigation; the `isClosed` guard covers a mid-await dispose.
-    await _deleteDraft.call(event.draftId);
+    // Tombstone the draft: save it back with `publishedAsEventId` set so other
+    // drafts on this and remote devices can resolve UUID → event id. The
+    // repository republishes the NIP-37 wrap so the mapping syncs; cleanup
+    // expires the tombstone after the retention window.
+    await _markDraftPublished.call(MarkDraftPublishedInput(
+      draftId: draftId,
+      eventId: signedEvent.id,
+    ));
     unawaited(_embedAndStore.call((signedEvent.id, signedEvent.content)));
+    return Right(signedEvent.id);
+  }
+
+  /// Publish-chain entry point for an existing draft: publishes the draft's
+  /// dependency closure bottom-up, then the draft itself with rewritten `e`
+  /// tags (so its link to the children survives).
+  Future<void> _publishDraftChain(
+    PublishDraftEvent event,
+    Emitter<BrahmaCreateState> emit,
+  ) async {
+    // Publish every dependency first (children only).
+    final draftRes = await _getDraftById.call(event.draftId);
+    final root = draftRes.fold((_) => null, (d) => d);
+    if (root == null) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          status: BrahmaCreateStatus.error,
+          errorMessage: 'Draft no longer exists.',
+        ));
+      }
+      return;
+    }
+    final depRes = await _publishDraftDependencies(root.draftRefIds);
+    final err = depRes.fold((m) => m, (_) => null);
+    if (err != null) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          status: BrahmaCreateStatus.error,
+          errorMessage: err,
+        ));
+      }
+      return;
+    }
+    final resolved = depRes.getOrElse(() => const {});
+
+    // Now the root itself.
+    final rootRes = await _publishOneDraft(
+      draftId: event.draftId,
+      content: event.content,
+      rootEventId: event.rootEventId,
+      replyToEventId: event.replyToEventId,
+      resolvedDraftRefs: resolved,
+    );
+    final rootErr = rootRes.fold((m) => m, (_) => null);
+    if (rootErr != null) {
+      if (!isClosed) {
+        emit(state.copyWith(
+          status: BrahmaCreateStatus.error,
+          errorMessage: rootErr,
+        ));
+      }
+      return;
+    }
     if (!isClosed) {
       emit(state.copyWith(status: BrahmaCreateStatus.success));
     }
+  }
+
+  /// Publishes the *dependency closure* of the given draft UUIDs (BFS over
+  /// `draftRefIds`, topo-sorted, leaves first), and returns a map of every
+  /// involved draft UUID → its event id. Already-published tombstones in the
+  /// closure contribute their existing mapping without being republished.
+  /// Cycles or partial failures return Left.
+  Future<Either<String, Map<String, String>>> _publishDraftDependencies(
+    List<String> rootUuids,
+  ) async {
+    // 1. Collect reachable drafts via BFS starting from the given roots.
+    final reachable = <String, DraftEntity>{};
+    final stack = [...rootUuids];
+    while (stack.isNotEmpty) {
+      final id = stack.removeLast();
+      if (reachable.containsKey(id)) continue;
+      final res = await _getDraftById.call(id);
+      final d = res.fold((_) => null, (x) => x);
+      if (d == null) continue;
+      reachable[id] = d;
+      // Tombstones (already published) contribute their mapping but no further
+      // children — their published event is already on the relay.
+      if (d.publishedAsEventId != null) continue;
+      for (final ref in d.draftRefIds) {
+        if (!reachable.containsKey(ref)) stack.add(ref);
+      }
+    }
+
+    // 2. Topo-sort the unpublished subset; the published tombstones are
+    // already terminal.
+    final unpublished = {
+      for (final e in reachable.entries)
+        if (e.value.publishedAsEventId == null) e.key: e.value,
+    };
+    final order = _topoSort(unpublished);
+    if (order == null) {
+      return const Left(
+          'Circular draft references — publish one without the back-link first.');
+    }
+
+    // 3. Seed the resolved map with tombstones.
+    final resolved = <String, String>{
+      for (final e in reachable.values)
+        if (e.publishedAsEventId != null) e.draftId: e.publishedAsEventId!,
+    };
+
+    // 4. Publish in dependency-first order, threading the growing resolved
+    // map into each child's `_publishOneDraft` call.
+    var published = 0;
+    for (final id in order) {
+      final draft = unpublished[id]!;
+      final res = await _publishOneDraft(
+        draftId: id,
+        content: draft.content,
+        rootEventId: draft.rootEventId,
+        replyToEventId: draft.replyToEventId,
+        resolvedDraftRefs: resolved,
+      );
+      final failureMsg = res.fold((m) => m, (_) => null);
+      if (failureMsg != null) {
+        return Left(
+            'Published $published of ${order.length} dependent drafts — $failureMsg');
+      }
+      resolved[id] = res.getOrElse(() => '');
+      published++;
+    }
+    return Right(resolved);
+  }
+
+  /// Kahn's algorithm over the draft → draftRefIds graph (edges point from a
+  /// draft to its dependencies). Returns ids in dependency-first order, or
+  /// null if a cycle exists.
+  List<String>? _topoSort(Map<String, DraftEntity> nodes) {
+    final indegree = <String, int>{for (final id in nodes.keys) id: 0};
+    for (final d in nodes.values) {
+      for (final ref in d.draftRefIds) {
+        // Only count edges to nodes we're publishing (skip dangling /
+        // already-published refs).
+        if (indegree.containsKey(ref)) {
+          indegree[d.draftId] = (indegree[d.draftId] ?? 0) + 1;
+        }
+      }
+    }
+    final ready = [
+      for (final e in indegree.entries)
+        if (e.value == 0) e.key,
+    ];
+    final out = <String>[];
+    while (ready.isNotEmpty) {
+      final id = ready.removeLast();
+      out.add(id);
+      // Find anyone whose only remaining dependency was `id` and release them.
+      for (final other in nodes.values) {
+        if (other.draftRefIds.contains(id) &&
+            indegree.containsKey(other.draftId)) {
+          indegree[other.draftId] = indegree[other.draftId]! - 1;
+          if (indegree[other.draftId] == 0) ready.add(other.draftId);
+        }
+      }
+    }
+    if (out.length != nodes.length) return null; // cycle
+    return out;
   }
 
   void _onReset(ResetBrahmaEvent event, Emitter<BrahmaCreateState> emit) {
@@ -502,11 +717,26 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     ));
   }
 
+  void _onAddDraftMention(
+      AddDraftMentionEvent event, Emitter<BrahmaCreateState> emit) {
+    final already = state.selectedDraftMentions
+        .any((d) => d.draftId == event.draft.draftId);
+    if (already) return;
+    emit(state.copyWith(
+      selectedDraftMentions: [...state.selectedDraftMentions, event.draft],
+    ));
+  }
+
   void _onRemoveMention(
       RemoveMentionEvent event, Emitter<BrahmaCreateState> emit) {
+    // The id can be either a note event id or a draft UUID — strip from both
+    // lists since they share an identifier namespace at the UI layer.
     emit(state.copyWith(
       selectedMentions:
           state.selectedMentions.where((m) => m.id != event.noteId).toList(),
+      selectedDraftMentions: state.selectedDraftMentions
+          .where((d) => d.draftId != event.noteId)
+          .toList(),
     ));
   }
 
@@ -520,12 +750,25 @@ class BrahmaCreateBloc extends Bloc<BrahmaCreateEvent, BrahmaCreateState> {
     Emitter<BrahmaCreateState> emit,
   ) async {
     final notes = <NoteEntity>[];
-    for (final id in event.mentionIds) {
+    final drafts = <DraftEntity>[];
+    for (final id in event.noteIds) {
       final result = await _getNoteById.call(id);
       result.fold((_) {}, (note) => notes.add(note));
     }
+    for (final id in event.draftIds) {
+      final result = await _getDraftById.call(id);
+      result.fold((_) {}, (draft) {
+        // Skip tombstones — once a draft has been published it's no longer a
+        // valid draft reference; the publish-chain reconciler will rewrite the
+        // UUID → event id on the referencing draft separately.
+        if (draft.publishedAsEventId == null) drafts.add(draft);
+      });
+    }
     // Always emit so the picker can also clear all selected mentions.
-    emit(state.copyWith(selectedMentions: notes));
+    emit(state.copyWith(
+      selectedMentions: notes,
+      selectedDraftMentions: drafts,
+    ));
   }
 
 }
