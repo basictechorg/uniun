@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/features/brahma/graph/widgets/compose_header.dart';
 import 'package:uniun/features/brahma/graph/widgets/compose_media_sheet.dart';
+import 'package:uniun/features/brahma/utils/publish_chain_dialog.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
@@ -90,9 +91,16 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
   Future<void> _openReferencePicker(BrahmaCreateState state) async {
     final l10n = AppLocalizations.of(context)!;
     final bloc = context.read<BrahmaCreateBloc>();
-    final selected = state.selectedMentions
-        .map((n) => ComposerReference(id: n.id, label: n.content))
-        .toList();
+    final selected = [
+      for (final n in state.selectedMentions)
+        ComposerReference(id: n.id, label: n.content),
+      for (final d in state.selectedDraftMentions)
+        ComposerReference(
+          id: d.draftId,
+          label: d.content,
+          kind: ComposerReferenceKind.draft,
+        ),
+    ];
 
     final result = await Navigator.push<List<ComposerReference>>(
       context,
@@ -107,8 +115,19 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
     );
 
     if (result != null && mounted) {
-      // Rebuild selected mentions from the returned ids.
-      bloc.add(RestoreDraftMentionsEvent(result.map((r) => r.id).toList()));
+      // Rebuild selected mentions from the returned refs, split by kind.
+      final noteIds = [
+        for (final r in result)
+          if (r.kind == ComposerReferenceKind.note) r.id,
+      ];
+      final draftIds = [
+        for (final r in result)
+          if (r.kind == ComposerReferenceKind.draft) r.id,
+      ];
+      bloc.add(RestoreDraftMentionsEvent(
+        noteIds: noteIds,
+        draftIds: draftIds,
+      ));
     }
   }
 
@@ -121,16 +140,51 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
         ));
   }
 
-  void _publish(BrahmaCreateState state) {
+  Future<void> _publish() async {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
+
+    final bloc = context.read<BrahmaCreateBloc>();
+    // Read the FRESH bloc state — the BlocBuilder closure may have captured
+    // an older snapshot if no other state change rebuilt between the picker
+    // closing and the user tapping Publish.
+    var draftDepCount = bloc.state.selectedDraftMentions.length;
+
+    // Belt-and-braces: when editing an existing draft, also consult the
+    // draft row itself in case the user opened compose, didn't touch the
+    // picker, and the RestoreDraftMentions emit hasn't landed yet. The row's
+    // `draftRefIds` are the authoritative count of unpublished draft refs.
+    if (draftDepCount == 0 && widget.initialDraftId != null) {
+      final row = bloc.state.drafts
+          .where((d) => d.draftId == widget.initialDraftId)
+          .firstOrNull;
+      if (row != null) draftDepCount = row.draftRefIds.length;
+    }
+
+    // Ask before publishing if the composer holds unpublished draft refs —
+    // those refs can only ride into the published `e` tags if their target
+    // drafts are published in the same operation (Nostr events are immutable).
+    var chain = false;
+    if (draftDepCount > 0) {
+      final choice = await showPublishChainSheet(
+        context,
+        draftCount: draftDepCount,
+      );
+      if (choice == PublishChainChoice.cancel || !mounted) return;
+      chain = choice == PublishChainChoice.chain;
+    }
+
     if (widget.initialDraftId != null) {
-      context.read<BrahmaCreateBloc>().add(PublishDraftEvent(
-            draftId: widget.initialDraftId!,
-            content: content,
-          ));
+      bloc.add(PublishDraftEvent(
+        draftId: widget.initialDraftId!,
+        content: content,
+        publishChain: chain,
+      ));
     } else {
-      context.read<BrahmaCreateBloc>().add(SubmitNoteEvent(content: content));
+      bloc.add(SubmitNoteEvent(
+        content: content,
+        publishChain: chain,
+      ));
     }
   }
 
@@ -151,11 +205,13 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
             _controller.text = draft.content;
             _controller.selection =
                 TextSelection.collapsed(offset: draft.content.length);
-            // Restore saved references as selected mentions
-            if (draft.eTagRefs.isNotEmpty) {
-              context
-                  .read<BrahmaCreateBloc>()
-                  .add(RestoreDraftMentionsEvent(draft.eTagRefs));
+            // Restore saved references as selected mentions — note ids go to
+            // `eTagRefs`, draft UUIDs to `draftRefIds`.
+            if (draft.eTagRefs.isNotEmpty || draft.draftRefIds.isNotEmpty) {
+              context.read<BrahmaCreateBloc>().add(RestoreDraftMentionsEvent(
+                    noteIds: draft.eTagRefs,
+                    draftIds: draft.draftRefIds,
+                  ));
             }
             // Restore staged media so the composer shows it (and re-save /
             // publish carry it).
@@ -168,7 +224,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
 
           if (widget.autoPublish && !_didAutoPublish) {
             _didAutoPublish = true;
-            _publish(state);
+            _publish();
           }
         }
 
@@ -229,10 +285,16 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                       // (which spans upload + publish) is what disables Send.
                       canSend: _hasText,
                       isSending: state.isSubmitting,
-                      references: state.selectedMentions
-                          .map((n) =>
-                              ComposerReference(id: n.id, label: n.content))
-                          .toList(),
+                      references: [
+                        for (final n in state.selectedMentions)
+                          ComposerReference(id: n.id, label: n.content),
+                        for (final d in state.selectedDraftMentions)
+                          ComposerReference(
+                            id: d.draftId,
+                            label: d.content,
+                            kind: ComposerReferenceKind.draft,
+                          ),
+                      ],
                       onRemoveReference: (id) => context
                           .read<BrahmaCreateBloc>()
                           .add(RemoveMentionEvent(id)),
@@ -245,7 +307,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
                           .add(RemoveAttachedMediaEvent(sha)),
                       onDraft: () => _saveDraft(state),
                       draftLabel: l10n.brahmaDraft,
-                      onSend: () => _publish(state),
+                      onSend: _publish,
                     ),
                   ],
                 ),
@@ -257,3 +319,4 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
     );
   }
 }
+

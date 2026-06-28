@@ -2,8 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 
-/// Shares an existing note into another surface (feed / channel / DM / private
-/// channel) by publishing a new event in the target surface. The original is
+/// Shares an existing note into another surface (feed / group / DM / private
+/// group) by publishing a new event in the target surface. The original is
 /// carried **by value** as a self-contained snapshot in an `embeddedNoteJson`
 /// tag (see `EmbeddedNoteCodec`) — the receiver renders it without an Isar
 /// lookup, immune to retention. The user's own composed note (text +

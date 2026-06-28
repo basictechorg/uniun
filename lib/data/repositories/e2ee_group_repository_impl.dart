@@ -1,12 +1,12 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
-import 'package:uniun/data/models/private_channel_join_request_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
+import 'package:uniun/data/models/private_group_join_request_model.dart';
 import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_join_request_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_join_request_entity.dart';
 import 'package:uniun/domain/repositories/e2ee_group_repository.dart';
 
 @LazySingleton(as: E2EEGroupRepository)
@@ -17,15 +17,15 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   E2EEGroupRepositoryImpl(this.isar, this._attachments);
 
   @override
-  Future<List<PrivateChannelEntity>> getChannels() async {
-    final models = await isar.privateChannelModels.where().findAll();
-    return models.map(_mapChannel).toList();
+  Future<List<PrivateGroupEntity>> getGroups() async {
+    final models = await isar.privateGroupModels.where().findAll();
+    return models.map(_mapGroup).toList();
   }
 
   @override
-  Stream<List<PrivateChannelEntity>> watchChannels() {
-    return isar.privateChannelModels.where().watch(fireImmediately: true).map((models) {
-      return models.map(_mapChannel).toList();
+  Stream<List<PrivateGroupEntity>> watchGroups() {
+    return isar.privateGroupModels.where().watch(fireImmediately: true).map((models) {
+      return models.map(_mapGroup).toList();
     });
   }
 
@@ -33,7 +33,7 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   Future<List<NoteEntity>> getMessages(String groupId) async {
     final models = await isar.noteModels
         .filter()
-        .groupIdEqualTo(groupId)
+        .privateGroupIdEqualTo(groupId)
         .sortByCreated()
         .findAll();
     return _attachments
@@ -44,7 +44,7 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   Stream<List<NoteEntity>> watchMessages(String groupId) {
     return isar.noteModels
         .filter()
-        .groupIdEqualTo(groupId)
+        .privateGroupIdEqualTo(groupId)
         .sortByCreated()
         .watch(fireImmediately: true)
         .asyncMap((models) =>
@@ -52,20 +52,22 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   }
 
   @override
-  Future<List<PrivateChannelJoinRequestEntity>> getJoinRequests(String groupId) async {
-    final models = await isar.privateChannelJoinRequestModels
-        .where()
+  Future<List<PrivateGroupJoinRequestEntity>> getJoinRequests(String groupId) async {
+    final models = await isar.privateGroupJoinRequestModels
+        .filter()
         .groupIdEqualTo(groupId)
+        .handledEqualTo(false)
         .sortByTimestamp()
         .findAll();
     return models.map(_mapJoinRequest).toList();
   }
 
   @override
-  Stream<List<PrivateChannelJoinRequestEntity>> watchJoinRequests(String groupId) {
-    return isar.privateChannelJoinRequestModels
+  Stream<List<PrivateGroupJoinRequestEntity>> watchJoinRequests(String groupId) {
+    return isar.privateGroupJoinRequestModels
         .filter()
         .groupIdEqualTo(groupId)
+        .handledEqualTo(false)
         .sortByTimestamp()
         .watch(fireImmediately: true)
         .map((models) {
@@ -74,30 +76,30 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
   }
 
   @override
-  Future<void> saveChannel(PrivateChannelEntity channel) async {
-    final model = PrivateChannelModel()
-      ..id = channel.id > 0 ? channel.id : Isar.autoIncrement
-      ..groupId = channel.groupId
-      ..mlsGroupId = channel.mlsGroupId
-      ..relays = channel.relays
-      ..name = channel.name
-      ..description = channel.description
-      ..adminPubkey = channel.adminPubkey;
+  Future<void> saveGroup(PrivateGroupEntity group) async {
+    final model = PrivateGroupModel()
+      ..id = group.id > 0 ? group.id : Isar.autoIncrement
+      ..groupId = group.groupId
+      ..mlsGroupId = group.mlsGroupId
+      ..relays = group.relays
+      ..name = group.name
+      ..description = group.description
+      ..adminPubkey = group.adminPubkey;
 
     await isar.writeTxn(() async {
-      await isar.privateChannelModels.put(model);
+      await isar.privateGroupModels.put(model);
     });
   }
 
   @override
-  Future<void> deleteChannel(String groupId) async {
+  Future<void> deleteGroup(String groupId) async {
     await isar.writeTxn(() async {
-      await isar.privateChannelModels.where().groupIdEqualTo(groupId).deleteAll();
+      await isar.privateGroupModels.where().groupIdEqualTo(groupId).deleteAll();
     });
   }
 
-  PrivateChannelEntity _mapChannel(PrivateChannelModel model) {
-    return PrivateChannelEntity(
+  PrivateGroupEntity _mapGroup(PrivateGroupModel model) {
+    return PrivateGroupEntity(
       id: model.id,
       groupId: model.groupId,
       mlsGroupId: model.mlsGroupId,
@@ -108,8 +110,8 @@ class E2EEGroupRepositoryImpl implements E2EEGroupRepository {
     );
   }
 
-  PrivateChannelJoinRequestEntity _mapJoinRequest(PrivateChannelJoinRequestModel model) {
-    return PrivateChannelJoinRequestEntity(
+  PrivateGroupJoinRequestEntity _mapJoinRequest(PrivateGroupJoinRequestModel model) {
+    return PrivateGroupJoinRequestEntity(
       id: model.id,
       eventId: model.eventId,
       groupId: model.groupId,

@@ -69,7 +69,7 @@ class RelaySession {
   }
 
   /// Sends a raw, pre-encoded relay message (used for both serialized queue
-  /// items and raw private-channel events).
+  /// items and raw private-group events).
   void sendRaw(String frame) {
     if (!isConnected) return;
     connection.send(frame);

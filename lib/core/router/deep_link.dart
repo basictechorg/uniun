@@ -11,23 +11,28 @@ const String kDeepLinkScheme = 'https';
 
 /// Path segments shared by the public https links and the in-app GoRouter
 /// routes (single source of truth for both).
-const String kChannelSegment = 'channel';
+const String kGroupSegment = 'group';
 const String kPrivateSegment = 'private';
 const String kUserSegment = 'user';
+
+/// Legacy public-group segment. Links shared as `/channel/<id>` before the
+/// channel→group rename are still honoured — the router redirects them to
+/// [kGroupSegment]. Keep until old links are no longer in circulation.
+const String kLegacyGroupSegment = 'channel';
 
 /// Builds shareable `https://` universal links for each entity. The path
 /// doubles as the in-app route path, so a tapped link resolves through the
 /// same GoRouter parser. Relay hints ride along as query params (mirroring
 /// [UniunQrPayload]) so the receiver can act on the entity.
 abstract class DeepLink {
-  static Uri channel(
-    String channelId, {
+  static Uri group(
+    String groupId, {
     String? name,
     List<String> relays = const [],
   }) =>
-      _build(kChannelSegment, channelId, name: name, relays: relays);
+      _build(kGroupSegment, groupId, name: name, relays: relays);
 
-  static Uri privateChannel(
+  static Uri privateGroup(
     String groupId, {
     String? name,
     List<String> relays = const [],

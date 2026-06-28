@@ -267,8 +267,8 @@ class _LargeNoteCardView extends StatelessWidget {
                 const SizedBox(width: 28),
                 _LargeActionChip(
                   icon: isFollowed
-                      ? Icons.notifications
-                      : Icons.notifications_none,
+                      ? Icons.visibility
+                      : Icons.visibility_outlined,
                   color: isFollowed
                       ? AppColors.primary
                       : AppColors.onSurfaceVariant,

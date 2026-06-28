@@ -57,8 +57,8 @@ class SettingsCubit extends Cubit<SettingsState> {
   void toggleDmNotifications(bool value) =>
       emit(state.copyWith(dmNotifications: value));
 
-  void toggleChannelAlerts(bool value) =>
-      emit(state.copyWith(channelAlerts: value));
+  void toggleGroupAlerts(bool value) =>
+      emit(state.copyWith(groupAlerts: value));
 
   Future<void> revealNsec() async {
     if (state.nsecVisible) {

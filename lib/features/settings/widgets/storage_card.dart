@@ -39,6 +39,7 @@ class StorageMetricsRow extends StatelessWidget {
           icon: Icons.donut_small_rounded,
           label: l10n.storageShowMetrics,
           value: state.isLoading ? '…' : formatStorageBytes(state.totalBytes),
+          valueAccent: true,
           onTap: () => showStorageMetricsSheet(context),
         );
       },

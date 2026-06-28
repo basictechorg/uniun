@@ -18,9 +18,22 @@ class DraftModel {
   String? rootEventId; // null = top-level draft
   String? replyToEventId; // null = top-level draft
 
-  late List<String> eTagRefs; // reference graph edges
+  late List<String> eTagRefs; // reference graph edges (real Nostr event ids)
   late List<String> pTagRefs; // user mentions
   late List<String> tTags; // topics
+
+  /// References to OTHER drafts (by `draftId` UUID). Stored separately from
+  /// [eTagRefs] because they aren't real event ids yet — at publish time we
+  /// either drop them (publish-only-this) or rewrite each to the freshly-minted
+  /// event id (publish-chain). Carried inside the NIP-37 wrap as `["d-ref", uuid]`
+  /// tags on the inner event so the link survives cross-device draft sync.
+  List<String> draftRefIds = const [];
+
+  /// Set once this draft has been published. The draft row is kept briefly as a
+  /// publish-mapping tombstone (UUID → event id) so other drafts on this and
+  /// other devices can resolve their `draftRefIds` to the new event id.
+  /// Eligible for cleanup after [DraftCleanupPolicy.publishedTombstoneDays].
+  String? publishedAsEventId;
 
   /// Media staged locally for this draft (same embedded shape as
   /// [NoteModel.attachments]). `url` is null while a draft — the bytes live in
@@ -52,6 +65,8 @@ extension DraftModelExtension on DraftModel {
         eTagRefs: eTagRefs,
         pTagRefs: pTagRefs,
         tTags: tTags,
+        draftRefIds: draftRefIds,
+        publishedAsEventId: publishedAsEventId,
         attachments: [for (final a in attachments) a.toEntity()],
         createdAt: createdAt,
         updatedAt: updatedAt,

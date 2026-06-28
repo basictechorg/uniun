@@ -15,8 +15,8 @@ class VishnuFeedState {
     this.errorMessage,
   });
 
-  /// Unified feed items (Kind 1 notes + Kind 42 channel messages from
-  /// joined channels), already in display order.
+  /// Unified feed items (Kind 1 notes + Kind 42 group messages from
+  /// joined groups), already in display order.
   final List<NoteEntity> items;
 
   /// pubkey → ProfileEntity (loaded lazily after each page fetch)

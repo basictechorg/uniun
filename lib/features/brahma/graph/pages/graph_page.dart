@@ -13,6 +13,7 @@ import 'package:uniun/features/brahma/graph/widgets/graph_fab.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_header.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_node_panel.dart';
 import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
+import 'package:uniun/features/brahma/utils/publish_chain_dialog.dart';
 import 'package:uniun/features/brahma/manas/widgets/brahma_drawer.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -266,14 +267,27 @@ class _NodePanelSlider extends StatelessWidget {
                   bloc.add(const LoadGraphEvent());
                   bloc.add(SelectGraphNodeEvent(draftId));
                 },
-                onPublishTap: (draftId) {
-                  // Publish directly — no navigation needed.
+                onPublishTap: (draftId) async {
+                  // If this draft links to other unpublished drafts, ask
+                  // first — refs to UUIDs can't ride into the published
+                  // Kind-1's `e` tags unless we chain-publish them now.
+                  var chain = false;
+                  if (node.draftRefIds.isNotEmpty) {
+                    final choice = await showPublishChainSheet(
+                      context,
+                      draftCount: node.draftRefIds.length,
+                    );
+                    if (choice == PublishChainChoice.cancel) return;
+                    chain = choice == PublishChainChoice.chain;
+                  }
+                  if (!context.mounted) return;
                   // BlocListener<BrahmaCreateBloc> in GraphPage handles
                   // popping to home on success.
                   context.read<BrahmaCreateBloc>().add(
                         PublishDraftEvent(
                           draftId: draftId,
                           content: node.content,
+                          publishChain: chain,
                         ),
                       );
                 },

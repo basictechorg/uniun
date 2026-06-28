@@ -1,4 +1,4 @@
-/// Rolling window for bulk relay pulls (channel/group messages, feed notes).
+/// Rolling window for bulk relay pulls (group/group messages, feed notes).
 ///
 /// Followed notes, DMs, and the MLS control plane are intentionally exempt and
 /// pull full history. This is the single source of truth for the window length.

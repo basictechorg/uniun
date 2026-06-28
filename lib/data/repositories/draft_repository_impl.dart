@@ -61,6 +61,8 @@ class DraftRepositoryImpl extends DraftRepository {
         ..eTagRefs = draft.eTagRefs
         ..pTagRefs = draft.pTagRefs
         ..tTags = draft.tTags
+        ..draftRefIds = draft.draftRefIds
+        ..publishedAsEventId = draft.publishedAsEventId
         ..attachments = [for (final a in draft.attachments) a.toAttachment()]
         ..createdAt = draft.createdAt
         ..updatedAt = draft.updatedAt
@@ -86,8 +88,14 @@ class DraftRepositoryImpl extends DraftRepository {
   @override
   Future<Either<Failure, List<DraftEntity>>> getDrafts() async {
     try {
-      final drafts =
-          await isar.draftModels.where().sortByUpdatedAtDesc().findAll();
+      // Tombstones (`publishedAsEventId` set) are hidden from the drafts list
+      // — they exist only as UUID→event-id mappings for cross-device
+      // reconciliation and never resurface to the user as drafts.
+      final drafts = await isar.draftModels
+          .filter()
+          .publishedAsEventIdIsNull()
+          .sortByUpdatedAtDesc()
+          .findAll();
       return Right([
         for (final d in drafts) await _enrich(d.toDomain()),
       ]);
@@ -105,6 +113,98 @@ class DraftRepositoryImpl extends DraftRepository {
         return const Left(Failure.notFoundFailure('Draft not found'));
       }
       return Right(await _enrich(draft.toDomain()));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markPublished({
+    required String draftId,
+    required String eventId,
+  }) async {
+    try {
+      final row = await isar.draftModels
+          .filter()
+          .draftIdEqualTo(draftId)
+          .findFirst();
+      if (row == null) return const Right(unit);
+      await isar.writeTxn(() async {
+        row.publishedAsEventId = eventId;
+        row.updatedAt = DateTime.now();
+        await isar.draftModels.put(row);
+      });
+      // Republish the wrap so the UUID→event-id mapping reaches other devices.
+      // Best-effort — local row is the source of truth.
+      await _publishDraftWrap(row);
+      // Local sweep: any other draft on this device referencing this UUID is
+      // promoted now, so a future publish here uses the real event id.
+      await _rewriteLocalRefs(draftUuid: draftId, eventId: eventId);
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> rewriteDraftRefs({
+    required String draftUuid,
+    required String eventId,
+  }) async {
+    try {
+      await _rewriteLocalRefs(draftUuid: draftUuid, eventId: eventId);
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  /// Internal sweep — extracted so [markPublished] (local publish) and
+  /// [rewriteDraftRefs] (inbound from another device) share one code path.
+  Future<void> _rewriteLocalRefs({
+    required String draftUuid,
+    required String eventId,
+  }) async {
+    final referencing = await isar.draftModels
+        .filter()
+        .draftRefIdsElementEqualTo(draftUuid)
+        .findAll();
+    if (referencing.isEmpty) return;
+    await isar.writeTxn(() async {
+      for (final d in referencing) {
+        d.draftRefIds =
+            d.draftRefIds.where((r) => r != draftUuid).toList();
+        if (!d.eTagRefs.contains(eventId)) {
+          d.eTagRefs = [...d.eTagRefs, eventId];
+        }
+        d.updatedAt = DateTime.now();
+        await isar.draftModels.put(d);
+      }
+    });
+    // Republish each modified wrap so the new linkage syncs.
+    for (final d in referencing) {
+      await _publishDraftWrap(d);
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> purgePublishedTombstonesOlderThan(
+    Duration retention,
+  ) async {
+    try {
+      final cutoff = DateTime.now().subtract(retention);
+      final stale = await isar.draftModels
+          .filter()
+          .publishedAsEventIdIsNotNull()
+          .updatedAtLessThan(cutoff)
+          .findAll();
+      if (stale.isEmpty) return const Right(0);
+      await isar.writeTxn(() async {
+        for (final d in stale) {
+          await isar.draftModels.delete(d.id);
+        }
+      });
+      return Right(stale.length);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -152,6 +252,12 @@ class DraftRepositoryImpl extends DraftRepository {
             ['e', e, '', 'mention'],
         for (final p in m.pTagRefs) ['p', p],
         for (final t in m.tTags) ['t', t],
+        // App-private tags below: receivers (our own clients) read these to
+        // reconstruct the draft graph; nothing else in the Nostr ecosystem
+        // looks at them.
+        for (final ref in m.draftRefIds) ['d-ref', ref],
+        if (m.publishedAsEventId != null)
+          ['published-as', m.publishedAsEventId!],
       ],
       'content': m.content,
     };

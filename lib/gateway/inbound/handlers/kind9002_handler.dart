@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 
-/// Kind 9002 — Marmot private channel metadata.
+/// Kind 9002 — Marmot private group metadata.
 ///
-/// Identifies the channel by event id (== groupId in this protocol) and
+/// Identifies the group by event id (== groupId in this protocol) and
 /// updates name/description/admin/relays on an existing local row.
 class Kind9002Handler implements KindHandler {
   @override
@@ -27,23 +27,23 @@ class Kind9002Handler implements KindHandler {
     }
 
     await isar.writeTxn(() async {
-      final channel = await isar.privateChannelModels
+      final group = await isar.privateGroupModels
           .where()
           .groupIdEqualTo(eventId)
           .findFirst();
-      if (channel == null) return;
+      if (group == null) return;
 
-      channel.name = metadata['name'] as String? ?? channel.name;
-      channel.description =
-          metadata['about'] as String? ?? channel.description;
-      channel.adminPubkey = pubkey;
+      group.name = metadata['name'] as String? ?? group.name;
+      group.description =
+          metadata['about'] as String? ?? group.description;
+      group.adminPubkey = pubkey;
 
       final relays = metadata['relays'];
       if (relays is List && relays.isNotEmpty) {
-        channel.relays = relays.map((e) => e.toString()).toList();
+        group.relays = relays.map((e) => e.toString()).toList();
       }
 
-      await isar.privateChannelModels.put(channel);
+      await isar.privateGroupModels.put(group);
     });
   }
 }

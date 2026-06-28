@@ -45,7 +45,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
         ..tTags = note.tTags
         ..created = note.created
         ..savedAt = DateTime.now()
-        ..sourceChannelId = note.sourceChannelId
+        ..sourceGroupId = note.sourceGroupId
         ..sourcePrivateGroupId = note.sourcePrivateGroupId
         ..embeddedNoteJson = note.embeddedNoteJson
         ..attachments = [
@@ -116,7 +116,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
   /// Saved-scoped reply count: how many OTHER saved notes reference [eventId].
   /// Saved-scoped reply count: how many of [eventId]'s replies/references are
   /// themselves saved. Reads the global edge table (so it works even for
-  /// channel messages, whose saved eTagRefs are stripped) and keeps only edges
+  /// group messages, whose saved eTagRefs are stripped) and keeps only edges
   /// whose child is in [savedIds]. The edge set already excludes the thread
   /// root, so there is no nested-reply over-count to subtract.
   Future<int> _savedReplyCount(String eventId, Set<String> savedIds) async {
@@ -126,7 +126,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
   /// Saved-scoped outgoing reference count: how many notes [eventId] references
   /// that are themselves saved. Reads the edge table by childId (works for
-  /// channel messages whose saved eTagRefs are stripped).
+  /// group messages whose saved eTagRefs are stripped).
   Future<int> _savedReferenceCount(String eventId, Set<String> savedIds) async {
     final parentIds = await _relations.parentIdsOf(eventId);
     return parentIds.where(savedIds.contains).length;

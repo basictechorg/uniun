@@ -251,7 +251,7 @@ int _noteModelEstimateSize(
   }
   bytesCount += 3 + object.authorPubkey.length * 3;
   {
-    final value = object.channelId;
+    final value = object.groupId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -272,7 +272,7 @@ int _noteModelEstimateSize(
   }
   bytesCount += 3 + object.eventId.length * 3;
   {
-    final value = object.groupId;
+    final value = object.privateGroupId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -327,14 +327,14 @@ void _noteModelSerialize(
     object.attachments,
   );
   writer.writeString(offsets[1], object.authorPubkey);
-  writer.writeString(offsets[2], object.channelId);
+  writer.writeString(offsets[2], object.groupId);
   writer.writeString(offsets[3], object.content);
   writer.writeLong(offsets[4], object.conversationId);
   writer.writeDateTime(offsets[5], object.created);
   writer.writeStringList(offsets[6], object.eTagRefs);
   writer.writeString(offsets[7], object.embeddedNoteJson);
   writer.writeString(offsets[8], object.eventId);
-  writer.writeString(offsets[9], object.groupId);
+  writer.writeString(offsets[9], object.privateGroupId);
   writer.writeBool(offsets[10], object.hasMedia);
   writer.writeLong(offsets[11], object.kind);
   writer.writeStringList(offsets[12], object.pTagRefs);
@@ -362,14 +362,14 @@ NoteModel _noteModelDeserialize(
         ) ??
         const [],
     authorPubkey: reader.readString(offsets[1]),
-    channelId: reader.readStringOrNull(offsets[2]),
+    groupId: reader.readStringOrNull(offsets[2]),
     content: reader.readString(offsets[3]),
     conversationId: reader.readLongOrNull(offsets[4]),
     created: reader.readDateTime(offsets[5]),
     eTagRefs: reader.readStringList(offsets[6]) ?? [],
     embeddedNoteJson: reader.readStringOrNull(offsets[7]),
     eventId: reader.readString(offsets[8]),
-    groupId: reader.readStringOrNull(offsets[9]),
+    privateGroupId: reader.readStringOrNull(offsets[9]),
     kind: reader.readLongOrNull(offsets[11]) ?? kNoteKind,
     pTagRefs: reader.readStringList(offsets[12]) ?? [],
     replyToEventId: reader.readStringOrNull(offsets[13]),
@@ -852,85 +852,10 @@ extension NoteModelQueryWhere
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'channelId', value: [null]),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.between(
-          indexName: r'channelId',
-          lower: [null],
-          includeLower: false,
-          upper: [],
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdEqualTo(
-    String? channelId,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'channelId', value: [channelId]),
-      );
-    });
-  }
-
-  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> channelIdNotEqualTo(
-    String? channelId,
-  ) {
-    return QueryBuilder.apply(this, (query) {
-      if (query.whereSort == Sort.asc) {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'channelId',
-                lower: [],
-                upper: [channelId],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'channelId',
-                lower: [channelId],
-                includeLower: false,
-                upper: [],
-              ),
-            );
-      } else {
-        return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'channelId',
-                lower: [channelId],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'channelId',
-                lower: [],
-                upper: [channelId],
-                includeUpper: false,
-              ),
-            );
-      }
-    });
-  }
-
   QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> groupIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'groupId', value: [null]),
+        IndexWhereClause.equalTo(indexName: r'channelId', value: [null]),
       );
     });
   }
@@ -939,7 +864,7 @@ extension NoteModelQueryWhere
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IndexWhereClause.between(
-          indexName: r'groupId',
+          indexName: r'channelId',
           lower: [null],
           includeLower: false,
           upper: [],
@@ -953,7 +878,7 @@ extension NoteModelQueryWhere
   ) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'groupId', value: [groupId]),
+        IndexWhereClause.equalTo(indexName: r'channelId', value: [groupId]),
       );
     });
   }
@@ -966,7 +891,7 @@ extension NoteModelQueryWhere
         return query
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'groupId',
+                indexName: r'channelId',
                 lower: [],
                 upper: [groupId],
                 includeUpper: false,
@@ -974,7 +899,7 @@ extension NoteModelQueryWhere
             )
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'groupId',
+                indexName: r'channelId',
                 lower: [groupId],
                 includeLower: false,
                 upper: [],
@@ -984,8 +909,86 @@ extension NoteModelQueryWhere
         return query
             .addWhereClause(
               IndexWhereClause.between(
-                indexName: r'groupId',
+                indexName: r'channelId',
                 lower: [groupId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'channelId',
+                lower: [],
+                upper: [groupId],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> privateGroupIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'groupId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  privateGroupIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'groupId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause> privateGroupIdEqualTo(
+    String? privateGroupId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'groupId',
+          value: [privateGroupId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterWhereClause>
+  privateGroupIdNotEqualTo(String? privateGroupId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [],
+                upper: [privateGroupId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [privateGroupId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'groupId',
+                lower: [privateGroupId],
                 includeLower: false,
                 upper: [],
               ),
@@ -994,7 +997,7 @@ extension NoteModelQueryWhere
               IndexWhereClause.between(
                 indexName: r'groupId',
                 lower: [],
-                upper: [groupId],
+                upper: [privateGroupId],
                 includeUpper: false,
               ),
             );
@@ -1644,7 +1647,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdIsNull() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNull(property: r'channelId'),
@@ -1652,8 +1655,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  channelIdIsNotNull() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNotNull(property: r'channelId'),
@@ -1661,7 +1663,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdEqualTo(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
@@ -1676,8 +1678,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  channelIdGreaterThan(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1694,7 +1695,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdLessThan(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1711,7 +1712,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdBetween(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -1732,7 +1733,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdStartsWith(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1747,7 +1748,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdEndsWith(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1762,7 +1763,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdContains(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdContains(
     String value, {
     bool caseSensitive = true,
   }) {
@@ -1777,7 +1778,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdMatches(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdMatches(
     String pattern, {
     bool caseSensitive = true,
   }) {
@@ -1792,7 +1793,7 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> channelIdIsEmpty() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'channelId', value: ''),
@@ -1801,7 +1802,7 @@ extension NoteModelQueryFilter
   }
 
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  channelIdIsNotEmpty() {
+  groupIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'channelId', value: ''),
@@ -2587,7 +2588,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNull() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNull(property: r'groupId'),
@@ -2595,7 +2597,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsNotNull() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         const FilterCondition.isNotNull(property: r'groupId'),
@@ -2603,10 +2606,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdEqualTo(String? value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(
@@ -2618,7 +2619,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdGreaterThan(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2635,7 +2637,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdLessThan(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -2652,7 +2655,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdBetween(
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -2673,10 +2677,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdStartsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.startsWith(
@@ -2688,10 +2690,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdEndsWith(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.endsWith(
@@ -2703,10 +2703,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdContains(
-    String value, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.contains(
@@ -2718,10 +2716,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdMatches(
-    String pattern, {
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.matches(
@@ -2733,7 +2729,8 @@ extension NoteModelQueryFilter
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> groupIdIsEmpty() {
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateGroupIdIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'groupId', value: ''),
@@ -2742,7 +2739,7 @@ extension NoteModelQueryFilter
   }
 
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
-  groupIdIsNotEmpty() {
+  privateGroupIdIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'groupId', value: ''),
@@ -4075,13 +4072,13 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByChannelId() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'channelId', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByChannelIdDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'channelId', Sort.desc);
     });
@@ -4148,13 +4145,13 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupId() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByPrivateGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupId', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByGroupIdDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByPrivateGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupId', Sort.desc);
     });
@@ -4259,13 +4256,13 @@ extension NoteModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByChannelId() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'channelId', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByChannelIdDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'channelId', Sort.desc);
     });
@@ -4332,13 +4329,13 @@ extension NoteModelQuerySortThenBy
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupId() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByPrivateGroupId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupId', Sort.asc);
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByGroupIdDesc() {
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByPrivateGroupIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'groupId', Sort.desc);
     });
@@ -4451,7 +4448,7 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByChannelId({
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByGroupId({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -4504,7 +4501,7 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
-  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByGroupId({
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByPrivateGroupId({
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -4601,7 +4598,7 @@ extension NoteModelQueryProperty
     });
   }
 
-  QueryBuilder<NoteModel, String?, QQueryOperations> channelIdProperty() {
+  QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'channelId');
     });
@@ -4644,7 +4641,7 @@ extension NoteModelQueryProperty
     });
   }
 
-  QueryBuilder<NoteModel, String?, QQueryOperations> groupIdProperty() {
+  QueryBuilder<NoteModel, String?, QQueryOperations> privateGroupIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'groupId');
     });

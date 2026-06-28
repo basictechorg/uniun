@@ -7,14 +7,14 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 /// Single source of truth for embed-by-value sharing.
 ///
 /// A shared note carries the ORIGINAL event as a self-contained JSON snapshot
-/// `{id, pubkey, created_at, kind, tags, content, sig}` — on feed / channel / DM
-/// it travels in a `["embeddedNoteJson", <json>]` tag; on private channels it
+/// `{id, pubkey, created_at, kind, tags, content, sig}` — on feed / group / DM
+/// it travels in a `["embeddedNoteJson", <json>]` tag; on private groups it
 /// travels in the MLS envelope under key `"b"`. The receiver renders the embed
 /// straight from the snapshot — no Isar lookup, immune to retention.
 class EmbeddedNoteCodec {
   EmbeddedNoteCodec._();
 
-  /// Wire tag name (feed / channel / DM). The private-channel MLS envelope uses
+  /// Wire tag name (feed / group / DM). The private-group MLS envelope uses
   /// the key `"b"` for the same string.
   static const String tagName = 'embeddedNoteJson';
 
@@ -53,7 +53,7 @@ class EmbeddedNoteCodec {
   static String encodeFromEntity(NoteEntity note) =>
       jsonEncode(snapshotMapFromEntity(note));
 
-  /// The Nostr tag form for feed / channel / DM surfaces.
+  /// The Nostr tag form for feed / group / DM surfaces.
   static List<String> tag(String snapshotJson) => [tagName, snapshotJson];
 
   /// Verifies the snapshot's id + Schnorr signature. On ANY failure

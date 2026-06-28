@@ -57,3 +57,34 @@ class DeleteDraftUseCase extends UseCase<Either<Failure, Unit>, String> {
   }
 }
 
+class MarkDraftPublishedInput {
+  const MarkDraftPublishedInput({
+    required this.draftId,
+    required this.eventId,
+  });
+  final String draftId;
+  final String eventId;
+}
+
+/// Tombstones a draft after publish — stamps `publishedAsEventId`, republishes
+/// the NIP-37 wrap with a `published-as` pointer so other devices can map the
+/// UUID to the new event id and rewrite their dependent drafts.
+@lazySingleton
+class MarkDraftPublishedUseCase
+    extends UseCase<Either<Failure, Unit>, MarkDraftPublishedInput> {
+  final DraftRepository repository;
+
+  MarkDraftPublishedUseCase(this.repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(
+    MarkDraftPublishedInput input, {
+    bool cached = false,
+  }) {
+    return repository.markPublished(
+      draftId: input.draftId,
+      eventId: input.eventId,
+    );
+  }
+}
+

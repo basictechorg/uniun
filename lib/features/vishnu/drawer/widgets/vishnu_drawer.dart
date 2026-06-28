@@ -40,16 +40,16 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
     DrawerSearchResult result,
   ) async {
     switch (result.kind) {
-      case DrawerSearchKind.channel:
+      case DrawerSearchKind.group:
         _close(context);
         context.pushNamed(
-          AppRoutes.channelDetail,
-          pathParameters: {'channelId': result.id},
+          AppRoutes.groupDetail,
+          pathParameters: {'groupId': result.id},
         );
-      case DrawerSearchKind.privateChannel:
+      case DrawerSearchKind.privateGroup:
         _close(context);
         context.pushNamed(
-          AppRoutes.privateChannelDetail,
+          AppRoutes.privateGroupDetail,
           pathParameters: {'groupId': result.id},
         );
       case DrawerSearchKind.dm:
@@ -80,16 +80,6 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
           context.read<app_drawer.DrawerBloc>().add(app_drawer.DrawerLoadEvent());
         }
     }
-  }
-
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.drawerComingSoon(feature)),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
@@ -182,17 +172,17 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                             ],
                           ),
 
-                          // ── Channels ────────────────────────────────────
+                          // ── Groups ────────────────────────────────────
                           _CollapsibleSection(
-                            title: l10n.drawerChannels,
-                            itemCount: (loaded?.channels ?? []).length,
-                            emptyHint: l10n.drawerNoChannels,
+                            title: l10n.drawerGroups,
+                            itemCount: (loaded?.groups ?? []).length,
+                            emptyHint: l10n.drawerNoGroups,
                             onAdd: () {
                               _close(context);
-                              context.pushNamed(AppRoutes.channelEntry);
+                              context.pushNamed(AppRoutes.groupEntry);
                             },
                             children: [
-                              for (final ch in loaded?.channels ?? [])
+                              for (final ch in loaded?.groups ?? [])
                                 _ListRow(
                                   leading: const _IconSquare(Icons.tag_rounded),
                                   title: ch.name,
@@ -200,25 +190,25 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                                   onTap: () {
                                     _close(context);
                                     context.pushNamed(
-                                      AppRoutes.channelDetail,
-                                      pathParameters: {'channelId': ch.id},
+                                      AppRoutes.groupDetail,
+                                      pathParameters: {'groupId': ch.id},
                                     );
                                   },
                                 ),
                             ],
                           ),
 
-                          // ── Private channels ────────────────────────────
+                          // ── Private groups ────────────────────────────
                           _CollapsibleSection(
-                            title: l10n.drawerPrivateChannels,
-                            itemCount: (loaded?.privateChannels ?? []).length,
-                            emptyHint: l10n.drawerNoPrivateChannels,
+                            title: l10n.drawerPrivateGroups,
+                            itemCount: (loaded?.privateGroups ?? []).length,
+                            emptyHint: l10n.drawerNoPrivateGroups,
                             onAdd: () {
                               _close(context);
-                              context.pushNamed(AppRoutes.privateChannelEntry);
+                              context.pushNamed(AppRoutes.privateGroupEntry);
                             },
                             children: [
-                              for (final ch in loaded?.privateChannels ?? [])
+                              for (final ch in loaded?.privateGroups ?? [])
                                 _ListRow(
                                   leading:
                                       const _IconSquare(Icons.lock_rounded),
@@ -228,7 +218,7 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                                   onTap: () {
                                     _close(context);
                                     context.pushNamed(
-                                      AppRoutes.privateChannelDetail,
+                                      AppRoutes.privateGroupDetail,
                                       pathParameters: {'groupId': ch.id},
                                     );
                                   },
@@ -241,7 +231,6 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                             title: l10n.drawerFollowingNotes,
                             itemCount: (loaded?.followedNotes ?? []).length,
                             emptyHint: l10n.drawerNoFollowedNotes,
-                            onAdd: () => _showComingSoon(context, l10n.drawerHome),
                             children: [
                               for (final item in loaded?.followedNotes ?? [])
                                 _ListRow(
@@ -744,7 +733,7 @@ class _ListRow extends StatelessWidget {
   }
 }
 
-// Icon inside a tinted rounded square — channel #, private lock, followed link.
+// Icon inside a tinted rounded square — group #, private lock, followed link.
 class _IconSquare extends StatelessWidget {
   const _IconSquare(this.icon);
   final IconData icon;
@@ -791,7 +780,7 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-// Small unread dot for surfaces that only carry a boolean (channels / private).
+// Small unread dot for surfaces that only carry a boolean (groups / private).
 class _Dot extends StatelessWidget {
   const _Dot();
 
@@ -876,9 +865,9 @@ class _DrawerSearchField extends StatelessWidget {
 
 IconData _searchIconFor(DrawerSearchKind kind) {
   switch (kind) {
-    case DrawerSearchKind.channel:
+    case DrawerSearchKind.group:
       return Icons.tag_rounded;
-    case DrawerSearchKind.privateChannel:
+    case DrawerSearchKind.privateGroup:
       return Icons.lock_rounded;
     case DrawerSearchKind.dm:
       return Icons.chat_bubble_outline_rounded;

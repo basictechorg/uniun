@@ -10,8 +10,6 @@ import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/scheduler_usecases.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
-import 'package:uniun/domain/usecases/app_settings_usecases.dart';
-import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';

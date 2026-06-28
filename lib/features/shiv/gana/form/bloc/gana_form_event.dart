@@ -41,7 +41,7 @@ class GanaFormOutputTypeChangedEvent extends GanaFormEvent {
 
 class GanaFormOutputRefChangedEvent extends GanaFormEvent {
   const GanaFormOutputRefChangedEvent(this.value);
-  // Type depends on state.outputType: String? for channel/privateChannel,
+  // Type depends on state.outputType: String? for group/privateGroup,
   // int? for dm, ignored for feed.
   final Object? value;
 }

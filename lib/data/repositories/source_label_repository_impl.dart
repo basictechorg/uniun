@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/domain/repositories/source_label_repository.dart';
 
 @Injectable(as: SourceLabelRepository)
@@ -11,45 +11,45 @@ class SourceLabelRepositoryImpl extends SourceLabelRepository {
 
   @override
   Future<Map<String, String>> resolveMany(
-    Iterable<({String eventId, String? channelId, String? groupId})> items,
+    Iterable<({String eventId, String? groupId, String? privateGroupId})> items,
   ) async {
     final list = items.toList(growable: false);
-    final channelIds = <String>{};
-    final groupIds = <String>{};
+    final publicIds = <String>{};
+    final privateIds = <String>{};
     for (final i in list) {
-      if (i.channelId != null) channelIds.add(i.channelId!);
-      if (i.groupId != null) groupIds.add(i.groupId!);
+      if (i.groupId != null) publicIds.add(i.groupId!);
+      if (i.privateGroupId != null) privateIds.add(i.privateGroupId!);
     }
 
-    final channelNames = <String, String>{};
-    if (channelIds.isNotEmpty) {
-      final rows = await isar.channelModels
+    final publicNames = <String, String>{};
+    if (publicIds.isNotEmpty) {
+      final rows = await isar.groupModels
           .filter()
-          .anyOf(channelIds, (q, id) => q.channelIdEqualTo(id))
+          .anyOf(publicIds, (q, id) => q.groupIdEqualTo(id))
           .findAll();
       for (final c in rows) {
-        channelNames[c.channelId] = c.name;
+        publicNames[c.groupId] = c.name;
       }
     }
 
-    final groupNames = <String, String>{};
-    if (groupIds.isNotEmpty) {
-      final rows = await isar.privateChannelModels
+    final privateNames = <String, String>{};
+    if (privateIds.isNotEmpty) {
+      final rows = await isar.privateGroupModels
           .filter()
-          .anyOf(groupIds, (q, id) => q.groupIdEqualTo(id))
+          .anyOf(privateIds, (q, id) => q.groupIdEqualTo(id))
           .findAll();
       for (final g in rows) {
-        groupNames[g.groupId] = g.name;
+        privateNames[g.groupId] = g.name;
       }
     }
 
     final out = <String, String>{};
     for (final item in list) {
-      if (item.channelId != null) {
-        final name = channelNames[item.channelId] ?? '';
-        out[item.eventId] = name.isEmpty ? 'channel' : name;
-      } else if (item.groupId != null) {
-        final name = groupNames[item.groupId] ?? '';
+      if (item.groupId != null) {
+        final name = publicNames[item.groupId] ?? '';
+        out[item.eventId] = name.isEmpty ? 'group' : name;
+      } else if (item.privateGroupId != null) {
+        final name = privateNames[item.privateGroupId] ?? '';
         out[item.eventId] = name.isEmpty ? 'private' : name;
       }
     }

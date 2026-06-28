@@ -38,8 +38,8 @@ class SavedNotesCubit extends Cubit<SavedNotesState> {
       for (final n in notes)
         (
           eventId: n.eventId,
-          channelId: n.sourceChannelId,
-          groupId: n.sourcePrivateGroupId,
+          groupId: n.sourceGroupId,
+          privateGroupId: n.sourcePrivateGroupId,
         ),
     ]);
   }

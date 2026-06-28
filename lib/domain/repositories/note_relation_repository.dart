@@ -1,7 +1,7 @@
 /// Reference-edge repository.
 ///
 /// All reply / reference counts and edge writes go through this. Other repos
-/// (notes, channel messages, saved notes) call into this one instead of
+/// (notes, group messages, saved notes) call into this one instead of
 /// touching the `NoteRelationModel` collection directly.
 abstract class NoteRelationRepository {
   /// Incoming reply count — edges pointing TO [parentId].

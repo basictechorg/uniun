@@ -16,8 +16,8 @@ final class DrawerLoaded extends DrawerState {
     required this.pubkeyHex,
     this.avatarUrl,
     required this.followedNotes,
-    required this.channels,
-    required this.privateChannels,
+    required this.groups,
+    required this.privateGroups,
     required this.dms,
     required this.followedUsers,
     required this.myRelays,
@@ -31,8 +31,8 @@ final class DrawerLoaded extends DrawerState {
   // is captured in that note's reference feed (distinct from saved notes,
   // which exist only for AI/knowledge graph context).
   final List<DrawerFollowedNoteItem> followedNotes;
-  final List<DrawerChannelItem> channels;
-  final List<DrawerPrivateChannelItem> privateChannels;
+  final List<DrawerGroupItem> groups;
+  final List<DrawerPrivateGroupItem> privateGroups;
   final List<DrawerDmItem> dms;
   final List<DrawerFollowedUserItem> followedUsers;
   final List<String> myRelays;
@@ -50,8 +50,8 @@ class DrawerFollowedUserItem {
   final String? avatarUrl;
 }
 
-class DrawerPrivateChannelItem {
-  const DrawerPrivateChannelItem({
+class DrawerPrivateGroupItem {
+  const DrawerPrivateGroupItem({
     required this.id,
     required this.name,
     this.hasUnread = false,
@@ -62,8 +62,8 @@ class DrawerPrivateChannelItem {
   final bool hasUnread;
 }
 
-class DrawerChannelItem {
-  const DrawerChannelItem({
+class DrawerGroupItem {
+  const DrawerGroupItem({
     required this.id,
     required this.name,
     this.hasUnread = false,

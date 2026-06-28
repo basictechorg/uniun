@@ -1,4 +1,4 @@
-/// Parent event IDs a note or channel message references for reply-count
+/// Parent event IDs a note or group message references for reply-count
 /// edges: the direct reply target plus pure mentions, excluding the thread
 /// root marker so nested thread replies don't inflate the root's count.
 ///

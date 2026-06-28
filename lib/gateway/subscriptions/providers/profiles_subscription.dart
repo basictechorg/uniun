@@ -7,8 +7,8 @@ import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 /// changes.
 ///
 /// Profiles are low-volume metadata that must resolve regardless of age — a
-/// profile published long ago must still arrive. Like the kind 40/41 channel
-/// metadata in [ChannelsSubscription], it therefore opts out of NIP-77 and
+/// profile published long ago must still arrive. Like the kind 40/41 group
+/// metadata in [GroupsSubscription], it therefore opts out of NIP-77 and
 /// rides a plain uncapped REQ: ProfileModel carries no source event id, so we
 /// can't seed negentropy with what we hold, and a `since=now` live-tail would
 /// silently miss every historical profile. The open-ended REQ backfills history

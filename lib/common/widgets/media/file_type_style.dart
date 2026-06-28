@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
 /// Visual identity for a non-image attachment. Single source of truth shared
-/// by the feed/DM/channel attachment card and the media gallery tile so
+/// by the feed/DM/group attachment card and the media gallery tile so
 /// "PDF", "MP4", "DOCX" look identical wherever they appear.
 class FileTypeStyle {
   const FileTypeStyle({

@@ -16,9 +16,9 @@ part 'note_model.g.dart';
 /// Unified note collection. Every user-visible message lives here, discriminated
 /// by Nostr [kind] plus nullable container fields:
 ///   - [kind] == 1     → feed note (no container)
-///   - [kind] == 42    → public channel message ([channelId] set)
+///   - [kind] == 42    → public group message ([groupId] set)
 ///   - [kind] == 14/15 → direct message ([conversationId] set)
-///   - [kind] == 9023  → private channel message ([groupId] set)
+///   - [kind] == 9023  → private group message ([privateGroupId] set)
 /// See [note_kinds.dart] for the kind constants.
 @Collection(ignore: {'copyWith'})
 @Name('Note')
@@ -37,17 +37,19 @@ class NoteModel {
   String? subject;
 
   /// Nostr event kind — the discriminator for the unified collection.
-  /// 1 = feed note, 42 = channel message, 14/15 = DM, 9023 = private channel.
+  /// 1 = feed note, 42 = group message, 14/15 = DM, 9023 = private group.
   @Index()
   late int kind;
 
-  /// NIP-28 channel root (kind 40 event id). Non-null only for [kind] == 42.
-  @Index()
-  String? channelId;
-
-  /// NIP-29 group id (`<host>'<group-id>`). Non-null only for [kind] == 9023.
+  /// NIP-28 group root (kind 40 event id). Non-null only for [kind] == 42.
+  @Name('channelId') // stored name preserved across channel→group rename
   @Index()
   String? groupId;
+
+  /// NIP-29 group id (`<host>'<group-id>`). Non-null only for [kind] == 9023.
+  @Name('groupId') // stored name preserved (was NoteModel.groupId)
+  @Index()
+  String? privateGroupId;
 
   /// DM conversation FK (DmConversationModel.id). Non-null only for DMs.
   @Index()
@@ -98,8 +100,8 @@ class NoteModel {
     required this.content,
     this.subject,
     this.kind = kNoteKind,
-    this.channelId,
     this.groupId,
+    this.privateGroupId,
     this.conversationId,
     required this.type,
     required this.eTagRefs,
@@ -212,8 +214,8 @@ extension NoteModelExtension on NoteModel {
         tTags: tTags,
         created: created,
         conversationId: conversationId,
-        sourceChannelId: channelId,
-        sourcePrivateGroupId: groupId,
+        sourceGroupId: groupId,
+        sourcePrivateGroupId: privateGroupId,
         embeddedNoteJson: embeddedNoteJson,
         quotedNote: resolveQuote ? _buildQuotedNote() : null,
         attachments: [for (final a in attachments) a.toEntity()],

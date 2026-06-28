@@ -19,18 +19,18 @@ import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/gateway/orchestrator/relay_registry.dart';
 import 'package:uniun/gateway/orchestrator/relay_status_reporter.dart';
 import 'package:uniun/gateway/outbound/event_router.dart';
-import 'package:uniun/gateway/outbound/routing/channel_routing_strategy.dart';
+import 'package:uniun/gateway/outbound/routing/group_routing_strategy.dart';
 import 'package:uniun/gateway/outbound/routing/dm_routing_strategy.dart';
-import 'package:uniun/gateway/outbound/routing/private_channel_routing_strategy.dart';
+import 'package:uniun/gateway/outbound/routing/private_group_routing_strategy.dart';
 import 'package:uniun/gateway/outbound/temp_session_coordinator.dart';
 import 'package:uniun/gateway/subscriptions/nip77_synchronizer.dart';
 import 'package:uniun/gateway/subscriptions/sync_window.dart';
-import 'package:uniun/gateway/subscriptions/providers/channels_subscription.dart';
+import 'package:uniun/gateway/subscriptions/providers/groups_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/dms_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/drafts_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/feed_notes_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/followed_notes_subscription.dart';
-import 'package:uniun/gateway/subscriptions/providers/private_channels_subscription.dart';
+import 'package:uniun/gateway/subscriptions/providers/private_groups_subscription.dart';
 import 'package:uniun/gateway/subscriptions/providers/profiles_subscription.dart';
 import 'package:uniun/gateway/subscriptions/subscription_provider.dart';
 import 'package:uniun/gateway/watchers/isar_watcher_hub.dart';
@@ -92,9 +92,9 @@ class GatewayOrchestrator {
     _router = EventRouter(
       isar: _isar,
       strategies: [
-        ChannelRoutingStrategy(),
+        GroupRoutingStrategy(),
         DmRoutingStrategy(),
-        PrivateChannelRoutingStrategy(),
+        PrivateGroupRoutingStrategy(),
       ],
     );
 
@@ -164,9 +164,9 @@ class GatewayOrchestrator {
             _registry.resubscribeAll('followed_note_refs'),
         onFollowedUsersChanged: () => _registry.resubscribeAll('feed_notes'),
         onMissingProfilesChanged: () => _registry.resubscribeAll('profiles'),
-        onChannelsChangedAdditive: () => _registry.resubscribeAll('channels'),
-        onPrivateChannelsChangedAdditive: () =>
-            _registry.resubscribeAll('private_channels'),
+        onGroupsChangedAdditive: () => _registry.resubscribeAll('groups'),
+        onPrivateGroupsChangedAdditive: () =>
+            _registry.resubscribeAll('private_groups'),
       ),
     );
     await _watcherHub.start();
@@ -198,8 +198,8 @@ class GatewayOrchestrator {
         ProfilesSubscription(),
         FollowedNotesSubscription(),
         FeedNotesSubscription(),
-        ChannelsSubscription(),
-        PrivateChannelsSubscription(),
+        GroupsSubscription(),
+        PrivateGroupsSubscription(),
       ];
 
   Future<void> _onQueueChanged() async {

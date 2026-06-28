@@ -36,8 +36,8 @@ class GanaModel {
   GanaInputType? inputType;
 
   /// Type-dependent reference id. See [GanaInputType] for what each holds.
-  /// - channel: hex channel id (kind-40 event id)
-  /// - privateChannel: groupId
+  /// - group: hex group id (kind-40 event id)
+  /// - privateGroup: privateGroupId
   /// - dm: stringified `DmConversationModel.id` (Isar Id)
   /// - user: pubkey hex
   /// - followedNote: event id of the followed note
@@ -48,11 +48,13 @@ class GanaModel {
   @Enumerated(EnumType.name)
   late GanaOutputType outputType;
 
-  /// Public channel id when [outputType] == channel.
-  String? outputChannelId;
-
-  /// Group id when [outputType] == privateChannel.
+  /// Public group id when [outputType] == group.
+  @Name('outputChannelId') // stored name preserved across channel→group rename
   String? outputGroupId;
+
+  /// Group id when [outputType] == privateGroup.
+  @Name('outputGroupId') // stored name preserved (was GanaModel.outputGroupId)
+  String? outputPrivateGroupId;
 
   /// `DmConversationModel.id` when [outputType] == dm. Plain `int?`, not
   /// `Id?` — `Id` is reserved for the primary key of THIS collection.
@@ -124,8 +126,8 @@ extension GanaModelExtension on GanaModel {
         inputType: inputType,
         inputRefId: inputRefId,
         outputType: outputType,
-        outputChannelId: outputChannelId,
         outputGroupId: outputGroupId,
+        outputPrivateGroupId: outputPrivateGroupId,
         outputDmConversationId: outputDmConversationId,
         desiredModelId: desiredModelId,
         triggerReactive: triggerReactive,

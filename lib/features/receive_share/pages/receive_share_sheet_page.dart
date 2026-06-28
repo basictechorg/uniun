@@ -18,7 +18,7 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// Landing surface for content shared INTO UNIUN from another app.
 ///
 /// Pre-fills the composer with the shared text/media, shows the drawer-style
-/// destination list (Feed / Public channels / Private channels / DMs), and
+/// destination list (Feed / Public groups / Private groups / DMs), and
 /// offers "Save to draft". Reuses the outbound share widgets so the picker
 /// looks identical; publishing goes through [ReceiveShareBloc] (Brahma path).
 class ReceiveShareSheetPage extends StatelessWidget {
@@ -239,36 +239,36 @@ class _DestinationList extends StatelessWidget {
           subtitle: l10n.shareDestFeedSubtitle,
           onTap: () => onPick(const ShareDestination.feed()),
         ),
-        if (state.publicChannels.isNotEmpty)
+        if (state.publicGroups.isNotEmpty)
           CollapsibleSection(
-            label: l10n.shareSectionPublicChannels,
+            label: l10n.shareSectionPublicGroups,
             child: Column(
-              children: state.publicChannels
+              children: state.publicGroups
                   .map(
                     (c) => DestinationTile(
                       icon: Icons.tag_rounded,
                       title: c.name,
                       subtitle: c.about.isEmpty ? null : c.about,
                       onTap: () => onPick(
-                        ShareDestination.publicChannel(channelId: c.channelId),
+                        ShareDestination.publicGroup(groupId: c.groupId),
                       ),
                     ),
                   )
                   .toList(),
             ),
           ),
-        if (state.privateChannels.isNotEmpty)
+        if (state.privateGroups.isNotEmpty)
           CollapsibleSection(
-            label: l10n.shareSectionPrivateChannels,
+            label: l10n.shareSectionPrivateGroups,
             child: Column(
-              children: state.privateChannels
+              children: state.privateGroups
                   .map(
                     (g) => DestinationTile(
                       icon: Icons.lock_outline,
                       title: g.name,
                       subtitle: g.description.isEmpty ? null : g.description,
                       onTap: () => onPick(
-                        ShareDestination.privateChannel(groupId: g.groupId),
+                        ShareDestination.privateGroup(groupId: g.groupId),
                       ),
                     ),
                   )

@@ -14,7 +14,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DraftEntity {
 
- String get draftId; String get content; String? get rootEventId; String? get replyToEventId; List<String> get eTagRefs; List<String> get pTagRefs; List<String> get tTags; DateTime get createdAt; DateTime get updatedAt;/// Media attached to the draft. Staged **locally only** (bytes live in the
+ String get draftId; String get content; String? get rootEventId; String? get replyToEventId; List<String> get eTagRefs; List<String> get pTagRefs; List<String> get tTags; DateTime get createdAt; DateTime get updatedAt;/// References to OTHER drafts (by `draftId` UUID). Held separately from
+/// [eTagRefs] (which only carries real event ids). Synced cross-device via
+/// NIP-37 inner-event `["d-ref", uuid]` tags so the same UUIDs resolve on
+/// every device. Dropped or rewritten to event ids at publish time.
+ List<String> get draftRefIds;/// Non-null once this draft has been published. The row becomes a brief
+/// tombstone carrying the UUID→event-id mapping so referencing drafts
+/// (on this and other devices) can resolve their [draftRefIds].
+ String? get publishedAsEventId;/// Media attached to the draft. Staged **locally only** (bytes live in the
 /// shared media cache, keyed by sha256) — NOT uploaded to Blossom while a
 /// draft. `localPath` is patched in from the cache on read so the draft
 /// renders like any note; `serverUrls` stays empty until the draft is
@@ -30,16 +37,16 @@ $DraftEntityCopyWith<DraftEntity> get copyWith => _$DraftEntityCopyWithImpl<Draf
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DraftEntity&&(identical(other.draftId, draftId) || other.draftId == draftId)&&(identical(other.content, content) || other.content == content)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other.eTagRefs, eTagRefs)&&const DeepCollectionEquality().equals(other.pTagRefs, pTagRefs)&&const DeepCollectionEquality().equals(other.tTags, tTags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&const DeepCollectionEquality().equals(other.attachments, attachments));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DraftEntity&&(identical(other.draftId, draftId) || other.draftId == draftId)&&(identical(other.content, content) || other.content == content)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other.eTagRefs, eTagRefs)&&const DeepCollectionEquality().equals(other.pTagRefs, pTagRefs)&&const DeepCollectionEquality().equals(other.tTags, tTags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&const DeepCollectionEquality().equals(other.draftRefIds, draftRefIds)&&(identical(other.publishedAsEventId, publishedAsEventId) || other.publishedAsEventId == publishedAsEventId)&&const DeepCollectionEquality().equals(other.attachments, attachments));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,draftId,content,rootEventId,replyToEventId,const DeepCollectionEquality().hash(eTagRefs),const DeepCollectionEquality().hash(pTagRefs),const DeepCollectionEquality().hash(tTags),createdAt,updatedAt,const DeepCollectionEquality().hash(attachments));
+int get hashCode => Object.hash(runtimeType,draftId,content,rootEventId,replyToEventId,const DeepCollectionEquality().hash(eTagRefs),const DeepCollectionEquality().hash(pTagRefs),const DeepCollectionEquality().hash(tTags),createdAt,updatedAt,const DeepCollectionEquality().hash(draftRefIds),publishedAsEventId,const DeepCollectionEquality().hash(attachments));
 
 @override
 String toString() {
-  return 'DraftEntity(draftId: $draftId, content: $content, rootEventId: $rootEventId, replyToEventId: $replyToEventId, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, createdAt: $createdAt, updatedAt: $updatedAt, attachments: $attachments)';
+  return 'DraftEntity(draftId: $draftId, content: $content, rootEventId: $rootEventId, replyToEventId: $replyToEventId, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, createdAt: $createdAt, updatedAt: $updatedAt, draftRefIds: $draftRefIds, publishedAsEventId: $publishedAsEventId, attachments: $attachments)';
 }
 
 
@@ -50,7 +57,7 @@ abstract mixin class $DraftEntityCopyWith<$Res>  {
   factory $DraftEntityCopyWith(DraftEntity value, $Res Function(DraftEntity) _then) = _$DraftEntityCopyWithImpl;
 @useResult
 $Res call({
- String draftId, String content, String? rootEventId, String? replyToEventId, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime createdAt, DateTime updatedAt, List<MediaBlobEntity> attachments
+ String draftId, String content, String? rootEventId, String? replyToEventId, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime createdAt, DateTime updatedAt, List<String> draftRefIds, String? publishedAsEventId, List<MediaBlobEntity> attachments
 });
 
 
@@ -67,7 +74,7 @@ class _$DraftEntityCopyWithImpl<$Res>
 
 /// Create a copy of DraftEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? draftId = null,Object? content = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? createdAt = null,Object? updatedAt = null,Object? attachments = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? draftId = null,Object? content = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? createdAt = null,Object? updatedAt = null,Object? draftRefIds = null,Object? publishedAsEventId = freezed,Object? attachments = null,}) {
   return _then(_self.copyWith(
 draftId: null == draftId ? _self.draftId : draftId // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -78,7 +85,9 @@ as List<String>,pTagRefs: null == pTagRefs ? _self.pTagRefs : pTagRefs // ignore
 as List<String>,tTags: null == tTags ? _self.tTags : tTags // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,attachments: null == attachments ? _self.attachments : attachments // ignore: cast_nullable_to_non_nullable
+as DateTime,draftRefIds: null == draftRefIds ? _self.draftRefIds : draftRefIds // ignore: cast_nullable_to_non_nullable
+as List<String>,publishedAsEventId: freezed == publishedAsEventId ? _self.publishedAsEventId : publishedAsEventId // ignore: cast_nullable_to_non_nullable
+as String?,attachments: null == attachments ? _self.attachments : attachments // ignore: cast_nullable_to_non_nullable
 as List<MediaBlobEntity>,
   ));
 }
@@ -164,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<MediaBlobEntity> attachments)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<String> draftRefIds,  String? publishedAsEventId,  List<MediaBlobEntity> attachments)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DraftEntity() when $default != null:
-return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.attachments);case _:
+return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.draftRefIds,_that.publishedAsEventId,_that.attachments);case _:
   return orElse();
 
 }
@@ -185,10 +194,10 @@ return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEvent
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<MediaBlobEntity> attachments)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<String> draftRefIds,  String? publishedAsEventId,  List<MediaBlobEntity> attachments)  $default,) {final _that = this;
 switch (_that) {
 case _DraftEntity():
-return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.attachments);case _:
+return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.draftRefIds,_that.publishedAsEventId,_that.attachments);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +214,10 @@ return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEvent
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<MediaBlobEntity> attachments)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String draftId,  String content,  String? rootEventId,  String? replyToEventId,  List<String> eTagRefs,  List<String> pTagRefs,  List<String> tTags,  DateTime createdAt,  DateTime updatedAt,  List<String> draftRefIds,  String? publishedAsEventId,  List<MediaBlobEntity> attachments)?  $default,) {final _that = this;
 switch (_that) {
 case _DraftEntity() when $default != null:
-return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.attachments);case _:
+return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEventId,_that.eTagRefs,_that.pTagRefs,_that.tTags,_that.createdAt,_that.updatedAt,_that.draftRefIds,_that.publishedAsEventId,_that.attachments);case _:
   return null;
 
 }
@@ -220,7 +229,7 @@ return $default(_that.draftId,_that.content,_that.rootEventId,_that.replyToEvent
 
 
 class _DraftEntity implements DraftEntity {
-  const _DraftEntity({required this.draftId, required this.content, this.rootEventId, this.replyToEventId, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.createdAt, required this.updatedAt, final  List<MediaBlobEntity> attachments = const <MediaBlobEntity>[]}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags,_attachments = attachments;
+  const _DraftEntity({required this.draftId, required this.content, this.rootEventId, this.replyToEventId, required final  List<String> eTagRefs, required final  List<String> pTagRefs, required final  List<String> tTags, required this.createdAt, required this.updatedAt, final  List<String> draftRefIds = const <String>[], this.publishedAsEventId, final  List<MediaBlobEntity> attachments = const <MediaBlobEntity>[]}): _eTagRefs = eTagRefs,_pTagRefs = pTagRefs,_tTags = tTags,_draftRefIds = draftRefIds,_attachments = attachments;
   
 
 @override final  String draftId;
@@ -250,6 +259,25 @@ class _DraftEntity implements DraftEntity {
 
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
+/// References to OTHER drafts (by `draftId` UUID). Held separately from
+/// [eTagRefs] (which only carries real event ids). Synced cross-device via
+/// NIP-37 inner-event `["d-ref", uuid]` tags so the same UUIDs resolve on
+/// every device. Dropped or rewritten to event ids at publish time.
+ final  List<String> _draftRefIds;
+/// References to OTHER drafts (by `draftId` UUID). Held separately from
+/// [eTagRefs] (which only carries real event ids). Synced cross-device via
+/// NIP-37 inner-event `["d-ref", uuid]` tags so the same UUIDs resolve on
+/// every device. Dropped or rewritten to event ids at publish time.
+@override@JsonKey() List<String> get draftRefIds {
+  if (_draftRefIds is EqualUnmodifiableListView) return _draftRefIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_draftRefIds);
+}
+
+/// Non-null once this draft has been published. The row becomes a brief
+/// tombstone carrying the UUID→event-id mapping so referencing drafts
+/// (on this and other devices) can resolve their [draftRefIds].
+@override final  String? publishedAsEventId;
 /// Media attached to the draft. Staged **locally only** (bytes live in the
 /// shared media cache, keyed by sha256) — NOT uploaded to Blossom while a
 /// draft. `localPath` is patched in from the cache on read so the draft
@@ -278,16 +306,16 @@ _$DraftEntityCopyWith<_DraftEntity> get copyWith => __$DraftEntityCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DraftEntity&&(identical(other.draftId, draftId) || other.draftId == draftId)&&(identical(other.content, content) || other.content == content)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other._eTagRefs, _eTagRefs)&&const DeepCollectionEquality().equals(other._pTagRefs, _pTagRefs)&&const DeepCollectionEquality().equals(other._tTags, _tTags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&const DeepCollectionEquality().equals(other._attachments, _attachments));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DraftEntity&&(identical(other.draftId, draftId) || other.draftId == draftId)&&(identical(other.content, content) || other.content == content)&&(identical(other.rootEventId, rootEventId) || other.rootEventId == rootEventId)&&(identical(other.replyToEventId, replyToEventId) || other.replyToEventId == replyToEventId)&&const DeepCollectionEquality().equals(other._eTagRefs, _eTagRefs)&&const DeepCollectionEquality().equals(other._pTagRefs, _pTagRefs)&&const DeepCollectionEquality().equals(other._tTags, _tTags)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&const DeepCollectionEquality().equals(other._draftRefIds, _draftRefIds)&&(identical(other.publishedAsEventId, publishedAsEventId) || other.publishedAsEventId == publishedAsEventId)&&const DeepCollectionEquality().equals(other._attachments, _attachments));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,draftId,content,rootEventId,replyToEventId,const DeepCollectionEquality().hash(_eTagRefs),const DeepCollectionEquality().hash(_pTagRefs),const DeepCollectionEquality().hash(_tTags),createdAt,updatedAt,const DeepCollectionEquality().hash(_attachments));
+int get hashCode => Object.hash(runtimeType,draftId,content,rootEventId,replyToEventId,const DeepCollectionEquality().hash(_eTagRefs),const DeepCollectionEquality().hash(_pTagRefs),const DeepCollectionEquality().hash(_tTags),createdAt,updatedAt,const DeepCollectionEquality().hash(_draftRefIds),publishedAsEventId,const DeepCollectionEquality().hash(_attachments));
 
 @override
 String toString() {
-  return 'DraftEntity(draftId: $draftId, content: $content, rootEventId: $rootEventId, replyToEventId: $replyToEventId, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, createdAt: $createdAt, updatedAt: $updatedAt, attachments: $attachments)';
+  return 'DraftEntity(draftId: $draftId, content: $content, rootEventId: $rootEventId, replyToEventId: $replyToEventId, eTagRefs: $eTagRefs, pTagRefs: $pTagRefs, tTags: $tTags, createdAt: $createdAt, updatedAt: $updatedAt, draftRefIds: $draftRefIds, publishedAsEventId: $publishedAsEventId, attachments: $attachments)';
 }
 
 
@@ -298,7 +326,7 @@ abstract mixin class _$DraftEntityCopyWith<$Res> implements $DraftEntityCopyWith
   factory _$DraftEntityCopyWith(_DraftEntity value, $Res Function(_DraftEntity) _then) = __$DraftEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String draftId, String content, String? rootEventId, String? replyToEventId, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime createdAt, DateTime updatedAt, List<MediaBlobEntity> attachments
+ String draftId, String content, String? rootEventId, String? replyToEventId, List<String> eTagRefs, List<String> pTagRefs, List<String> tTags, DateTime createdAt, DateTime updatedAt, List<String> draftRefIds, String? publishedAsEventId, List<MediaBlobEntity> attachments
 });
 
 
@@ -315,7 +343,7 @@ class __$DraftEntityCopyWithImpl<$Res>
 
 /// Create a copy of DraftEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? draftId = null,Object? content = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? createdAt = null,Object? updatedAt = null,Object? attachments = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? draftId = null,Object? content = null,Object? rootEventId = freezed,Object? replyToEventId = freezed,Object? eTagRefs = null,Object? pTagRefs = null,Object? tTags = null,Object? createdAt = null,Object? updatedAt = null,Object? draftRefIds = null,Object? publishedAsEventId = freezed,Object? attachments = null,}) {
   return _then(_DraftEntity(
 draftId: null == draftId ? _self.draftId : draftId // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
@@ -326,7 +354,9 @@ as List<String>,pTagRefs: null == pTagRefs ? _self._pTagRefs : pTagRefs // ignor
 as List<String>,tTags: null == tTags ? _self._tTags : tTags // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,attachments: null == attachments ? _self._attachments : attachments // ignore: cast_nullable_to_non_nullable
+as DateTime,draftRefIds: null == draftRefIds ? _self._draftRefIds : draftRefIds // ignore: cast_nullable_to_non_nullable
+as List<String>,publishedAsEventId: freezed == publishedAsEventId ? _self.publishedAsEventId : publishedAsEventId // ignore: cast_nullable_to_non_nullable
+as String?,attachments: null == attachments ? _self._attachments : attachments // ignore: cast_nullable_to_non_nullable
 as List<MediaBlobEntity>,
   ));
 }

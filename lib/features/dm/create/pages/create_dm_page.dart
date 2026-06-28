@@ -7,6 +7,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/common/widgets/advanced_section.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
@@ -187,22 +188,24 @@ class _CreateDmViewState extends State<_CreateDmView> {
           const SizedBox(height: 24),
 
           // ── Relays ────────────────────────────────────────────────────────
-          SettingsSectionLabel(l10n.identityRelays, icon: Icons.dns_rounded),
-          const SizedBox(height: 8),
-          Text(
-            l10n.createDmRelaysNote,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.5,
-              color: AppColors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 12),
-          RelaySelectorField(
-            selected: _selectedRelays,
-            onChanged: (next) => setState(() => _selectedRelays
-              ..clear()
-              ..addAll(next)),
+          AdvancedSection(
+            children: [
+              Text(
+                l10n.createDmRelaysNote,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 12),
+              RelaySelectorField(
+                selected: _selectedRelays,
+                onChanged: (next) => setState(() => _selectedRelays
+                  ..clear()
+                  ..addAll(next)),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 

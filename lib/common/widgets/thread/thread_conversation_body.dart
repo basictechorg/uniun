@@ -9,7 +9,7 @@ import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
 import 'package:uniun/features/thread/widgets/thread_section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Shared thread layout used by the feed, channel, private-channel and DM
+/// Shared thread layout used by the feed, group, private-group and DM
 /// thread views. Pure UI: parent context → mentioned refs → root card →
 /// replies list (each opening its own nested thread).
 class ThreadConversationBody extends StatelessWidget {

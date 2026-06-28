@@ -66,7 +66,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerSavedNotes => 'Saved Notes';
 
   @override
-  String get drawerChannels => 'Channels';
+  String get drawerGroups => 'Groups';
 
   @override
   String get drawerDirectMessages => 'Direct Messages';
@@ -81,13 +81,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerSettings => 'Settings';
 
   @override
-  String get drawerFollowingNotes => 'FOLLOWING NOTES';
+  String get drawerFollowingNotes => 'NOTE WATCH';
 
   @override
-  String get drawerNoFollowedNotes => 'No followed notes yet';
+  String get drawerNoFollowedNotes => 'Not watching any notes yet';
 
   @override
-  String get drawerNoChannels => 'No channels yet';
+  String get drawerNoGroups => 'No groups yet';
 
   @override
   String get drawerMyQrCode => 'My QR code';
@@ -105,100 +105,103 @@ class AppLocalizationsEn extends AppLocalizations {
   String get drawerSearchKindUser => 'Following';
 
   @override
-  String get joinChannelTitle => 'Join Channel';
+  String get joinGroupTitle => 'Join Group';
 
   @override
-  String get joinChannelHeading => 'Join Existing Channel';
+  String get joinGroupHeading => 'Join Existing Group';
 
   @override
-  String get joinChannelAction => 'Join Channel';
+  String get joinGroupAction => 'Join Group';
 
   @override
-  String get joinChannelIdLabel => 'Channel ID (Hex)';
+  String get joinGroupIdLabel => 'Group ID (Hex)';
 
   @override
-  String get joinChannelRelaysTitle => 'Channel Relays';
+  String get joinGroupRelaysTitle => 'Group Relays';
 
   @override
-  String get joinChannelRelaysBody =>
-      'Select the relays this channel operates on to start syncing.';
+  String get joinGroupRelaysBody =>
+      'Select the relays this group operates on to start syncing.';
 
   @override
-  String get joinChannelSelectRelays => 'Select Relays';
+  String get joinGroupSelectRelays => 'Select Relays';
 
   @override
-  String joinChannelSelectedRelays(int count) {
+  String joinGroupSelectedRelays(int count) {
     return '$count Relays Selected';
   }
 
   @override
-  String get joinChannelAddRelay => 'Add Relay';
+  String get joinGroupAddRelay => 'Add Relay';
 
   @override
-  String get joinChannelAddRelayAction => 'Add';
+  String get joinGroupAddRelayAction => 'Add';
 
   @override
-  String get joinChannelRelayHint => 'wss://relay.example.com';
+  String get joinGroupRelayHint => 'wss://relay.example.com';
 
   @override
-  String get joinChannelByQr => 'Join by QR';
+  String get joinGroupByQr => 'Join by QR';
 
   @override
-  String get joinChannelScanCardTitle => 'Scan a channel QR';
+  String get joinGroupScanCardTitle => 'Scan a group QR';
 
   @override
-  String get joinChannelScanCardSubtitle =>
-      'Point your camera at a UNIUN channel code';
+  String get joinGroupScanCardSubtitle =>
+      'Point your camera at a UNIUN group code';
 
   @override
-  String get joinChannelOr => 'or';
+  String get joinGroupOr => 'or';
 
   @override
-  String get joinChannelIdHint => 'Paste channel ID';
+  String get joinGroupIdHint => 'Paste group ID';
 
   @override
-  String get joinChannelQrTitle => 'Scan Channel QR';
+  String get joinGroupQrTitle => 'Scan Group QR';
 
   @override
-  String get joinChannelQrHint =>
-      'Scan a QR code containing a channel id and relay list.';
+  String get joinGroupQrHint =>
+      'Scan a QR code containing a group id and relay list.';
 
   @override
-  String get joinChannelQrFromGallery => 'Pick QR from gallery';
+  String get joinGroupQrFromGallery => 'Pick QR from gallery';
 
   @override
-  String get joinChannelQrGalleryError =>
+  String get joinGroupQrGalleryError =>
       'No valid QR code found in the selected image.';
 
   @override
-  String get joinChannelSuccess => 'Channel joined successfully.';
+  String get joinGroupSuccess => 'Group joined successfully.';
 
   @override
-  String get joinChannelErrorInvalidId =>
-      'Enter a valid 64-character channel id.';
+  String get joinGroupErrorInvalidId =>
+      'That doesn\'t look like a valid group ID. Check it and try again.';
 
   @override
-  String get joinChannelErrorNoRelay => 'Please select at least one relay.';
+  String get joinGroupErrorNoRelay => 'Please select at least one relay.';
 
   @override
-  String get joinChannelErrorRelaySaveFailed => 'Failed to save relay locally.';
+  String get joinGroupErrorRelaySaveFailed => 'Failed to save relay locally.';
 
   @override
-  String get joinChannelErrorSaveFailed =>
-      'Couldn\'t join the channel. Please try again.';
+  String get joinGroupErrorSaveFailed =>
+      'Couldn\'t join the group. Please try again.';
 
   @override
-  String get channelMessageHint => 'Message channel…';
+  String get groupMessageHint => 'Message group…';
 
   @override
   String get chatMessageHint => 'Message…';
 
   @override
-  String get channelShareQrTitle => 'Share Channel QR';
+  String get dmEncryptedNotice => 'Messages are end-to-end encrypted';
 
   @override
-  String get channelShareQrBody =>
-      'Let someone scan this QR to join the channel with the right relays.';
+  String get groupShareQrTitle => 'Share Group QR';
+
+  @override
+  String get groupShareQrBody =>
+      'Let someone scan this QR to join the group with the right relays.';
 
   @override
   String get drawerNoMessages => 'No messages yet';
@@ -388,6 +391,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get brahmaTags => 'tags';
+
+  @override
+  String get brahmaPublishChainTitle => 'This note links to other drafts';
+
+  @override
+  String brahmaPublishChainSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unpublished drafts',
+      one: '1 unpublished draft',
+    );
+    return 'Nostr notes are immutable once published — references to $_temp0 can only be added now, not later.';
+  }
+
+  @override
+  String get brahmaPublishChain => 'Publish the whole chain';
+
+  @override
+  String brahmaPublishChainBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count linked drafts',
+      one: '1 linked draft',
+    );
+    return 'Publishes $_temp0 first, then this note with the links in its tags.';
+  }
+
+  @override
+  String get brahmaPublishOnlyThis => 'Publish only this';
+
+  @override
+  String get brahmaPublishOnlyThisSubtitle =>
+      'Drop the draft references from this note. The other drafts stay where they are.';
 
   @override
   String get vishnuNoNotes => 'No notes yet';
@@ -604,7 +642,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertsDmAlerts => 'DM Alerts';
 
   @override
-  String get alertsChannelAlerts => 'Channel Alerts';
+  String get alertsGroupAlerts => 'Group Alerts';
 
   @override
   String get storageUsage => 'Storage Usage';
@@ -937,16 +975,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howItWorksDescPeople => 'Follow people to shape your feed';
 
   @override
-  String get howItWorksTileChannels => 'Channels';
+  String get howItWorksTileGroups => 'Groups';
 
   @override
-  String get howItWorksDescChannels => 'Public rooms to gather around topics';
+  String get howItWorksDescGroups => 'Public rooms to gather around topics';
 
   @override
   String get howItWorksTilePrivate => 'Private';
 
   @override
-  String get howItWorksDescPrivate => 'Encrypted, invite-only channels';
+  String get howItWorksDescPrivate => 'Encrypted, invite-only groups';
 
   @override
   String get howItWorksTileDms => 'Direct messages';
@@ -1172,14 +1210,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyStoredLocallyBody =>
-      'UNIUN stores your notes, profile, saved items, channel messages, and settings directly on your device. This data is not sent to any server controlled by UNIUN.';
+      'UNIUN stores your notes, profile, saved items, group messages, and settings directly on your device. This data is not sent to any server controlled by UNIUN.';
 
   @override
   String get privacySharedPubliclyTitle => 'What Gets Shared Publicly';
 
   @override
   String get privacySharedPubliclyBody =>
-      'When you publish a note or send a message in a public channel, that content is broadcast to Nostr relays. Nostr is an open public protocol — once published, your notes may be visible to anyone connected to those relays. UNIUN does not control third-party relays.';
+      'When you publish a note or send a message in a public group, that content is broadcast to Nostr relays. Nostr is an open public protocol — once published, your notes may be visible to anyone connected to those relays. UNIUN does not control third-party relays.';
 
   @override
   String get privacyIdentityKeysTitle => 'Your Identity & Keys';
@@ -1248,7 +1286,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get termsPublicContentBody =>
-      'Notes and channel messages you publish are sent to Nostr relays and may be visible to anyone on the network. Do not share sensitive personal information in public notes.';
+      'Notes and group messages you publish are sent to Nostr relays and may be visible to anyone on the network. Do not share sensitive personal information in public notes.';
 
   @override
   String get termsAppMayChangeTitle => 'App May Change';
@@ -1472,122 +1510,122 @@ class AppLocalizationsEn extends AppLocalizations {
   String get graphSearchClear => 'Clear search';
 
   @override
-  String get channelEntryTitle => 'Channels';
+  String get groupEntryTitle => 'Groups';
 
   @override
-  String get channelEntrySubtitle =>
-      'Join an existing public channel using its ID or QR, or start a new one.';
+  String get groupEntrySubtitle =>
+      'Join an existing public group using its ID or QR, or start a new one.';
 
   @override
-  String get channelEntryJoin => 'Join a channel';
+  String get groupEntryJoin => 'Join a group';
 
   @override
-  String get channelEntryCreate => 'Create a channel';
+  String get groupEntryCreate => 'Create a group';
 
   @override
-  String get privateChannelEntryTitle => 'Private channels';
+  String get privateGroupEntryTitle => 'Private groups';
 
   @override
-  String get privateChannelEntrySubtitle =>
-      'Request to join an existing private channel, or create your own.';
+  String get privateGroupEntrySubtitle =>
+      'Request to join an existing private group, or create your own.';
 
   @override
-  String get privateChannelEntryJoin => 'Join a private channel';
+  String get privateGroupEntryJoin => 'Join a private group';
 
   @override
-  String get privateChannelEntryCreate => 'Create a private channel';
+  String get privateGroupEntryCreate => 'Create a private group';
 
   @override
-  String get createChannelTitle => 'Channel';
+  String get createGroupTitle => 'Group';
 
   @override
-  String get createChannelHeaderTitle => 'Create channel';
+  String get createGroupHeaderTitle => 'Create group';
 
   @override
-  String get createChannelDetailsHeading => 'Channel Details';
+  String get createGroupDetailsHeading => 'Group Details';
 
   @override
-  String get createChannelNameLabel => 'Channel name';
+  String get createGroupNameLabel => 'Group name';
 
   @override
-  String get createChannelNamePlaceholder => 'e.g. design';
+  String get createGroupNamePlaceholder => 'e.g. design';
 
   @override
-  String get createChannelAboutLabel => 'About (Theme/Rules)';
+  String get createGroupAboutLabel => 'About (Theme/Rules)';
 
   @override
-  String get createChannelDescriptionLabel => 'Description';
+  String get createGroupDescriptionLabel => 'Description';
 
   @override
-  String get createChannelAboutPlaceholder => 'What\'s this channel about?';
+  String get createGroupAboutPlaceholder => 'What\'s this group about?';
 
   @override
-  String get createChannelPictureLabel => 'Picture URL (Optional)';
+  String get createGroupPictureLabel => 'Picture URL (Optional)';
 
   @override
-  String get createChannelPermanenceNote =>
-      'The channel\'s first event becomes its permanent ID — it can never be deleted.';
+  String get createGroupPermanenceNote =>
+      'The group\'s first event becomes its permanent ID — it can never be deleted.';
 
   @override
-  String get createChannelAdvancedRelays => 'Advanced · relays';
+  String get createGroupAdvancedRelays => 'Advanced · relays';
 
   @override
-  String get createChannelPublishRelays => 'Publish Relays';
+  String get createGroupPublishRelays => 'Publish Relays';
 
   @override
-  String get createChannelPublishRelaysBody =>
-      'Select the relays this channel should be broadcasted on.';
+  String get createGroupPublishRelaysBody =>
+      'Select the relays this group should be broadcasted on.';
 
   @override
-  String get createChannelAction => 'Create channel';
+  String get createGroupAction => 'Create group';
 
   @override
-  String get createChannelSuccess => 'Channel created successfully';
+  String get createGroupSuccess => 'Group created successfully';
 
   @override
-  String get createPrivateChannelTitle => 'Create private channel';
+  String get createPrivateGroupTitle => 'Create private group';
 
   @override
-  String get createPrivateChannelEncrypted => 'Encrypted';
+  String get createPrivateGroupEncrypted => 'Encrypted';
 
   @override
-  String get createPrivateChannelNameHint => 'e.g. core team';
+  String get createPrivateGroupNameHint => 'e.g. core team';
 
   @override
-  String get createPrivateChannelDescHint => 'What\'s this channel about?';
+  String get createPrivateGroupDescHint => 'What\'s this group about?';
 
   @override
-  String get createPrivateChannelAdminNote =>
+  String get createPrivateGroupAdminNote =>
       'You\'re the admin — you control who joins.';
 
   @override
-  String get createPrivateChannelHeading => 'Start a new Private Channel';
+  String get createPrivateGroupHeading => 'Start a new Private Group';
 
   @override
-  String get createPrivateChannelDescription =>
-      'Private channels use End-to-End Encryption (E2EE) using MLS. Members must request to join, and admins must approve them.';
+  String get createPrivateGroupDescription =>
+      'Private groups are end-to-end encrypted. Members must request to join, and admins must approve them.';
 
   @override
-  String get createPrivateChannelNameLabel => 'Channel Name';
+  String get createPrivateGroupNameLabel => 'Group Name';
 
   @override
-  String get createPrivateChannelDescLabel => 'Description';
+  String get createPrivateGroupDescLabel => 'Description';
 
   @override
-  String get createPrivateChannelAction => 'Create Channel';
+  String get createPrivateGroupAction => 'Create Group';
 
   @override
-  String get createPrivateChannelSuccess =>
-      'Private channel created successfully!';
+  String get createPrivateGroupSuccess => 'Private group created successfully!';
 
   @override
   String get createDmTitle => 'New message';
 
   @override
-  String get createDmRecipientLabel => 'Recipient';
+  String get createDmRecipientLabel => 'Send to';
 
   @override
-  String get createDmRecipientHint => 'Public key — hex or npub';
+  String get createDmRecipientHint =>
+      'Paste their UNIUN code, or scan their QR';
 
   @override
   String get createDmRelaysNote =>
@@ -1595,7 +1633,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createDmEncryptedNote =>
-      'Direct messages are end-to-end encrypted (NIP-17). Only the recipient can read them.';
+      'Direct messages are end-to-end encrypted. Only the recipient can read them.';
 
   @override
   String get createDmScanQr => 'Scan QR code';
@@ -1604,51 +1642,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createDmAction => 'Start chat';
 
   @override
-  String get joinPrivateChannelTitle => 'Join private channel';
+  String get joinPrivateGroupTitle => 'Join private group';
 
   @override
-  String get joinPrivateChannelEncrypted => 'Encrypted';
+  String get joinPrivateGroupEncrypted => 'Encrypted';
 
   @override
-  String get joinPrivateChannelHeading => 'Request to Join';
+  String get joinPrivateGroupHeading => 'Request to Join';
 
   @override
-  String get joinPrivateChannelSubtitle =>
-      'Enter the Group ID to request access to a private channel.';
+  String get joinPrivateGroupSubtitle =>
+      'Enter the Group ID to request access to a private group.';
 
   @override
-  String get joinPrivateChannelGroupIdLabel => 'Group ID';
+  String get joinPrivateGroupGroupIdLabel => 'Group ID';
 
   @override
-  String get joinPrivateChannelGroupIdHint => 'Paste group ID…';
+  String get joinPrivateGroupGroupIdHint => 'Paste group ID…';
 
   @override
-  String get joinPrivateChannelGroupIdHelper =>
-      'Ask the channel admin for the group ID and relay.';
+  String get joinPrivateGroupGroupIdHelper =>
+      'Ask the group admin for the group ID.';
 
   @override
-  String get joinPrivateChannelScanQr => 'Scan QR';
+  String get joinPrivateGroupScanQr => 'Scan QR';
 
   @override
-  String get joinPrivateChannelScanCardTitle => 'Scan a private channel QR';
+  String get joinPrivateGroupScanCardTitle => 'Scan a private group QR';
 
   @override
-  String get joinPrivateChannelScanCardSubtitle =>
+  String get joinPrivateGroupScanCardSubtitle =>
       'Point your camera at a code shared by the admin';
 
   @override
-  String get joinPrivateChannelApprovalInfo =>
+  String get joinPrivateGroupApprovalInfo =>
       'Your request goes to the admin for approval before you can read messages.';
 
   @override
-  String get joinPrivateChannelAction => 'Send join request';
+  String get joinPrivateGroupAction => 'Send join request';
 
   @override
-  String get joinPrivateChannelSuccess =>
+  String get joinPrivateGroupSuccess =>
       'Join request sent! Wait for admin approval.';
 
   @override
   String get commonOr => 'or';
+
+  @override
+  String get commonAdvanced => 'Advanced';
 
   @override
   String get relaySelectorPlaceholder => 'Select Relays';
@@ -1806,10 +1847,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vishnuFeedEmptyCta => 'Scan a QR';
 
   @override
-  String get drawerPrivateChannels => 'PRIVATE CHANNELS';
+  String get drawerPrivateGroups => 'PRIVATE GROUPS';
 
   @override
-  String get drawerNoPrivateChannels => 'No private channels joined';
+  String get drawerNoPrivateGroups => 'No private groups joined';
 
   @override
   String get followActionInvalidKey => 'Invalid public key';
@@ -1842,10 +1883,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrCaptionUser => 'Scan this to add you on UNIUN.';
 
   @override
-  String get qrCaptionPublicChannel => 'Scan to join this channel.';
+  String get qrCaptionPublicGroup => 'Scan to join this group.';
 
   @override
-  String get qrCaptionPrivateChannel => 'Scan to join this private channel.';
+  String get qrCaptionPrivateGroup => 'Scan to join this private group.';
 
   @override
   String get qrCaptionDm => 'Scan to start a chat on UNIUN.';
@@ -1872,10 +1913,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareDestFeedSubtitle => 'Visible on Vishnu';
 
   @override
-  String get shareSectionPublicChannels => 'PUBLIC CHANNELS';
+  String get shareSectionPublicGroups => 'PUBLIC GROUPS';
 
   @override
-  String get shareSectionPrivateChannels => 'PRIVATE CHANNELS';
+  String get shareSectionPrivateGroups => 'PRIVATE GROUPS';
 
   @override
   String get shareSectionDms => 'DIRECT MESSAGES';
@@ -2172,7 +2213,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storageRetentionSubtitle =>
-      'Public feed and channel notes only. Saved, followed, your own, DMs, and private channels stay forever.';
+      'Public feed and group notes only. Saved, followed, your own, DMs, and private groups stay forever.';
 
   @override
   String get storageRetentionOff => 'Off';
@@ -2187,7 +2228,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncWindowSubtitle =>
-      'How far back to sync feed, channel, and group messages. Followed notes and DMs always sync in full. Applies on next app launch.';
+      'How far back to sync feed and group messages. Followed notes and DMs always sync in full. Applies on next app launch.';
 
   @override
   String syncWindowDays(int days) {
@@ -2535,7 +2576,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ganaFormBlockerInputRef =>
-      'Pick the input source — channel, DM, user, or note.';
+      'Pick the input source — group, DM, user, or note.';
 
   @override
   String get ganaFormBlockerOutputRef =>
@@ -2586,10 +2627,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormInputStandalone => 'Standalone (no input)';
 
   @override
-  String get ganaFormInputChannel => 'Public channel';
+  String get ganaFormInputGroup => 'Public group';
 
   @override
-  String get ganaFormInputPrivateChannel => 'Private channel';
+  String get ganaFormInputPrivateGroup => 'Private group';
 
   @override
   String get ganaFormInputDm => 'DM';
@@ -2613,10 +2654,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ganaFormOutputFeed => 'Main feed (Kind 1)';
 
   @override
-  String get ganaFormOutputChannel => 'Public channel';
+  String get ganaFormOutputGroup => 'Public group';
 
   @override
-  String get ganaFormOutputPrivateChannel => 'Private channel';
+  String get ganaFormOutputPrivateGroup => 'Private group';
 
   @override
   String get ganaFormOutputDm => 'DM';

@@ -23,6 +23,7 @@ class GraphNodeData {
     this.tTags = const [],
     this.pTagRefs = const [],
     this.attachments = const [],
+    this.draftRefIds = const [],
   });
 
   /// Unique identifier:
@@ -57,6 +58,12 @@ class GraphNodeData {
   /// nodes that haven't been enriched.
   final List<MediaBlobEntity> attachments;
 
+  /// Draft → draft references (UUIDs). Only set for nodes of [GraphNodeType.draft]
+  /// — they ride here instead of in [eTagRefs] because a draft UUID is not a
+  /// real Nostr event id. Drawn as graph edges by merging into [refEdges] so the
+  /// canvas shows draft↔draft links exactly the way published refs are shown.
+  final List<String> draftRefIds;
+
   /// Copy with the global edge-table counts applied. The graph shows global
   /// (not saved-scoped) counts so a node's comment count includes every note
   /// that references it — saved or not.
@@ -79,6 +86,7 @@ class GraphNodeData {
         tTags: tTags,
         pTagRefs: pTagRefs,
         attachments: attachments,
+        draftRefIds: draftRefIds,
       );
 
   /// The note ids this node draws a graph edge to: the canonical
@@ -86,9 +94,16 @@ class GraphNodeData {
   /// [replyEdgeParentIds] that backs the reference/comment counts), so a graph
   /// edge is exactly one comment↔reference pair and the thread root never
   /// becomes a hub of its descendant replies.
-  Set<String> get refEdges => replyEdgeParentIds(
-        replyToEventId: replyToEventId,
-        rootEventId: rootEventId,
-        eTagRefs: eTagRefs,
-      );
+  ///
+  /// For draft nodes, [draftRefIds] are merged in so a draft→draft reference
+  /// shows up as a graph edge between the two draft nodes (their `eventId` is
+  /// the draft UUID, which matches what the picker stored).
+  Set<String> get refEdges => {
+        ...replyEdgeParentIds(
+          replyToEventId: replyToEventId,
+          rootEventId: rootEventId,
+          eTagRefs: eTagRefs,
+        ),
+        ...draftRefIds,
+      };
 }

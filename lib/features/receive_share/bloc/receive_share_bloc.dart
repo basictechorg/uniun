@@ -9,19 +9,19 @@ import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/imeta_builder.dart';
-import 'package:uniun/domain/entities/channel/channel_entity.dart';
+import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
-import 'package:uniun/domain/entities/private_channel/private_channel_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
-import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
+import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/draft_usecases.dart';
-import 'package:uniun/domain/usecases/get_channels_usecase.dart';
+import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
 import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
@@ -36,12 +36,12 @@ part 'receive_share_bloc.freezed.dart';
 ///
 /// Mirrors [ShareSheetBloc] for destination loading + media, but publishes via
 /// the Brahma path (sign → [PublishNoteUseCase] / [PublishMediaNoteUseCase]) and
-/// dispatches channel/DM/private through the same use cases the outbound share
+/// dispatches group/DM/private through the same use cases the outbound share
 /// uses — with `embeddedNoteJson: null`, since there is no source note to embed.
 @injectable
 class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
-  final GetChannelsUseCase _getChannels;
-  final GetPrivateChannelsUsecase _getPrivateChannels;
+  final GetGroupsUseCase _getGroups;
+  final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetDmConversationsUseCase _getDms;
   final GetActiveUserUseCase _getActiveUser;
   final GetActiveUserKeysUseCase _getKeys;
@@ -49,14 +49,14 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
   final SaveLocalMediaUseCase _saveLocalMedia;
   final PublishNoteUseCase _publishNote;
   final PublishMediaNoteUseCase _publishMediaNote;
-  final CreateChannelMessageUseCase _publishChannel;
+  final CreateGroupMessageUseCase _publishGroup;
   final SendDmUseCase _publishDm;
-  final SendPrivateChannelMessageUsecase _publishPrivateChannel;
+  final SendPrivateGroupMessageUsecase _publishPrivateGroup;
   final SaveDraftUseCase _saveDraft;
 
   ReceiveShareBloc(
-    this._getChannels,
-    this._getPrivateChannels,
+    this._getGroups,
+    this._getPrivateGroups,
     this._getDms,
     this._getActiveUser,
     this._getKeys,
@@ -64,9 +64,9 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
     this._saveLocalMedia,
     this._publishNote,
     this._publishMediaNote,
-    this._publishChannel,
+    this._publishGroup,
     this._publishDm,
-    this._publishPrivateChannel,
+    this._publishPrivateGroup,
     this._saveDraft,
   ) : super(const ReceiveShareState()) {
     on<InitReceiveShare>(_onInit, transformer: droppable());
@@ -98,16 +98,16 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
     final userResult = await _getActiveUser();
     final authorPubkey = userResult.fold((_) => '', (u) => u.pubkeyHex);
 
-    final channelsResult = await _getChannels();
-    final publicChannels = channelsResult.fold<List<ChannelEntity>>(
+    final groupsResult = await _getGroups();
+    final publicGroups = groupsResult.fold<List<GroupEntity>>(
       (_) => const [],
       (list) => list,
     );
 
-    final privateChannels = await _getPrivateChannels
+    final privateGroups = await _getPrivateGroups
         .execute()
         .first
-        .catchError((_) => const <PrivateChannelEntity>[]);
+        .catchError((_) => const <PrivateGroupEntity>[]);
 
     final dmsResult = await _getDms();
     final dms = dmsResult.fold<List<DmConversationEntity>>(
@@ -118,8 +118,8 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
     emit(state.copyWith(
       loading: false,
       authorPubkey: authorPubkey,
-      publicChannels: publicChannels,
-      privateChannels: privateChannels,
+      publicGroups: publicGroups,
+      privateGroups: privateGroups,
       dmConversations: dms,
       ingesting: incoming.files.isNotEmpty,
     ));
@@ -235,16 +235,16 @@ class ReceiveShareBloc extends Bloc<ReceiveShareEvent, ReceiveShareState> {
       switch (event.destination) {
         case ShareToFeed():
           await _publishFeed(keys, content, referenceIds, attachments);
-        case ShareToPublicChannel(channelId: final id):
-          await _publishChannel(CreateChannelMessageInput(
-            channelId: id,
+        case ShareToPublicGroup(groupId: final id):
+          await _publishGroup(CreateGroupMessageInput(
+            groupId: id,
             content: content,
             privateKey: keys.privkeyHex,
             mentionRefs: referenceIds,
             attachments: attachments,
           ));
-        case ShareToPrivateChannel(groupId: final id):
-          await _publishPrivateChannel.execute(
+        case ShareToPrivateGroup(groupId: final id):
+          await _publishPrivateGroup.execute(
             groupId: id,
             content: content,
             authorPubkey: keys.pubkeyHex,

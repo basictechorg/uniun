@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/channel_model.dart';
+import 'package:uniun/data/models/group_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
-import 'package:uniun/data/models/private_channel_model.dart';
+import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/data/models/relay_model.dart';
 
 /// Hooks for the orchestrator. Plain function fields rather than callbacks so
@@ -17,8 +17,8 @@ class WatcherHandlers {
   final Future<void> Function() onFollowedNotesChanged;
   final Future<void> Function() onFollowedUsersChanged;
   final Future<void> Function() onMissingProfilesChanged;
-  final Future<void> Function() onChannelsChangedAdditive;
-  final Future<void> Function() onPrivateChannelsChangedAdditive;
+  final Future<void> Function() onGroupsChangedAdditive;
+  final Future<void> Function() onPrivateGroupsChangedAdditive;
 
   const WatcherHandlers({
     required this.onQueueChanged,
@@ -26,32 +26,32 @@ class WatcherHandlers {
     required this.onFollowedNotesChanged,
     required this.onFollowedUsersChanged,
     required this.onMissingProfilesChanged,
-    required this.onChannelsChangedAdditive,
-    required this.onPrivateChannelsChangedAdditive,
+    required this.onGroupsChangedAdditive,
+    required this.onPrivateGroupsChangedAdditive,
   });
 }
 
 /// Consolidates every `watchLazy()` subscription the gateway needs.
 ///
 /// Replaces the five separate stream subscriptions on [CentralRelayManager].
-/// Channel and PrivateChannel watchers are gated on count-increase so metadata
-/// updates don't trigger resubscribes — matches the `_knownChannelCount` hack
+/// Group and PrivateGroup watchers are gated on count-increase so metadata
+/// updates don't trigger resubscribes — matches the `_knownGroupCount` hack
 /// in the original code, but expressed once instead of duplicated.
 class IsarWatcherHub {
   final Isar _isar;
   final WatcherHandlers _handlers;
 
   final List<StreamSubscription<void>> _subs = [];
-  int _knownChannelCount = 0;
-  int _knownPrivateChannelCount = 0;
+  int _knownGroupCount = 0;
+  int _knownPrivateGroupCount = 0;
 
   IsarWatcherHub({required Isar isar, required WatcherHandlers handlers})
       : _isar = isar,
         _handlers = handlers;
 
   Future<void> start() async {
-    _knownChannelCount = await _isar.channelModels.count();
-    _knownPrivateChannelCount = await _isar.privateChannelModels.count();
+    _knownGroupCount = await _isar.groupModels.count();
+    _knownPrivateGroupCount = await _isar.privateGroupModels.count();
 
     _subs.add(_isar.eventQueueModels.watchLazy().listen((_) async {
       await _handlers.onQueueChanged();
@@ -73,24 +73,24 @@ class IsarWatcherHub {
       await _handlers.onMissingProfilesChanged();
     }));
 
-    _subs.add(_isar.channelModels.watchLazy().listen((_) async {
-      final current = await _isar.channelModels.count();
-      if (current <= _knownChannelCount) {
-        _knownChannelCount = current;
+    _subs.add(_isar.groupModels.watchLazy().listen((_) async {
+      final current = await _isar.groupModels.count();
+      if (current <= _knownGroupCount) {
+        _knownGroupCount = current;
         return;
       }
-      _knownChannelCount = current;
-      await _handlers.onChannelsChangedAdditive();
+      _knownGroupCount = current;
+      await _handlers.onGroupsChangedAdditive();
     }));
 
-    _subs.add(_isar.privateChannelModels.watchLazy().listen((_) async {
-      final current = await _isar.privateChannelModels.count();
-      if (current <= _knownPrivateChannelCount) {
-        _knownPrivateChannelCount = current;
+    _subs.add(_isar.privateGroupModels.watchLazy().listen((_) async {
+      final current = await _isar.privateGroupModels.count();
+      if (current <= _knownPrivateGroupCount) {
+        _knownPrivateGroupCount = current;
         return;
       }
-      _knownPrivateChannelCount = current;
-      await _handlers.onPrivateChannelsChangedAdditive();
+      _knownPrivateGroupCount = current;
+      await _handlers.onPrivateGroupsChangedAdditive();
     }));
   }
 

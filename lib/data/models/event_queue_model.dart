@@ -47,7 +47,7 @@ class EventQueueModel {
   /// anymore (kept the name to avoid churn across the enqueue interface).
   int? quoteKind;
 
-  /// NIP-29 private channel group id → `["h", hTag]`.
+  /// NIP-29 private group group id → `["h", hTag]`.
   String? hTag;
 
   /// NIP-37 draft id → `["d", dTag]`.
@@ -90,7 +90,7 @@ class EventQueueModel {
 ///   3. e mention… (remaining [eTagRefs])
 ///   4. p…
 ///   5. t…
-///   6. h          (NIP-29 private channel)
+///   6. h          (NIP-29 private group)
 ///   7. d          (NIP-37 draft id)
 ///   8. k          (NIP-37 draft kind hint ["k","1"]; drafts only)
 ///   9. embeddedNoteJson (UNIUN embed-by-value share snapshot)

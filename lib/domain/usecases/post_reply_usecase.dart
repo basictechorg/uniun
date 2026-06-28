@@ -8,11 +8,11 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/imeta_builder.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
-import 'package:uniun/domain/usecases/create_channel_message_usecase.dart';
+import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
-import 'package:uniun/domain/usecases/private_channel_usecases.dart';
+import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 
@@ -38,8 +38,8 @@ class PostReplyParams {
 class PostReplyUseCase {
   final PublishNoteUseCase _publishNote;
   final PublishMediaNoteUseCase _publishMediaNote;
-  final CreateChannelMessageUseCase _createChannelMessage;
-  final SendPrivateChannelMessageUsecase _sendPrivate;
+  final CreateGroupMessageUseCase _createGroupMessage;
+  final SendPrivateGroupMessageUsecase _sendPrivate;
   final SendDmUseCase _sendDm;
   final GetActiveUserKeysUseCase _getKeys;
   final EmbedAndStoreNoteUseCase _embedAndStore;
@@ -47,7 +47,7 @@ class PostReplyUseCase {
   PostReplyUseCase(
     this._publishNote,
     this._publishMediaNote,
-    this._createChannelMessage,
+    this._createGroupMessage,
     this._sendPrivate,
     this._sendDm,
     this._getKeys,
@@ -73,10 +73,10 @@ class PostReplyUseCase {
               params: params,
             );
 
-          case NoteSource.channel:
-            final r = await _createChannelMessage.call(
-              CreateChannelMessageInput(
-                channelId: root.sourceChannelId ?? '',
+          case NoteSource.group:
+            final r = await _createGroupMessage.call(
+              CreateGroupMessageInput(
+                groupId: root.sourceGroupId ?? '',
                 content: params.content,
                 privateKey: keys.privkeyHex,
                 replyToEventId: replyToId,
@@ -86,7 +86,7 @@ class PostReplyUseCase {
             );
             return r.fold((f) => Left(f), (_) => const Right(unit));
 
-          case NoteSource.privateChannel:
+          case NoteSource.privateGroup:
             await _sendPrivate.execute(
               groupId: root.sourcePrivateGroupId ?? '',
               content: params.content,
