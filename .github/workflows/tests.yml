@@ -20,53 +20,6 @@ env:
   FLUTTER_VERSION: "3.44.2"
 
 jobs:
-  # Resolve pub-cache + codegen + flutter_gemma native libs once. Every
-  # downstream job restores from these caches via the same keys.
-  # hashFiles() is only available in steps, so cache keys are computed in
-  # the `keys` step and exposed as job outputs.
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.keys.outputs.pub }}
-      gemma-key: ${{ steps.keys.outputs.gemma }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: keys
-        run: |
-          echo "pub=pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}" >> "$GITHUB_OUTPUT"
-          echo "gemma=gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}" >> "$GITHUB_OUTPUT"
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: ${{ steps.keys.outputs.pub }}
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/flutter_gemma
-          key: ${{ steps.keys.outputs.gemma }}
-
-      - run: flutter pub get
-
-      - run: flutter pub run build_runner build --delete-conflicting-outputs
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: codegen
-          path: |
-            lib/**/*.g.dart
-            lib/**/*.freezed.dart
-          retention-days: 1
-
-  # Catches "added tests but forgot to wire up CI". Hard-fails on a test
-  # file outside any matrix path below.
   shard-coverage:
     runs-on: ubuntu-latest
     steps:
@@ -99,6 +52,42 @@ jobs:
           fi
           echo "All test files covered."
 
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        id: codegen
+        with:
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
+
+      - if: steps.codegen.outputs.cache-hit != 'true'
+        run: flutter pub get
+
+      - if: steps.codegen.outputs.cache-hit != 'true'
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
   analyze:
     runs-on: ubuntu-latest
     needs: setup
@@ -112,24 +101,26 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ needs.setup.outputs.cache-key }}
-      - uses: actions/download-artifact@v4
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+      - uses: actions/cache@v4
         with:
-          name: codegen
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
       - run: flutter pub get --offline
       - run: flutter analyze --no-fatal-infos lib/ test/
 
   test:
-    name: test (${{ matrix.shard.name }})
+    name: ${{ matrix.shard.name }}
     runs-on: ubuntu-latest
     needs: setup
     strategy:
       fail-fast: false
       matrix:
         shard:
-          # `concurrency` is per-shard: shards that hit Isar's native libmdbx
-          # MUST serialize (concurrency=1) — parallel test isolates race the
-          # native binary download/load and SIGBUS on the second one.
+          # concurrency=1 on Isar-native-binary shards; parallel isolates SIGBUS on the second loader.
           - name: data
             paths: test/data
             concurrency: 1
@@ -160,16 +151,20 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ needs.setup.outputs.cache-key }}
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
 
       - uses: actions/cache@v4
         with:
           path: ~/.cache/flutter_gemma
-          key: ${{ needs.setup.outputs.gemma-key }}
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v4
         with:
-          name: codegen
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
 
       - run: flutter pub get --offline
 
@@ -188,10 +183,6 @@ jobs:
             --concurrency=${{ matrix.shard.concurrency }} \
             $existing
 
-  # Opt-in coverage. Today: only runs on manual `workflow_dispatch` with the
-  # `coverage` input ticked. Flip to always-on by removing the `if:` line.
-  # Skips test/integration + test/gateway — native Isar in those shards
-  # makes coverage misleading + slow.
   coverage:
     if: github.event_name == 'workflow_dispatch' && inputs.coverage
     runs-on: ubuntu-latest
@@ -208,16 +199,20 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.pub-cache
-          key: ${{ needs.setup.outputs.cache-key }}
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
 
       - uses: actions/cache@v4
         with:
           path: ~/.cache/flutter_gemma
-          key: ${{ needs.setup.outputs.gemma-key }}
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v4
         with:
-          name: codegen
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
 
       - run: flutter pub get --offline
 
@@ -249,7 +244,6 @@ jobs:
             echo ""
             echo "**$pct%** — $hit of $lines lines, across $total files"
             echo ""
-            echo "Generated by manual \`workflow_dispatch\` (coverage flag)."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
@@ -258,9 +252,6 @@ jobs:
           path: coverage/lcov.info
           retention-days: 14
 
-  # Single required check for branch protection — GitHub can't require a
-  # matrix expansion directly. Coverage is intentionally NOT in `needs:`:
-  # the opt-in job must not block merge.
   tests-passed:
     name: tests
     runs-on: ubuntu-latest
