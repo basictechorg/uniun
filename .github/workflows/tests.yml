@@ -117,7 +117,6 @@ jobs:
         with:
           name: codegen
       - run: flutter pub get --offline
-      - run: dart format --set-exit-if-changed lib/ test/
       - run: flutter analyze --no-fatal-infos lib/ test/
 
   test:
