@@ -1,11 +1,9 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
-import 'package:uniun/domain/usecases/draft_usecases.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/saved_note_usecases.dart';
@@ -27,11 +25,11 @@ class _PoolNote {
   final ManasNoteKind kind;
 }
 
-/// The form's "Add notes" search pool is every Brahma note: **every note the
-/// user authored** (own pubkey, any kind), the user's local **drafts**, and
-/// the user's **saved-notes** table — deduped by id, loaded once on open and
-/// filtered in-memory on each keystroke. Saved wins the display kind when a
-/// note is both authored and saved (draft ids never collide with event ids).
+/// The form's "Add notes" search pool is every PUBLISHED Brahma note: own
+/// (authored) notes ∪ the user's saved-notes table, deduped by event id.
+/// Drafts are intentionally excluded — publishing a draft mints a new event
+/// id, which would orphan any Manas link held under the old draft UUID.
+/// Forcing the user to publish first keeps Manas membership stable.
 @injectable
 class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
   final UpsertManasUseCase _upsert;
@@ -43,11 +41,7 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
   final GetAllSavedNotesUseCase _getAllSaved;
   final GetOwnNotesUseCase _getOwnNotes;
   final GetActiveUserUseCase _getActiveUser;
-  final GetDraftsUseCase _getDrafts;
 
-  // Cached search + preview pool: own (authored) notes ∪ saved notes, deduped
-  // by id. Loaded once on form open; re-loaded only if the user adds notes
-  // outside the form lifetime — we accept that tradeoff for the typing-fast UX.
   List<_PoolNote> _pool = const [];
 
   ManasFormBloc(
@@ -60,7 +54,6 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
     this._getAllSaved,
     this._getOwnNotes,
     this._getActiveUser,
-    this._getDrafts,
   ) : super(const ManasFormState()) {
     on<ManasFormLoadEvent>(_onLoad);
     on<ManasFormNameChangedEvent>(_onName);
@@ -76,28 +69,21 @@ class ManasFormBloc extends Bloc<ManasFormEvent, ManasFormState> {
       ManasFormLoadEvent event, Emitter<ManasFormState> emit) async {
     emit(state.copyWith(status: ManasFormStatus.loading));
 
-    // Search pool = every Brahma note: own (authored) notes ∪ drafts ∪ saved
-    // notes — same data for create and edit modes. Own notes are loaded first,
-    // then drafts; saved entries override by id so a note that is both authored
-    // and saved shows the saved kind. Draft ids (local UUIDs) never collide
-    // with the 64-hex event ids of own/saved notes.
+    // Search pool = own (authored) notes ∪ saved-notes table, deduped by
+    // event id. Saved entries override own when the ids collide so a note
+    // that is both authored and saved shows the saved kind.
     final ownPubkey = (await _getActiveUser.call())
         .fold<String?>((_) => null, (u) => u.pubkeyHex);
     final ownNotes = ownPubkey == null
         ? const <NoteEntity>[]
         : (await _getOwnNotes.call(ownPubkey))
             .fold<List<NoteEntity>>((_) => const [], (l) => l);
-    final drafts = (await _getDrafts.call())
-        .fold<List<DraftEntity>>((_) => const [], (l) => l);
     final savedNotes = (await _getAllSaved.call())
         .fold<List<SavedNoteEntity>>((_) => const [], (l) => l);
 
     final byId = <String, _PoolNote>{};
     for (final n in ownNotes) {
       byId[n.id] = _PoolNote(n.id, n.content, ManasNoteKind.own);
-    }
-    for (final d in drafts) {
-      byId[d.draftId] = _PoolNote(d.draftId, d.content, ManasNoteKind.draft);
     }
     for (final s in savedNotes) {
       byId[s.eventId] = _PoolNote(s.eventId, s.content, ManasNoteKind.saved);
