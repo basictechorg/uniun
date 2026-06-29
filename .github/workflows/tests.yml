@@ -51,7 +51,8 @@ jobs:
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
       # Upload the generated `.dart_tool/`, `.g.dart`, `.freezed.dart` files
-      # plus the resolved pub-cache so test jobs don't redo this work.
+      # so test jobs don't rerun build_runner. Generated files only exist
+      # under `lib/` (the codegen targets), not under `test/`.
       - name: Upload tree
         uses: actions/upload-artifact@v4
         with:
@@ -60,8 +61,6 @@ jobs:
             .dart_tool/
             lib/**/*.g.dart
             lib/**/*.freezed.dart
-            test/**/*.g.dart
-            test/**/*.freezed.dart
           if-no-files-found: warn
           retention-days: 1
 
@@ -114,14 +113,10 @@ jobs:
             paths: test/features/shiv
           - label: features — vishnu
             paths: test/features/vishnu
-          - label: features — other
-            # Catch-all for anything under test/features/ not listed above.
-            # Adjust the exclude list when a new feature gets its own row.
-            paths: test/features
-            exclude: |
-              test/features/brahma
-              test/features/shiv
-              test/features/vishnu
+          # NOTE: when a new directory lands under test/features/, add an
+          # explicit shard here. There is intentionally no "everything else
+          # under features" catch-all — overlapping paths would silently
+          # duplicate work and risk concurrent Isar conflicts.
           - label: integration
             paths: test/integration
           - label: common + root
