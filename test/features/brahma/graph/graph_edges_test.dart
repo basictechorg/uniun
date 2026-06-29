@@ -9,14 +9,17 @@ GraphNodeData _node(
   String? root,
   String? reply,
   List<String> eTags = const [],
+  List<String> draftRefIds = const [],
+  GraphNodeType type = GraphNodeType.own,
 }) =>
     GraphNodeData(
       eventId: id,
       content: '',
       eTagRefs: eTags,
-      type: GraphNodeType.own,
+      type: type,
       rootEventId: root,
       replyToEventId: reply,
+      draftRefIds: draftRefIds,
     );
 
 void main() {
@@ -73,6 +76,73 @@ void main() {
       ]);
       expect(adj['A'], {'B'});
       expect(adj['B'], {'A'});
+    });
+  });
+
+  // ── Draft-only nodes: draftRefIds form edges between draft UUIDs ─────────
+
+  group('Draft → draft edges via draftRefIds', () {
+    test('a single draft → draft ref shows up as a bidirectional edge', () {
+      final adj = GraphBloc.buildAdjacency([
+        _node('parent-uuid',
+            type: GraphNodeType.draft, draftRefIds: ['child-uuid']),
+        _node('child-uuid', type: GraphNodeType.draft),
+      ]);
+      expect(adj['parent-uuid'], {'child-uuid'});
+      expect(adj['child-uuid'], {'parent-uuid'});
+    });
+
+    test('mixed: a draft refs another draft AND a published note (e-tag)', () {
+      // parent draft: draftRefIds=[child], eTags=[real-note] (top-level so no
+      // root/reply markers — refEdges keeps all e-tags + all draftRefIds).
+      final adj = GraphBloc.buildAdjacency([
+        _node('parent',
+            type: GraphNodeType.draft,
+            draftRefIds: ['child'],
+            eTags: ['real-note']),
+        _node('child', type: GraphNodeType.draft),
+        _node('real-note', type: GraphNodeType.own),
+      ]);
+      expect(adj['parent'], {'child', 'real-note'});
+      expect(adj['child'], {'parent'});
+      expect(adj['real-note'], {'parent'});
+    });
+
+    test('draft ref to a UUID NOT in the visible set is dropped', () {
+      // child UUID isn't part of the rendered graph (filtered out by Manas
+      // scope, say). The edge silently disappears — same rule as e-tag refs
+      // to off-graph notes.
+      final adj = GraphBloc.buildAdjacency([
+        _node('parent',
+            type: GraphNodeType.draft, draftRefIds: ['ghost']),
+      ]);
+      expect(adj['parent'], isEmpty);
+    });
+
+    test('diamond draft graph A → {B, C} → D collapses to 4 nodes / 4 unique edges', () {
+      final adj = GraphBloc.buildAdjacency([
+        _node('A', type: GraphNodeType.draft, draftRefIds: ['B', 'C']),
+        _node('B', type: GraphNodeType.draft, draftRefIds: ['D']),
+        _node('C', type: GraphNodeType.draft, draftRefIds: ['D']),
+        _node('D', type: GraphNodeType.draft),
+      ]);
+      expect(adj['A'], {'B', 'C'});
+      expect(adj['B'], {'A', 'D'});
+      expect(adj['C'], {'A', 'D'});
+      expect(adj['D'], {'B', 'C'});
+    });
+
+    test('refEdges merges e-tags (minus root) AND draftRefIds for a single node', () {
+      // Deep reply with a parent + a mention + a draft ref.
+      final n = _node('child',
+          type: GraphNodeType.draft,
+          root: 'R',
+          reply: 'P',
+          eTags: ['R', 'P', 'M'],
+          draftRefIds: ['draft-uuid']);
+      // Root R is dropped (per the canonical reply rule); P, M, and the
+      // draft UUID all stay.
+      expect(n.refEdges, {'P', 'M', 'draft-uuid'});
     });
   });
 }
