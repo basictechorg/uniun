@@ -99,15 +99,14 @@ void main() {
     test('returns the feed note with stitched edge-table counts', () async {
       await isar.writeTxn(() async {
         await isar.noteModels.put(feedNote('A'));
-        await isar.noteRelationModels
-          ..put(NoteRelationModel()
-            ..parentId = 'A'
-            ..childId = 'B'
-            ..createdAt = DateTime(2026, 1, 1))
-          ..put(NoteRelationModel()
-            ..parentId = 'A'
-            ..childId = 'C'
-            ..createdAt = DateTime(2026, 1, 1));
+        await isar.noteRelationModels.put(NoteRelationModel()
+          ..parentId = 'A'
+          ..childId = 'B'
+          ..createdAt = DateTime(2026, 1, 1));
+        await isar.noteRelationModels.put(NoteRelationModel()
+          ..parentId = 'A'
+          ..childId = 'C'
+          ..createdAt = DateTime(2026, 1, 1));
       });
       final res = await resolver.resolveById('A');
       final n = res.getOrElse(() => throw 'left');

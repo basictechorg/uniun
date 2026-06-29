@@ -1,42 +1,41 @@
 name: Tests
 
-# Module-wise PR test runner.
-#
-# Each `test` job runs an isolated subset of the test tree (data, domain,
-# gateway, features, integration) so a failure pinpoints WHICH layer
-# regressed — no scrolling through one giant log. Jobs run in parallel; the
-# `setup` job builds the pub-cache + codegen once and shares it via the
-# upload-artifact / download-artifact pair so every downstream job is just
-# `flutter test <paths>` against a warm tree.
-#
-# Trigger:
-#   - PRs into `main` (any branch).
-#   - Pushes to `main` (smoke-test the merge result; matches branch protection).
-#   - Manual dispatch (debug, rerun a single shard).
-
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      coverage:
+        description: 'Generate coverage report'
+        type: boolean
+        default: false
 
-# Cancel in-flight runs of the same PR when new commits land — saves
-# Actions minutes and avoids stale-result noise on the PR.
 concurrency:
-  group: tests-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   FLUTTER_VERSION: "3.44.2"
 
 jobs:
-  # ── Setup: pub get + codegen, shared across every test shard ─────────────
+  # Resolve pub-cache + codegen + flutter_gemma native libs once. Every
+  # downstream job restores from these caches via the same keys.
+  # hashFiles() is only available in steps, so cache keys are computed in
+  # the `keys` step and exposed as job outputs.
   setup:
-    name: Setup (pub get + codegen)
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.keys.outputs.pub }}
+      gemma-key: ${{ steps.keys.outputs.gemma }}
     steps:
       - uses: actions/checkout@v4
+
+      - id: keys
+        run: |
+          echo "pub=pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}" >> "$GITHUB_OUTPUT"
+          echo "gemma=gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}" >> "$GITHUB_OUTPUT"
 
       - uses: subosito/flutter-action@v2
         with:
@@ -44,29 +43,63 @@ jobs:
           channel: stable
           cache: true
 
-      - name: flutter pub get
-        run: flutter pub get
-
-      - name: build_runner (freezed + isar + injectable + json_serializable)
-        run: flutter pub run build_runner build --delete-conflicting-outputs
-
-      # Upload the generated `.dart_tool/`, `.g.dart`, `.freezed.dart` files
-      # so test jobs don't rerun build_runner. Generated files only exist
-      # under `lib/` (the codegen targets), not under `test/`.
-      - name: Upload tree
-        uses: actions/upload-artifact@v4
+      - uses: actions/cache@v4
         with:
-          name: built-tree
+          path: ~/.pub-cache
+          key: ${{ steps.keys.outputs.pub }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: ${{ steps.keys.outputs.gemma }}
+
+      - run: flutter pub get
+
+      - run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: codegen
           path: |
-            .dart_tool/
             lib/**/*.g.dart
             lib/**/*.freezed.dart
-          if-no-files-found: warn
           retention-days: 1
 
-  # ── Static analysis (fast, runs in parallel with the test shards) ────────
+  # Catches "added tests but forgot to wire up CI". Hard-fails on a test
+  # file outside any matrix path below.
+  shard-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -e
+          declare -a SHARDS=(
+            test/data
+            test/domain
+            test/gateway
+            test/features
+            test/integration
+            test/common
+            test/widget_test.dart
+            test/shiv_home_page_test.dart
+            test/expandable_note_text_tap_test.dart
+            test/llm_text_sanitizer_test.dart
+          )
+          regex=""
+          for p in "${SHARDS[@]}"; do
+            esc=$(echo "$p" | sed 's|/|\\/|g')
+            regex="${regex:+$regex|}^$esc"
+          done
+          missing=$(find test -name '*_test.dart' -not -path 'test/_helpers/*' \
+            | grep -vE "$regex" || true)
+          if [ -n "$missing" ]; then
+            echo "::error::Test files not covered by any shard:"
+            echo "$missing"
+            exit 1
+          fi
+          echo "All test files covered."
+
   analyze:
-    name: Static analysis
     runs-on: ubuntu-latest
     needs: setup
     steps:
@@ -76,53 +109,46 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ needs.setup.outputs.cache-key }}
       - uses: actions/download-artifact@v4
         with:
-          name: built-tree
-      - run: flutter pub get
-      - name: flutter analyze
-        run: flutter analyze --no-fatal-infos lib/ test/
+          name: codegen
+      - run: flutter pub get --offline
+      - run: dart format --set-exit-if-changed lib/ test/
+      - run: flutter analyze --no-fatal-infos lib/ test/
 
-  # ── Test matrix — one job per module ─────────────────────────────────────
   test:
-    name: ${{ matrix.module.label }}
+    name: test (${{ matrix.shard.name }})
     runs-on: ubuntu-latest
     needs: setup
     strategy:
-      # `fail-fast: false` lets every shard report independently so a flake
-      # in one module doesn't mask real failures in another.
       fail-fast: false
       matrix:
-        module:
-          # Order is informational only — every job runs in parallel.
-          - label: data — models
-            paths: test/data/models
-          - label: data — repositories
-            paths: test/data/repositories
-          - label: data — datasources
-            paths: test/data/datasources
-          - label: domain — usecases
+        shard:
+          # `concurrency` is per-shard: shards that hit Isar's native libmdbx
+          # MUST serialize (concurrency=1) — parallel test isolates race the
+          # native binary download/load and SIGBUS on the second one.
+          - name: data
+            paths: test/data
+            concurrency: 1
+          - name: domain
             paths: test/domain
-          - label: gateway — inbound
-            paths: test/gateway/inbound
-          - label: gateway — subscriptions
-            paths: test/gateway/subscriptions
-          - label: features — brahma
-            paths: test/features/brahma
-          - label: features — shiv
-            paths: test/features/shiv
-          - label: features — vishnu
-            paths: test/features/vishnu
-          # NOTE: when a new directory lands under test/features/, add an
-          # explicit shard here. There is intentionally no "everything else
-          # under features" catch-all — overlapping paths would silently
-          # duplicate work and risk concurrent Isar conflicts.
-          - label: integration
+            concurrency: 4
+          - name: gateway
+            paths: test/gateway
+            concurrency: 1
+          - name: features
+            paths: test/features
+            concurrency: 4
+          - name: integration
             paths: test/integration
-          - label: common + root
-            # Top-level test files (`test/*.dart`) + shared widgets.
+            concurrency: 1
+          - name: common
             paths: test/common test/widget_test.dart test/shiv_home_page_test.dart test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
-
+            concurrency: 4
     steps:
       - uses: actions/checkout@v4
 
@@ -132,48 +158,121 @@ jobs:
           channel: stable
           cache: true
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: ${{ needs.setup.outputs.gemma-key }}
+
       - uses: actions/download-artifact@v4
         with:
-          name: built-tree
+          name: codegen
 
-      - name: flutter pub get
-        run: flutter pub get
+      - run: flutter pub get --offline
 
       - name: Run tests
-        # `--reporter expanded` gives per-test PASS/FAIL lines so the GitHub
-        # log surfaces the exact failure without you needing to download a
-        # report file. `--concurrency=4` matches a standard 2-vCPU runner.
         run: |
           set -e
-          # Skip paths that don't exist in the tree yet (new module rows
-          # land before their first test does).
           existing=""
-          for p in ${{ matrix.module.paths }}; do
-            if [ -e "$p" ]; then
-              existing="$existing $p"
-            fi
+          for p in ${{ matrix.shard.paths }}; do
+            [ -e "$p" ] && existing="$existing $p"
           done
           if [ -z "$existing" ]; then
-            echo "::notice::No tests found for module ${{ matrix.module.label }} — skipping."
+            echo "::notice::No tests for ${{ matrix.shard.name }} yet."
             exit 0
           fi
-          flutter test --reporter expanded --concurrency=4 $existing
+          flutter test --reporter expanded \
+            --concurrency=${{ matrix.shard.concurrency }} \
+            $existing
 
-  # ── Summary gate for branch protection ───────────────────────────────────
-  # Branch-protect `tests` so a PR can't merge until every shard above
-  # passes. This job aggregates the matrix into a single required check —
-  # GitHub doesn't let you require a matrix expansion directly.
+  # Opt-in coverage. Today: only runs on manual `workflow_dispatch` with the
+  # `coverage` input ticked. Flip to always-on by removing the `if:` line.
+  # Skips test/integration + test/gateway — native Isar in those shards
+  # makes coverage misleading + slow.
+  coverage:
+    if: github.event_name == 'workflow_dispatch' && inputs.coverage
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: ${{ needs.setup.outputs.gemma-key }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: codegen
+
+      - run: flutter pub get --offline
+
+      - name: Run tests with coverage
+        run: |
+          flutter test --coverage --concurrency=1 \
+            test/data test/domain test/features test/common \
+            test/widget_test.dart test/shiv_home_page_test.dart \
+            test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
+
+      - name: Summarise coverage
+        run: |
+          set -e
+          if ! [ -f coverage/lcov.info ]; then
+            echo "::error::coverage/lcov.info not produced"
+            exit 1
+          fi
+          total=$(grep -c '^LF:' coverage/lcov.info || true)
+          hit=$(awk -F: '/^LH:/ { s+=$2 } END { print s+0 }' coverage/lcov.info)
+          lines=$(awk -F: '/^LF:/ { s+=$2 } END { print s+0 }' coverage/lcov.info)
+          if [ "$lines" -gt 0 ]; then
+            pct=$(awk -v h="$hit" -v l="$lines" 'BEGIN { printf "%.1f", (h*100)/l }')
+          else
+            pct="0.0"
+          fi
+          echo "::notice::Coverage: $pct% ($hit / $lines lines, $total files)"
+          {
+            echo "## Coverage"
+            echo ""
+            echo "**$pct%** — $hit of $lines lines, across $total files"
+            echo ""
+            echo "Generated by manual \`workflow_dispatch\` (coverage flag)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 14
+
+  # Single required check for branch protection — GitHub can't require a
+  # matrix expansion directly. Coverage is intentionally NOT in `needs:`:
+  # the opt-in job must not block merge.
   tests-passed:
     name: tests
     runs-on: ubuntu-latest
-    needs: [analyze, test]
+    needs: [shard-coverage, analyze, test]
     if: always()
     steps:
-      - name: Check all jobs succeeded
-        run: |
-          if [ "${{ needs.analyze.result }}" != "success" ] || \
+      - run: |
+          if [ "${{ needs.shard-coverage.result }}" != "success" ] || \
+             [ "${{ needs.analyze.result }}" != "success" ] || \
              [ "${{ needs.test.result }}" != "success" ]; then
-            echo "::error::One or more test shards failed."
+            echo "::error::A required job failed."
             exit 1
           fi
-          echo "All shards passed."
+          echo "All checks passed."
