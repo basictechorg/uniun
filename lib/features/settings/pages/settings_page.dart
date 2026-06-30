@@ -12,6 +12,7 @@ import 'package:uniun/features/settings/widgets/ai_card.dart';
 import 'package:uniun/features/settings/widgets/app_version_row.dart';
 import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
+import 'package:uniun/features/settings/widgets/language_row.dart';
 import 'package:uniun/features/settings/widgets/logout_button.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
@@ -100,6 +101,13 @@ class _SettingsContent extends StatelessWidget {
               SettingsSectionLabel(l10n.settingsAccount),
               const SizedBox(height: 10),
               IdentityCard(state: state),
+
+              const SizedBox(height: 24),
+
+              // ── Language ──────────────────────────────────────────────────
+              SettingsSectionLabel(l10n.settingsLanguage),
+              const SizedBox(height: 10),
+              const SettingsGroup(children: [LanguageRow()]),
 
               const SizedBox(height: 24),
 

@@ -17,6 +17,7 @@ class AppSettingsStore {
       'app_settings.auto_delete_old_notes_days';
   static const _kRecentSyncWindowDays = 'app_settings.recent_sync_window_days';
   static const _kNatarajCoachSeen = 'app_settings.nataraj_coach_seen';
+  static const _kLocaleCode = 'app_settings.locale_code';
 
   final SharedPreferences _prefs;
 
@@ -74,6 +75,20 @@ class AppSettingsStore {
 
   Future<void> setNatarajCoachSeen(bool seen) =>
       _prefs.setBool(_kNatarajCoachSeen, seen);
+
+  /// The user's explicitly-chosen app language code (e.g. `'en'`, `'hi'`), or
+  /// `null` when they've never picked one (⇒ fall back to the system locale).
+  /// Read synchronously at startup to seed `LocaleCubit` without a first-frame
+  /// flicker.
+  String? get localeCode => _prefs.getString(_kLocaleCode);
+
+  Future<void> setLocaleCode(String? code) async {
+    if (code == null) {
+      await _prefs.remove(_kLocaleCode);
+    } else {
+      await _prefs.setString(_kLocaleCode, code);
+    }
+  }
 }
 
 /// Holds the logged-in user's public identity (pubkeyHex, npub, createdAt).

@@ -66,4 +66,14 @@ class AppSettingsRepositoryImpl implements AppSettingsRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Unit>> setLocaleCode(String? code) async {
+    try {
+      await _store.setLocaleCode(code);
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

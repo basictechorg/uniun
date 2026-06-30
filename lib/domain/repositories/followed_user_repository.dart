@@ -9,6 +9,11 @@ abstract class FollowedUserRepository {
     String? petname,
   });
 
+  /// Follows several users at once, persisting all new follows in a single
+  /// transaction and republishing the Kind-3 contact list **once** (instead of
+  /// once per user). Used by the onboarding interest picker.
+  Future<Either<Failure, Unit>> followUsers(List<String> pubkeyHexes);
+
   Future<Either<Failure, Unit>> unfollowUser(String pubkeyHex);
 
   Future<Either<Failure, bool>> isFollowing(String pubkeyHex);

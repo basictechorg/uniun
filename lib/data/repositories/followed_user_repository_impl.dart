@@ -54,6 +54,30 @@ class FollowedUserRepositoryImpl extends FollowedUserRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> followUsers(List<String> pubkeyHexes) async {
+    try {
+      final existing = (await _isar.followedUserModels.where().findAll())
+          .map((m) => m.pubkeyHex)
+          .toSet();
+      final toAdd = pubkeyHexes.where((p) => !existing.contains(p)).toList();
+      if (toAdd.isNotEmpty) {
+        await _isar.writeTxn(() async {
+          await _isar.followedUserModels.putAll([
+            for (final p in toAdd)
+              FollowedUserModel()
+                ..pubkeyHex = p
+                ..followedAt = DateTime.now(),
+          ]);
+        });
+      }
+      // Publish the merged contact list exactly once for the whole batch.
+      return _publishContactList();
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> unfollowUser(String pubkeyHex) async {
     try {
       await _isar.writeTxn(() async {

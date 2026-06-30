@@ -75,3 +75,15 @@ class SetRecentSyncWindowDaysUseCase
   Future<Either<Failure, Unit>> call(int input, {bool cached = false}) =>
       _repository.setRecentSyncWindowDays(input);
 }
+
+/// Persists the user's chosen app language code (`'en'`, `'hi'`, …), or `null`
+/// to clear it. `LocaleCubit` calls this on every language switch.
+@lazySingleton
+class SetAppLocaleUseCase extends UseCase<Either<Failure, Unit>, String?> {
+  final AppSettingsRepository _repository;
+  const SetAppLocaleUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(String? input, {bool cached = false}) =>
+      _repository.setLocaleCode(input);
+}

@@ -5,6 +5,7 @@ import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/brahma/graph/layout/force_layout_tuning.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/graph/painters/dot_pattern_painter.dart';
@@ -366,16 +367,17 @@ class _GraphCanvasState extends State<GraphCanvas> {
   @override
   Widget build(BuildContext context) {
     if (widget.nodes.isEmpty) {
-      return const Stack(
+      return Stack(
         children: [
-          Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
+          const Positioned.fill(
+              child: CustomPaint(painter: DotPatternPainter())),
           Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
+              padding: const EdgeInsets.all(32),
               child: Text(
-                'Save notes to build your knowledge graph.\n\nEdges appear when one note references another.',
+                AppLocalizations.of(context)!.graphEmptyHint,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.onSurfaceVariant,
                 ),

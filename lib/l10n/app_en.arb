@@ -1668,6 +1668,9 @@
   "vishnuFeedEmptyCta": "Scan a QR",
   "@vishnuFeedEmptyCta": { "description": "Vishnu feed empty-state CTA opening the QR scanner" },
 
+  "vishnuFeedEmptyRefresh": "Refresh",
+  "@vishnuFeedEmptyRefresh": { "description": "Vishnu feed empty-state button that re-reads the feed (after the gateway syncs followed accounts' notes)" },
+
   "drawerPrivateGroups": "PRIVATE GROUPS",
   "@drawerPrivateGroups": { "description": "Drawer section header for private groups (uppercase)" },
 
@@ -2621,5 +2624,56 @@
   "@receiveShareNothingToShare": { "description": "Error when trying to publish with no text and no attachments" },
 
   "jumpToLatest": "Jump to latest",
-  "@jumpToLatest": { "description": "Tooltip on the floating button that scrolls a chat to the newest message and marks the surface read" }
+  "@jumpToLatest": { "description": "Tooltip on the floating button that scrolls a chat to the newest message and marks the surface read" },
+
+  "interestsEyebrow": "Build your feed",
+  "@interestsEyebrow": { "description": "Eyebrow label on the onboarding interest picker" },
+
+  "interestsTitle": "Tap what you love",
+  "@interestsTitle": { "description": "Title on the onboarding interest picker" },
+
+  "interestsSubtitle": "Pick at least 3. Each one posts daily, so your feed is alive from the very first scroll.",
+  "@interestsSubtitle": { "description": "Subtitle explaining the onboarding interest picker" },
+
+  "interestsSearchHint": "Search interests…",
+  "@interestsSearchHint": { "description": "Placeholder in the interest picker search box" },
+
+  "interestsNoResults": "No interests match that.",
+  "@interestsNoResults": { "description": "Shown when an interest search matches nothing" },
+
+  "interestsContinue": "Show me my feed",
+  "@interestsContinue": { "description": "Primary button on the interest picker, enabled once enough interests are chosen" },
+
+  "interestsPickMore": "Pick {count} more to continue",
+  "@interestsPickMore": {
+    "description": "Disabled-state label on the interest picker button, shows how many more interests are needed",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "interestsSkip": "Skip for now",
+  "@interestsSkip": { "description": "Secondary action to skip the interest picker" },
+
+  "interestsFollowFailed": "Couldn't follow everyone — please try again.",
+  "@interestsFollowFailed": { "description": "Snackbar when following the chosen interests fails" },
+
+  "welcomeMoreLanguages": "More languages",
+  "@welcomeMoreLanguages": { "description": "Link on the welcome screen that opens the full language picker" },
+
+  "languageSelectTitle": "Choose language",
+  "@languageSelectTitle": { "description": "App bar title of the language selection page" },
+
+  "languageComingSoon": "Coming soon",
+  "@languageComingSoon": { "description": "Badge on languages that don't have translations yet" },
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": { "description": "Settings section label for the app language" },
+
+  "settingsAppLanguage": "App language",
+  "@settingsAppLanguage": { "description": "Settings row label that opens the language picker" },
+
+  "graphEmptyHint": "Save notes to build your knowledge graph.\n\nEdges appear when one note references another.",
+  "@graphEmptyHint": { "description": "Empty-state message shown on the knowledge graph canvas when there are no notes yet" },
+
+  "ganaDetailManasesLabel": "Manases",
+  "@ganaDetailManasesLabel": { "description": "Label on the Gana detail card for the number of Manases the agent draws from" }
 }
