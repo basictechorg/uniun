@@ -28,6 +28,7 @@ import 'package:uniun/features/dm/create/pages/create_dm_page.dart';
 import 'package:uniun/features/home/pages/home_page.dart';
 import 'package:uniun/features/onboarding/pages/about_you_page.dart';
 import 'package:uniun/features/onboarding/pages/how_it_works_page.dart';
+import 'package:uniun/features/onboarding/interests/interests_page.dart';
 import 'package:uniun/features/onboarding/pages/import_identity_page.dart';
 import 'package:uniun/features/onboarding/pages/splash_page.dart';
 import 'package:uniun/features/onboarding/pages/welcome_page.dart';
@@ -44,6 +45,7 @@ import 'package:uniun/features/media/pages/media_gallery_page.dart';
 import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
 import 'package:uniun/features/settings/pages/blocked_users_page.dart';
 import 'package:uniun/features/settings/pages/edit_profile_page.dart';
+import 'package:uniun/features/settings/pages/language_selection_page.dart';
 import 'package:uniun/features/settings/pages/privacy_policy_page.dart';
 import 'package:uniun/features/settings/pages/settings_page.dart';
 import 'package:uniun/features/shiv/model_select/pages/ai_model_selection_page.dart';
@@ -93,6 +95,11 @@ final GoRouter appRouter = GoRouter(
       builder: (_, state) => YourIdentityKeysPage(args: _asMap(state.extra)),
     ),
     GoRoute(
+      name: AppRoutes.interests,
+      path: '/interests',
+      builder: (_, __) => const InterestsPage(),
+    ),
+    GoRoute(
       name: AppRoutes.home,
       path: '/home',
       builder: (_, __) => const HomePage(),
@@ -101,6 +108,11 @@ final GoRouter appRouter = GoRouter(
       name: AppRoutes.settings,
       path: '/settings',
       builder: (_, __) => const SettingsPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.selectLanguage,
+      path: '/select-language',
+      builder: (_, __) => const LanguageSelectionPage(),
     ),
     GoRoute(
       name: AppRoutes.editProfile,

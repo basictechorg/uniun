@@ -1847,6 +1847,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vishnuFeedEmptyCta => 'Scan a QR';
 
   @override
+  String get vishnuFeedEmptyRefresh => 'Refresh';
+
+  @override
   String get drawerPrivateGroups => 'PRIVATE GROUPS';
 
   @override
@@ -2869,4 +2872,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jumpToLatest => 'Jump to latest';
+
+  @override
+  String get interestsEyebrow => 'Build your feed';
+
+  @override
+  String get interestsTitle => 'Tap what you love';
+
+  @override
+  String get interestsSubtitle =>
+      'Pick at least 3. Each one posts daily, so your feed is alive from the very first scroll.';
+
+  @override
+  String get interestsSearchHint => 'Search interests…';
+
+  @override
+  String get interestsNoResults => 'No interests match that.';
+
+  @override
+  String get interestsContinue => 'Show me my feed';
+
+  @override
+  String interestsPickMore(int count) {
+    return 'Pick $count more to continue';
+  }
+
+  @override
+  String get interestsSkip => 'Skip for now';
+
+  @override
+  String get interestsFollowFailed =>
+      'Couldn\'t follow everyone — please try again.';
+
+  @override
+  String get welcomeMoreLanguages => 'More languages';
+
+  @override
+  String get languageSelectTitle => 'Choose language';
+
+  @override
+  String get languageComingSoon => 'Coming soon';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get settingsAppLanguage => 'App language';
+
+  @override
+  String get graphEmptyHint =>
+      'Save notes to build your knowledge graph.\n\nEdges appear when one note references another.';
+
+  @override
+  String get ganaDetailManasesLabel => 'Manases';
 }

@@ -71,7 +71,9 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
           await _enqueueKind0MetadataEvent(user.nsec, profile);
         }
         if (!mounted) return;
-        router.goNamed(AppRoutes.home);
+        // New users land on the interest picker (follow a few house accounts so
+        // the feed isn't empty) before reaching home.
+        router.goNamed(AppRoutes.interests);
       },
     );
   }

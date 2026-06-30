@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_embeddings/flutter_gemma_embeddings.dart';
 import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
@@ -12,10 +13,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:uniun/core/l10n/locale_cubit.dart';
 import 'package:uniun/core/router/app_router.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
+import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -24,20 +28,16 @@ Future<void> main() async {
   // gates every log on `kDebugMode`). In debug, keep `info` — lifecycle and
   // errors, no prompts/output. Bump to `verbose` only when actively chasing a
   // model bug.
-  FlutterGemma.logLevel =
-      kReleaseMode ? GemmaLogLevel.none : GemmaLogLevel.info;
+  FlutterGemma.logLevel = kReleaseMode
+      ? GemmaLogLevel.none
+      : GemmaLogLevel.info;
   // 1.0.0 split the monolith — the core registers no engine on its own. We
   // ship .task models (MediaPipe — DeepSeek R1) and .litertlm models
   // (LiteRT-LM — Qwen3 0.6B, Gemma 4 E2B/E4B), plus the LiteRT embedder
   // used by the Shiv RAG pipeline.
   await FlutterGemma.initialize(
-    inferenceEngines: const [
-      LiteRtLmEngine(),
-      MediaPipeEngine(),
-    ],
-    embeddingBackends: const [
-      LiteRtEmbeddingBackend(),
-    ],
+    inferenceEngines: const [LiteRtLmEngine(), MediaPipeEngine()],
+    embeddingBackends: const [LiteRtEmbeddingBackend()],
   );
   // Preserve native splash only until Flutter renders its first frame
   FlutterNativeSplash.preserve(widgetsBinding: binding);
@@ -53,10 +53,18 @@ Future<void> main() async {
   await configureDependencies();
   getIt<MarmotTransportService>().start();
 
+  // Resolve the startup locale synchronously (the AppSettingsStore singleton is
+  // already pre-resolved) so the first frame renders in the right language with
+  // no flicker. Runtime switches go through LocaleCubit → SetAppLocaleUseCase.
+  final initialLocale = LocaleCubit.resolveInitial(
+    savedCode: getIt<AppSettingsStore>().localeCode,
+    systemLocales: binding.platformDispatcher.locales,
+  );
+
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
 
-  runApp(const UniunApp());
+  runApp(UniunApp(initialLocale: initialLocale));
 }
 
 /// `background_downloader` (used by flutter_gemma to fetch models) stores its
@@ -67,9 +75,7 @@ Future<void> _ensureDownloaderCacheDir() async {
   if (!Platform.isMacOS && !Platform.isIOS) return;
   try {
     final cacheDir = await getApplicationCacheDirectory();
-    final dir = Directory(
-      p.join(cacheDir.path, 'in.uniun.app'),
-    );
+    final dir = Directory(p.join(cacheDir.path, 'in.uniun.app'));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -79,36 +85,50 @@ Future<void> _ensureDownloaderCacheDir() async {
 }
 
 class UniunApp extends StatelessWidget {
-  const UniunApp({super.key});
+  const UniunApp({super.key, required this.initialLocale});
+
+  /// The locale resolved synchronously at startup (see `main`). Seeds
+  /// [LocaleCubit]; the user can change it at runtime from the welcome screen,
+  /// the language picker, or Settings.
+  final Locale initialLocale;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'UNIUN',
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en')],
-      theme: AppTheme.light,
-      routerConfig: appRouter,
-      builder: (context, child) {
-        // Global tap-outside-to-dismiss-keyboard. HitTestBehavior.opaque is
-        // required — the default (deferToChild) means taps on empty space
-        // never reach this GestureDetector. translucent leaves bubbling intact
-        // so list scrolls / button taps still work.
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            final focus = FocusManager.instance.primaryFocus;
-            if (focus != null && focus.hasFocus) focus.unfocus();
-          },
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
+    return BlocProvider(
+      create: (_) =>
+          LocaleCubit(getIt<SetAppLocaleUseCase>(), initial: initialLocale),
+      child: BlocBuilder<LocaleCubit, Locale>(
+        builder: (context, locale) {
+          return MaterialApp.router(
+            title: 'UNIUN',
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('hi')],
+            locale: locale,
+            theme: AppTheme.light,
+            routerConfig: appRouter,
+            builder: (context, child) {
+              // Global tap-outside-to-dismiss-keyboard. HitTestBehavior.opaque
+              // is required — the default (deferToChild) means taps on empty
+              // space never reach this GestureDetector. translucent leaves
+              // bubbling intact so list scrolls / button taps still work.
+              return GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  final focus = FocusManager.instance.primaryFocus;
+                  if (focus != null && focus.hasFocus) focus.unfocus();
+                },
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

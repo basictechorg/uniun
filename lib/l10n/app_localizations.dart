@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_hi.dart';
 
 // ignore_for_file: type=lint
 
@@ -92,7 +93,10 @@ abstract class AppLocalizations {
       ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('hi'),
+  ];
 
   /// App version string shown in settings / footer
   ///
@@ -3412,6 +3416,12 @@ abstract class AppLocalizations {
   /// **'Scan a QR'**
   String get vishnuFeedEmptyCta;
 
+  /// Vishnu feed empty-state button that re-reads the feed (after the gateway syncs followed accounts' notes)
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get vishnuFeedEmptyRefresh;
+
   /// Drawer section header for private groups (uppercase)
   ///
   /// In en, this message translates to:
@@ -5235,6 +5245,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Jump to latest'**
   String get jumpToLatest;
+
+  /// Eyebrow label on the onboarding interest picker
+  ///
+  /// In en, this message translates to:
+  /// **'Build your feed'**
+  String get interestsEyebrow;
+
+  /// Title on the onboarding interest picker
+  ///
+  /// In en, this message translates to:
+  /// **'Tap what you love'**
+  String get interestsTitle;
+
+  /// Subtitle explaining the onboarding interest picker
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least 3. Each one posts daily, so your feed is alive from the very first scroll.'**
+  String get interestsSubtitle;
+
+  /// Placeholder in the interest picker search box
+  ///
+  /// In en, this message translates to:
+  /// **'Search interests…'**
+  String get interestsSearchHint;
+
+  /// Shown when an interest search matches nothing
+  ///
+  /// In en, this message translates to:
+  /// **'No interests match that.'**
+  String get interestsNoResults;
+
+  /// Primary button on the interest picker, enabled once enough interests are chosen
+  ///
+  /// In en, this message translates to:
+  /// **'Show me my feed'**
+  String get interestsContinue;
+
+  /// Disabled-state label on the interest picker button, shows how many more interests are needed
+  ///
+  /// In en, this message translates to:
+  /// **'Pick {count} more to continue'**
+  String interestsPickMore(int count);
+
+  /// Secondary action to skip the interest picker
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get interestsSkip;
+
+  /// Snackbar when following the chosen interests fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t follow everyone — please try again.'**
+  String get interestsFollowFailed;
+
+  /// Link on the welcome screen that opens the full language picker
+  ///
+  /// In en, this message translates to:
+  /// **'More languages'**
+  String get welcomeMoreLanguages;
+
+  /// App bar title of the language selection page
+  ///
+  /// In en, this message translates to:
+  /// **'Choose language'**
+  String get languageSelectTitle;
+
+  /// Badge on languages that don't have translations yet
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get languageComingSoon;
+
+  /// Settings section label for the app language
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguage;
+
+  /// Settings row label that opens the language picker
+  ///
+  /// In en, this message translates to:
+  /// **'App language'**
+  String get settingsAppLanguage;
+
+  /// Empty-state message shown on the knowledge graph canvas when there are no notes yet
+  ///
+  /// In en, this message translates to:
+  /// **'Save notes to build your knowledge graph.\n\nEdges appear when one note references another.'**
+  String get graphEmptyHint;
+
+  /// Label on the Gana detail card for the number of Manases the agent draws from
+  ///
+  /// In en, this message translates to:
+  /// **'Manases'**
+  String get ganaDetailManasesLabel;
 }
 
 class _AppLocalizationsDelegate
@@ -5248,7 +5354,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'hi'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -5259,6 +5365,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'hi':
+      return AppLocalizationsHi();
   }
 
   throw FlutterError(

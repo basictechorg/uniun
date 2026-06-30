@@ -947,6 +947,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i63.FollowUserUseCase>(
       () => _i63.FollowUserUseCase(gh<_i849.FollowedUserRepository>()),
     );
+    gh.lazySingleton<_i63.FollowUsersUseCase>(
+      () => _i63.FollowUsersUseCase(gh<_i849.FollowedUserRepository>()),
+    );
     gh.lazySingleton<_i63.UnfollowUserUseCase>(
       () => _i63.UnfollowUserUseCase(gh<_i849.FollowedUserRepository>()),
     );
@@ -1026,6 +1029,9 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i907.SetRecentSyncWindowDaysUseCase(
         gh<_i117.AppSettingsRepository>(),
       ),
+    );
+    gh.lazySingleton<_i907.SetAppLocaleUseCase>(
+      () => _i907.SetAppLocaleUseCase(gh<_i117.AppSettingsRepository>()),
     );
     gh.lazySingleton<_i858.UnsaveNoteUseCase>(
       () => _i858.UnsaveNoteUseCase(

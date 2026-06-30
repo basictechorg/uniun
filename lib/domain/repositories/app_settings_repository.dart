@@ -24,4 +24,9 @@ abstract class AppSettingsRepository {
 
   /// Persist the recent-sync window (days of history the capped surfaces pull).
   Future<Either<Failure, Unit>> setRecentSyncWindowDays(int days);
+
+  /// Persist the user's chosen app language code (`'en'`, `'hi'`, …), or `null`
+  /// to clear it and fall back to the system locale. The initial read is done
+  /// synchronously at startup via the store; runtime changes flow through here.
+  Future<Either<Failure, Unit>> setLocaleCode(String? code);
 }

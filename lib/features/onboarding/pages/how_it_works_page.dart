@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
@@ -67,7 +68,9 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
             desc: l10n.howItWorksDescNote,
           ),
           _Feature(
-            icon: const Icon(Icons.man_3_rounded,
+            // Mirror the in-app Manas glyph (single source of truth) rather than
+            // hardcoding it here, so the how-to tile tracks any change to it.
+            icon: const Icon(ManasIcons.fallback,
                 size: 24, color: AppColors.primary),
             name: l10n.howItWorksTileManas,
             desc: l10n.howItWorksDescManas,

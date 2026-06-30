@@ -8,10 +8,12 @@ abstract class AppRoutes {
   static const welcome = 'welcome';
   static const importIdentity = 'importIdentity';
   static const yourIdentityKeys = 'yourIdentityKeys';
+  static const interests = 'interests';
   static const aboutYou = 'aboutYou';
   static const howItWorks = 'howItWorks';
   static const home = 'home';
   static const settings = 'settings';
+  static const selectLanguage = 'selectLanguage';
   static const editProfile = 'editProfile';
   static const privacyPolicy = 'privacyPolicy';
   static const followedNoteDetail = 'followedNoteDetail';

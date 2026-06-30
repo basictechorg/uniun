@@ -126,6 +126,7 @@ class _StatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -136,7 +137,7 @@ class _StatusRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _kv('Enabled', gana.enabled ? 'Yes' : 'No'),
-          _kv('Manases', gana.manasIds.length.toString()),
+          _kv(l10n.ganaDetailManasesLabel, gana.manasIds.length.toString()),
           _kv('Input',
               gana.inputType?.name ?? 'standalone (interval-only)'),
           _kv('Output', gana.outputType.name),

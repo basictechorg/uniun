@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/l10n/app_language.dart';
+import 'package:uniun/core/l10n/locale_cubit.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
 
@@ -21,108 +24,128 @@ class WelcomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── UNIUN brand (glow + logo + wordmark + subtitle) ──────
-                const _BrandBlock(),
-                const SizedBox(height: 12),
-                _Subtitle(l10n: l10n),
-
-                const SizedBox(height: 28),
-
-                // ── Trimurti pillars ─────────────────────────────────────
-                _TrimurtiPillars(l10n: l10n),
-
-                const SizedBox(height: 44),
-
-                // ── Primary — Create Your Avatar ─────────────────────────
-                _PrimaryButton(
-                  onPressed: () {
-                    // Generate keypair here so both AboutYou and KeysPage
-                    // can receive them as route arguments.
-                    final keychain = Keychain.generate();
-                    final npub = Nip19.encodePubkey(keychain.public);
-                    final nsec = Nip19.encodePrivkey(keychain.private);
-                    context.pushNamed(
-                      AppRoutes.aboutYou,
-                      extra: {
-                        'npub': npub,
-                        'nsec': nsec,
-                        'pubkeyHex': keychain.public,
-                      },
-                    );
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          children: [
+            // ── Language picker (EN / हिन्दी toggle + "More languages") ────
+            _LanguageBar(l10n: l10n),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.add_rounded,
-                          color: AppColors.onPrimary, size: 22),
-                      const SizedBox(width: 10),
-                      Text(
-                        l10n.welcomeCreateIdentity,
-                        style: const TextStyle(
-                          color: AppColors.onPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                      // ── UNIUN brand (glow + logo + wordmark + subtitle) ──────
+                      const _BrandBlock(),
+                      const SizedBox(height: 12),
+                      _Subtitle(l10n: l10n),
+
+                      const SizedBox(height: 28),
+
+                      // ── Trimurti pillars ─────────────────────────────────────
+                      _TrimurtiPillars(l10n: l10n),
+
+                      const SizedBox(height: 44),
+
+                      // ── Primary — Create Your Avatar ─────────────────────────
+                      _PrimaryButton(
+                        onPressed: () {
+                          // Generate keypair here so both AboutYou and KeysPage
+                          // can receive them as route arguments.
+                          final keychain = Keychain.generate();
+                          final npub = Nip19.encodePubkey(keychain.public);
+                          final nsec = Nip19.encodePrivkey(keychain.private);
+                          context.pushNamed(
+                            AppRoutes.aboutYou,
+                            extra: {
+                              'npub': npub,
+                              'nsec': nsec,
+                              'pubkeyHex': keychain.public,
+                            },
+                          );
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.add_rounded,
+                              color: AppColors.onPrimary,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              l10n.welcomeCreateIdentity,
+                              style: const TextStyle(
+                                color: AppColors.onPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // ── Secondary — Restore existing key ─────────────────────
+                      _SecondaryButton(
+                        onPressed: () =>
+                            context.pushNamed(AppRoutes.importIdentity),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.vpn_key_outlined,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              l10n.welcomeImportKey,
+                              style: const TextStyle(
+                                color: AppColors.onSurface,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // ── Learn more ───────────────────────────────────────────
+                      GestureDetector(
+                        onTap: () => context.pushNamed(AppRoutes.howItWorks),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              l10n.welcomeLearnHow,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: AppColors.primary,
+                              size: 16,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 14),
-
-                // ── Secondary — Restore existing key ─────────────────────
-                _SecondaryButton(
-                  onPressed: () =>
-                      context.pushNamed(AppRoutes.importIdentity),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.vpn_key_outlined,
-                          color: AppColors.primary, size: 20),
-                      const SizedBox(width: 10),
-                      Text(
-                        l10n.welcomeImportKey,
-                        style: const TextStyle(
-                          color: AppColors.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // ── Learn more ───────────────────────────────────────────
-                GestureDetector(
-                  onTap: () => context.pushNamed(AppRoutes.howItWorks),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        l10n.welcomeLearnHow,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_rounded,
-                          color: AppColors.primary, size: 16),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -402,6 +425,118 @@ class _SecondaryButton extends StatelessWidget {
           ],
         ),
         child: Center(child: child),
+      ),
+    );
+  }
+}
+
+// ── Language picker ───────────────────────────────────────────────────────────
+
+/// Top-of-screen language controls: a compact EN / हिन्दी segmented toggle for
+/// the two shipping languages, with a "More languages" link to the full picker.
+class _LanguageBar extends StatelessWidget {
+  const _LanguageBar({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const _LanguageToggle(),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => context.pushNamed(AppRoutes.selectLanguage),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.welcomeMoreLanguages,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two-segment pill bound to [LocaleCubit] — one segment per shipping language.
+class _LanguageToggle extends StatelessWidget {
+  const _LanguageToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    final active = context.watch<LocaleCubit>().activeLanguage;
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final lang in AppLanguage.supportedLanguages)
+            _Segment(
+              label: lang.nativeName,
+              selected: lang == active,
+              onTap: () => context.read<LocaleCubit>().setLanguage(lang),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

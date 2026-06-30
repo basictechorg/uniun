@@ -38,6 +38,20 @@ class FollowUserUseCase extends UseCase<Either<Failure, Unit>, FollowUserInput> 
   }
 }
 
+// ── FollowUsersUseCase (batch) ────────────────────────────────────────────────
+
+@lazySingleton
+class FollowUsersUseCase
+    extends UseCase<Either<Failure, Unit>, List<String>> {
+  final FollowedUserRepository _repository;
+  const FollowUsersUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(List<String> input, {bool cached = false}) {
+    return _repository.followUsers(input);
+  }
+}
+
 // ── UnfollowUserUseCase ───────────────────────────────────────────────────────
 
 @lazySingleton

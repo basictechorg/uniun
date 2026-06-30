@@ -387,19 +387,46 @@ class _EmptyFeedView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () => context.pushNamed(AppRoutes.scanQr),
-              icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
-              label: Text(l10n.vishnuFeedEmptyCta),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                // Re-reads Isar: followed accounts' notes land here once the
+                // gateway has synced them, even if they predate this session.
+                ElevatedButton.icon(
+                  onPressed: () => context
+                      .read<VishnuFeedBloc>()
+                      .add(const RefreshFeedEvent()),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(l10n.vishnuFeedEmptyRefresh),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
+                OutlinedButton.icon(
+                  onPressed: () => context.pushNamed(AppRoutes.scanQr),
+                  icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                  label: Text(l10n.vishnuFeedEmptyCta),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
