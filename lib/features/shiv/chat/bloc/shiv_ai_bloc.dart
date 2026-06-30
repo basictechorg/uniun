@@ -166,7 +166,15 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         emit(state.copyWith(
           status: ShivChatStatus.chatIdle,
           activeConversation: conv,
-          conversations: [conv, ...state.conversations],
+          // Dedupe: the Isar watcher may have already raced a LoadConversations
+          // through (during the _initChatSession await) and prepended this row.
+          // Drop any existing copy before prepending so the drawer never shows
+          // the active conversation twice.
+          conversations: [
+            conv,
+            ...state.conversations
+                .where((c) => c.conversationId != conv.conversationId),
+          ],
           messages: [],
           ragContextCount: 0,
           lastTurnSourceNoteIds: const [],

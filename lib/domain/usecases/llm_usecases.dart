@@ -4,6 +4,7 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/llm_credentials_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
 
@@ -75,11 +76,13 @@ class GenerateOneShotInput {
   const GenerateOneShotInput({
     required this.prompt,
     this.maxTokens = 1024,
-    this.highPriority = false,
+    this.kind = LlmTaskKind.extract,
   });
   final String prompt;
   final int maxTokens;
-  final bool highPriority;
+
+  /// Scheduler tier hint — see `docs/SHIVA/scheduling.md` §3 for the table.
+  final LlmTaskKind kind;
 }
 
 @lazySingleton
@@ -96,7 +99,7 @@ class GenerateOneShotUseCase
       _repo.generateOneShot(
         prompt: input.prompt,
         maxTokens: input.maxTokens,
-        highPriority: input.highPriority,
+        kind: input.kind,
       );
 }
 

@@ -5,9 +5,11 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/theme/app_theme.dart';
-import 'package:uniun/domain/entities/manas/manas_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
+import 'package:uniun/domain/usecases/scheduler_usecases.dart';
+import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
@@ -92,6 +94,15 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
     super.initState();
     _loadCoachSeen();
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkModel());
+    // Hoist Nataraj jobs to T1 while this page is open — see
+    // docs/SHIVA/scheduling.md §3 (foreground rule).
+    getIt<SetForegroundKindUseCase>().call(LlmTaskKind.nataraj);
+  }
+
+  @override
+  void dispose() {
+    getIt<SetForegroundKindUseCase>().call(null);
+    super.dispose();
   }
 
   /// Seed the coach gate from the persisted once-ever flag (via the settings

@@ -54,7 +54,8 @@ LocalLlmDataSource                            RemoteLlmDataSource
         │                                              │
         ▼                                              ▼
 AIModelRunner ▶ openChat(modelType…)         OpenRouterInference
-        │  ModelTaskQueue (high / low lanes)           │  Dio + SSE stream
+        │  InferenceScheduler (5-tier — see              │  Dio + SSE stream
+        │  docs/SHIVA/scheduling.md)                     │
         ▼                                              ▼
 flutter_gemma 0.16.5 (LiteRT-LM / MediaPipe)  openrouter.ai REST API
 ```
@@ -141,15 +142,19 @@ lib/data/repositories/
 lib/data/datasources/llm/
 ├── llm_data_source.dart             abstract — one impl per backend
 │
-├── local_llm_data_source.dart       wraps AIModelRunner + ModelTaskQueue
+├── local_llm_data_source.dart       wraps AIModelRunner + InferenceScheduler
 │                                    listAvailableModels → local catalog (downloaded only)
 │
 ├── local_llm_runner.dart            opens InferenceChat via flutter_gemma 0.16
 │                                    passes modelType + isThinking per active model
 │                                    holds _activeExtraction → safe preemption
 │
-├── local_inference_queue.dart       high/low priority lanes
-│                                    pauses low while user is in Shiv tab
+├── inference_scheduler.dart         5-tier scheduler — chat / foreground /
+│                                    extract / deadline / fair-pool. CFS-style
+│                                    vruntime + EDF deadlines + model affinity.
+│                                    See docs/SHIVA/scheduling.md.
+├── embedding_queue.dart             Semaphore(2) for the parallel embedder
+│                                    lane (separate model, never blocks LLM).
 │
 ├── local_model_params.dart          AIModelId → (ModelType, isThinking) lookup
 │                                    keeps chat template aligned to the model file
@@ -342,7 +347,8 @@ ShivAIBloc.onEnterShivTab()
    ▼
 PreemptBackgroundWorkUseCase  →  LlmRepository.preemptBackgroundWork
    │
-   ├─ local: ModelTaskQueue.pauseLowPriority()  (running extraction allowed to finish)
+   ├─ local: SchedulerCoordinator.setForeground(LlmTaskKind.chat)
+   │         (T0 chat preempts; lower tiers freeze until the user leaves)
    └─ cloud: cancels _extractionSub
 ```
 
@@ -398,8 +404,8 @@ SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
 | Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | OpenRouter REST `streamCompletion` (SSE) |
 | Session model | Per-turn `openChat` with `modelType` from `LocalModelParams` | Stateless — full prompt every call |
 | Cancellation | per-session `stopGeneration()` (safe since 0.16; KV-cache bleed between sequential `openChat`s fixed in 0.16.5) | cancel the Dio `StreamSubscription` |
-| Concurrency | accelerator-mutexed → `ModelTaskQueue` high/low lanes | network-concurrent — no queue |
-| Preemption of extraction | `_activeExtraction.stopGeneration()` before chat enters high lane | cancel `_extractionSub` |
+| Concurrency | accelerator-mutexed → `InferenceScheduler` (5 tiers, CFS fair pool, EDF deadline, model affinity — see [`scheduling.md`](scheduling.md)) | network-concurrent — no queue |
+| Preemption of extraction | `_activeExtraction.stopGeneration()` driven by the scheduler when a higher-tier job arrives | cancel `_extractionSub` |
 | Models exposed | downloaded local files (via `AIModelRepository`) | live `OpenRouter.listModels()` |
 | Credentials | none | `flutter_secure_storage` (Android Keystore / iOS Keychain) |
 
@@ -628,7 +634,7 @@ Engine isolate                 Main isolate
               │                │
               │                ├─► GanaInferenceServer
               │                │     ─► AIModelRunner.generateOneShot
-              │                │         ─► LocalInferenceQueue.runLow
+              │                │         ─► InferenceScheduler (kind=gana)
               │                │             ─► flutter_gemma (native thread)
               │                ▼
               │   GanaInference
@@ -659,7 +665,7 @@ write GanaPendingOutputModel{
 ### What this means for Shiv
 
 - **No new inference code.** Ganas reuse `AIModelRunner.generateOneShot` verbatim. If you change Shiv's inference behaviour, Gana behaviour changes the same way.
-- **Chat always wins.** `LocalInferenceQueue.runLow` for Gana means user-initiated chat preempts background Gana runs. A Gana inflight when you open Shiv → its `generateOneShot` returns null → the engine logs `skipped: modelSwapped` and retries next trigger.
+- **Chat always wins.** The scheduler's T0 chat tier preempts whatever Gana (or Nataraj, or extract) is mid-flight — `InferenceChat.stopGeneration()` at the next token boundary. Fair-pool jobs are re-queued; chat starts in <500 ms. Full tier rules in [`scheduling.md`](scheduling.md).
 - **Same model state.** `FlutterGemma.hasActiveModel()` is process-wide — the server reads it directly, gates Gana runs on it. `SelectAIModelCubit` swapping models is observable to the server (it reads `AppSettingsStore.activeModelId` per request).
 
 See `docs/SHIVA/Ganas.md` §7 for the UI-blocking analysis ("does the bridge slow the UI?" — no, with caveats).

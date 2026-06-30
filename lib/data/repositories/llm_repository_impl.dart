@@ -10,6 +10,7 @@ import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
 
@@ -72,12 +73,12 @@ class LlmRepositoryImpl implements LlmRepository {
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
-    bool highPriority = false,
+    LlmTaskKind kind = LlmTaskKind.extract,
   }) =>
       _active.generateOneShot(
         prompt: prompt,
         maxTokens: maxTokens,
-        highPriority: highPriority,
+        kind: kind,
       );
 
   @override

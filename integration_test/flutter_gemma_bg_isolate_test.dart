@@ -12,14 +12,14 @@
 //            (workmanager bumps `lastRunAt`, foreground engine actually
 //            runs inference next time the user opens the app).
 //
-// Why this file lives at `test/integration/` not `integration_test/`:
-// the test needs a real device (iOS sim / Android emulator) to load
-// gemma's native libraries. Move this file to `integration_test/`
-// before running (Flutter's integration-test harness only picks up that
-// directory). Then:
+// Why this file lives at `integration_test/` (project root, not under
+// `test/`): the `integration_test` plugin is only detected by the Flutter
+// tool when the folder is literally `integration_test/` at the repo root.
+// Move it elsewhere and `flutter test` runs the file as a plain host-VM
+// test — platform channels don't work, `hasActiveModel` returns false,
+// and the file silently SKIPs.
 //
-//   flutter test integration_test/flutter_gemma_bg_isolate_test.dart \
-//     --device-id <emulator-id>
+//   flutter test integration_test/ -d <device-id>
 //
 // PRECONDITIONS:
 //   1. flutter_gemma ^1.0.0 + the matching engine sub-package present in

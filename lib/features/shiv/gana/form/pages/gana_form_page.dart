@@ -13,7 +13,9 @@ import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
+import 'package:uniun/domain/usecases/scheduler_usecases.dart';
 import 'package:uniun/features/shiv/gana/form/bloc/gana_form_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -49,7 +51,16 @@ class _GanaFormViewState extends State<_GanaFormView> {
   bool _seeded = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Hoist Gana jobs to T1 while the form (with its inline preview) is
+    // open — docs/SHIVA/scheduling.md §3.
+    getIt<SetForegroundKindUseCase>().call(LlmTaskKind.gana);
+  }
+
+  @override
   void dispose() {
+    getIt<SetForegroundKindUseCase>().call(null);
     _nameCtrl.dispose();
     _taskCtrl.dispose();
     _userRefCtrl.dispose();
