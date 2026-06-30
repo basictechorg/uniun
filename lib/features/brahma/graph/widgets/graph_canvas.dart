@@ -5,6 +5,7 @@ import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/features/brahma/graph/layout/force_layout_tuning.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/graph/painters/dot_pattern_painter.dart';
 import 'package:uniun/features/brahma/graph/painters/edge_painter.dart';
@@ -100,7 +101,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
   double _sizeFor(String nodeId) {
     final connections = widget.adjacency[nodeId]?.length ?? 0;
-    return (24.0 + connections * 3.0).clamp(24.0, 50.0);
+    return nodeRadiusForConnections(connections);
   }
 
   Graph _buildGraph(List<GraphNodeData> nodes) {
@@ -137,22 +138,12 @@ class _GraphCanvasState extends State<GraphCanvas> {
   // (constant visual density) and the dense core de-densifies as the graph
   // grows, instead of compressing into a tangled hairball.
   void _tuneForces(int n) {
-    // 12 ≈ the node count at which the original fixed constants looked good.
-    final t = (n / 12).clamp(1.0, 6.0); // grows with N, capped at N≈72
-    _spreadScale = math.sqrt(t); // 1.0 .. ~2.45
-
-    // Link distance and repulsion scale together → spacing ∝ spread,
-    // area ∝ spread² ∝ N ⇒ density stays constant as the graph grows.
-    _linkDistance = 190.0 * _spreadScale;
-    _chargeStrength = -4200.0 * _spreadScale;
-
-    // Weaken global gravity as N grows so the core expands instead of
-    // compressing; the floor keeps large graphs bounded (and disconnected
-    // nodes from drifting off forever).
-    _centerStrength = (0.03 / _spreadScale).clamp(0.008, 0.03);
-
-    // A touch more whitespace when dense so labels clear edges/each other.
-    _collidePadding = 6.0 + 6.0 * (_spreadScale - 1.0);
+    final t = ForceLayoutTuning.forNodes(n);
+    _spreadScale = t.spreadScale;
+    _linkDistance = t.linkDistance;
+    _chargeStrength = t.chargeStrength;
+    _centerStrength = t.centerStrength;
+    _collidePadding = t.collidePadding;
   }
 
   void _initPhysics(double w, double h) {

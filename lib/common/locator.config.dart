@@ -1258,7 +1258,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.GetAllSavedNotesUseCase>(),
         gh<_i475.GetOwnNotesUseCase>(),
         gh<_i799.GetActiveUserUseCase>(),
-        gh<_i537.GetDraftsUseCase>(),
       ),
     );
     gh.factory<_i395.NatarajBloc>(

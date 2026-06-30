@@ -1,15 +1,11 @@
-import 'dart:convert';
-
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:nip44/nip44.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/draft_model.dart';
-import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/repositories/draft_repository_impl.dart';
 import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
@@ -736,9 +732,3 @@ class _RecordingEventQueue implements EventQueueRepository {
   }
 }
 
-// Avoid unused-import lint when the file evolves.
-// ignore: unused_element
-void _silenceUnused() {
-  jsonEncode(<String>[]);
-  Nip44.encryptMessage('', '', '');
-}

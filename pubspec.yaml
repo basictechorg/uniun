@@ -112,6 +112,14 @@ dev_dependencies:
   integration_test:
     sdk: flutter
 
+  # Industry-standard BLoC testing helper. `blocTest()` gives the
+  # declarative `act/expect/verify` style instead of hand-rolled
+  # `await bloc.stream.firstWhere(...)` loops.
+  bloc_test: ^9.1.7
+  # Mocktail: null-safety-native mock library, no codegen, no
+  # mockito @GenerateMocks boilerplate. Companion to bloc_test.
+  mocktail: ^1.0.4
+
   flutter_lints: ^2.0.0
   build_runner: ^2.13.0
   freezed: ^3.0.0

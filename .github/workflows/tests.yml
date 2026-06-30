@@ -1,0 +1,268 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      coverage:
+        description: 'Generate coverage report'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.2"
+
+jobs:
+  shard-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -e
+          declare -a SHARDS=(
+            test/data
+            test/domain
+            test/gateway
+            test/features
+            test/integration
+            test/common
+            test/widget_test.dart
+            test/shiv_home_page_test.dart
+            test/expandable_note_text_tap_test.dart
+            test/llm_text_sanitizer_test.dart
+          )
+          regex=""
+          for p in "${SHARDS[@]}"; do
+            esc=$(echo "$p" | sed 's|/|\\/|g')
+            regex="${regex:+$regex|}^$esc"
+          done
+          missing=$(find test -name '*_test.dart' -not -path 'test/_helpers/*' \
+            | grep -vE "$regex" || true)
+          if [ -n "$missing" ]; then
+            echo "::error::Test files not covered by any shard:"
+            echo "$missing"
+            exit 1
+          fi
+          echo "All test files covered."
+
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        id: codegen
+        with:
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
+
+      - if: steps.codegen.outputs.cache-hit != 'true'
+        run: flutter pub get
+
+      - if: steps.codegen.outputs.cache-hit != 'true'
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
+  analyze:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
+      - run: flutter pub get --offline
+      - run: flutter analyze --no-fatal-infos lib/ test/
+
+  test:
+    name: ${{ matrix.shard.name }}
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          # concurrency=1 on Isar-native-binary shards; parallel isolates SIGBUS on the second loader.
+          - name: data
+            paths: test/data
+            concurrency: 1
+          - name: domain
+            paths: test/domain
+            concurrency: 4
+          - name: gateway
+            paths: test/gateway
+            concurrency: 1
+          - name: features
+            paths: test/features
+            concurrency: 4
+          - name: integration
+            paths: test/integration
+            concurrency: 1
+          - name: common
+            paths: test/common test/widget_test.dart test/shiv_home_page_test.dart test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
+            concurrency: 4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
+
+      - run: flutter pub get --offline
+
+      - name: Run tests
+        run: |
+          set -e
+          existing=""
+          for p in ${{ matrix.shard.paths }}; do
+            [ -e "$p" ] && existing="$existing $p"
+          done
+          if [ -z "$existing" ]; then
+            echo "::notice::No tests for ${{ matrix.shard.name }} yet."
+            exit 0
+          fi
+          flutter test --reporter expanded \
+            --concurrency=${{ matrix.shard.concurrency }} \
+            $existing
+
+  coverage:
+    if: github.event_name == 'workflow_dispatch' && inputs.coverage
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/flutter_gemma
+          key: gemma-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .dart_tool
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: codegen-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'lib/**/*.dart', '!lib/**/*.g.dart', '!lib/**/*.freezed.dart') }}
+
+      - run: flutter pub get --offline
+
+      - name: Run tests with coverage
+        run: |
+          flutter test --coverage --concurrency=1 \
+            test/data test/domain test/features test/common \
+            test/widget_test.dart test/shiv_home_page_test.dart \
+            test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
+
+      - name: Summarise coverage
+        run: |
+          set -e
+          if ! [ -f coverage/lcov.info ]; then
+            echo "::error::coverage/lcov.info not produced"
+            exit 1
+          fi
+          total=$(grep -c '^LF:' coverage/lcov.info || true)
+          hit=$(awk -F: '/^LH:/ { s+=$2 } END { print s+0 }' coverage/lcov.info)
+          lines=$(awk -F: '/^LF:/ { s+=$2 } END { print s+0 }' coverage/lcov.info)
+          if [ "$lines" -gt 0 ]; then
+            pct=$(awk -v h="$hit" -v l="$lines" 'BEGIN { printf "%.1f", (h*100)/l }')
+          else
+            pct="0.0"
+          fi
+          echo "::notice::Coverage: $pct% ($hit / $lines lines, $total files)"
+          {
+            echo "## Coverage"
+            echo ""
+            echo "**$pct%** — $hit of $lines lines, across $total files"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 14
+
+  tests-passed:
+    name: tests
+    runs-on: ubuntu-latest
+    needs: [shard-coverage, analyze, test]
+    if: always()
+    steps:
+      - run: |
+          if [ "${{ needs.shard-coverage.result }}" != "success" ] || \
+             [ "${{ needs.analyze.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::A required job failed."
+            exit 1
+          fi
+          echo "All checks passed."
