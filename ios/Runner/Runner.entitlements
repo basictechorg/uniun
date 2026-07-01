@@ -18,12 +18,16 @@
 	</array>
 	<!-- flutter_gemma: large on-device LLMs (Gemma 4 E2B/E4B) need expanded
 	     virtual addressing + raised memory limits, or the compiled model fails
-	     to invoke on device. Required by the flutter_gemma 1.0 iOS setup. -->
+	     to invoke on device. Required by the flutter_gemma 1.0 iOS setup.
+	     NOTE: com.apple.developer.kernel.increased-debugging-memory-limit is
+	     intentionally NOT declared here. It is a restricted entitlement that
+	     Apple does not include in the auto-managed provisioning profile, so
+	     signing fails with "isn't permitted on the Runner.app bundle". It only
+	     raises the memory ceiling while attached to the Xcode debugger and has
+	     no effect on production; increased-memory-limit below covers real use. -->
 	<key>com.apple.developer.kernel.extended-virtual-addressing</key>
 	<true/>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
-	<true/>
-	<key>com.apple.developer.kernel.increased-debugging-memory-limit</key>
 	<true/>
 </dict>
 </plist>
