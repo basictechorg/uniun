@@ -1,0 +1,288 @@
+# Testing Guide — UNIUN
+
+Single source of truth for how every test in this repo is written. Read
+this before writing or modifying tests. Deviations are rejected in review.
+
+---
+
+## 1. Comment style (the only rule reviewers fight over)
+
+One short factual docstring per file. State what's covered. Nothing else.
+
+✅ Good
+```dart
+/// Covers: ScaleTransition + FadeTransition composition, animation ticks,
+/// size prop reaches DropIcon, controller dispose.
+void main() { ... }
+```
+
+❌ Bad
+```dart
+/// `DropLoadingIndicator` is the branded loading spinner used everywhere
+/// in place of `CircularProgressIndicator`. The tests pin the structural
+/// contract: the indicator IS a scale+fade transition composition (the
+/// breathing animation), not just a static glyph; the size prop reaches
+/// the DropIcon; the controller is disposed cleanly (no hanging ticker).
+void main() { ... }
+```
+
+Inline comments only when an assertion documents a non-obvious quirk
+("current behaviour: TypeError surfaces unchanged") — never narrate what
+the test code already shows.
+
+---
+
+## 2. Shared fixtures — `test/_helpers/fixtures.dart`
+
+Every domain entity has a factory there. **Never hand-roll a
+`NoteEntity(...)` in a new test.**
+
+### Available factories
+
+| Function | What it builds |
+|---|---|
+| `aNote(...)` | Top-level Kind-1 feed note (defaults: alice author, "hello world") |
+| `aReply(parent: ...)` | NIP-10 reply wired to a parent note |
+| `aGroupMessage(groupId: ...)` | Kind-42 public-group message |
+| `aPrivateGroupMessage(groupId: ...)` | Kind-9023 NIP-29 private-group message |
+| `aDmText(conversationId: ...)` | Kind-14 DM rumor |
+| `aQuoteOf(original)` | Note quoting another by value |
+| `aFeed(n: ...)` | List of `n` notes, newest first |
+| `aThread(depth: ...)` | Linear reply chain root → r1 → r2 → … |
+| `aProfile(...)`, `anAnonymousProfile()` | Profile entities |
+| `aSavedNote(...)`, `aManas(...)`, `manyManas(n)` | Other entities |
+| `aUserKey(...)` | Active-user key entity |
+| `aMediaBlob(...)`, `aPdfBlob()`, `aVideoBlob()` | Media attachments |
+
+### Shared constants
+
+```dart
+tT0    // DateTime.utc(2026, 1, 1) — "beginning of time"
+tNow   // DateTime.utc(2026, 6, 30, 12, 0, 0) — default for `created`/`updatedAt`
+
+kSelfPub, kAlicePub, kBobPub, kCarolPub, kEvePub   // stable pubkeys
+pubkeyN(i), eventIdN(i)                            // synthetic ids
+```
+
+### `Content` payload class
+
+Pre-built strings every text / markdown / preview test reuses:
+
+```dart
+Content.empty, Content.oneChar
+Content.emoji, Content.unicode, Content.rtl
+Content.singleNewline, Content.manyNewlines, Content.veryLong()
+Content.longJustOver(maxChars)
+Content.bareHttp, Content.bareHttps, Content.multipleUrls
+Content.nostrUri, Content.mixedSchemes
+Content.snakeCase, Content.boldOnly, Content.italicOnly, Content.codeOnly
+Content.mixedInline, Content.allHeadings, Content.bulletList,
+Content.numberedList, Content.blockquote
+Content.alreadyBracketed, Content.urlInSentence
+```
+
+### Adding a new factory
+
+If a test needs a shape no existing factory builds:
+
+1. **Add the factory to `fixtures.dart`**, not the test.
+2. Match the existing signature pattern: required positional/named first,
+   every overrideable field as a named param with a sane default.
+3. Document with a single one-line comment if the default is unusual.
+
+---
+
+## 3. File layout — edges fold into the original
+
+There is **one** test file per source file (or per cohesive cohort like
+"all NoteCard cubit tests"). Edge cases are an `// ── Edge cases ──`
+divider near the end. **Never** create `foo_edge_cases_test.dart`.
+
+```dart
+void main() {
+  group('happy path', () { ... });
+  group('failure modes', () { ... });
+
+  // ── Edge cases ──────────────────────────────────────────────────
+
+  group('unicode + emoji', () { ... });
+  group('malformed input', () { ... });
+  group('scale', () { ... });
+  group('boundary conditions', () { ... });
+}
+```
+
+### What "edge cases" means in this repo
+
+For every behaviour-bearing module, cover at minimum:
+
+- **Unicode / emoji / RTL** — `Content.emoji`, `Content.unicode`, `Content.rtl`
+- **Empty / whitespace-only input** — `Content.empty`, `'   \t\n  '`
+- **Boundary** — at the threshold, threshold-1, threshold+1
+- **Scale** — `Content.veryLong()` (200 lines) or 100+ entities
+- **Malformed input** — half-open JSON, type confusion, missing keys
+- **Type confusion** — int where String expected, null where required
+- **Concurrency** (for stateful code) — fire two events before the first
+  resolves; cancel mid-flight
+
+---
+
+## 4. Canonical packages (no alternatives without discussion)
+
+| Package | Version | Used for |
+|---|---|---|
+| `flutter_test` | (sdk) | `testWidgets`, `expect`, finders |
+| `bloc_test` | `^9.1.7` | `blocTest(build:, act:, expect:, verify:)` + `MockCubit<S>` |
+| `mocktail` | `^1.0.4` | `class _M extends Mock implements X {}` (no codegen) |
+| `get_it` | (already in app) | DI swap via `reset()` + `registerFactory` in widget tests |
+| `dartz` | (already in app) | `Either<Failure, T>` mocking |
+
+**Do NOT use:** `mockito` (uses codegen, conflicts with our build_runner
+graph), `flutter_test_ui`, hand-rolled spy classes.
+
+---
+
+## 5. Patterns by test type
+
+### Bloc / Cubit tests
+
+```dart
+import 'package:bloc_test/bloc_test.dart';
+import 'package:mocktail/mocktail.dart';
+import '../../_helpers/fixtures.dart';
+
+class _MSave extends Mock implements SaveNoteUseCase {}
+
+void main() {
+  setUpAll(() {
+    registerFallbackValue(aNote());           // for `any()` matchers
+    registerFallbackValue(const ManasNoteLink('m', 'n'));
+  });
+
+  late _MSave save;
+
+  setUp(() {
+    save = _MSave();
+    // Default stubs covering construction so unrelated tests don't crash.
+    when(() => save.call(any())).thenAnswer((_) async => Right(aNote()));
+  });
+
+  blocTest<MyBloc, MyState>(
+    'description',
+    build: () => MyBloc(save),
+    act: (b) => b.add(SomeEvent()),
+    expect: () => [SomeState()],
+    verify: (b) => verify(() => save.call(any())).called(1),
+  );
+}
+```
+
+**Critical detail for `bloc_test`:** the second type parameter must be the
+ACTUAL state type (e.g. `NoteCardState`), not `dynamic`. With `dynamic`
+the callback `c` is typed `Object?` and `c.state` won't resolve.
+
+### Widget tests that read from getIt
+
+```dart
+import 'package:get_it/get_it.dart';
+
+setUp(() async {
+  await GetIt.instance.reset();
+  GetIt.instance.registerFactory<MyBloc>(() => mockBloc);
+  GetIt.instance.registerFactory<UseCaseA>(() => mockA);
+});
+```
+
+`BlocProvider.value` at an outer level does NOT override an inner
+`BlocProvider.create(getIt<X>(...))` — you must replace the getIt entry.
+
+### Widget tests with infinite animations
+
+```dart
+// DON'T: pumpAndSettle — animation never settles, times out.
+// DO: pump a finite duration.
+await t.pump(const Duration(milliseconds: 300));
+```
+
+### Widget tests with localization
+
+```dart
+MaterialApp(
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: ...,
+)
+
+// When you need the strings in assertions:
+final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+expect(find.text(l10n.actionSave), findsOneWidget);
+```
+
+### Integration tests (real Isar)
+
+```dart
+import '../_helpers/isar_test_harness.dart';
+import '../_helpers/fixtures.dart';
+
+late Isar isar;
+
+setUp(() async { isar = await openTestIsar(); });
+tearDown(() async { await isar.close(deleteFromDisk: true); });
+```
+
+The harness shard runs with `concurrency: 1` in CI (Isar's native
+libmdbx races otherwise — see SIGBUS prevention in `tests.yml`).
+
+---
+
+## 6. Pipeline awareness
+
+The CI workflow (`.github/workflows/tests.yml`) shards tests by top-level
+path:
+
+```
+test/data, test/domain, test/gateway,
+test/features, test/integration, test/common
+```
+
+- Each `*_test.dart` file MUST live under one of these (or be one of the
+  legacy root-level files listed in `shard-coverage`).
+- `test/_helpers/` is excluded from the test runner by the harness — it's
+  imported, not executed.
+- Adding a NEW top-level test dir requires updating both the matrix and
+  `shard-coverage`. Prefer adding under an existing shard.
+
+---
+
+## 7. Edge-case checklist (for every new module)
+
+Run through this before declaring a test "done":
+
+- [ ] Happy path (single typical input)
+- [ ] All branches of every conditional
+- [ ] Empty / null / whitespace input
+- [ ] Boundary values (at, just-below, just-above)
+- [ ] Unicode + emoji + RTL
+- [ ] Very long input (`Content.veryLong()` or 100+ items)
+- [ ] Malformed / hostile input (where applicable)
+- [ ] Type confusion (cast failures, wrong shape)
+- [ ] Concurrent / cancel-mid-flight (stateful only)
+- [ ] Failure paths from every dependency (`Left(Failure)`)
+- [ ] Idempotency (where the contract claims it)
+- [ ] No exception leak (`expect(t.takeException(), isNull)` at the end
+      of widget tests touching async or animations)
+
+---
+
+## 8. Anti-patterns to reject
+
+- Hand-rolled entity constructors in a new test — use fixtures.
+- Separate `*_edge_cases_test.dart` files — fold into the original.
+- Multi-paragraph docstrings — one factual line.
+- Storytelling comments ("the most-touched widget", "silently breaks",
+  "tests pin the contract") — describe what's covered, not the drama.
+- `dynamic` as bloc_test's state type parameter — use the real state.
+- `mockito` — use `mocktail`.
+- `pumpAndSettle` on an infinite-animation widget — use `pump(Duration)`.
+- Tests that depend on global state from a previous test — every test
+  starts from `setUp`, leaves no leak in `tearDown`.

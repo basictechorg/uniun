@@ -664,6 +664,7 @@ Text(l10n.actionSave)
 - Annotate repository implementations with `@Injectable(as: RepositoryInterface)`.
 - Run `build_runner` after any change to `@freezed`, `@collection`, or `@injectable` annotated classes.
 - **Prefer bottom sheets over modal dialogs.** Reach for `showModalBottomSheet` (rounded top, drag handle, `AppColors.surfaceContainerLowest`) for input forms, pickers, and option lists — it is the app's default surface for transient UI. Reserve `AlertDialog` / `showDialog` for terse destructive confirmations ("Delete X?" yes/no). When a text field lives in a sheet, wrap it with `isScrollControlled: true` + `MediaQuery.viewInsets.bottom` padding so the keyboard doesn't cover it.
+- **Read `test/TESTING.md` BEFORE writing or modifying any test.** It is the canonical testing guide: comment style (one-line factual docstring), `test/_helpers/fixtures.dart` for every entity factory (`aNote`, `aReply`, `aProfile`, `aSavedNote`, `aManas`, `aUserKey`, `aMediaBlob`, `Content.*` payloads, fixed clocks `tT0`/`tNow`, stable pubkeys `kSelfPub`/`kAlicePub`), canonical packages (`bloc_test` + `mocktail` + `get_it` reset pattern, NOT `mockito`), folding edge cases into the original test file (NOT `*_edge_cases_test.dart`), and the eight-row CI shard map. The edge-case checklist there (Unicode, RTL, emoji, boundary, scale, malformed, type-confusion, concurrency, failure paths, idempotency) applies to every new test.
 
 ### NEVER DO
 

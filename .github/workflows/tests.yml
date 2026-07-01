@@ -33,6 +33,7 @@ jobs:
             test/features
             test/integration
             test/common
+            test/core
             test/widget_test.dart
             test/shiv_home_page_test.dart
             test/expandable_note_text_tap_test.dart
@@ -139,6 +140,9 @@ jobs:
           - name: common
             paths: test/common test/widget_test.dart test/shiv_home_page_test.dart test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
             concurrency: 4
+          - name: core
+            paths: test/core
+            concurrency: 4
     steps:
       - uses: actions/checkout@v4
 
@@ -219,7 +223,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           flutter test --coverage --concurrency=1 \
-            test/data test/domain test/features test/common \
+            test/data test/domain test/features test/common test/core \
             test/widget_test.dart test/shiv_home_page_test.dart \
             test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
 
