@@ -147,8 +147,25 @@ flutter pub run build_runner build --delete-conflicting-outputs   # if models/fr
 flutter build ipa --release
 ```
 
-Output: `build/ios/ipa/*.ipa`. Upload it with **Transporter** or Xcode's *Organizer*, or run
-`xcrun altool` / `flutter build ipa` then distribute via App Store Connect.
+Output: `build/ios/ipa/*.ipa`.
+
+Upload the `.ipa` to App Store Connect with **Transporter**, Xcode's *Organizer*, or
+`xcrun altool` from the command line:
+
+```bash
+xcrun altool --upload-app --type ios \
+  -f build/ios/ipa/*.ipa \
+  --apiKey <API_KEY_ID> \
+  --apiIssuer <ISSUER_ID>
+```
+
+> **Add your own App Store Connect API credentials — never commit them.**
+> - `<API_KEY_ID>` and `<ISSUER_ID>` come from **App Store Connect → Users and Access →
+>   Integrations → App Store Connect API**: the key's *Key ID* and the team's *Issuer ID*.
+> - Download that key's `AuthKey_<API_KEY_ID>.p8` once and place it in
+>   `~/.appstoreconnect/private_keys/` (or `~/private_keys/`) so `altool` can find it.
+> - Keep the key ID, issuer ID, and the `.p8` file out of the repository (e.g. export them as
+>   shell env vars or pass them on the command line at upload time).
 
 ### Android
 

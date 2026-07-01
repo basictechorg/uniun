@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/utils/llm_backend.dart';
 
 /// On-device text embedding using Gecko 110M (1024-dim), run through
 /// flutter_gemma's LiteRT embedder.
@@ -43,13 +44,16 @@ class EmbeddingService {
     if (isReady) return;
     try {
       await ensureInstalled();
-      // Prefer GPU, fall back to CPU on load failure (e.g. no GPU delegate on
-      // the iOS simulator or a low-end device) so RAG still works everywhere.
+      // Prefer GPU (iOS), fall back to CPU on load failure. Android starts on
+      // CPU via [preferredLlmBackend] because its GPU delegate can hard-crash
+      // the process (see llm_backend.dart), so RAG still works everywhere.
+      final backend = preferredLlmBackend;
       try {
         _model = await FlutterGemma.getActiveEmbedder(
-          preferredBackend: PreferredBackend.gpu,
+          preferredBackend: backend,
         );
       } on Object catch (e) {
+        if (backend == PreferredBackend.cpu) rethrow;
         debugPrint('🧠 Embedding: GPU load failed ($e) — retrying on CPU');
         _model = await FlutterGemma.getActiveEmbedder(
           preferredBackend: PreferredBackend.cpu,

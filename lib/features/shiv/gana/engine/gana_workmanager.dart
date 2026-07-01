@@ -7,6 +7,7 @@ import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nostr/nostr.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uniun/core/utils/llm_backend.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
@@ -320,17 +321,20 @@ Future<void> _runOneGana({
   var tokenCount = 0;
   DateTime? firstTokenAt;
   try {
-    _log('  opening model handle (GPU preferred)');
-    // Prefer GPU, fall back to CPU on engine-creation failure — mirrors the
-    // foreground AIModelRunner so a device without a usable GPU delegate still
-    // runs the bg tick instead of failing the whole run.
+    _log('  opening model handle (${preferredLlmBackend.name} preferred)');
+    // Prefer GPU (iOS), fall back to CPU on engine-creation failure — mirrors
+    // the foreground AIModelRunner. Android starts on CPU via
+    // [preferredLlmBackend] because its GPU delegate can hard-crash the
+    // process, so the bg tick still runs instead of taking the app down.
+    final backend = preferredLlmBackend;
     InferenceModel model;
     try {
       model = await FlutterGemma.getActiveModel(
         maxTokens: kBackgroundMaxTokens,
-        preferredBackend: PreferredBackend.gpu,
+        preferredBackend: backend,
       );
     } catch (e) {
+      if (backend == PreferredBackend.cpu) rethrow;
       _log('  GPU open failed ($e) — retrying on CPU');
       model = await FlutterGemma.getActiveModel(
         maxTokens: kBackgroundMaxTokens,

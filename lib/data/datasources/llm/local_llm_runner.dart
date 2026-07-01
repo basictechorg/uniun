@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart' hide CancelToken;
 import 'package:injectable/injectable.dart';
+import 'package:uniun/core/utils/llm_backend.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
@@ -51,14 +52,16 @@ class AIModelRunner {
   LocalModelParams? get _activeParams =>
       LocalModelParams.forId(_settings.activeModelId);
 
-  /// Backend that actually worked for the current model. We prefer GPU, but
-  /// the Metal GPU delegate cannot be applied to every model on every device —
-  /// large LiteRT graphs trip Metal's 31-texture-binding limit
+  /// Backend that actually worked for the current model. We prefer GPU on iOS,
+  /// but the Metal GPU delegate cannot be applied to every model on every
+  /// device — large LiteRT graphs trip Metal's 31-texture-binding limit
   /// ("texture binding ... index 31 that is greater than 30") and the iOS
   /// simulator has no usable GPU delegate at all. On the first GPU failure we
   /// retry on CPU and remember it so later turns skip the doomed GPU attempt.
-  /// Reset whenever the active model changes, to re-probe GPU for the new one.
-  PreferredBackend _backend = PreferredBackend.gpu;
+  /// On Android [preferredLlmBackend] starts us on CPU because the GPU delegate
+  /// crashes the process natively there (uncatchable — see llm_backend.dart).
+  /// Reset whenever the active model changes, to re-probe the preferred backend.
+  PreferredBackend _backend = preferredLlmBackend;
   AIModelId? _backendForModel;
 
   /// Open the active model, falling back GPU → CPU on engine-creation failure.
@@ -66,7 +69,7 @@ class AIModelRunner {
     final activeId = _settings.activeModelId;
     if (activeId != _backendForModel) {
       _backendForModel = activeId;
-      _backend = PreferredBackend.gpu;
+      _backend = preferredLlmBackend;
     }
     try {
       return _activeModel = await FlutterGemma.getActiveModel(

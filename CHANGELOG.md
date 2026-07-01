@@ -12,6 +12,44 @@ See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure.
 
 ---
 
+## [2.0.0] — 2026-06-30
+
+A major release: the public **Channels** feature is now **Groups**, the app gets a visual
+redesign, and UNIUN goes **multilingual** with full Hindi support.
+
+### Added
+- **Multi-language support — English + Hindi.** UNIUN can now run fully in **Hindi** (हिन्दी,
+  Devanagari). An in-app language switcher is available on the welcome screen (a quick EN / हिन्दी
+  toggle), on a dedicated **language-selection page**, and in **Settings**; the choice persists
+  across launches. Several more languages are listed as "coming soon". *(The Hindi translation is
+  machine-generated and pending native-speaker review.)*
+- **Onboarding interest picker.** After creating an identity, new users pick topics they care about;
+  UNIUN batch-follows a set of house accounts in a single transaction (one Kind-3 contact-list
+  republish) so the feed is alive from the first scroll instead of empty.
+- **Reporting & content moderation (NIP-56).** Users can file **Kind 1984** reports on notes and
+  users (nudity, spam, impersonation, illegal content, etc.), optionally block the author in the
+  same step, and review their own report history. Reporting a note also tombstones it locally so it
+  leaves the reporter's feed and threads.
+
+### Changed
+- **Channels are now "Groups".** The public-chat feature was renamed **Channel → Group** across the
+  entire app — UI, all strings, and the codebase — while preserving existing on-device data.
+  ("Group ID" terminology is kept where users copy/share identifiers.)
+- **Redesigned application.** A broad visual refresh across the app's screens and components.
+- **Smarter on-device AI scheduling.** Improvements to the inference scheduler that arbitrates chat,
+  foreground, knowledge-extraction, and background (Gana / Nataraj) AI work so the device stays
+  responsive under contention.
+- **Apple App Store compliance.** Edit-profile, Gana, and header fixes plus the other changes
+  required to pass App Store review; the companion website was shipped.
+
+### Fixed
+- Direct thread replies that were missing their NIP-10 reply marker.
+- Shiv UI not refreshing in some states.
+- Draft deep-link handling.
+- Assorted bug fixes and background-worker stability improvements.
+
+---
+
 ## [1.3.0] — 2026-06-24
 
 ### Added
@@ -108,6 +146,7 @@ built on the Nostr protocol.
 - **Sharing** — NIP-18 quote/share across feed, channels, and DMs.
 - Nostr identity onboarding (key generation + import), local-only private key storage.
 
+[2.0.0]: #130--2026-06-30
 [1.3.0]: #114--2026-06-24
 [1.1.0]: #110--2026-06-17
 [1.0.0]: #100--initial-release
