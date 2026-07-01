@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_filter.dart';
 import 'package:uniun/features/media/cubit/media_gallery_cubit.dart';
 import 'package:uniun/features/media/cubit/media_gallery_state.dart';
@@ -29,7 +28,7 @@ class _MediaGalleryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: const _GalleryAppBar(),
       body: BlocBuilder<MediaGalleryCubit, MediaGalleryState>(
         builder: (context, state) {
@@ -67,11 +66,11 @@ class _GalleryAppBar extends StatelessWidget
 
         if (!state.isSelecting) {
           return AppBar(
-            backgroundColor: AppColors.surfaceContainerLowest,
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
             elevation: 0,
             leading: const UniunBackButton(),
             title: Text(l10n.mediaGalleryTitle),
-            foregroundColor: AppColors.onSurface,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
           );
         }
 
@@ -82,9 +81,9 @@ class _GalleryAppBar extends StatelessWidget
             selectedBlobs.any((b) => b.localPath != null);
 
         return AppBar(
-          backgroundColor: AppColors.surfaceContainerLowest,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
           elevation: 0,
-          foregroundColor: AppColors.onSurface,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           leading: IconButton(
             icon: const Icon(Icons.close_rounded),
             tooltip: l10n.mediaSelectionExit,
@@ -95,8 +94,8 @@ class _GalleryAppBar extends StatelessWidget
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error),
+              icon: Icon(Icons.delete_outline_rounded,
+                  color: Theme.of(context).colorScheme.error),
               tooltip: l10n.mediaActionRemoveLocal,
               onPressed: anyCached
                   ? () => _confirmBulkRemove(
@@ -122,21 +121,21 @@ class _GalleryAppBar extends StatelessWidget
     final ok = await showDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         title: Text(l10n.mediaSelectionRemoveDialogTitle),
         content: Text(l10n.mediaSelectionRemoveDialogBody(count)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dctx, false),
             child: Text(l10n.actionCancel,
-                style: const TextStyle(color: AppColors.onSurfaceVariant)),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dctx, true),
             child: Text(
               l10n.mediaActionRemoveLocal,
-              style: const TextStyle(
-                color: AppColors.error,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -164,19 +163,19 @@ class _FilterStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          _chip(l10n.mediaTabAll, f.kind == MediaKindFilter.all, () {
+          _chip(context, l10n.mediaTabAll, f.kind == MediaKindFilter.all, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.all));
           }),
-          _chip(l10n.mediaTabImages, f.kind == MediaKindFilter.image, () {
+          _chip(context, l10n.mediaTabImages, f.kind == MediaKindFilter.image, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.image));
           }),
-          _chip(l10n.mediaTabVideos, f.kind == MediaKindFilter.video, () {
+          _chip(context, l10n.mediaTabVideos, f.kind == MediaKindFilter.video, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.video));
           }),
-          _chip(l10n.mediaTabAudio, f.kind == MediaKindFilter.audio, () {
+          _chip(context, l10n.mediaTabAudio, f.kind == MediaKindFilter.audio, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.audio));
           }),
-          _chip(l10n.mediaTabFiles, f.kind == MediaKindFilter.file, () {
+          _chip(context, l10n.mediaTabFiles, f.kind == MediaKindFilter.file, () {
             cubit.changeFilter(f.copyWith(kind: MediaKindFilter.file));
           }),
         ],
@@ -184,20 +183,22 @@ class _FilterStrip extends StatelessWidget {
     );
   }
 
-  Widget _chip(String label, bool selected, VoidCallback onTap) {
+  Widget _chip(BuildContext context, String label, bool selected,
+      VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ChoiceChip(
         label: Text(label),
         selected: selected,
         onSelected: (_) => onTap(),
-        selectedColor: AppColors.primary,
+        selectedColor: colorScheme.primary,
         labelStyle: TextStyle(
-          color: selected ? Colors.white : AppColors.onSurface,
+          color: selected ? Colors.white : colorScheme.onSurface,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-        backgroundColor: AppColors.surfaceContainerLow,
+        backgroundColor: colorScheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide.none,
@@ -216,8 +217,8 @@ class _Grid extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (state.status == MediaGalleryStatus.loading) {
-      return const Center(
-        child: DropLoadingIndicator(color: AppColors.primary),
+      return Center(
+        child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
     if (state.blobs.isEmpty) {
@@ -227,9 +228,9 @@ class _Grid extends StatelessWidget {
           child: Text(
             l10n.mediaEmptyState,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),

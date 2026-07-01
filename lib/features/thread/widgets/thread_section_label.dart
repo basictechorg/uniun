@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 /// UPPERCASE wide-tracked eyebrow shown above the references and replies groups
 /// in the thread view (mirrors the design-system `SectionLabel`): a small
@@ -12,7 +11,8 @@ class ThreadSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.onSurfaceVariant.withValues(alpha: 0.75);
+    final color =
+        Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.75);
     return Row(
       children: [
         Icon(icon, size: 14, color: color),

@@ -6,7 +6,6 @@ import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/features/receive_share/bloc/receive_share_bloc.dart';
 import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
@@ -65,16 +64,16 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         title: Text(
           l10n.receiveShareTitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),
@@ -136,9 +135,9 @@ class _ReceiveShareViewState extends State<_ReceiveShareView> {
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Text(
                       l10n.receiveShareIngesting,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -225,11 +224,11 @@ class _DestinationList extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
           child: Text(
             l10n.shareToLabel.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -282,9 +281,9 @@ class _DestinationList extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   child: Text(
                     l10n.shareNoDmConversations,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 )

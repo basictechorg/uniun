@@ -18,7 +18,7 @@ Future<void> _openSheet<T>({
 }) async {
   await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -36,11 +36,11 @@ Future<void> _openSheet<T>({
         ));
       }
       if (options.isEmpty && nullableOption == null) {
-        rows.add(const Padding(
+        rows.add(Padding(
           padding: EdgeInsets.symmetric(vertical: 16),
           child: Text(
             '—',
-            style: TextStyle(color: AppColors.onSurfaceVariant),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ));
       }
@@ -66,16 +66,16 @@ Future<void> _openSheet<T>({
                 height: 4,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.6),
+                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                   letterSpacing: 0.4,
                 ),
               ),
@@ -166,12 +166,12 @@ class _SelectorTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainer,
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: empty
-                ? AppColors.outlineVariant.withValues(alpha: 0.4)
-                : AppColors.primary.withValues(alpha: 0.18),
+                ? Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4)
+                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
             width: 1,
           ),
         ),
@@ -181,11 +181,11 @@ class _SelectorTile extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child:
-                  Icon(icon, size: 18, color: AppColors.primary),
+                  Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -194,10 +194,10 @@ class _SelectorTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -208,8 +208,8 @@ class _SelectorTile extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: empty
-                          ? AppColors.onSurfaceVariant
-                          : AppColors.onSurface,
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -217,8 +217,8 @@ class _SelectorTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                size: 22, color: AppColors.onSurfaceVariant),
+            Icon(Icons.chevron_right_rounded,
+                size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -251,15 +251,15 @@ class _SheetRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: active ? AppColors.primary : AppColors.onSurface,
+                  color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             if (active)
-              const Icon(Icons.check_rounded,
-                  size: 20, color: AppColors.primary),
+              Icon(Icons.check_rounded,
+                  size: 20, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),
@@ -361,10 +361,10 @@ class _TriggersSection extends StatelessWidget {
       children: [
         Text(
           l10n.ganaFormTriggerQuestion,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),
@@ -393,7 +393,7 @@ class _TriggersSection extends StatelessWidget {
                 child: TextField(
                   controller: intervalCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: _inputDeco('5'),
+                  decoration: _inputDeco(context, '5'),
                   onChanged: (v) {
                     final n = int.tryParse(v);
                     context
@@ -407,8 +407,8 @@ class _TriggersSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             l10n.ganaFormIntervalUnit,
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
         if (isRecurring) ...[
@@ -421,7 +421,7 @@ class _TriggersSection extends StatelessWidget {
                 child: TextField(
                   controller: maxOutputsCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: _inputDeco('10'),
+                  decoration: _inputDeco(context, '10'),
                   onChanged: (v) {
                     final n = int.tryParse(v);
                     context
@@ -435,8 +435,8 @@ class _TriggersSection extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             l10n.ganaFormMaxOutputsHelp,
-            style: const TextStyle(
-                fontSize: 12, color: AppColors.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
       ],

@@ -8,7 +8,7 @@ import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -24,31 +24,38 @@ class EmbeddedNoteCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final n = note;
     if (n == null) {
-      return _Shell(child: _placeholder(l10n.shareEmbedNotFound));
+      return _Shell(child: _Placeholder(text: l10n.shareEmbedNotFound));
     }
     return BlocProvider(
       create: (_) => getIt<NoteCardCubit>(param1: n),
       child: _EmbeddedNoteView(note: n),
     );
   }
+}
 
-  Widget _placeholder(String text) => Row(
-        children: [
-          const Icon(Icons.link_off_rounded,
-              size: 16, color: AppColors.outline),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
+class _Placeholder extends StatelessWidget {
+  const _Placeholder({required this.text});
+  final String text;
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(Icons.link_off_rounded, size: 16, color: colorScheme.outline),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: colorScheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
             ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 }
 
 class _EmbeddedNoteView extends StatelessWidget {
@@ -58,6 +65,7 @@ class _EmbeddedNoteView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final cardState = context.watch<NoteCardCubit>().state;
     final profile = cardState.profile;
     final name =
@@ -98,14 +106,14 @@ class _EmbeddedNoteView extends StatelessWidget {
                         right: -3,
                         child: Container(
                           padding: const EdgeInsets.all(1),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.gpp_maybe_rounded,
                             size: 13,
-                            color: Color(0xFFB45309),
+                            color: colorScheme.tertiary,
                           ),
                         ),
                       ),
@@ -116,10 +124,10 @@ class _EmbeddedNoteView extends StatelessWidget {
                   child: Text(
                     name,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -130,9 +138,9 @@ class _EmbeddedNoteView extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   formatTimeAgo(note.created),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.outline,
+                    color: colorScheme.outline,
                   ),
                 ),
               ],
@@ -162,6 +170,8 @@ class _EmbeddedContentPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final custom = context.custom;
     final stripped = stripMarkdownPreview(content);
     final likelyOverflows = stripped.length > _overflowChars ||
         '\n'.allMatches(stripped).length >= _maxLines;
@@ -172,9 +182,9 @@ class _EmbeddedContentPreview extends StatelessWidget {
           stripped,
           maxLines: _maxLines,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF1E293B),
+            color: custom.textBody,
             height: 1.4,
           ),
         ),
@@ -184,15 +194,15 @@ class _EmbeddedContentPreview extends StatelessWidget {
             children: [
               Text(
                 AppLocalizations.of(context)!.actionReadMore,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 2),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 14, color: AppColors.primary),
+              Icon(Icons.chevron_right_rounded,
+                  size: 14, color: colorScheme.primary),
             ],
           ),
         ],
@@ -207,34 +217,40 @@ class _UnverifiedChip extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFEF3C7),
-          borderRadius: BorderRadius.circular(6),
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: colorScheme.onTertiaryContainer,
         ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFFB45309),
-          ),
-        ),
-      );
+      ),
+    );
+  }
 }
 
 class _Shell extends StatelessWidget {
   const _Shell({required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: child,
-      );
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
+  }
 }

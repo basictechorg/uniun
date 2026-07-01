@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/theme/app_theme_mode.dart';
 import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/repositories/app_settings_repository.dart';
 
@@ -86,4 +87,17 @@ class SetAppLocaleUseCase extends UseCase<Either<Failure, Unit>, String?> {
   @override
   Future<Either<Failure, Unit>> call(String? input, {bool cached = false}) =>
       _repository.setLocaleCode(input);
+}
+
+/// Persists the user's chosen theme mode (system / light / dark). The root
+/// `ThemeCubit` calls this on every switch.
+@lazySingleton
+class SetThemeModeUseCase extends UseCase<Either<Failure, Unit>, AppThemeMode> {
+  final AppSettingsRepository _repository;
+  const SetThemeModeUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, Unit>> call(AppThemeMode input,
+          {bool cached = false}) =>
+      _repository.setThemeMode(input);
 }

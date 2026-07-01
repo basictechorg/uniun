@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// Brand-blue QR icon used in AppBars / drawer headers to open a QR card.
 class UniunQrButton extends StatelessWidget {
   const UniunQrButton({
@@ -16,9 +14,9 @@ class UniunQrButton extends StatelessWidget {
     return IconButton(
       onPressed: onTap,
       tooltip: tooltip,
-      icon: const Icon(
+      icon: Icon(
         Icons.qr_code_rounded,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -39,9 +37,9 @@ class UniunQrScanButton extends StatelessWidget {
     return IconButton(
       onPressed: onTap,
       tooltip: tooltip,
-      icon: const Icon(
+      icon: Icon(
         Icons.qr_code_scanner_rounded,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }

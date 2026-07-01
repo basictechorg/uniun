@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_conversation_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -29,10 +28,10 @@ class ShivConversationTile extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(
+        color: Theme.of(context).colorScheme.error,
+        child: Icon(
           Icons.delete_outline_rounded,
-          color: AppColors.onError,
+          color: Theme.of(context).colorScheme.onError,
         ),
       ),
       onDismissed: (_) => onDelete(),
@@ -45,15 +44,15 @@ class ShivConversationTile extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.primary.withValues(alpha: 0.12)
-                : AppColors.surfaceContainer,
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+                : Theme.of(context).colorScheme.surfaceContainer,
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.chat_bubble_outline_rounded,
             size: 16,
             color:
-                isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+                isActive ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         title: Text(
@@ -61,16 +60,16 @@ class ShivConversationTile extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           _formatDate(conversation.updatedAt, l10n),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         trailing: isActive
@@ -78,21 +77,21 @@ class ShivConversationTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(
                   l10n.shivActiveLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               )
-            : const Icon(
+            : Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 size: 18,
               ),
       ),

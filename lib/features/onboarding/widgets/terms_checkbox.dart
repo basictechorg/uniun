@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Terms & Privacy acceptance checkbox shown on signup (your_identity_keys)
@@ -23,12 +22,12 @@ class TermsCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    const linkStyle = TextStyle(
+    final linkStyle = TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w700,
-      color: AppColors.primary,
+      color: Theme.of(context).colorScheme.primary,
       decoration: TextDecoration.underline,
-      decorationColor: AppColors.primary,
+      decorationColor: Theme.of(context).colorScheme.primary,
     );
 
     return Row(
@@ -40,7 +39,7 @@ class TermsCheckbox extends StatelessWidget {
           child: Checkbox(
             value: accepted,
             onChanged: (v) => onChanged(v ?? false),
-            activeColor: AppColors.primary,
+            activeColor: Theme.of(context).colorScheme.primary,
             visualDensity: VisualDensity.compact,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -52,9 +51,9 @@ class TermsCheckbox extends StatelessWidget {
             children: [
               Text(
                 l10n.keysAgreePrefix,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               GestureDetector(
@@ -63,9 +62,9 @@ class TermsCheckbox extends StatelessWidget {
               ),
               Text(
                 l10n.keysAgreeConjunction,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               GestureDetector(

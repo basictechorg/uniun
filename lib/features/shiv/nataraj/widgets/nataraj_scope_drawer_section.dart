@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/features/shiv/nataraj/bloc/nataraj_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -22,10 +21,10 @@ class NatarajScopeDrawerSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
           child: Text(
             l10n.natarajScopeSheetTitle.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
               letterSpacing: 1.2,
             ),
           ),
@@ -47,8 +46,8 @@ class NatarajScopeDrawerSection extends StatelessWidget {
                     Icons.hub_rounded,
                     size: 18,
                     color: state.manasIds.isEmpty
-                        ? AppColors.primary
-                        : AppColors.onSurfaceVariant,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   label: l10n.natarajScopeAllNotes,
                   isSelected: state.manasIds.isEmpty,
@@ -60,8 +59,8 @@ class NatarajScopeDrawerSection extends StatelessWidget {
                       ManasIcons.byName(m.iconName),
                       size: 18,
                       color: state.manasIds.contains(m.manasId)
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     label: m.name,
                     noteCount: m.noteCount,
@@ -104,7 +103,7 @@ class _ScopeRow extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -117,7 +116,7 @@ class _ScopeRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? AppColors.primary : AppColors.onSurface,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -125,14 +124,14 @@ class _ScopeRow extends StatelessWidget {
             if (noteCount != null)
               Text(
                 '$noteCount',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             if (isSelected) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.check, size: 16, color: AppColors.primary),
+              Icon(Icons.check, size: 16, color: Theme.of(context).colorScheme.primary),
             ],
           ],
         ),

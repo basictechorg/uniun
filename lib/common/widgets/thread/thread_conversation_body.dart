@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/large_note_card.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
 import 'package:uniun/features/thread/widgets/thread_parent_context.dart';
 import 'package:uniun/features/thread/widgets/thread_section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Shared thread layout used by the feed, group, private-group and DM
 /// thread views. Pure UI: parent context → mentioned refs → root card →
@@ -46,7 +46,7 @@ class ThreadConversationBody extends StatelessWidget {
           SliverToBoxAdapter(
             child: Container(
               width: double.infinity,
-              color: AppColors.surfaceLow,
+              color: context.custom.surfaceLow,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

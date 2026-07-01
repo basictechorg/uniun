@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 /// Paints edges between graph nodes, highlighting connections to the selected node.
+///
+/// Colours are resolved by the caller (has BuildContext) and passed in so
+/// this painter stays context-free.
 class EdgePainter extends CustomPainter {
   const EdgePainter({
     required this.graph,
     required this.selectedNodeId,
+    required this.restColor,
+    required this.highlightColor,
     this.dim = false,
   });
 
   final Graph graph;
   final String? selectedNodeId;
+  final Color restColor;
+  final Color highlightColor;
 
   /// When true (graph search active), all edges fade back so the matched
   /// nodes carry the focus.
@@ -42,12 +48,12 @@ class EdgePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = isHighlighted ? 2.5 : 1.6
         ..color = dim
-            ? AppColors.neutral300.withValues(alpha: 0.25)
+            ? restColor.withValues(alpha: 0.25)
             : isHighlighted
-                ? AppColors.primary.withValues(alpha: 0.55)
+                ? highlightColor.withValues(alpha: 0.55)
                 : hasSelection
-                    ? AppColors.neutral300.withValues(alpha: 0.4)
-                    : AppColors.neutral300;
+                    ? restColor.withValues(alpha: 0.4)
+                    : restColor;
 
       canvas.drawLine(srcCenter, destCenter, paint);
     }

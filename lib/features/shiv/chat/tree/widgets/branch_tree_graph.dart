@@ -3,7 +3,7 @@ import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
 import 'package:uniun/core/enum/message_role.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 
 class BranchTreeGraph extends StatefulWidget {
@@ -108,7 +108,7 @@ class _BranchTreeGraphState extends State<BranchTreeGraph> {
           graph: _graph,
           algorithm: _algorithm,
           paint: Paint()
-            ..color = AppColors.outlineVariant
+            ..color = Theme.of(context).colorScheme.outlineVariant
             ..strokeWidth = 1.5
             ..style = PaintingStyle.stroke,
           builder: (Node node) {
@@ -154,17 +154,18 @@ class _TreeNode extends StatelessWidget {
             : message.content;
 
     // Explicit opaque solid colours — never transparent
+    final colorScheme = Theme.of(context).colorScheme;
     final bgColor = isOnActivePath
         ? (isUser
-            ? AppColors.surfaceContainerHigh       // grey for user on active path
-            : const Color(0xFFEAF1FF))             // light-blue tint for AI on active path
-        : AppColors.surfaceContainerLowest;        // solid white for inactive nodes
+            ? colorScheme.surfaceContainerHigh
+            : colorScheme.primaryContainer.withValues(alpha: 0.30))
+        : colorScheme.surfaceContainerLowest;
 
     final borderColor = isSelected
-        ? AppColors.primary
+        ? colorScheme.primary
         : isOnActivePath
-            ? AppColors.primary.withValues(alpha: 0.45)
-            : const Color(0xFFDDE1EA);             // subtle grey border
+            ? colorScheme.primary.withValues(alpha: 0.45)
+            : context.custom.borderSubtle;
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 140, minWidth: 80),
@@ -176,7 +177,7 @@ class _TreeNode extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.18)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.18)
                 : Colors.black.withValues(alpha: 0.06),
             blurRadius: isSelected ? 12 : 4,
             offset: const Offset(0, 2),
@@ -191,14 +192,14 @@ class _TreeNode extends StatelessWidget {
                   Icons.person_rounded,
                   size: 14,
                   color: isOnActivePath
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 )
               : DropIcon(
                   size: 14,
                   color: isOnActivePath
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
           const SizedBox(width: 6),
           Flexible(
@@ -209,8 +210,8 @@ class _TreeNode extends StatelessWidget {
                 fontWeight:
                     isOnActivePath ? FontWeight.w600 : FontWeight.w400,
                 color: isOnActivePath
-                    ? AppColors.onSurface
-                    : AppColors.onSurfaceVariant,
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

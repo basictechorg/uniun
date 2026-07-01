@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/tree/widgets/branch_tree_graph.dart';
@@ -22,7 +21,7 @@ class ShivBranchTreePage extends StatelessWidget {
           curr.activeConversation?.activeLeafMessageId,
       listener: (context, state) => Navigator.pop(context),
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         body: BlocBuilder<ShivAIBloc, ShivAIState>(
           builder: (context, state) {
             // allMessages is populated on _onOpenConversation.
@@ -40,7 +39,12 @@ class ShivBranchTreePage extends StatelessWidget {
               children: [
                 // ── Background dot pattern ─────────────────────────────
                 Positioned.fill(
-                  child: CustomPaint(painter: _DotPatternPainter()),
+                  child: CustomPaint(
+                      painter: _DotPatternPainter(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.4))),
                 ),
 
                 // ── Main content ───────────────────────────────────────
@@ -150,10 +154,10 @@ class _TreeHeader extends StatelessWidget {
         bottom: 12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.95),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -167,10 +171,10 @@ class _TreeHeader extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
               letterSpacing: -0.3,
             ),
           ),
@@ -180,7 +184,7 @@ class _TreeHeader extends StatelessWidget {
             width: 20,
             height: 20,
             colorFilter: ColorFilter.mode(
-              AppColors.primary.withValues(alpha: 0.6),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
               BlendMode.srcIn,
             ),
           ),
@@ -206,15 +210,15 @@ class _EmptyTree extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
               'assets/images/network_node.svg',
               width: 28,
               height: 28,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.primary,
                 BlendMode.srcIn,
               ),
             ),
@@ -222,20 +226,20 @@ class _EmptyTree extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             l10n.shivEmptyTreeTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             l10n.shivEmptyTreeBody,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.55,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -247,10 +251,13 @@ class _EmptyTree extends StatelessWidget {
 // ── Dot pattern background ───────────────────────────────────────────────────
 
 class _DotPatternPainter extends CustomPainter {
+  const _DotPatternPainter({required this.color});
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.outlineVariant.withValues(alpha: 0.4)
+      ..color = color
       ..strokeCap = StrokeCap.round;
     const spacing = 24.0;
     for (double x = 0; x < size.width; x += spacing) {
@@ -261,5 +268,5 @@ class _DotPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DotPatternPainter old) => false;
+  bool shouldRepaint(_DotPatternPainter old) => old.color != color;
 }

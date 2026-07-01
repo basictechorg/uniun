@@ -13,9 +13,9 @@ import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/profile/bloc/user_profile_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class UserProfileArgs {
   const UserProfileArgs({required this.pubkeyHex, this.hintName});
@@ -58,13 +58,13 @@ class _UserProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: BlocBuilder<UserProfileBloc, UserProfileState>(
         builder: (context, state) {
           if (state.loading) {
-            return const SafeArea(
+            return SafeArea(
               child: Center(
-                child: DropLoadingIndicator(color: AppColors.primary),
+                child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
               ),
             );
           }
@@ -81,8 +81,8 @@ class _UserProfileView extends StatelessWidget {
                     child: Center(
                       child: Text(
                         l10n.userProfileNoNotes,
-                        style: const TextStyle(
-                          color: AppColors.onSurfaceVariant,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 14,
                         ),
                       ),
@@ -135,9 +135,9 @@ class _GlassAppBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.80),
-              border: const Border(
-                bottom: BorderSide(color: AppColors.borderSubtle),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.80),
+              border: Border(
+                bottom: BorderSide(color: context.custom.borderSubtle),
               ),
             ),
           ),
@@ -153,10 +153,10 @@ class _GlassAppBar extends StatelessWidget {
               _displayName(state),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -205,20 +205,20 @@ class _Header extends StatelessWidget {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (nip05 != null && nip05.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.verified_rounded,
                             size: 15,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
@@ -226,9 +226,9 @@ class _Header extends StatelessWidget {
                               nip05,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -250,10 +250,10 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               about,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14.5,
                 height: 1.55,
-                color: AppColors.textBody,
+                color: context.custom.textBody,
               ),
             ),
           ],
@@ -294,10 +294,10 @@ class _NpubRow extends StatelessWidget {
             shown,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
               fontFeatures: [FontFeature.tabularFigures()],
-              color: AppColors.textMuted,
+              color: context.custom.textMuted,
             ),
           ),
         ),
@@ -311,10 +311,10 @@ class _NpubRow extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-          icon: const Icon(
+          icon: Icon(
             Icons.content_copy_rounded,
             size: 14,
-            color: AppColors.textMuted,
+            color: context.custom.textMuted,
           ),
         ),
       ],
@@ -332,20 +332,20 @@ class _NotesSectionLabel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
-          top: BorderSide(color: AppColors.borderSubtle),
-          bottom: BorderSide(color: AppColors.borderSubtle),
+          top: BorderSide(color: context.custom.borderSubtle),
+          bottom: BorderSide(color: context.custom.borderSubtle),
         ),
       ),
       child: Text(
         l10n.userProfileNotesLabel.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11.5,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
-          color: AppColors.textMuted,
+          color: context.custom.textMuted,
         ),
       ),
     );
@@ -371,9 +371,9 @@ class _FollowButton extends StatelessWidget {
         icon: const Icon(Icons.check_rounded, size: 18),
         label: Text(l10n.userProfileFollowing),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          foregroundColor: Theme.of(context).colorScheme.primary,
           padding: const EdgeInsets.symmetric(vertical: 11),
-          side: const BorderSide(color: AppColors.primary),
+          side: BorderSide(color: Theme.of(context).colorScheme.primary),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
           ),
@@ -385,7 +385,7 @@ class _FollowButton extends StatelessWidget {
       icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
       label: Text(l10n.userProfileFollow),
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(vertical: 11),
@@ -413,9 +413,9 @@ class _MessageButton extends StatelessWidget {
       icon: const Icon(Icons.mail_outline_rounded, size: 18),
       label: Text(l10n.userProfileMessage),
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.onSurface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         padding: const EdgeInsets.symmetric(vertical: 11),
-        side: const BorderSide(color: AppColors.outlineVariant),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
         ),

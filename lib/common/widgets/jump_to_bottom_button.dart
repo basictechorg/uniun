@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Distance (in pixels) from the bottom edge within which a chat list counts as
 /// "at the bottom". Past this, the [JumpToBottomButton] shows; within it, the
@@ -46,21 +46,22 @@ class JumpToBottomButton extends StatelessWidget {
           scale: visible ? 1 : 0.6,
           duration: _anim,
           curve: Curves.easeOut,
-          child: _button(),
+          child: _button(context),
         ),
       ),
     );
   }
 
-  Widget _button() {
+  Widget _button(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final button = DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: colorScheme.surfaceContainerLowest,
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: context.custom.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.12),
+            color: colorScheme.onSurface.withValues(alpha: 0.12),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -72,13 +73,13 @@ class JumpToBottomButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onPressed,
-          child: const SizedBox(
+          child: SizedBox(
             width: 44,
             height: 44,
             child: Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 26,
-              color: AppColors.onSurfaceVariant,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),

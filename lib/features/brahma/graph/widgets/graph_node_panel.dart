@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -16,6 +15,7 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Slides up from the bottom when a graph node is tapped.
 class GraphNodePanel extends StatelessWidget {
@@ -67,16 +67,16 @@ class GraphNodePanel extends StatelessWidget {
           maxHeight: MediaQuery.of(context).size.height * 0.52,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           border: Border(
             top: BorderSide(
-              color: AppColors.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.onSurface.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -94,7 +94,7 @@ class GraphNodePanel extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.outlineVariant,
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -111,8 +111,8 @@ class GraphNodePanel extends StatelessWidget {
                   const Spacer(),
                   GestureDetector(
                     onTap: onClose,
-                    child: const Icon(Icons.close_rounded,
-                        size: 20, color: AppColors.onSurfaceVariant),
+                    child: Icon(Icons.close_rounded,
+                        size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -164,9 +164,9 @@ class _TypeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (type) {
-      GraphNodeType.saved => (l10n.graphLegendSaved, AppColors.graphSaved),
-      GraphNodeType.own   => (l10n.graphLegendOwn,   AppColors.graphOwn),
-      GraphNodeType.draft => (l10n.graphLegendDraft, AppColors.graphDraft),
+      GraphNodeType.saved => (l10n.graphLegendSaved, context.custom.graphSaved),
+      GraphNodeType.own   => (l10n.graphLegendOwn,   context.custom.graphOwn),
+      GraphNodeType.draft => (l10n.graphLegendDraft, context.custom.graphDraft),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -253,10 +253,10 @@ class _DraftPreview extends StatelessWidget {
                         child: Text(
                           displayName,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -264,10 +264,10 @@ class _DraftPreview extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           formatTimeAgo(node.created!),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.outline,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                       ],
@@ -282,17 +282,17 @@ class _DraftPreview extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         height: 1.55,
-                        color: AppColors.outline.withValues(alpha: 0.6),
+                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.6),
                         fontStyle: FontStyle.italic,
                       ),
                     )
                   else if (!isEmpty)
                     NoteMarkdownBody(
                       content: content,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         height: 1.55,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
 
@@ -313,9 +313,9 @@ class _DraftPreview extends StatelessWidget {
                           .map(
                             (t) => Text(
                               '#$t',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.primary,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -334,8 +334,8 @@ class _DraftPreview extends StatelessWidget {
           children: [
             _ActionBtn(
               label: l10n.graphDraftEdit,
-              color: AppColors.onSurfaceVariant,
-              bgColor: AppColors.surfaceContainerLow,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              bgColor: Theme.of(context).colorScheme.surfaceContainerLow,
               onTap: () {
                 onClose();
                 onEditTap?.call(draftId);
@@ -348,8 +348,8 @@ class _DraftPreview extends StatelessWidget {
               child: BlocBuilder<BrahmaCreateBloc, BrahmaCreateState>(
                 builder: (context, brahmaState) => _ActionBtn(
                   label: l10n.brahmaPublish,
-                  color: AppColors.onPrimary,
-                  bgColor: AppColors.primary,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  bgColor: Theme.of(context).colorScheme.primary,
                   fullWidth: true,
                   busy: brahmaState.isSubmitting,
                   onTap: brahmaState.isSubmitting
@@ -361,8 +361,8 @@ class _DraftPreview extends StatelessWidget {
             const SizedBox(width: 8),
             _ActionBtn(
               label: l10n.graphDraftDelete,
-              color: AppColors.error,
-              bgColor: AppColors.errorContainer,
+              color: Theme.of(context).colorScheme.error,
+              bgColor: Theme.of(context).colorScheme.errorContainer,
               onTap: () {
                 onClose();
                 context.read<GraphBloc>().add(DeleteDraftNodeEvent(draftId));
@@ -386,15 +386,15 @@ class _DraftChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.graphDraft.withValues(alpha: 0.12),
+        color: context.custom.graphDraft.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.graphDraft,
+          color: context.custom.graphDraft,
         ),
       ),
     );

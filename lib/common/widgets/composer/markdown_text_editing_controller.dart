@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// `TextEditingController` that paints inline markdown spans (bold / italic /
 /// inline code / links / headings) with their syntax markers hidden, so the
 /// composer reads as the rendered post — Obsidian-style live preview.
@@ -30,6 +28,7 @@ class MarkdownTextEditingController extends TextEditingController {
     if (source.isEmpty) {
       return TextSpan(style: baseStyle, text: source);
     }
+    final colorScheme = Theme.of(context).colorScheme;
 
     final children = <InlineSpan>[];
 
@@ -48,7 +47,7 @@ class MarkdownTextEditingController extends TextEditingController {
         final markerLen = hashes.length + 1;
         final caretInLine = caret >= lineStart && caret <= lineEnd;
         final markerStyle = baseStyle.copyWith(
-          color: caretInLine ? AppColors.outline : Colors.transparent,
+          color: caretInLine ? colorScheme.outline : Colors.transparent,
         );
         final headingStyle = baseStyle.copyWith(
           fontSize: (baseStyle.fontSize ?? 15) + (4 - level) * 3.0,
@@ -63,9 +62,11 @@ class MarkdownTextEditingController extends TextEditingController {
           line.substring(markerLen),
           headingStyle,
           caret - (lineStart + markerLen),
+          colorScheme,
         ));
       } else {
-        children.addAll(_tokenizeInline(line, baseStyle, caret - lineStart));
+        children.addAll(
+            _tokenizeInline(line, baseStyle, caret - lineStart, colorScheme));
       }
 
       if (nl < 0) break;
@@ -99,7 +100,8 @@ const _patterns = [
   (_MdKind.url, r'https?://[^\s)]+'),
 ];
 
-List<InlineSpan> _tokenizeInline(String text, TextStyle base, int caret) {
+List<InlineSpan> _tokenizeInline(
+    String text, TextStyle base, int caret, ColorScheme colorScheme) {
   final out = <InlineSpan>[];
   if (text.isEmpty) return out;
 
@@ -120,7 +122,7 @@ List<InlineSpan> _tokenizeInline(String text, TextStyle base, int caret) {
     if (m.start > cursor) {
       out.add(TextSpan(text: text.substring(cursor, m.start), style: base));
     }
-    out.add(_renderMatch(m, base, caret));
+    out.add(_renderMatch(m, base, caret, colorScheme));
     cursor = m.end;
   }
   if (cursor < text.length) {
@@ -129,10 +131,11 @@ List<InlineSpan> _tokenizeInline(String text, TextStyle base, int caret) {
   return out;
 }
 
-TextSpan _renderMatch(_MdMatch mm, TextStyle base, int caret) {
+TextSpan _renderMatch(
+    _MdMatch mm, TextStyle base, int caret, ColorScheme colorScheme) {
   final caretInside = caret >= mm.start && caret <= mm.end;
   final marker = base.copyWith(
-    color: caretInside ? AppColors.outline : Colors.transparent,
+    color: caretInside ? colorScheme.outline : Colors.transparent,
   );
   switch (mm.kind) {
     case _MdKind.bold:
@@ -157,7 +160,7 @@ TextSpan _renderMatch(_MdMatch mm, TextStyle base, int caret) {
           text: inner,
           style: base.copyWith(
             fontFamily: 'monospace',
-            backgroundColor: AppColors.surfaceContainerHigh,
+            backgroundColor: colorScheme.surfaceContainerHigh,
           ),
         ),
         TextSpan(text: '`', style: marker),
@@ -170,7 +173,7 @@ TextSpan _renderMatch(_MdMatch mm, TextStyle base, int caret) {
         TextSpan(
           text: label,
           style: base.copyWith(
-            color: AppColors.primary,
+            color: colorScheme.primary,
             decoration: TextDecoration.underline,
           ),
         ),
@@ -182,7 +185,7 @@ TextSpan _renderMatch(_MdMatch mm, TextStyle base, int caret) {
       return TextSpan(
         text: mm.match.group(0),
         style: base.copyWith(
-          color: AppColors.primary,
+          color: colorScheme.primary,
           decoration: TextDecoration.underline,
         ),
       );

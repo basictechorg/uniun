@@ -4,7 +4,6 @@ import 'package:uniun/common/widgets/composer/markdown_formatting_toolbar.dart';
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Whether a [ComposerReference] points at a published note (id = Nostr event
@@ -181,8 +180,8 @@ class _UniunComposerState extends State<UniunComposer> {
 
     return Container(
       padding: EdgeInsets.fromLTRB(14, 10, 10, 10 + bottom),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -222,11 +221,11 @@ class _UniunComposerState extends State<UniunComposer> {
                 onChanged: widget.onTextChanged,
                 minLines: widget.minLines,
                 maxLines: widget.maxLines,
-                style: const TextStyle(fontSize: 15, color: AppColors.onSurface),
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: widget.hintText,
-                  hintStyle: const TextStyle(
-                      color: AppColors.onSurfaceVariant, fontSize: 15),
+                  hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 15),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -254,8 +253,8 @@ class _UniunComposerState extends State<UniunComposer> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.close_rounded,
@@ -318,15 +317,15 @@ class _UniunComposerState extends State<UniunComposer> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 9),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerHigh,
+                          color: Theme.of(context).colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           widget.draftLabel ?? 'Draft',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -344,15 +343,15 @@ class _UniunComposerState extends State<UniunComposer> {
                         child: Container(
                           width: 40,
                           height: 40,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
                           child: widget.isSending
-                              ? const Padding(
+                              ? Padding(
                                   padding: EdgeInsets.all(11),
                                   child: DropLoadingIndicator(
-                                    color: AppColors.onPrimary,
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 )
                               : const Icon(Icons.arrow_upward_rounded,
@@ -390,21 +389,21 @@ class _CircleButton extends StatelessWidget {
         height: 34,
         decoration: BoxDecoration(
           color: active
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : AppColors.surfaceContainerHigh,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+              : Theme.of(context).colorScheme.surfaceContainerHigh,
           shape: BoxShape.circle,
         ),
         child: busy
-            ? const Padding(
+            ? Padding(
                 padding: EdgeInsets.all(9),
                 child: DropLoadingIndicator(
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               )
             : Icon(
                 icon,
                 size: 18,
-                color: active ? AppColors.primary : AppColors.onSurfaceVariant,
+                color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
       ),
     );
@@ -429,7 +428,7 @@ class _ReplyBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -438,7 +437,7 @@ class _ReplyBanner extends StatelessWidget {
             width: 3,
             height: hasPreview ? 30 : 14,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -452,9 +451,9 @@ class _ReplyBanner extends StatelessWidget {
                   l10n.threadReplyingTo(name),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -464,9 +463,9 @@ class _ReplyBanner extends StatelessWidget {
                     snippet,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -476,8 +475,8 @@ class _ReplyBanner extends StatelessWidget {
           const SizedBox(width: 6),
           GestureDetector(
             onTap: onClear,
-            child: const Icon(Icons.close_rounded,
-                size: 16, color: AppColors.primary),
+            child: Icon(Icons.close_rounded,
+                size: 16, color: Theme.of(context).colorScheme.primary),
           ),
         ],
       ),
@@ -529,14 +528,14 @@ class _UploadingTile extends StatelessWidget {
       child: Container(
         width: 72,
         height: 72,
-        color: AppColors.surfaceContainerHigh,
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         alignment: Alignment.center,
-        child: const SizedBox(
+        child: SizedBox(
           width: 22,
           height: 22,
           child: DropLoadingIndicator(
             size: 22,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ),
@@ -559,7 +558,7 @@ class _AttachmentTile extends StatelessWidget {
           child: SizedBox(
             width: 72,
             height: 72,
-            child: _preview(),
+            child: _preview(context),
           ),
         ),
         if (media.isVideo)
@@ -593,21 +592,21 @@ class _AttachmentTile extends StatelessWidget {
   /// Preview straight from the in-memory bytes — images render directly;
   /// videos show their first-frame blurhash (decoding a frame inline would be
   /// heavy); everything else falls back to a type icon.
-  Widget _preview() {
+  Widget _preview(BuildContext context) {
     if (media.isImage) {
       return Image.memory(
         media.bytes,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _icon(),
+        errorBuilder: (_, __, ___) => _icon(context),
       );
     }
     if (media.isVideo && media.blurhash != null) {
       return BlurHash(hash: media.blurhash!);
     }
-    return _icon();
+    return _icon(context);
   }
 
-  Widget _icon() {
+  Widget _icon(BuildContext context) {
     final IconData icon = media.isVideo
         ? Icons.movie_outlined
         : media.mime.startsWith('audio/')
@@ -615,10 +614,11 @@ class _AttachmentTile extends StatelessWidget {
             : media.isImage
                 ? Icons.image_outlined
                 : Icons.insert_drive_file_outlined;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      color: AppColors.surfaceContainerHigh,
+      color: colorScheme.surfaceContainerHigh,
       alignment: Alignment.center,
-      child: Icon(icon, color: AppColors.onSurfaceVariant, size: 28),
+      child: Icon(icon, color: colorScheme.onSurfaceVariant, size: 28),
     );
   }
 }
@@ -644,10 +644,10 @@ class _ReferenceRow extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(999),
             border:
-                Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -657,14 +657,14 @@ class _ReferenceRow extends StatelessWidget {
                     ? Icons.edit_note_rounded
                     : Icons.link_rounded,
                 size: 12,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 5),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -674,16 +674,16 @@ class _ReferenceRow extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
+                  child: Text(
                     'DRAFT',
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -692,8 +692,8 @@ class _ReferenceRow extends StatelessWidget {
                 const SizedBox(width: 5),
                 GestureDetector(
                   onTap: () => onRemove!(r.id),
-                  child: const Icon(Icons.close_rounded,
-                      size: 13, color: AppColors.primary),
+                  child: Icon(Icons.close_rounded,
+                      size: 13, color: Theme.of(context).colorScheme.primary),
                 ),
               ],
             ],

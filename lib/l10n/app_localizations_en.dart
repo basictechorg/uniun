@@ -2925,4 +2925,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ganaDetailManasesLabel => 'Manases';
+
+  @override
+  String get settingsAppearance => 'Appearance';
+
+  @override
+  String get settingsTheme => 'Theme';
+
+  @override
+  String get settingsThemeSheetTitle => 'Choose theme';
+
+  @override
+  String get settingsThemeSystem => 'Match system';
+
+  @override
+  String get settingsThemeLight => 'Light';
+
+  @override
+  String get settingsThemeDark => 'Dark';
 }

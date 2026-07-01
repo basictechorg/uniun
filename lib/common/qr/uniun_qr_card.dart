@@ -10,12 +10,26 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/deep_link.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Near-black QR ink. Kept independent of the theme — a QR must stay
 /// dark-on-white to scan reliably (the app is light-only in v1).
 const Color _kQrInk = Color(0xFF15181C);
+
+/// Small leading-icon widget used by the group/private-group cards. Pulls its
+/// tint from the active `ColorScheme.primary` at build time so it works in
+/// dark mode; kept const-constructible so the factory constructors above can
+/// still be `const`.
+class _PrimaryTintedIcon extends StatelessWidget {
+  const _PrimaryTintedIcon({required this.icon});
+  final IconData icon;
+  @override
+  Widget build(BuildContext context) => Icon(
+        icon,
+        size: 26,
+        color: Theme.of(context).colorScheme.primary,
+      );
+}
 
 /// Shared QR display sheet used for all four sharing kinds. Present via
 /// [UniunQrCard.show]. Always copies the FULL underlying id to the clipboard —
@@ -35,7 +49,7 @@ class UniunQrCard extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -92,11 +106,7 @@ class UniunQrCard extends StatefulWidget {
           ),
           copyLabel: 'Copy group ID',
           caption: (l10n) => l10n.qrCaptionPublicGroup,
-          iconLeading: const Icon(
-            Icons.tag_rounded,
-            size: 26,
-            color: AppColors.primary,
-          ),
+          iconLeading: const _PrimaryTintedIcon(icon: Icons.tag_rounded),
         ),
       ],
     );
@@ -121,11 +131,7 @@ class UniunQrCard extends StatefulWidget {
           ),
           copyLabel: 'Copy group ID',
           caption: (l10n) => l10n.qrCaptionPrivateGroup,
-          iconLeading: const Icon(
-            Icons.lock_outline,
-            size: 26,
-            color: AppColors.primary,
-          ),
+          iconLeading: const _PrimaryTintedIcon(icon: Icons.lock_outline),
         ),
       ],
     );
@@ -217,7 +223,7 @@ class _UniunQrCardState extends State<UniunQrCard> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.35),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -239,10 +245,10 @@ class _UniunQrCardState extends State<UniunQrCard> {
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -281,9 +287,9 @@ class _UniunQrCardState extends State<UniunQrCard> {
               Text(
                 entry.caption(l10n),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 18),
@@ -292,8 +298,8 @@ class _UniunQrCardState extends State<UniunQrCard> {
                 icon: const Icon(Icons.ios_share_rounded, size: 18),
                 label: Text(l10n.qrShareAction),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -430,7 +436,7 @@ class _AvatarSlot extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.center,
@@ -460,21 +466,21 @@ class _IdRow extends StatelessWidget {
           child: Text(
             entry.copyValue,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 12,
               height: 1.4,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
         const SizedBox(width: 2),
         IconButton(
           onPressed: onCopy,
-          icon: const Icon(
+          icon: Icon(
             Icons.copy_rounded,
             size: 16,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
           tooltip: entry.copyLabel,
           visualDensity: VisualDensity.compact,
@@ -501,7 +507,7 @@ class _ToggleHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -515,7 +521,7 @@ class _ToggleHeader extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 9),
                   decoration: BoxDecoration(
                     color: selectedIndex == i
-                        ? AppColors.surface
+                        ? Theme.of(context).colorScheme.surface
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                     boxShadow: selectedIndex == i
@@ -537,8 +543,8 @@ class _ToggleHeader extends StatelessWidget {
                           ? FontWeight.w600
                           : FontWeight.w500,
                       color: selectedIndex == i
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),

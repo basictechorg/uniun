@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
 /// Renders the messages a chat message references, shown above its bubble.
@@ -21,15 +20,16 @@ class ReferencedMessages extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (refs.isEmpty) return const SizedBox.shrink();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.15),
+          color: colorScheme.primary.withValues(alpha: 0.15),
         ),
       ),
       child: Column(
@@ -40,15 +40,15 @@ class ReferencedMessages extends StatelessWidget {
             if (refs[i] == null)
               Row(
                 children: [
-                  const Icon(Icons.link_off_rounded,
-                      size: 14, color: AppColors.onSurfaceVariant),
+                  Icon(Icons.link_off_rounded,
+                      size: 14, color: colorScheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       unavailableLabel,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),

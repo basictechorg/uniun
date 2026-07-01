@@ -9,7 +9,6 @@ import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/media/file_type_style.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
@@ -200,7 +199,7 @@ class _AttachmentTileState extends State<_AttachmentTile> {
               label: Text(l10n.noteCardDownloadMedia),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(
                     horizontal: 14, vertical: 8),
@@ -248,10 +247,11 @@ class _AttachmentTileState extends State<_AttachmentTile> {
         : _blob.mime.startsWith('audio/')
             ? Icons.audiotrack_outlined
             : Icons.insert_drive_file_outlined;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      color: AppColors.surfaceContainerHigh,
+      color: colorScheme.surfaceContainerHigh,
       alignment: Alignment.center,
-      child: Icon(icon, size: 48, color: AppColors.onSurfaceVariant),
+      child: Icon(icon, size: 48, color: colorScheme.onSurfaceVariant),
     );
   }
 }
@@ -270,6 +270,7 @@ class _FileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final style = FileTypeStyle.fromMime(blob.mime, blob.filename);
     final title = (blob.filename != null && blob.filename!.trim().isNotEmpty)
         ? blob.filename!
@@ -277,7 +278,7 @@ class _FileCard extends StatelessWidget {
     final subtitle = _buildSubtitle(l10n, style);
 
     return Material(
-      color: AppColors.surfaceContainerLow,
+      color: colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: busy ? null : onTap,
@@ -287,7 +288,7 @@ class _FileCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _typeChip(style),
+              _typeChip(context, style),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -298,10 +299,10 @@ class _FileCard extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -309,16 +310,16 @@ class _FileCard extends StatelessWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _trailing(),
+              _trailing(colorScheme),
             ],
           ),
         ),
@@ -326,26 +327,27 @@ class _FileCard extends StatelessWidget {
     );
   }
 
-  Widget _typeChip(FileTypeStyle style) {
+  Widget _typeChip(BuildContext context, FileTypeStyle style) {
+    final c = style.colorFor(context);
     return Container(
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: style.color.withValues(alpha: 0.12),
+        color: c.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(style.icon, color: style.color, size: 22),
+          Icon(style.icon, color: c, size: 22),
           const SizedBox(height: 2),
           Text(
             style.label,
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
-              color: style.color,
+              color: c,
               letterSpacing: 0.5,
             ),
           ),
@@ -354,21 +356,21 @@ class _FileCard extends StatelessWidget {
     );
   }
 
-  Widget _trailing() {
+  Widget _trailing(ColorScheme colorScheme) {
     if (busy) {
-      return const SizedBox(
+      return SizedBox(
         width: 20,
         height: 20,
         child: DropLoadingIndicator(
           size: 20,
-          color: AppColors.primary,
+          color: colorScheme.primary,
         ),
       );
     }
     return Icon(
       _cached ? Icons.open_in_new_rounded : Icons.cloud_download_outlined,
       size: 20,
-      color: AppColors.onSurfaceVariant,
+      color: colorScheme.onSurfaceVariant,
     );
   }
 

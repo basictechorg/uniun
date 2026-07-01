@@ -1,7 +1,5 @@
 import 'package:avatar_plus/avatar_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// Avatar widget used during onboarding.
 ///
 /// Always seeded from [seed] (the user's pubkeyHex, optionally with a variant
@@ -34,7 +32,7 @@ class GeneratedAvatar extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.35),
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35),
               width: 1.5,
             ),
           ),
@@ -57,10 +55,10 @@ class GeneratedAvatar extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Theme.of(context).colorScheme.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
                 boxShadow: [
@@ -70,10 +68,10 @@ class GeneratedAvatar extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.shuffle_rounded,
                 size: 13,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),

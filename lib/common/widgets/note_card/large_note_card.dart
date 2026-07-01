@@ -9,7 +9,7 @@ import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/note_card/save_toggle.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/share/pages/share_sheet_page.dart';
@@ -79,6 +79,8 @@ class _LargeNoteCardView extends StatelessWidget {
     final cubit = context.watch<NoteCardCubit>();
     final cardState = cubit.state;
     final profile = cardState.profile;
+    final colorScheme = Theme.of(context).colorScheme;
+    final custom = context.custom;
 
     final isFollowed = cardState.isFollowed;
 
@@ -101,27 +103,28 @@ class _LargeNoteCardView extends StatelessWidget {
           ? null
           : contained
               ? BoxDecoration(
-                  color: AppColors.surface,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border, width: 1),
+                  border: Border.all(color: custom.border, width: 1),
                   // --shadow-sm: restrained, neutral elevation.
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x12151A1C),
+                      color: custom.elevationMd,
                       blurRadius: 3,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                     BoxShadow(
-                      color: Color(0x0A151A1C),
+                      color: custom.elevationMd.withValues(alpha: 0.04),
                       blurRadius: 2,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 )
-              : const BoxDecoration(
-                  color: AppColors.surface,
+              : BoxDecoration(
+                  color: colorScheme.surface,
                   border: Border(
-                    bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
+                    bottom:
+                        BorderSide(color: custom.borderSubtle, width: 1),
                   ),
                 ),
       padding: !showActions
@@ -156,27 +159,27 @@ class _LargeNoteCardView extends StatelessWidget {
                       children: [
                         Text(
                           displayName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
-                            color: AppColors.onSurface,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
                           formatTimeAgo(note.created),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textMuted,
+                            color: custom.textMuted,
                           ),
                         ),
                       ],
                     ),
                     Text(
                       handle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -195,9 +198,9 @@ class _LargeNoteCardView extends StatelessWidget {
           if (note.content.isNotEmpty)
             NoteMarkdownBody(
               content: note.content,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
-                color: AppColors.textBody,
+                color: custom.textBody,
                 height: 1.6,
                 fontWeight: FontWeight.w400,
               ),
@@ -216,9 +219,9 @@ class _LargeNoteCardView extends StatelessWidget {
                   .take(5)
                   .map((t) => Text(
                         '#$t',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.primary,
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ))
@@ -226,10 +229,10 @@ class _LargeNoteCardView extends StatelessWidget {
             ),
           ],
           if (showActions) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
               child: Divider(
-                color: AppColors.borderSubtle,
+                color: custom.borderSubtle,
                 height: 1,
               ),
             ),
@@ -238,7 +241,7 @@ class _LargeNoteCardView extends StatelessWidget {
                 _LargeActionChip(
                   icon: Icons.chat_bubble_outline_rounded,
                   label: '${replyCount ?? note.cachedReplyCount}',
-                  color: AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                   onTap: () {},
                 ),
                 const SizedBox(width: 28),
@@ -246,8 +249,8 @@ class _LargeNoteCardView extends StatelessWidget {
                   icon: Icons.link_rounded,
                   label: '${note.referenceCount}',
                   color: note.referenceCount > 0
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   onTap: () {},
                 ),
                 // Save hidden on own notes (kept forever already; saving is
@@ -259,8 +262,8 @@ class _LargeNoteCardView extends StatelessWidget {
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                     color: cardState.isSaved
-                        ? AppColors.primary
-                        : AppColors.onSurfaceVariant,
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                     onTap: () => handleSaveToggle(context, cubit),
                   ),
                 ],
@@ -270,14 +273,14 @@ class _LargeNoteCardView extends StatelessWidget {
                       ? Icons.visibility
                       : Icons.visibility_outlined,
                   color: isFollowed
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   onTap: () => cubit.toggleFollow(),
                 ),
                 const Spacer(),
                 _LargeActionChip(
                   icon: Icons.ios_share_rounded,
-                  color: AppColors.onSurfaceVariant,
+                  color: colorScheme.onSurfaceVariant,
                   onTap: () => ShareSheetPage.show(context, note.id),
                 ),
               ],

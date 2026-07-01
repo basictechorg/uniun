@@ -6,9 +6,9 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/advanced_section.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_groups/create/bloc/create_private_group_bloc.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class CreatePrivateGroupPage extends StatelessWidget {
   const CreatePrivateGroupPage({super.key});
@@ -64,7 +64,7 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -73,7 +73,7 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
            ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.createPrivateGroupSuccess),
-              backgroundColor: AppColors.success,
+              backgroundColor: context.custom.success,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -82,9 +82,9 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
       },
       child: KeyboardDismissOnTap(
         child: Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             centerTitle: true,
@@ -93,8 +93,8 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
             ),
             title: Text(
               l10n.createPrivateGroupTitle,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
               ),
@@ -112,7 +112,7 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
                     _Eyebrow(
                       icon: Icons.lock_rounded,
                       label: l10n.createPrivateGroupEncrypted,
-                      color: AppColors.success,
+                      color: context.custom.success,
                     ),
                     const SizedBox(height: 20),
 
@@ -164,10 +164,10 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
                     const SizedBox(height: 14),
                     Text(
                       l10n.createPrivateGroupAdminNote,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         height: 1.55,
-                        color: AppColors.textMuted,
+                        color: context.custom.textMuted,
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -179,22 +179,22 @@ class _CreatePrivateGroupViewState extends State<_CreatePrivateGroupView> {
                       child: ElevatedButton(
                         onPressed: state.isSubmitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.onPrimary,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           disabledBackgroundColor:
-                              AppColors.primary.withValues(alpha: 0.5),
+                              Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: state.isSubmitting
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: DropLoadingIndicator(
                                   size: 20,
-                                  color: AppColors.onPrimary,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               )
                             : Text(
@@ -226,7 +226,7 @@ class _HairlineBorder extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Container(height: 1, color: AppColors.borderSubtle);
+      Container(height: 1, color: context.custom.borderSubtle);
 }
 
 /// UPPERCASE wide-tracked eyebrow (DS `SectionLabel`): optional leading icon +
@@ -235,19 +235,20 @@ class _Eyebrow extends StatelessWidget {
   const _Eyebrow({
     required this.label,
     this.icon,
-    this.color = AppColors.onSurfaceVariant,
+    this.color,
   });
 
   final String label;
   final IconData? icon;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final resolved = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 14, color: color),
+          Icon(icon, size: 14, color: resolved),
           const SizedBox(width: 6),
         ],
         Text(
@@ -256,7 +257,7 @@ class _Eyebrow extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.4,
-            color: color,
+            color: resolved,
           ),
         ),
       ],
@@ -274,13 +275,13 @@ class _LockEmblem extends StatelessWidget {
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.10),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.lock_rounded,
         size: 38,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -297,21 +298,21 @@ class _EncryptedInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.12),
+        color: context.custom.success.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_rounded, size: 20, color: AppColors.success),
+          Icon(Icons.lock_rounded, size: 20, color: context.custom.success),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.55,
-                color: AppColors.textBody,
+                color: context.custom.textBody,
               ),
             ),
           ),

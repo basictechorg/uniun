@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Horizontal row of inline-formatting buttons that operate on a shared
@@ -62,10 +61,10 @@ class _Btn extends StatelessWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 18, color: AppColors.onSurfaceVariant),
+            child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
       ),

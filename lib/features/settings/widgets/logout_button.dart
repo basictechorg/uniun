@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -19,7 +18,7 @@ class LogoutButton extends StatelessWidget {
       child: TextButton.icon(
         onPressed: () => _confirm(context),
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.error,
+          foregroundColor: Theme.of(context).colorScheme.error,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -41,21 +40,21 @@ class LogoutButton extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         title: Text(
           l10n.settingsLogoutTitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         content: Text(
           l10n.settingsLogoutBody,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             height: 1.5,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         actions: [
@@ -63,15 +62,15 @@ class LogoutButton extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               l10n.actionCancel,
-              style: const TextStyle(color: AppColors.onSurfaceVariant),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.settingsLogoutConfirm,
-              style: const TextStyle(
-                color: AppColors.error,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.w600,
               ),
             ),

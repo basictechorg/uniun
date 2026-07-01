@@ -7,7 +7,6 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/data/models/missing_profile_pubkey_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -132,7 +131,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
     final l10n = AppLocalizations.of(context)!;
     return KeyboardDismissOnTap(
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         resizeToAvoidBottomInset: true,
         body: Stack(
           children: [
@@ -155,11 +154,11 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                           // ── Eyebrow ───────────────────────────────────
                           Text(
                             l10n.importEyebrow.toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.4,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -169,7 +168,7 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                             // Display serif (--font-display Newsreader) — the
                             // design system reserves this for onboarding
                             // headlines. h1 28 · semibold · pinned weight + opsz.
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Newsreader',
                               fontVariations: [
                                 FontVariation('wght', 600),
@@ -179,15 +178,15 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                               fontWeight: FontWeight.w600,
                               height: 1.2,
                               letterSpacing: -0.56,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             l10n.importSubtitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppColors.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               height: 1.4,
                             ),
                           ),
@@ -199,26 +198,26 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                             children: [
                               Text(
                                 l10n.importPrivateKeyLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: 1.3,
-                                  color: AppColors.onSurfaceVariant,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                               GestureDetector(
                                 onTap: _pasteFromClipboard,
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.content_paste_rounded,
-                                        size: 13, color: AppColors.primary),
+                                    Icon(Icons.content_paste_rounded,
+                                        size: 13, color: Theme.of(context).colorScheme.primary),
                                     const SizedBox(width: 4),
                                     Text(
                                       l10n.importPasteFromClipboard,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ],
@@ -232,14 +231,14 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                           TextField(
                             controller: _controller,
                             maxLines: 4,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 14,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             decoration: InputDecoration(
                               hintText: l10n.importKeyHint,
-                              fillColor: AppColors.surfaceContainerLow,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
                             ),
                           ),
 
@@ -252,23 +251,23 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                               width: double.infinity,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerLowest,
+                                color: Theme.of(context).colorScheme.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: AppColors.outlineVariant
+                                  color: Theme.of(context).colorScheme.outlineVariant
                                       .withValues(alpha: 0.4),
                                 ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.qr_code_scanner_rounded,
-                                      size: 20, color: AppColors.primary),
+                                  Icon(Icons.qr_code_scanner_rounded,
+                                      size: 20, color: Theme.of(context).colorScheme.primary),
                                   const SizedBox(width: 10),
                                   Text(
                                     l10n.importScanQrButton,
-                                    style: const TextStyle(
-                                      color: AppColors.onSurface,
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurface,
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -283,21 +282,21 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceContainerLow,
+                              color: Theme.of(context).colorScheme.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.lock_rounded,
-                                    color: AppColors.primary, size: 16),
+                                Icon(Icons.lock_rounded,
+                                    color: Theme.of(context).colorScheme.primary, size: 16),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     l10n.importSecurityNote,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.onSurfaceVariant,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       height: 1.4,
                                     ),
                                   ),
@@ -342,12 +341,12 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                               width: double.infinity,
                               height: 52,
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
+                                color: Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: _canContinue
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.primary
+                                          color: Theme.of(context).colorScheme.primary
                                               .withValues(alpha: 0.22),
                                           blurRadius: 20,
                                           offset: const Offset(0, 6),
@@ -358,8 +357,8 @@ class _ImportIdentityPageState extends State<ImportIdentityPage> {
                               child: Center(
                                 child: Text(
                                   l10n.importContinue,
-                                  style: const TextStyle(
-                                    color: AppColors.onPrimary,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -409,8 +408,8 @@ class _GlowBlob extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.10),
-            AppColors.primary.withValues(alpha: 0.0),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
           ],
         ),
       ),

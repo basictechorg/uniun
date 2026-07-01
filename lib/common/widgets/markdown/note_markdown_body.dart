@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:uniun/common/widgets/markdown/markdown_link_handler.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
+import 'package:uniun/core/theme/app_custom_colors.dart';
 /// Renders note text as markdown using a deliberately tight subset:
 /// headings (H1–H3) / bold / italic / inline code / bullet + numbered lists /
 /// blockquotes / links.
@@ -26,7 +25,7 @@ class NoteMarkdownBody extends StatelessWidget {
   /// Base text style. Other markdown styles are derived from it.
   final TextStyle? style;
 
-  /// Link colour override. Defaults to [AppColors.primary].
+  /// Link colour override. Defaults to [Theme.of(context).colorScheme.primary].
   final Color? linkColor;
 
   /// Tap handler for the body text. The body is always selectable
@@ -40,12 +39,12 @@ class NoteMarkdownBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = style ??
-        const TextStyle(
+        TextStyle(
           fontSize: 15,
-          color: Color(0xFF1E293B),
+          color: context.custom.textBody,
           height: 1.55,
         );
-    final link = linkColor ?? AppColors.primary;
+    final link = linkColor ?? Theme.of(context).colorScheme.primary;
 
     return MarkdownBody(
       data: _shortenBareUrls(content),
@@ -56,7 +55,7 @@ class NoteMarkdownBody extends StatelessWidget {
       onTapLink: (text, href, title) {
         if (href != null) handleMarkdownLink(context, href);
       },
-      styleSheet: _buildStyleSheet(base, link),
+      styleSheet: _buildStyleSheet(context, base, link),
     );
   }
 }
@@ -114,11 +113,13 @@ class _NostrUriSyntax extends md.InlineSyntax {
   }
 }
 
-MarkdownStyleSheet _buildStyleSheet(TextStyle base, Color link) {
+MarkdownStyleSheet _buildStyleSheet(
+    BuildContext context, TextStyle base, Color link) {
+  final colorScheme = Theme.of(context).colorScheme;
   final code = base.copyWith(
     fontFamily: 'monospace',
     fontSize: (base.fontSize ?? 15) - 1,
-    backgroundColor: AppColors.surfaceContainerHigh,
+    backgroundColor: colorScheme.surfaceContainerHigh,
   );
   final baseSize = base.fontSize ?? 15;
   return MarkdownStyleSheet(
@@ -134,13 +135,14 @@ MarkdownStyleSheet _buildStyleSheet(TextStyle base, Color link) {
     h3Padding: const EdgeInsets.only(top: 2, bottom: 2),
     code: code,
     codeblockDecoration: BoxDecoration(
-      color: AppColors.surfaceContainerHigh,
+      color: colorScheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(6),
     ),
-    blockquote: base.copyWith(color: AppColors.onSurfaceVariant),
+    blockquote: base.copyWith(color: colorScheme.onSurfaceVariant),
     blockquoteDecoration: BoxDecoration(
       border: Border(
-        left: BorderSide(color: AppColors.primary.withValues(alpha: 0.4), width: 3),
+        left: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.4), width: 3),
       ),
     ),
     blockquotePadding: const EdgeInsets.only(left: 10, top: 2, bottom: 2),

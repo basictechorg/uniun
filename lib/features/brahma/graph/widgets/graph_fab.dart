@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// FAB that opens the compose page and reloads the graph on return.
 class GraphFab extends StatelessWidget {
   const GraphFab({super.key});
@@ -13,8 +11,8 @@ class GraphFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton(
       onPressed: () => _onTap(context),
-      backgroundColor: AppColors.primary,
-      foregroundColor: AppColors.onPrimary,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       elevation: 4,
       shape: const CircleBorder(),
       child: const Icon(Icons.add_rounded, size: 28),

@@ -5,7 +5,6 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/relay/relay_entity.dart';
 import 'package:uniun/domain/usecases/delete_relay_usecase.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
@@ -14,6 +13,7 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class IdentityCard extends StatelessWidget {
   const IdentityCard({super.key, required this.state});
@@ -47,7 +47,7 @@ class IdentityCard extends StatelessWidget {
   void _showKeysSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -59,7 +59,7 @@ class IdentityCard extends StatelessWidget {
   void _showRelaysSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -83,7 +83,7 @@ class _SheetGrabber extends StatelessWidget {
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.outlineVariant,
+          color: Theme.of(context).colorScheme.outlineVariant,
           borderRadius: BorderRadius.circular(99),
         ),
       ),
@@ -145,16 +145,16 @@ class _KeysSheetState extends State<_KeysSheet> {
           const SizedBox(height: 18),
           Text(
             l10n.identityYourKeys,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             l10n.identityNeverShare,
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 13, color: context.custom.textMuted),
           ),
 
           // ── Public Key ─────────────────────────────────────────────────
@@ -180,19 +180,19 @@ class _KeysSheetState extends State<_KeysSheet> {
               child: OutlinedButton.icon(
                 onPressed: _nsecLoading ? null : _revealNsec,
                 icon: _nsecLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: DropLoadingIndicator(
                           size: 16,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       )
                     : const Icon(Icons.visibility_rounded, size: 18),
                 label: Text(l10n.identityRevealPrivateKey),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                   side: BorderSide.none,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -205,23 +205,23 @@ class _KeysSheetState extends State<_KeysSheet> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.errorContainer.withValues(alpha: 0.3),
+                color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_rounded,
-                      size: 16, color: AppColors.error),
+                  Icon(Icons.warning_rounded,
+                      size: 16, color: Theme.of(context).colorScheme.error),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       l10n.identityNeverShareKey,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         height: 1.45,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onErrorContainer,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
                       ),
                     ),
                   ),
@@ -267,10 +267,10 @@ class _KeyBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.6),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
       ),
       child: Row(
@@ -278,11 +278,11 @@ class _KeyBox extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
                 fontFamily: 'monospace',
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -291,10 +291,10 @@ class _KeyBox extends StatelessWidget {
             InkResponse(
               onTap: onHide,
               radius: 22,
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(8),
                 child: Icon(Icons.visibility_off_rounded,
-                    size: 18, color: AppColors.onSurfaceVariant),
+                    size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -308,21 +308,21 @@ class _KeyBox extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.content_copy_rounded,
-                        size: 15, color: AppColors.primary),
+                    Icon(Icons.content_copy_rounded,
+                        size: 15, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 5),
                     Text(
                       l10n.actionCopy,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],
@@ -411,7 +411,7 @@ class _RelaysSheetState extends State<_RelaysSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         title: Text(l10n.relayRemoveDialogTitle),
         content: Text(l10n.relayRemoveDialogBody(relay.url)),
         actions: [
@@ -422,7 +422,7 @@ class _RelaysSheetState extends State<_RelaysSheet> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(l10n.relayRemoveDialogAction,
-                style: const TextStyle(color: AppColors.error)),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),
@@ -459,10 +459,10 @@ class _RelaysSheetState extends State<_RelaysSheet> {
               Expanded(
                 child: Text(
                   l10n.identityRelaysSheetTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -472,7 +472,7 @@ class _RelaysSheetState extends State<_RelaysSheet> {
                     _adding
                         ? Icons.close_rounded
                         : Icons.add_circle_outline_rounded,
-                    color: AppColors.primary),
+                    color: Theme.of(context).colorScheme.primary),
                 tooltip: l10n.relaySelectorAddTooltip,
               ),
             ],
@@ -480,9 +480,9 @@ class _RelaysSheetState extends State<_RelaysSheet> {
           const SizedBox(height: 4),
           Text(
             l10n.identityRelaysSubtitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.textMuted,
+              color: context.custom.textMuted,
             ),
           ),
           if (_adding) ...[
@@ -498,10 +498,10 @@ class _RelaysSheetState extends State<_RelaysSheet> {
                     keyboardType: TextInputType.url,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _submitAdd(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontFamily: 'monospace',
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: l10n.relayAddDialogHint,
@@ -517,20 +517,20 @@ class _RelaysSheetState extends State<_RelaysSheet> {
                   child: FilledButton(
                     onPressed: _saving ? null : _submitAdd,
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onPrimary,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.4),
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                     ),
                     child: _saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: DropLoadingIndicator(
-                                size: 18, color: AppColors.onPrimary),
+                                size: 18, color: Theme.of(context).colorScheme.onPrimary),
                           )
                         : Text(l10n.relayAddDialogAction),
                   ),
@@ -540,14 +540,14 @@ class _RelaysSheetState extends State<_RelaysSheet> {
           ],
           const SizedBox(height: 20),
           if (_loading)
-            const Center(
+            Center(
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: SizedBox(
                   width: 24,
                   height: 24,
                   child: DropLoadingIndicator(
-                      size: 24, color: AppColors.primary),
+                      size: 24, color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             )
@@ -556,12 +556,12 @@ class _RelaysSheetState extends State<_RelaysSheet> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(l10n.relayManageEmpty,
-                    style: const TextStyle(color: AppColors.textMuted)),
+                    style: TextStyle(color: context.custom.textMuted)),
               ),
             )
           else
             Container(
-              decoration: kSettingsCardDecoration,
+              decoration: settingsCardDecoration(context),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(kSettingsCardRadius),
                 child: Column(
@@ -599,12 +599,12 @@ class _RelayRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 8,
             height: 8,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
               ),
             ),
@@ -613,18 +613,18 @@ class _RelayRow extends StatelessWidget {
           Expanded(
             child: Text(
               relay.url,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontFamily: 'monospace',
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
           if (relay.isSystem)
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
               child: Icon(Icons.shield_outlined,
-                  size: 16, color: AppColors.onSurfaceVariant),
+                  size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
             )
           else
             IconButton(
@@ -632,8 +632,8 @@ class _RelayRow extends StatelessWidget {
               constraints: const BoxConstraints(),
               visualDensity: VisualDensity.compact,
               onPressed: onRemove,
-              icon: const Icon(Icons.delete_outline_rounded,
-                  size: 18, color: AppColors.error),
+              icon: Icon(Icons.delete_outline_rounded,
+                  size: 18, color: Theme.of(context).colorScheme.error),
               tooltip: l10n.relayManageRemoveTooltip,
             ),
         ],

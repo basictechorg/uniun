@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_model_drawer_section.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_scope_drawer_section.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -21,7 +20,7 @@ class NatarajDrawer extends StatelessWidget {
 
     return Drawer(
       width: 280,
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Column(
         children: [
           Container(
@@ -32,13 +31,13 @@ class NatarajDrawer extends StatelessWidget {
               top: top + 16,
               bottom: 12,
             ),
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             child: Text(
               l10n.natarajDrawerTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: -0.3,
               ),
             ),
@@ -46,10 +45,10 @@ class NatarajDrawer extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              children: const [
+              children: [
                 NatarajModelDrawerSection(),
                 SizedBox(height: 12),
-                Divider(height: 1, color: AppColors.outlineVariant),
+                Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                 SizedBox(height: 12),
                 NatarajScopeDrawerSection(),
               ],

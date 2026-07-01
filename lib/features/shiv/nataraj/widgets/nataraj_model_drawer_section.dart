@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
@@ -36,10 +35,10 @@ class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
           padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
           child: Text(
             l10n.aiSelectModel.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
               letterSpacing: 1.2,
             ),
           ),
@@ -57,14 +56,14 @@ class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(
+                  child: Icon(
                     Icons.smart_toy_outlined,
                     size: 18,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 13),
@@ -78,20 +77,20 @@ class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
                           : l10n.aiModelNoneSelected;
                       return Text(
                         name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
                       );
                     },
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ],
             ),

@@ -5,7 +5,6 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 import 'package:uniun/features/settings/widgets/ai_card.dart';
@@ -14,6 +13,7 @@ import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
 import 'package:uniun/features/settings/widgets/language_row.dart';
 import 'package:uniun/features/settings/widgets/logout_button.dart';
+import 'package:uniun/features/settings/widgets/theme_row.dart';
 import 'package:uniun/features/settings/widgets/profile_card.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
@@ -44,7 +44,7 @@ class _SettingsContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       appBar: SettingsAppBar(title: AppLocalizations.of(context)!.settingsTitle),
       body: BlocListener<StorageCubit, StorageState>(
         listenWhen: (a, b) =>
@@ -57,21 +57,21 @@ class _SettingsContent extends StatelessWidget {
           if (state.deleteSuccess) {
             messenger.showSnackBar(SnackBar(
               content: Text(l10n.storageDeleteSuccess(state.deletedCount)),
-              backgroundColor: AppColors.primary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               behavior: SnackBarBehavior.floating,
             ));
           }
           if (state.deleteChatHistorySuccess) {
             messenger.showSnackBar(SnackBar(
               content: Text(l10n.storageDeleteChatHistorySuccess),
-              backgroundColor: AppColors.primary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               behavior: SnackBarBehavior.floating,
             ));
           }
           if (state.deleteError != null) {
             messenger.showSnackBar(SnackBar(
               content: Text(state.deleteError!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ));
           }
@@ -79,8 +79,8 @@ class _SettingsContent extends StatelessWidget {
         child: BlocBuilder<SettingsCubit, SettingsState>(
           builder: (context, state) {
             if (state.isLoading) {
-            return const Center(
-              child: DropLoadingIndicator(color: AppColors.primary),
+            return Center(
+              child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
             );
           }
           final l10n = AppLocalizations.of(context)!;
@@ -101,6 +101,13 @@ class _SettingsContent extends StatelessWidget {
               SettingsSectionLabel(l10n.settingsAccount),
               const SizedBox(height: 10),
               IdentityCard(state: state),
+
+              const SizedBox(height: 24),
+
+              // ── Appearance ────────────────────────────────────────────────
+              SettingsSectionLabel(l10n.settingsAppearance),
+              const SizedBox(height: 10),
+              const SettingsGroup(children: [ThemeRow()]),
 
               const SizedBox(height: 24),
 

@@ -12,13 +12,13 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/repositories/dm_conversation_repository.dart';
 import 'package:uniun/features/dm/chat/bloc/dm_chat_bloc.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class DmChatPage extends StatelessWidget {
   const DmChatPage({super.key, required this.otherPubkey});
@@ -177,7 +177,7 @@ class _DmChatViewState extends State<_DmChatView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -204,9 +204,9 @@ class _DmChatViewState extends State<_DmChatView> {
             otherPubkey == null ? null : _shortNpub(Nip19.encodePubkey(otherPubkey));
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.glassFill,
+            backgroundColor: context.custom.glassFill,
             elevation: 0,
             scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
@@ -229,10 +229,10 @@ class _DmChatViewState extends State<_DmChatView> {
                     children: [
                       Text(
                         displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                           height: 1.1,
                         ),
                         maxLines: 1,
@@ -241,10 +241,10 @@ class _DmChatViewState extends State<_DmChatView> {
                       if (otherNpub != null)
                         Text(
                           otherNpub,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11,
-                            color: AppColors.textMuted,
+                            color: context.custom.textMuted,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -261,12 +261,12 @@ class _DmChatViewState extends State<_DmChatView> {
                   tooltip: 'Share keys',
                 ),
             ],
-            bottom: const PreferredSize(
+            bottom: PreferredSize(
               preferredSize: Size.fromHeight(1),
               child: Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.borderSubtle,
+                color: context.custom.borderSubtle,
               ),
             ),
           ),
@@ -354,17 +354,17 @@ class _EncryptedNoticePill extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLow,
+          color: context.custom.surfaceLow,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_rounded, size: 14, color: AppColors.success),
+            Icon(Icons.lock_rounded, size: 14, color: context.custom.success),
             const SizedBox(width: 6),
             Text(
               l10n.dmEncryptedNotice,
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 12, color: context.custom.textMuted),
             ),
           ],
         ),

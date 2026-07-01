@@ -9,7 +9,6 @@ import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 import 'package:uniun/common/snackbar.dart';
 import 'package:uniun/core/constants/app_constants.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/image_compressor.dart';
 import 'package:uniun/core/utils/media_blurhash.dart';
 import 'package:uniun/core/utils/video_compressor.dart';
@@ -67,7 +66,7 @@ Future<PickedMedia?> showMediaPickSheet(BuildContext context) async {
 
   final kind = await showModalBottomSheet<_PickKind>(
     context: context,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
@@ -195,7 +194,7 @@ class _PickTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(label),
       onTap: onTap,
     );

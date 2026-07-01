@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Caller's choice when a publish target carries unpublished draft references.
 ///
@@ -29,7 +29,7 @@ Future<PublishChainChoice> showPublishChainSheet(
   final result = await showModalBottomSheet<PublishChainChoice>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -45,7 +45,7 @@ Future<PublishChainChoice> showPublishChainSheet(
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -53,18 +53,18 @@ Future<PublishChainChoice> showPublishChainSheet(
             const SizedBox(height: 16),
             Text(
               l10n.brahmaPublishChainTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.brahmaPublishChainSubtitle(draftCount),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -114,13 +114,13 @@ class _PublishModeTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: recommended
-              ? AppColors.primary.withValues(alpha: 0.06)
-              : AppColors.surface,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.06)
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: recommended
-                ? AppColors.primary.withValues(alpha: 0.35)
-                : AppColors.borderSubtle,
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.35)
+                : context.custom.borderSubtle,
             width: recommended ? 1.5 : 1,
           ),
         ),
@@ -131,11 +131,11 @@ class _PublishModeTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
-              child: Icon(icon, size: 20, color: AppColors.primary),
+              child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -147,10 +147,10 @@ class _PublishModeTile extends StatelessWidget {
                       Flexible(
                         child: Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -160,16 +160,16 @@ class _PublishModeTile extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             'RECOMMENDED',
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.4,
-                              color: AppColors.onPrimary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
                         ),
@@ -179,10 +179,10 @@ class _PublishModeTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       height: 1.4,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],

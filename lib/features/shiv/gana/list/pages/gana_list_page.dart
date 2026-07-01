@@ -6,11 +6,11 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/entities/gana/gana_run_entity.dart';
 import 'package:uniun/features/shiv/gana/list/bloc/gana_list_bloc.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Full-screen list of the user's Gana agents — reached from the Shiv home
 /// "Gana" button. Provides its own [GanaListBloc] (the bloc reactively reloads
@@ -35,9 +35,9 @@ class _GanaListView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -50,8 +50,8 @@ class _GanaListView extends StatelessWidget {
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(l10n.ganaListNew),
               style: TextButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 shape: const StadiumBorder(),
                 minimumSize: Size.zero,
@@ -79,10 +79,10 @@ class _GanaListView extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   l10n.ganaListSubtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -114,12 +114,12 @@ class _GanaCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: br,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.custom.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -146,8 +146,8 @@ class _GanaCard extends StatelessWidget {
                       height: 40,
                       decoration: BoxDecoration(
                         color: on
-                            ? AppColors.primary.withValues(alpha: 0.10)
-                            : AppColors.surfaceLow,
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.10)
+                            : context.custom.surfaceLow,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       alignment: Alignment.center,
@@ -155,8 +155,8 @@ class _GanaCard extends StatelessWidget {
                         Icons.auto_mode_rounded,
                         size: 22,
                         color: on
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -168,10 +168,10 @@ class _GanaCard extends StatelessWidget {
                             gana.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 3),
@@ -182,8 +182,8 @@ class _GanaCard extends StatelessWidget {
                                 height: 6,
                                 decoration: BoxDecoration(
                                   color: on
-                                      ? AppColors.success
-                                      : AppColors.outlineVariant,
+                                      ? context.custom.success
+                                      : Theme.of(context).colorScheme.outlineVariant,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -196,8 +196,8 @@ class _GanaCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: (on && lastRun != null)
-                                        ? _lastRunColor(lastRun!.status)
-                                        : AppColors.onSurfaceVariant,
+                                        ? _lastRunColor(context, lastRun!.status)
+                                        : Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -213,7 +213,7 @@ class _GanaCard extends StatelessWidget {
                             GanaListToggleEnabledEvent(gana.ganaId, v),
                           ),
                       activeThumbColor: Colors.white,
-                      activeTrackColor: AppColors.primary,
+                      activeTrackColor: Theme.of(context).colorScheme.primary,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],
@@ -222,7 +222,7 @@ class _GanaCard extends StatelessWidget {
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: AppColors.onSurface.withValues(alpha: 0.06),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                 ),
                 const SizedBox(height: 11),
                 Wrap(
@@ -258,14 +258,14 @@ class _MetaLine extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 15, color: AppColors.onSurfaceVariant),
+        Icon(icon, size: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 6),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -291,33 +291,33 @@ class _EmptyState extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(
+              child: Icon(
                 Icons.auto_mode_rounded,
                 size: 28,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 14),
             Text(
               l10n.ganaDrawerEmptyTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.ganaDrawerEmptyBody,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 18),
@@ -326,8 +326,8 @@ class _EmptyState extends StatelessWidget {
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(l10n.ganaListNew),
               style: TextButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                 shape: const StadiumBorder(),
                 textStyle:
@@ -359,12 +359,15 @@ String _lastRunLabel(GanaRunEntity r, AppLocalizations l10n) {
   };
 }
 
-Color _lastRunColor(GanaRunStatus s) => switch (s) {
-      GanaRunStatus.succeeded => AppColors.primary,
-      GanaRunStatus.skipped => AppColors.onSurfaceVariant,
-      GanaRunStatus.failed => AppColors.error,
-      GanaRunStatus.running => AppColors.primary,
-    };
+Color _lastRunColor(BuildContext context, GanaRunStatus s) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return switch (s) {
+    GanaRunStatus.succeeded => colorScheme.primary,
+    GanaRunStatus.skipped => colorScheme.onSurfaceVariant,
+    GanaRunStatus.failed => colorScheme.error,
+    GanaRunStatus.running => colorScheme.primary,
+  };
+}
 
 String _triggerSummary(GanaEntity g, AppLocalizations l10n) {
   if (g.triggerMode == GanaTriggerMode.oneShot) {

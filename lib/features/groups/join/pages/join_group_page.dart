@@ -11,7 +11,6 @@ import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
 import 'package:uniun/features/groups/join/bloc/join_group_bloc.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class JoinGroupPage extends StatelessWidget {
@@ -89,7 +88,7 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(_errorText(state.error!, l10n)),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -98,7 +97,7 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.joinGroupSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -113,14 +112,14 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
       },
       child: KeyboardDismissOnTap(
         child: Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             centerTitle: true,
             shape: Border(
               bottom: BorderSide(
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
             leading: UniunBackButton(
@@ -128,8 +127,8 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
             ),
             title: Text(
               l10n.joinGroupTitle,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
               ),
@@ -154,21 +153,21 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
                     // Paste group id (hex — mono).
                     TextField(
                       controller: _groupIdController,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 14,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       decoration: InputDecoration(
                         hintText: l10n.joinGroupIdHint,
-                        hintStyle: const TextStyle(
+                        hintStyle: TextStyle(
                           fontFamily: 'monospace',
-                          color: AppColors.outline,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.tag_rounded,
                           size: 20,
-                          color: AppColors.outline,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),
@@ -177,9 +176,9 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
                       children: [
                         Text(
                           l10n.joinGroupRelaysBody,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.outline,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -198,20 +197,20 @@ class _JoinGroupViewState extends State<_JoinGroupView> {
                       child: ElevatedButton(
                         onPressed: state.isSubmitting ? null : _submitJoin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.onPrimary,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
                         child: state.isSubmitting
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: DropLoadingIndicator(
                                   size: 20,
-                                  color: AppColors.onPrimary,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               )
                             : Text(
@@ -268,10 +267,10 @@ class _ScanQrCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.04),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.20),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.20),
             ),
           ),
           child: Column(
@@ -281,32 +280,32 @@ class _ScanQrCard extends StatelessWidget {
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.10),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.qr_code_scanner_rounded,
                   size: 34,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.4,
-                  color: AppColors.outline,
+                  color: Theme.of(context).colorScheme.outline,
                 ),
               ),
             ],
@@ -328,7 +327,7 @@ class _OrDivider extends StatelessWidget {
     final line = Expanded(
       child: Container(
         height: 1,
-        color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
       ),
     );
     return Row(
@@ -338,7 +337,7 @@ class _OrDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppColors.outline),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
           ),
         ),
         line,

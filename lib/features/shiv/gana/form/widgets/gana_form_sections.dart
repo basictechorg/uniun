@@ -32,7 +32,7 @@ class _Body extends StatelessWidget {
               const SizedBox(height: 8),
               TextField(
                 controller: nameCtrl,
-                decoration: _inputDeco(l10n.ganaFormNameHint),
+                decoration: _inputDeco(context, l10n.ganaFormNameHint),
                 onChanged: (v) => context
                     .read<GanaFormBloc>()
                     .add(GanaFormNameChangedEvent(v)),
@@ -52,7 +52,7 @@ class _Body extends StatelessWidget {
               const SizedBox(height: 10),
               TextField(
                 controller: taskCtrl,
-                decoration: _inputDeco(l10n.ganaFormTaskPromptHint),
+                decoration: _inputDeco(context, l10n.ganaFormTaskPromptHint),
                 onChanged: (v) => context
                     .read<GanaFormBloc>()
                     .add(GanaFormTaskPromptChangedEvent(v)),
@@ -88,15 +88,15 @@ class _Body extends StatelessWidget {
                             .add(GanaFormToggleManasEvent(m.manasId)),
                         showCheckmark: true,
                         selectedColor:
-                            AppColors.primary.withValues(alpha: 0.2),
+                            Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       ),
                     // "+ Create" trailing affordance — opens Brahma's Manas
                     // form and reloads picker pools on return.
                     ActionChip(
-                      avatar: const Icon(Icons.add,
-                          size: 16, color: AppColors.primary),
+                      avatar: Icon(Icons.add,
+                          size: 16, color: Theme.of(context).colorScheme.primary),
                       label: Text(l10n.ganaFormManasCreateNew,
-                          style: const TextStyle(color: AppColors.primary)),
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary)),
                       onPressed: () async {
                         final created = await context
                             .pushNamed<bool>(AppRoutes.brahmaManasForm);
@@ -164,7 +164,7 @@ class _Body extends StatelessWidget {
 }
 
 /// Rounded white container that groups one logical section. The page sits on
-/// a tinted [AppColors.surfaceContainerLow] background so these cards pop.
+/// a tinted [Theme.of(context).colorScheme.surfaceContainerLow] background so these cards pop.
 class _Card extends StatelessWidget {
   const _Card({required this.child});
   final Widget child;
@@ -174,10 +174,10 @@ class _Card extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
         // ListTiles (RadioListTile/SwitchListTile) paint their background and
@@ -198,7 +198,7 @@ class _CardDivider extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Divider(
           height: 1,
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       );
 }
@@ -214,10 +214,10 @@ class _SaveBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -233,9 +233,9 @@ class _SaveBar extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => _confirmDeleteGana(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
+                    foregroundColor: Theme.of(context).colorScheme.error,
                     side: BorderSide(
-                        color: AppColors.error.withValues(alpha: 0.4)),
+                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.4)),
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -255,9 +255,9 @@ class _SaveBar extends StatelessWidget {
                           .add(const GanaFormSubmitEvent())
                       : null,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     disabledBackgroundColor:
-                        AppColors.outlineVariant.withValues(alpha: 0.5),
+                        Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -300,7 +300,7 @@ Future<void> _confirmDeleteGana(BuildContext context) async {
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogCtx).pop(true),
-          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
           child: Text(l10n.ganaFormDeleteConfirmConfirm),
         ),
       ],
@@ -422,7 +422,7 @@ class _InputRefPicker extends StatelessWidget {
         // Pubkeys aren't a curated list — keep the text field.
         return TextField(
           controller: userRefCtrl,
-          decoration: _inputDeco(l10n.ganaFormInputUserHint),
+          decoration: _inputDeco(context, l10n.ganaFormInputUserHint),
           onChanged: (v) => context
               .read<GanaFormBloc>()
               .add(GanaFormInputRefChangedEvent(v.isEmpty ? null : v)),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// A single Nostr key row: an uppercase label, a muted helper line, and an
@@ -37,30 +36,30 @@ class KeyCard extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           helper,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             height: 1.4,
-            color: AppColors.outline,
+            color: Theme.of(context).colorScheme.outline,
           ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
             ),
           ),
           child: Row(
@@ -75,8 +74,8 @@ class KeyCard extends StatelessWidget {
                     fontSize: 14,
                     height: 1.2,
                     color: hidden
-                        ? AppColors.onSurfaceVariant
-                        : AppColors.onSurface,
+                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                        : Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -114,7 +113,7 @@ class _KeyIconButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 18,
-          color: AppColors.onSurfaceVariant,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -142,7 +141,7 @@ class _CopyButton extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: isCopied ? 0.0 : 0.10),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: isCopied ? 0.0 : 0.10),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -153,15 +152,15 @@ class _CopyButton extends StatelessWidget {
                     ? Icons.check_rounded
                     : Icons.content_copy_rounded,
                 size: 15,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 5),
               Text(
                 isCopied ? l10n.actionCopied : l10n.actionCopy,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],

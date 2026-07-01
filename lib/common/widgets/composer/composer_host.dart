@@ -6,7 +6,6 @@ import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.d
 import 'package:uniun/common/widgets/composer/media_pick_helper.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -151,10 +150,10 @@ class _ComposerHostState extends State<ComposerHost> {
       width: 34,
       height: 34,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.14),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, size: 18, color: AppColors.primary),
+      child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
     );
   }
 

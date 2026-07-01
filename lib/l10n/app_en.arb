@@ -2675,5 +2675,23 @@
   "@graphEmptyHint": { "description": "Empty-state message shown on the knowledge graph canvas when there are no notes yet" },
 
   "ganaDetailManasesLabel": "Manases",
-  "@ganaDetailManasesLabel": { "description": "Label on the Gana detail card for the number of Manases the agent draws from" }
+  "@ganaDetailManasesLabel": { "description": "Label on the Gana detail card for the number of Manases the agent draws from" },
+
+  "settingsAppearance": "Appearance",
+  "@settingsAppearance": { "description": "Settings section label for appearance-related options (theme mode)" },
+
+  "settingsTheme": "Theme",
+  "@settingsTheme": { "description": "Settings row label that opens the theme mode picker" },
+
+  "settingsThemeSheetTitle": "Choose theme",
+  "@settingsThemeSheetTitle": { "description": "Title of the bottom sheet that picks between system/light/dark theme" },
+
+  "settingsThemeSystem": "Match system",
+  "@settingsThemeSystem": { "description": "Theme option that follows the device's system theme" },
+
+  "settingsThemeLight": "Light",
+  "@settingsThemeLight": { "description": "Theme option that forces light mode" },
+
+  "settingsThemeDark": "Dark",
+  "@settingsThemeDark": { "description": "Theme option that forces dark mode" }
 }

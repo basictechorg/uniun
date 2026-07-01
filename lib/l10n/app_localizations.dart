@@ -5341,6 +5341,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manases'**
   String get ganaDetailManasesLabel;
+
+  /// Settings section label for appearance-related options (theme mode)
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearance;
+
+  /// Settings row label that opens the theme mode picker
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
+  /// Title of the bottom sheet that picks between system/light/dark theme
+  ///
+  /// In en, this message translates to:
+  /// **'Choose theme'**
+  String get settingsThemeSheetTitle;
+
+  /// Theme option that follows the device's system theme
+  ///
+  /// In en, this message translates to:
+  /// **'Match system'**
+  String get settingsThemeSystem;
+
+  /// Theme option that forces light mode
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsThemeLight;
+
+  /// Theme option that forces dark mode
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDark;
 }
 
 class _AppLocalizationsDelegate

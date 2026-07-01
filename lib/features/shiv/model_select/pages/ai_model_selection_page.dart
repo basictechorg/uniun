@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart';
 import 'package:uniun/features/shiv/model_select/widgets/model_card.dart';
@@ -36,16 +35,16 @@ class _AIModelSelectionView extends StatelessWidget {
             state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(l10n.aiModelDownloadError),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ));
         }
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             leading: UniunBackButton(
@@ -53,10 +52,10 @@ class _AIModelSelectionView extends StatelessWidget {
             ),
             title: Text(
               l10n.aiModelSelectionTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             centerTitle: true,
@@ -64,7 +63,7 @@ class _AIModelSelectionView extends StatelessWidget {
               preferredSize: const Size.fromHeight(1),
               child: Container(
                 height: 1,
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -77,18 +76,18 @@ class _AIModelSelectionView extends StatelessWidget {
                   children: [
                     Text(
                       l10n.aiModelAvailableHeader,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.aiModelSelectionSubtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -118,24 +117,24 @@ class _AIModelSelectionView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.05),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                         border: Border.all(
                             color:
-                                AppColors.primary.withValues(alpha: 0.2)),
+                                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.info_outline_rounded,
-                              size: 18, color: AppColors.primary),
+                          Icon(Icons.info_outline_rounded,
+                              size: 18, color: Theme.of(context).colorScheme.primary),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               l10n.aiModelDownloadInfoText,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 height: 1.5,
                               ),
                             ),

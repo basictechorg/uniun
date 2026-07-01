@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 class ThreadEmptyReplies extends StatelessWidget {
   const ThreadEmptyReplies({super.key});
@@ -8,26 +7,27 @@ class ThreadEmptyReplies extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.chat_bubble_outline_rounded,
-            size: 52, color: AppColors.outlineVariant),
+        Icon(Icons.chat_bubble_outline_rounded,
+            size: 52, color: colorScheme.outlineVariant),
         const SizedBox(height: 16),
         Text(
           l10n.threadNoReplies,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           l10n.threadBeFirstToReply,
-          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+          style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
         ),
       ],
       ),
@@ -41,24 +41,25 @@ class ThreadNoReferences extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.account_tree_outlined,
-            size: 52, color: AppColors.outlineVariant),
+        Icon(Icons.account_tree_outlined,
+            size: 52, color: colorScheme.outlineVariant),
         const SizedBox(height: 16),
         Text(
           l10n.threadNoReferences,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           l10n.threadNoReferencesDetail,
-          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+          style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
       ],
@@ -72,29 +73,30 @@ class ThreadReferenceItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          const Icon(Icons.link_rounded, size: 18, color: AppColors.primary),
+          Icon(Icons.link_rounded, size: 18, color: colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '${eventId.substring(0, 12)}…',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontFamily: 'monospace',
-                color: AppColors.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              size: 18, color: AppColors.outlineVariant),
+          Icon(Icons.chevron_right_rounded,
+              size: 18, color: colorScheme.outlineVariant),
         ],
       ),
     );
@@ -107,16 +109,17 @@ class ThreadErrorBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 48, color: AppColors.error),
+          Icon(Icons.error_outline_rounded,
+              size: 48, color: colorScheme.error),
           const SizedBox(height: 12),
           Text(
             message,
-            style: const TextStyle(color: AppColors.onSurfaceVariant),
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
         ],

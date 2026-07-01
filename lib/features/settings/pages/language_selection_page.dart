@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/l10n/app_language.dart';
 import 'package:uniun/core/l10n/locale_cubit.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -20,7 +19,7 @@ class LanguageSelectionPage extends StatelessWidget {
     final active = context.watch<LocaleCubit>().activeLanguage;
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       appBar: SettingsAppBar(title: l10n.languageSelectTitle),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -64,8 +63,8 @@ class _LanguageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     final titleColor = enabled
-        ? AppColors.onSurface
-        : AppColors.onSurfaceVariant;
+        ? Theme.of(context).colorScheme.onSurface
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -80,15 +79,15 @@ class _LanguageTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive ? AppColors.primary : titleColor,
+                    color: isActive ? Theme.of(context).colorScheme.primary : titleColor,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   language.englishName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -97,7 +96,7 @@ class _LanguageTile extends StatelessWidget {
           if (!language.supported)
             _ComingSoonBadge(label: comingSoonLabel)
           else if (isActive)
-            const Icon(Icons.check_rounded, size: 20, color: AppColors.primary),
+            Icon(Icons.check_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
         ],
       ),
     );
@@ -117,18 +116,18 @@ class _ComingSoonBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.onSurfaceVariant,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );

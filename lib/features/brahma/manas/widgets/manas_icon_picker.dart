@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -11,7 +10,7 @@ class ManasIconPicker {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -43,7 +42,7 @@ class _PickerBody extends StatelessWidget {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -52,16 +51,16 @@ class _PickerBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  const Icon(Icons.brush_rounded,
-                      color: AppColors.primary, size: 20),
+                  Icon(Icons.brush_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       l10n.manasIconPickerTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -90,22 +89,22 @@ class _PickerBody extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: selected
-                            ? AppColors.primary.withValues(alpha: 0.14)
-                            : AppColors.surfaceContainerLow,
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.14)
+                            : Theme.of(context).colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: selected
-                              ? AppColors.primary
+                              ? Theme.of(context).colorScheme.primary
                                   .withValues(alpha: 0.5)
-                              : AppColors.outlineVariant
+                              : Theme.of(context).colorScheme.outlineVariant
                                   .withValues(alpha: 0.4),
                         ),
                       ),
                       child: Icon(
                         ManasIcons.byName(name),
                         color: selected
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                         size: 22,
                       ),
                     ),

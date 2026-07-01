@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Top header for the compose page (back arrow + title + pen icon).
@@ -18,10 +17,10 @@ class ComposeHeader extends StatelessWidget {
         bottom: 12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.95),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -35,10 +34,10 @@ class ComposeHeader extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             l10n.navBrahma,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
               letterSpacing: -0.3,
             ),
           ),

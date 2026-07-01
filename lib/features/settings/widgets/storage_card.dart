@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/settings/cubit/storage_cubit.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
-// Five distinguishable hues for the stacked bar. Sourced from AppColors
-// so the chart re-themes with the rest of the app.
-const _kColorAiModels = AppColors.graphOwn;       // green
-const _kColorChatHistory = AppColors.graphDraft;  // orange
-const _kColorMedia = AppColors.secondary;         // muted blue (≠ primary)
-const _kColorOther = AppColors.outline;           // gray
+/// Distinguishable hues for the stacked storage bar. Resolved at build time
+/// so the chart re-themes with the rest of the app.
+class _StoragePalette {
+  const _StoragePalette({
+    required this.aiModels,
+    required this.chatHistory,
+    required this.media,
+    required this.other,
+  });
+  final Color aiModels;
+  final Color chatHistory;
+  final Color media;
+  final Color other;
+
+  factory _StoragePalette.of(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return _StoragePalette(
+      aiModels: context.custom.storageModel,
+      chatHistory: context.custom.storageChatHistory,
+      media: colorScheme.secondary,
+      other: colorScheme.outline,
+    );
+  }
+}
 
 /// Human-readable byte size (KB / MB / GB). Shared by the metrics row value
 /// and the metrics sheet.
@@ -63,18 +81,18 @@ class RemoveDataRow extends StatelessWidget {
         final busy = state.isDeleting || state.isDeletingChatHistory;
         return SettingsRow(
           icon: Icons.delete_outline_rounded,
-          iconColor: AppColors.error,
+          iconColor: Theme.of(context).colorScheme.error,
           label: l10n.storageRemoveData,
-          labelColor: AppColors.error,
+          labelColor: Theme.of(context).colorScheme.error,
           showChevron: false,
           trailing: busy
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
-                  child: DropLoadingIndicator(size: 18, color: AppColors.error),
+                  child: DropLoadingIndicator(size: 18, color: Theme.of(context).colorScheme.error),
                 )
-              : const Icon(Icons.chevron_right_rounded,
-                  size: 20, color: AppColors.error),
+              : Icon(Icons.chevron_right_rounded,
+                  size: 20, color: Theme.of(context).colorScheme.error),
           onTap: busy ? null : () => showRemoveDataSheet(context),
         );
       },
@@ -90,7 +108,7 @@ Future<void> showStorageMetricsSheet(BuildContext context) {
   final cubit = context.read<StorageCubit>();
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -122,7 +140,7 @@ class _StorageMetricsSheet extends StatelessWidget {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.outlineVariant,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -130,18 +148,18 @@ class _StorageMetricsSheet extends StatelessWidget {
                 const SizedBox(height: 18),
                 Text(
                   l10n.storageUsage,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 16),
                 if (state.isLoading)
-                  const Center(
+                  Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
-                      child: DropLoadingIndicator(color: AppColors.primary),
+                      child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
                     ),
                   )
                 else
@@ -163,16 +181,17 @@ class _MetricsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final palette = _StoragePalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Header ──────────────────────────────────────────────────────────
         Text(
           l10n.storageUsed,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 4),
@@ -181,10 +200,10 @@ class _MetricsBody extends StatelessWidget {
           children: [
             Text(
               formatStorageBytes(state.totalBytes),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const Spacer(),
@@ -192,10 +211,10 @@ class _MetricsBody extends StatelessWidget {
               state.freeDiskBytes > 0
                   ? l10n.storageFree(formatStorageBytes(state.freeDiskBytes))
                   : '',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -212,33 +231,33 @@ class _MetricsBody extends StatelessWidget {
               children: [
                 if (state.totalBytes == 0)
                   Expanded(
-                    child: Container(color: AppColors.surfaceContainerHigh),
+                    child: Container(color: Theme.of(context).colorScheme.surfaceContainerHigh),
                   )
                 else ...[
                   if (state.dbSizeBytes > 0)
                     Expanded(
                       flex: state.dbSizeBytes,
-                      child: Container(color: AppColors.primary),
+                      child: Container(color: Theme.of(context).colorScheme.primary),
                     ),
                   if (state.modelSizeBytes > 0)
                     Expanded(
                       flex: state.modelSizeBytes,
-                      child: Container(color: _kColorAiModels),
+                      child: Container(color: palette.aiModels),
                     ),
                   if (state.chatHistorySizeBytes > 0)
                     Expanded(
                       flex: state.chatHistorySizeBytes,
-                      child: Container(color: _kColorChatHistory),
+                      child: Container(color: palette.chatHistory),
                     ),
                   if (state.mediaSizeBytes > 0)
                     Expanded(
                       flex: state.mediaSizeBytes,
-                      child: Container(color: _kColorMedia),
+                      child: Container(color: palette.media),
                     ),
                   if (state.otherSizeBytes > 0)
                     Expanded(
                       flex: state.otherSizeBytes,
-                      child: Container(color: _kColorOther),
+                      child: Container(color: palette.other),
                     ),
                 ],
               ],
@@ -250,31 +269,31 @@ class _MetricsBody extends StatelessWidget {
 
         // ── Legend rows ─────────────────────────────────────────────────────
         _LegendRow(
-          color: AppColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           label: l10n.storageNoteData,
           value: formatStorageBytes(state.dbSizeBytes),
         ),
         const SizedBox(height: 8),
         _LegendRow(
-          color: _kColorAiModels,
+          color: palette.aiModels,
           label: l10n.storageAiModels,
           value: formatStorageBytes(state.modelSizeBytes),
         ),
         const SizedBox(height: 8),
         _LegendRow(
-          color: _kColorChatHistory,
+          color: palette.chatHistory,
           label: l10n.storageChatHistory,
           value: formatStorageBytes(state.chatHistorySizeBytes),
         ),
         const SizedBox(height: 8),
         _LegendRow(
-          color: _kColorMedia,
+          color: palette.media,
           label: l10n.storageMedia,
           value: formatStorageBytes(state.mediaSizeBytes),
         ),
         const SizedBox(height: 8),
         _LegendRow(
-          color: _kColorOther,
+          color: palette.other,
           label: l10n.storageOther,
           value: formatStorageBytes(state.otherSizeBytes),
         ),
@@ -309,19 +328,19 @@ class _LegendRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -338,7 +357,7 @@ Future<void> showRemoveDataSheet(BuildContext context) {
 
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -352,10 +371,10 @@ Future<void> showRemoveDataSheet(BuildContext context) {
             children: [
               Text(
                 l10n.storageRemoveData,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -379,36 +398,36 @@ Future<void> showRemoveDataSheet(BuildContext context) {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (dctx) => AlertDialog(
-                      backgroundColor: AppColors.surfaceContainerLowest,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                       title: Text(
                         l10n.storageDeleteDialogTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       content: Text(
                         l10n.storageDeleteDialogBody(count),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           height: 1.5,
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(dctx, false),
                           child: Text(l10n.actionCancel,
-                              style: const TextStyle(
-                                  color: AppColors.onSurfaceVariant)),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(dctx, true),
                           child: Text(
                             l10n.storageDeleteConfirm,
-                            style: const TextStyle(
-                              color: AppColors.error,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -432,36 +451,36 @@ Future<void> showRemoveDataSheet(BuildContext context) {
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (dctx) => AlertDialog(
-                      backgroundColor: AppColors.surfaceContainerLowest,
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                       title: Text(
                         l10n.storageDeleteChatHistory,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       content: Text(
                         l10n.storageDeleteChatHistoryDialogBody,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           height: 1.5,
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(dctx, false),
                           child: Text(l10n.actionCancel,
-                              style: const TextStyle(
-                                  color: AppColors.onSurfaceVariant)),
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(dctx, true),
                           child: Text(
                             l10n.storageDeleteConfirm,
-                            style: const TextStyle(
-                              color: AppColors.error,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -504,7 +523,7 @@ class _SheetOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.error, size: 22),
+            Icon(icon, color: Theme.of(context).colorScheme.error, size: 22),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -512,18 +531,18 @@ class _SheetOption extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.error,
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],

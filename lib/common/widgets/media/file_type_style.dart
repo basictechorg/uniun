@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// Visual identity for a non-image attachment. Single source of truth shared
 /// by the feed/DM/group attachment card and the media gallery tile so
 /// "PDF", "MP4", "DOCX" look identical wherever they appear.
@@ -18,7 +16,10 @@ class FileTypeStyle {
   final String readableType;
   final IconData icon;
 
-  Color get color => AppColors.primary;
+  /// Chip / icon tint. All file types currently share the app's primary blue,
+  /// but this stays a method (BuildContext) so a future per-type palette can
+  /// slot in without touching call sites.
+  Color colorFor(BuildContext context) => Theme.of(context).colorScheme.primary;
 
   static FileTypeStyle fromMime(String mime, String? filename) {
     final ext = _extOf(filename, mime);

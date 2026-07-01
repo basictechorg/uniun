@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/enum/message_role.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -29,11 +28,11 @@ class NodeActionPanel extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
             blurRadius: 40,
             offset: const Offset(0, -8),
           ),
@@ -50,7 +49,7 @@ class NodeActionPanel extends StatelessWidget {
               width: 48,
               height: 6,
               decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
@@ -67,32 +66,32 @@ class NodeActionPanel extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.secondaryContainer,
+                    color: Theme.of(context).colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
                     l10n.shivActiveBranch,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.onSecondaryContainer,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
                       letterSpacing: 0.5,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
               ],
-              const Icon(
+              Icon(
                 Icons.schedule_rounded,
                 size: 14,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text(
                 formatTimeAgo(message.createdAt),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
@@ -102,15 +101,15 @@ class NodeActionPanel extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   l10n.shivNodeMessages(messageCount),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -127,19 +126,19 @@ class NodeActionPanel extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   color: isUser
-                      ? AppColors.surfaceContainerHigh
-                      : AppColors.primary.withValues(alpha: 0.1),
+                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: isUser
-                    ? const Icon(
+                    ? Icon(
                         Icons.person_rounded,
                         size: 18,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       )
-                    : const DropIcon(
+                    : DropIcon(
                         size: 18,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
               ),
               const SizedBox(width: 12),
@@ -148,10 +147,10 @@ class NodeActionPanel extends StatelessWidget {
                   message.content.isEmpty ? '…' : message.content,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -167,7 +166,7 @@ class NodeActionPanel extends StatelessWidget {
               icon: const Icon(Icons.open_in_new_rounded, size: 18),
               label: Text(l10n.shivNodeOpenBranch),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

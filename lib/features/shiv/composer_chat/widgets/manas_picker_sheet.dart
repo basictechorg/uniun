@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// The "All notes" scope icon — same as the Brahma drawer's whole-library entry.
 const IconData kAllNotesIcon = Icons.all_inclusive_rounded;
@@ -35,7 +35,7 @@ Future<ManasChatScope?> showManasChatPicker(
 }) {
   return showModalBottomSheet<ManasChatScope>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -72,25 +72,25 @@ class _ManasPickerSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(top: 2, bottom: 14),
                 decoration: BoxDecoration(
-                  color: AppColors.neutral300,
+                  color: context.custom.neutral300,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
             ),
             Text(
               l10n.composerChatPickerTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               l10n.composerChatPickerSubtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textMuted,
+                color: context.custom.textMuted,
               ),
             ),
             const SizedBox(height: 12),
@@ -98,7 +98,7 @@ class _ManasPickerSheet extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.borderSubtle),
+                    border: Border.all(color: context.custom.borderSubtle),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -188,15 +188,15 @@ class _ScopeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected
-          ? AppColors.primary.withValues(alpha: 0.08)
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
           : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
             border: showDivider
-                ? const Border(
-                    top: BorderSide(color: AppColors.borderSubtle),
+                ? Border(
+                    top: BorderSide(color: context.custom.borderSubtle),
                   )
                 : null,
           ),
@@ -209,11 +209,11 @@ class _ScopeTile extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: isAllNotes
-                      ? AppColors.surfaceContainer
-                      : AppColors.primary.withValues(alpha: 0.12),
+                      ? Theme.of(context).colorScheme.surfaceContainer
+                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 19, color: AppColors.primary),
+                child: Icon(icon, size: 19, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -223,18 +223,18 @@ class _ScopeTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 1),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: AppColors.textMuted,
+                        color: context.custom.textMuted,
                       ),
                     ),
                   ],
@@ -246,7 +246,7 @@ class _ScopeTile extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 size: 20,
-                color: selected ? AppColors.primary : AppColors.neutral400,
+                color: selected ? Theme.of(context).colorScheme.primary : context.custom.neutral400,
               ),
             ],
           ),

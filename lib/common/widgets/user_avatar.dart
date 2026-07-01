@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/core/constants/app_constants.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 // AvatarPlus regenerates its SVG string AND re-parses it via SvgPicture on every
 // build. A feed card rebuilds several times as its cubit's async profile/saved/
@@ -50,6 +49,7 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? size / 2;
+    final colorScheme = Theme.of(context).colorScheme;
     // Decode network avatars at display resolution, not the source's full size.
     final decodePx = (size * MediaQuery.devicePixelRatioOf(context)).round();
 
@@ -74,11 +74,11 @@ class UserAvatar extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         border: showBorder
             ? Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
                 width: 1.5,
               )
             : null,
-        color: AppColors.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLow,
       ),
       clipBehavior: Clip.antiAlias,
       child: isNetwork

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
@@ -26,6 +26,8 @@ class ReferenceNoteCard extends StatelessWidget {
     final displayName = profile?.name ??
         profile?.username ??
         formatShortPubkey(note.authorPubkey);
+    final colorScheme = Theme.of(context).colorScheme;
+    final custom = context.custom;
 
     return GestureDetector(
       onTap: onTap,
@@ -50,19 +52,19 @@ class ReferenceNoteCard extends StatelessWidget {
                       child: Text(
                         displayName,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
-                          color: AppColors.onSurfaceVariant,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '· ${formatTimeAgo(note.created)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textMuted,
+                        color: custom.textMuted,
                       ),
                     ),
                   ],
@@ -74,7 +76,7 @@ class ReferenceNoteCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.onSurface.withValues(alpha: 0.55),
+                    color: colorScheme.onSurface.withValues(alpha: 0.55),
                     height: 1.5,
                   ),
                 ),

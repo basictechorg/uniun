@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/thread/bloc/thread_bloc.dart';
 import 'package:uniun/features/thread/widgets/thread_app_bar.dart';
 import 'package:uniun/features/thread/widgets/thread_empty_states.dart';
@@ -98,26 +97,26 @@ class _ThreadViewState extends State<_ThreadView> {
             state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.errorMessage!),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ));
         }
       },
       builder: (context, state) {
+        final colorScheme = Theme.of(context).colorScheme;
         if (state.status == ThreadStatus.loading ||
             state.status == ThreadStatus.initial) {
-          return const Scaffold(
-            backgroundColor: AppColors.surface,
-            appBar: ThreadAppBar(),
+          return Scaffold(
+            backgroundColor: colorScheme.surface,
+            appBar: const ThreadAppBar(),
             body: Center(
-              child: DropLoadingIndicator(
-                  color: AppColors.primary),
+              child: DropLoadingIndicator(color: colorScheme.primary),
             ),
           );
         }
         if (state.status == ThreadStatus.error || state.rootNote == null) {
           return Scaffold(
-            backgroundColor: AppColors.surface,
+            backgroundColor: colorScheme.surface,
             appBar: const ThreadAppBar(),
             body: ThreadErrorBody(
                 message: state.errorMessage ?? 'Failed to load thread'),

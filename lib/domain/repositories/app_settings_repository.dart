@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/core/theme/app_theme_mode.dart';
 
 /// Device-local app settings (shared-preferences backed). Presentation reads
 /// these through use cases → this repository, never the datasource directly.
@@ -29,4 +30,9 @@ abstract class AppSettingsRepository {
   /// to clear it and fall back to the system locale. The initial read is done
   /// synchronously at startup via the store; runtime changes flow through here.
   Future<Either<Failure, Unit>> setLocaleCode(String? code);
+
+  /// Persist the user's chosen theme mode (system / light / dark). The
+  /// initial value is read synchronously at startup via the store; runtime
+  /// switches flow through here.
+  Future<Either<Failure, Unit>> setThemeMode(AppThemeMode mode);
 }

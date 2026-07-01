@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/markdown/note_markdown_body.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Renders a note body as markdown and collapses to a character-count preview
@@ -41,7 +40,8 @@ class _ExpandableNoteTextState extends State<ExpandableNoteText> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final actionColor = widget.actionColor ?? AppColors.primary;
+    final actionColor =
+        widget.actionColor ?? Theme.of(context).colorScheme.primary;
 
     final overflows = widget.text.length > widget.collapsedMaxChars;
     final shown = (overflows && !_expanded)

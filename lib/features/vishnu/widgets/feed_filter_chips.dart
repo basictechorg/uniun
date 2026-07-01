@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 class FeedFilterChips extends StatefulWidget {
   const FeedFilterChips({super.key, this.tags = const []});
@@ -20,6 +19,7 @@ class _FeedFilterChipsState extends State<FeedFilterChips> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 44,
       child: ListView.separated(
@@ -36,13 +36,13 @@ class _FeedFilterChipsState extends State<FeedFilterChips> {
               padding: const EdgeInsets.symmetric(horizontal: 18),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.primary
-                    : AppColors.surfaceContainerLow,
+                    ? colorScheme.primary
+                    : colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: active
                     ? [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          color: colorScheme.primary.withValues(alpha: 0.2),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         )
@@ -56,8 +56,8 @@ class _FeedFilterChipsState extends State<FeedFilterChips> {
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: active
-                      ? AppColors.onPrimary
-                      : AppColors.onSurfaceVariant,
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

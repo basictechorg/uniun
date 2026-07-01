@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/thread/widgets/thread_section_label.dart';
@@ -41,6 +40,7 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     final notes = widget.notes;
     if (notes.isEmpty) return const SizedBox.shrink();
 
@@ -76,7 +76,8 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
                   child: Container(
                     width: 2,
                     decoration: BoxDecoration(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.30),
+                      color:
+                          colorScheme.outlineVariant.withValues(alpha: 0.30),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -101,15 +102,15 @@ class _ThreadParentContextState extends State<ThreadParentContext> {
                 Text(
                   'Show $hiddenCount more '
                   '${hiddenCount == 1 ? 'reference' : 'references'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.expand_more_rounded,
-                    size: 16, color: AppColors.primary),
+                Icon(Icons.expand_more_rounded,
+                    size: 16, color: colorScheme.primary),
               ],
             ),
           ),

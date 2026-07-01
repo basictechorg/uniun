@@ -9,7 +9,6 @@ import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
@@ -95,7 +94,7 @@ class _GanaFormViewState extends State<_GanaFormView> {
             state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.errorMessage!),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ));
         }
@@ -106,9 +105,9 @@ class _GanaFormViewState extends State<_GanaFormView> {
         final isEdit = state.isEditMode;
 
         return Scaffold(
-          backgroundColor: AppColors.surfaceContainerLow,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
           appBar: AppBar(
-            backgroundColor: AppColors.surfaceContainerLow,
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
             scrolledUnderElevation: 0,
             leading:
                 UniunBackButton(onPressed: () => Navigator.of(context).pop()),
@@ -118,17 +117,17 @@ class _GanaFormViewState extends State<_GanaFormView> {
                       ? l10n.ganaFormEditTitleFallback
                       : l10n.ganaFormEditTitle(state.name))
                   : l10n.ganaFormCreateTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
           body: loading
-              ? const Center(
+              ? Center(
                   child: DropLoadingIndicator(
-                      color: AppColors.primary))
+                      color: Theme.of(context).colorScheme.primary))
               : _Body(
                   state: state,
                   nameCtrl: _nameCtrl,

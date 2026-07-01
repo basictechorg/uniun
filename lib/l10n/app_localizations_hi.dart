@@ -2945,4 +2945,22 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get ganaDetailManasesLabel => 'मानस';
+
+  @override
+  String get settingsAppearance => 'दिखावट';
+
+  @override
+  String get settingsTheme => 'थीम';
+
+  @override
+  String get settingsThemeSheetTitle => 'थीम चुनें';
+
+  @override
+  String get settingsThemeSystem => 'सिस्टम के अनुसार';
+
+  @override
+  String get settingsThemeLight => 'लाइट';
+
+  @override
+  String get settingsThemeDark => 'डार्क';
 }

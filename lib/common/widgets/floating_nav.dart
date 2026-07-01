@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 /// UNIUN floating bottom navigation — the most-touched element in the app.
 ///
@@ -20,24 +20,6 @@ class FloatingNav extends StatelessWidget {
   final int currentIndex;
   final Future<void> Function(int) onTap;
 
-  // --shadow-nav: blue-tinted lift carried by the pill.
-  static const _shadowNav = BoxShadow(
-    color: Color(0x24005AB6),
-    blurRadius: 32,
-    offset: Offset(0, 12),
-  );
-  // --shadow-primary / --shadow-md: the Brahma FAB rest vs. active elevation.
-  static const _shadowMd = BoxShadow(
-    color: Color(0x1415181C),
-    blurRadius: 12,
-    offset: Offset(0, 4),
-  );
-  static const _shadowPrimary = BoxShadow(
-    color: Color(0x3D0075F2),
-    blurRadius: 24,
-    offset: Offset(0, 8),
-  );
-
   // Pill height + the distance the FAB is raised above the pill top. The host
   // Stack is sized to pill + lift so the raised FAB stays inside its bounds and
   // fully hittable (no overflow-clipping of taps).
@@ -49,6 +31,25 @@ class FloatingNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.of(context).padding.bottom;
+    final custom = context.custom;
+
+    // --shadow-nav: blue-tinted lift carried by the pill.
+    final shadowNav = BoxShadow(
+      color: custom.navShadow,
+      blurRadius: 32,
+      offset: const Offset(0, 12),
+    );
+    // --shadow-primary / --shadow-md: the Brahma FAB rest vs. active elevation.
+    final shadowMd = BoxShadow(
+      color: custom.elevationMd,
+      blurRadius: 12,
+      offset: const Offset(0, 4),
+    );
+    final shadowPrimary = BoxShadow(
+      color: custom.shadowPrimary,
+      blurRadius: 24,
+      offset: const Offset(0, 8),
+    );
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 12),
@@ -65,7 +66,7 @@ class FloatingNav extends StatelessWidget {
                   alignment: Alignment.bottomCenter,
                   child: _GlassPill(
                     height: _pillHeight,
-                    shadow: _shadowNav,
+                    shadow: shadowNav,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -99,7 +100,7 @@ class FloatingNav extends StatelessWidget {
                       size: _fabSize,
                       label: l10n.navBrahma,
                       selected: currentIndex == 1,
-                      shadow: currentIndex == 1 ? _shadowPrimary : _shadowMd,
+                      shadow: currentIndex == 1 ? shadowPrimary : shadowMd,
                       onTap: () => onTap(1),
                     ),
                   ),
@@ -128,6 +129,7 @@ class _GlassPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final custom = context.custom;
     return Container(
       height: height,
       decoration: BoxDecoration(
@@ -141,9 +143,9 @@ class _GlassPill extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: AppColors.glassFill,
+              color: custom.glassFill,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: AppColors.glassBorder),
+              border: Border.all(color: custom.glassBorder),
             ),
             child: child,
           ),
@@ -170,7 +172,8 @@ class _NavSide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.neutral400;
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = selected ? colorScheme.primary : context.custom.neutral400;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -208,7 +211,7 @@ class _NavSide extends StatelessWidget {
               width: 18,
               height: 3,
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : Colors.transparent,
+                color: selected ? colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -247,6 +250,7 @@ class _BrahmaFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -264,9 +268,9 @@ class _BrahmaFab extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               // White background appears only when Brahma is the active surface.
-              color: selected ? AppColors.surface : AppColors.primary,
+              color: selected ? colorScheme.surface : colorScheme.primary,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.surface, width: 3),
+              border: Border.all(color: colorScheme.surface, width: 3),
               boxShadow: [shadow],
             ),
             child: Center(
@@ -278,7 +282,7 @@ class _BrahmaFab extends StatelessWidget {
                   fit: BoxFit.contain,
                   theme: SvgTheme(
                     currentColor:
-                        selected ? AppColors.primary : AppColors.onPrimary,
+                        selected ? colorScheme.primary : colorScheme.onPrimary,
                   ),
                 ),
               ),
