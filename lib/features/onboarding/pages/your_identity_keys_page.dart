@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/repositories/event_queue_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
@@ -144,7 +143,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
         children: [
           // ambient blue blobs (purely decorative)
@@ -176,11 +175,11 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             // eyebrow
                             Text(
                               l10n.keysEyebrow.toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.4,
-                                color: AppColors.primary,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -188,14 +187,14 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             // serif display headline
                             Text(
                               l10n.keysHeadline,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Newsreader',
                                 fontVariations: [FontVariation('wght', 600)],
                                 fontSize: 28,
                                 fontWeight: FontWeight.w600,
                                 height: 1.2,
                                 letterSpacing: -0.5,
-                                color: AppColors.onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
 
@@ -232,24 +231,24 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppColors.errorContainer
+                                color: Theme.of(context).colorScheme.errorContainer
                                     .withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.key_rounded,
-                                      color: AppColors.error, size: 18),
+                                  Icon(Icons.key_rounded,
+                                      color: Theme.of(context).colorScheme.error, size: 18),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       l10n.keysPrivateKeyWarning,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12.5,
                                         height: 1.45,
                                         fontWeight: FontWeight.w500,
-                                        color: AppColors.onErrorContainer,
+                                        color: Theme.of(context).colorScheme.onErrorContainer,
                                       ),
                                     ),
                                   ),
@@ -295,13 +294,13 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                             height: 52,
                             decoration: BoxDecoration(
                               color: canContinue
-                                  ? AppColors.primary
-                                  : AppColors.surfaceContainerHigh,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.surfaceContainerHigh,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: canContinue
                                   ? [
                                       BoxShadow(
-                                        color: AppColors.primary
+                                        color: Theme.of(context).colorScheme.primary
                                             .withValues(alpha: 0.22),
                                         blurRadius: 20,
                                         offset: const Offset(0, 6),
@@ -314,8 +313,8 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                                 l10n.keysSaveAndContinue,
                                 style: TextStyle(
                                   color: canContinue
-                                      ? AppColors.onPrimary
-                                      : AppColors.outline,
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.outline,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -351,8 +350,8 @@ class _AmbientBlob extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: RadialGradient(
             colors: [
-              AppColors.primary.withValues(alpha: 0.07),
-              AppColors.primary.withValues(alpha: 0.0),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.07),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
             ],
           ),
         ),

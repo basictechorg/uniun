@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 
 /// Draws an evenly-spaced dot grid as the graph background.
+///
+/// Colour is captured at construction so this painter stays context-free —
+/// the caller resolves `context.custom.graphDotPattern` and passes it in.
 class DotPatternPainter extends CustomPainter {
-  const DotPatternPainter();
+  const DotPatternPainter({required this.color});
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     // Faint neutral-200 dot grid (DESIGN.md §2.2): small dots on an 18px grid.
     final paint = Paint()
-      ..color = AppColors.border
+      ..color = color
       ..strokeCap = StrokeCap.round;
     const spacing = 18.0;
     for (double x = 0; x < size.width; x += spacing) {
@@ -20,5 +24,5 @@ class DotPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(DotPatternPainter old) => false;
+  bool shouldRepaint(DotPatternPainter old) => old.color != color;
 }

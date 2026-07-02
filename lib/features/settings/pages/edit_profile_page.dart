@@ -5,7 +5,6 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/onboarding/widgets/field_label.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 import 'package:uniun/features/settings/cubit/edit_profile_cubit.dart';
@@ -76,10 +75,10 @@ class _EditProfileContentState extends State<_EditProfileContent> {
       },
       builder: (context, state) {
         if (state.status == EditProfileStatus.loading) {
-          return const Scaffold(
-            backgroundColor: AppColors.surface,
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
             body: Center(
-              child: DropLoadingIndicator(color: AppColors.primary),
+              child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
             ),
           );
         }
@@ -91,7 +90,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
 
         return KeyboardDismissOnTap(
           child: Scaffold(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             resizeToAvoidBottomInset: true,
             body: Stack(
               children: [
@@ -125,11 +124,11 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                   children: [
                                     Text(
                                       l10n.editProfileEyebrow.toUpperCase(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.4,
-                                        color: AppColors.primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                     const SizedBox(height: 10),
@@ -137,7 +136,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                       l10n.editProfileTitle,
                                       // Display serif (Newsreader) — reserved for
                                       // headline moments. h1 28 · semibold.
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'Newsreader',
                                         fontVariations: [
                                           FontVariation('wght', 600),
@@ -147,15 +146,15 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                         fontWeight: FontWeight.w600,
                                         height: 1.2,
                                         letterSpacing: -0.56,
-                                        color: AppColors.onSurface,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
                                       l10n.editProfileSubtitle,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
-                                        color: AppColors.onSurfaceVariant,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         height: 1.4,
                                       ),
                                     ),
@@ -199,12 +198,12 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                 onChanged: cubit.updateUsername,
                                 decoration: InputDecoration(
                                   hintText: l10n.editProfileUsernameHint,
-                                  prefixIcon: const Padding(
+                                  prefixIcon: Padding(
                                     padding: EdgeInsets.only(left: 20, right: 0),
                                     child: Text(
                                       '@',
                                       style: TextStyle(
-                                        color: AppColors.outline,
+                                        color: Theme.of(context).colorScheme.outline,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 18,
                                         height: 2.6,
@@ -269,12 +268,12 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                     width: double.infinity,
                                     height: 56,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
+                                      gradient: LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                         colors: [
-                                          AppColors.primary,
-                                          AppColors.primaryContainer,
+                                          Theme.of(context).colorScheme.primary,
+                                          Theme.of(context).colorScheme.primaryContainer,
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(999),
@@ -282,7 +281,7 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                           ? null
                                           : [
                                               BoxShadow(
-                                                color: AppColors.primary
+                                                color: Theme.of(context).colorScheme.primary
                                                     .withValues(alpha: 0.28),
                                                 blurRadius: 24,
                                                 offset: const Offset(0, 8),
@@ -291,12 +290,12 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                     ),
                                     child: Center(
                                       child: isSaving
-                                          ? const SizedBox(
+                                          ? SizedBox(
                                               height: 18,
                                               width: 18,
                                               child: DropLoadingIndicator(
                                                 size: 18,
-                                                color: AppColors.onPrimary,
+                                                color: Theme.of(context).colorScheme.onPrimary,
                                               ),
                                             )
                                           : Row(
@@ -304,16 +303,16 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                               children: [
                                                 Text(
                                                   l10n.editProfileSaveButton,
-                                                  style: const TextStyle(
-                                                    color: AppColors.onPrimary,
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onPrimary,
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w700,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
-                                                const Icon(
+                                                Icon(
                                                   Icons.check_rounded,
-                                                  color: AppColors.onPrimary,
+                                                  color: Theme.of(context).colorScheme.onPrimary,
                                                   size: 20,
                                                 ),
                                               ],
@@ -331,25 +330,25 @@ class _EditProfileContentState extends State<_EditProfileContent> {
                                     horizontal: 14, vertical: 7),
                                 decoration: BoxDecoration(
                                   color:
-                                      AppColors.primary.withValues(alpha: 0.06),
+                                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: AppColors.primary
+                                    color: Theme.of(context).colorScheme.primary
                                         .withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.verified_user_rounded,
-                                        size: 13, color: AppColors.primary),
+                                    Icon(Icons.verified_user_rounded,
+                                        size: 13, color: Theme.of(context).colorScheme.primary),
                                     const SizedBox(width: 5),
                                     Text(
                                       l10n.editProfileEncrypted,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.onSurfaceVariant,
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -401,8 +400,8 @@ class _Glow extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.10),
-            AppColors.primary.withValues(alpha: 0.0),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
           ],
         ),
       ),

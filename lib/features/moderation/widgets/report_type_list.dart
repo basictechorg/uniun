@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/core/enum/report_type.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/moderation/cubit/report_sheet_cubit.dart';
 import 'package:uniun/features/moderation/widgets/report_type_labels.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -59,7 +58,7 @@ class _TypeRow extends StatelessWidget {
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_unchecked_rounded,
               size: 22,
-              color: selected ? AppColors.primary : AppColors.outline,
+              color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -68,18 +67,18 @@ class _TypeRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.outline,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
                 ],

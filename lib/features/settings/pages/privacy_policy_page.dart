@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/constants/app_constants.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/widgets/settings_app_bar.dart';
 
 class PrivacyPolicyPage extends StatefulWidget {
@@ -23,7 +22,7 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       extendBodyBehindAppBar: true,
       appBar: SettingsAppBar(title: AppLocalizations.of(context)!.privacyPageTitle),
       body: Builder(
@@ -41,20 +40,20 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               // ── Intro ─────────────────────────────────────────────────────
               Text(
                 l10n.privacyIntroTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.privacyIntroBody,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.6,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
 
@@ -88,43 +87,43 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_today_rounded,
                           size: 16,
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           l10n.privacyLastUpdated,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Row(
+                    Row(
                       children: [
                         Icon(
                           Icons.mail_outline_rounded,
                           size: 16,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         SizedBox(width: 8),
                         Text(
                           AppConstants.kPrivacyEmail,
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -143,11 +142,11 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
                     snap.hasData
                         ? 'UNIUN v${snap.data!.version}'
                         : l10n.appVersion,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.4,
-                      color: AppColors.outline,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
                 ),
@@ -183,11 +182,11 @@ class _ExpandableSection extends StatelessWidget {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -206,28 +205,28 @@ class _ExpandableSection extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.10),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, size: 18, color: AppColors.primary),
+                    child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
                   AnimatedRotation(
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 250),
-                    child: const Icon(
+                    child: Icon(
                       Icons.expand_more_rounded,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -256,7 +255,7 @@ class _PrivacyPolicyContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(color: AppColors.outlineVariant),
+        Divider(color: Theme.of(context).colorScheme.outlineVariant),
         const SizedBox(height: 12),
         _PolicySection(title: l10n.privacyStoredLocallyTitle, body: l10n.privacyStoredLocallyBody),
         _PolicySection(title: l10n.privacySharedPubliclyTitle, body: l10n.privacySharedPubliclyBody),
@@ -282,7 +281,7 @@ class _TermsContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Divider(color: AppColors.outlineVariant),
+        Divider(color: Theme.of(context).colorScheme.outlineVariant),
         const SizedBox(height: 12),
         _PolicySection(title: l10n.termsResponsibilityTitle, body: l10n.termsResponsibilityBody),
         _PolicySection(title: l10n.termsNoAbuseTitle, body: l10n.termsNoAbuseBody),
@@ -318,17 +317,17 @@ class _PolicySection extends StatelessWidget {
                 height: 14,
                 margin: const EdgeInsets.only(top: 3, right: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -339,10 +338,10 @@ class _PolicySection extends StatelessWidget {
             padding: const EdgeInsets.only(left: 14),
             child: Text(
               body,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.6,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),

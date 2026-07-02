@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
@@ -35,16 +34,16 @@ class ModelCard extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.03)
-              : AppColors.surface,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.03)
+              : Theme.of(context).colorScheme.surface,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outlineVariant,
+            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.onSurface.withValues(alpha: 0.04),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -68,10 +67,10 @@ class ModelCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 model.modelId.displayName(l10n),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
+                                  color: Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -80,9 +79,9 @@ class ModelCard extends StatelessWidget {
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.primary
+                                    ? Theme.of(context).colorScheme.primary
                                         .withValues(alpha: 0.15)
-                                    : AppColors.surfaceContainerHighest,
+                                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -91,8 +90,8 @@ class ModelCard extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.onSurfaceVariant,
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -106,20 +105,20 @@ class ModelCard extends StatelessWidget {
                                   height: 28,
                                   decoration: BoxDecoration(
                                     color:
-                                        AppColors.error.withValues(alpha: 0.1),
+                                        Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: isDeleting
-                                      ? const Padding(
+                                      ? Padding(
                                           padding: EdgeInsets.all(6),
                                           child: DropLoadingIndicator(
-                                            color: AppColors.error,
+                                            color: Theme.of(context).colorScheme.error,
                                           ),
                                         )
-                                      : const Icon(
+                                      : Icon(
                                           Icons.delete_outline_rounded,
                                           size: 16,
-                                          color: AppColors.error,
+                                          color: Theme.of(context).colorScheme.error,
                                         ),
                                 ),
                               ),
@@ -129,9 +128,9 @@ class ModelCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           model.modelId.description(l10n),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             height: 1.4,
                           ),
                         ),
@@ -175,14 +174,14 @@ class ModelCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(8),
                       bottomRight: Radius.circular(8),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -190,10 +189,10 @@ class ModelCard extends StatelessWidget {
                   ),
                   child: Text(
                     l10n.aiModelRecommendedBadge,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.onPrimary,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -231,19 +230,19 @@ class ModelVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color bg, IconData icon) = switch (tier) {
       AIModelTier.lite => (
-          AppColors.surfaceContainerHighest,
+          Theme.of(context).colorScheme.surfaceContainerHighest,
           Icons.bolt_rounded,
         ),
       AIModelTier.balanced => (
-          AppColors.primary.withValues(alpha: 0.15),
+          Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
           Icons.auto_awesome_rounded,
         ),
       AIModelTier.performance => (
-          AppColors.secondaryContainer.withValues(alpha: 0.4),
+          Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.4),
           Icons.psychology_rounded,
         ),
       AIModelTier.flagship => (
-          AppColors.surfaceContainerHigh,
+          Theme.of(context).colorScheme.surfaceContainerHigh,
           Icons.rocket_launch_rounded,
         ),
     };
@@ -260,7 +259,7 @@ class ModelVisual extends StatelessWidget {
           icon,
           size: 28,
           color:
-              isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+              isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -287,8 +286,8 @@ class ModelCapabilityChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.primary.withValues(alpha: 0.12)
-            : AppColors.surfaceContainerHighest,
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -299,8 +298,8 @@ class ModelCapabilityChip extends StatelessWidget {
               icon,
               size: 11,
               color: isSelected
-                  ? AppColors.primary
-                  : AppColors.onSurfaceVariant,
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 4),
           ],
@@ -311,8 +310,8 @@ class ModelCapabilityChip extends StatelessWidget {
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               color: isSelected
-                  ? AppColors.primary
-                  : AppColors.onSurfaceVariant,
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],

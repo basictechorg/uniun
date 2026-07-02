@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/moderation/cubit/report_sheet_cubit.dart';
 import 'package:uniun/features/moderation/widgets/also_block_toggle.dart';
 import 'package:uniun/features/moderation/widgets/reason_field.dart';
@@ -44,7 +43,7 @@ class ReportSheetPage extends StatelessWidget {
     return showModalBottomSheet<ReportSheetResult>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -102,10 +101,10 @@ class _ReportSheetView extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 l10n.reportSheetTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -122,9 +121,9 @@ class _ReportSheetView extends StatelessWidget {
                       // Hide is unconditional; block is the heavier hammer.
                       Text(
                         l10n.reportSheetOutcomeHint,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.outline,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -154,7 +153,7 @@ class _DragHandle extends StatelessWidget {
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.outlineVariant,
+          color: Theme.of(context).colorScheme.outlineVariant,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -177,8 +176,8 @@ class _ErrorRow extends StatelessWidget {
           padding: const EdgeInsets.only(top: 8),
           child: Text(
             state.errorMessage!,
-            style: const TextStyle(
-              color: AppColors.error,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
               fontSize: 13,
             ),
           ),

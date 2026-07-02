@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_conversation_tile.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -21,7 +20,7 @@ class ShivHistoryDrawer extends StatelessWidget {
 
     return Drawer(
       width: 280,
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Column(
         children: [
           Container(
@@ -32,15 +31,15 @@ class ShivHistoryDrawer extends StatelessWidget {
               top: top + 16,
               bottom: 12,
             ),
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             child: Row(
               children: [
                 Text(
                   l10n.shivConversations,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -53,7 +52,7 @@ class ShivHistoryDrawer extends StatelessWidget {
                         .add(const ShivAIEvent.createConversation());
                   },
                   icon: const Icon(Icons.add_rounded),
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   tooltip: l10n.shivNewConversationTooltip,
                 ),
               ],
@@ -83,9 +82,9 @@ class _ConversationsSection extends StatelessWidget {
             child: Center(
               child: Text(
                 l10n.shivNoConversations,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

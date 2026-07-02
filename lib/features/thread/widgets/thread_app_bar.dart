@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
-import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/features/share/pages/share_sheet_page.dart';
+import 'package:uniun/l10n/app_localizations.dart';
 
 class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ThreadAppBar({super.key, this.sourceEventId});
@@ -22,11 +22,13 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final custom = context.custom;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
         border: Border(
-          bottom: BorderSide(color: AppColors.borderSubtle),
+          bottom: BorderSide(color: custom.borderSubtle),
         ),
       ),
       child: SafeArea(
@@ -42,16 +44,16 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Text(
                   AppLocalizations.of(context)!.threadTitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.ios_share,
-                    color: AppColors.onSurfaceVariant),
+                icon: Icon(Icons.ios_share,
+                    color: colorScheme.onSurfaceVariant),
                 onPressed: sourceEventId == null
                     ? null
                     : () => ShareSheetPage.show(context, sourceEventId!),

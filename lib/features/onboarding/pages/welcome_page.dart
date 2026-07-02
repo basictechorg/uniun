@@ -7,8 +7,6 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/l10n/app_language.dart';
 import 'package:uniun/core/l10n/locale_cubit.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// Welcome / landing screen.
 /// No top app bar, no bottom nav — pure onboarding shell.
 ///
@@ -22,7 +20,7 @@ class WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -70,16 +68,16 @@ class WelcomePage extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.add_rounded,
-                              color: AppColors.onPrimary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               size: 22,
                             ),
                             const SizedBox(width: 10),
                             Text(
                               l10n.welcomeCreateIdentity,
-                              style: const TextStyle(
-                                color: AppColors.onPrimary,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -97,16 +95,16 @@ class WelcomePage extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.vpn_key_outlined,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                               size: 20,
                             ),
                             const SizedBox(width: 10),
                             Text(
                               l10n.welcomeImportKey,
-                              style: const TextStyle(
-                                color: AppColors.onSurface,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -125,16 +123,16 @@ class WelcomePage extends StatelessWidget {
                           children: [
                             Text(
                               l10n.welcomeLearnHow,
-                              style: const TextStyle(
-                                color: AppColors.primary,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.arrow_forward_rounded,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                               size: 16,
                             ),
                           ],
@@ -176,9 +174,9 @@ class _BrandBlock extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.primary.withValues(alpha: 0.18),
-                      AppColors.primaryContainer.withValues(alpha: 0.06),
-                      AppColors.primary.withValues(alpha: 0.0),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
+                      Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.06),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
                     ],
                     stops: const [0.0, 0.45, 0.75],
                   ),
@@ -194,10 +192,10 @@ class _BrandBlock extends StatelessWidget {
         ),
         // gradient wordmark
         ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.primary, AppColors.primaryContainer],
+            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primaryContainer],
           ).createShader(bounds),
           child: const Text(
             'UNIUN',
@@ -227,16 +225,16 @@ class _Subtitle extends StatelessWidget {
         children: [
           TextSpan(
             text: l10n.welcomeSubtitleLead,
-            style: const TextStyle(
-              color: AppColors.onSurfaceVariant,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
           TextSpan(
             text: l10n.welcomeSubtitleEmphasis,
-            style: const TextStyle(
-              color: AppColors.primary,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 15,
               fontWeight: FontWeight.w800,
             ),
@@ -260,18 +258,18 @@ class _TrimurtiPillars extends StatelessWidget {
   Widget build(BuildContext context) {
     final divider = Container(
       width: 1,
-      color: AppColors.primary.withValues(alpha: 0.12),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
     );
     return IntrinsicHeight(
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.04),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+          border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)),
           // soft brand glow radiating behind the pillar card
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.18),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
               blurRadius: 36,
               spreadRadius: -6,
               offset: const Offset(0, 10),
@@ -327,16 +325,16 @@ class _Pillar extends StatelessWidget {
               iconAsset,
               width: 30,
               height: 30,
-              colorFilter: const ColorFilter.mode(
-                AppColors.primary,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.primary,
                 BlendMode.srcIn,
               ),
             ),
             const SizedBox(height: 9),
             Text(
               deity,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.2,
@@ -345,8 +343,8 @@ class _Pillar extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               role.toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.primary,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -376,15 +374,15 @@ class _PrimaryButton extends StatelessWidget {
         width: double.infinity,
         height: 58,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.primary, AppColors.primaryContainer],
+            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primaryContainer],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.28),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.28),
               blurRadius: 32,
               offset: const Offset(0, 12),
             ),
@@ -411,10 +409,10 @@ class _SecondaryButton extends StatelessWidget {
         width: double.infinity,
         height: 58,
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
           boxShadow: [
             BoxShadow(
@@ -455,16 +453,16 @@ class _LanguageBar extends StatelessWidget {
               children: [
                 Text(
                   l10n.welcomeMoreLanguages,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
                 const SizedBox(width: 2),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   size: 18,
                 ),
               ],
@@ -486,10 +484,10 @@ class _LanguageToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
       child: Row(
@@ -526,7 +524,7 @@ class _Segment extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
+          color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(99),
         ),
         child: Text(
@@ -534,7 +532,7 @@ class _Segment extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+            color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ),

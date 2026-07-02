@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Renders the four directional action labels around the swipe card area.
@@ -135,7 +134,7 @@ class _EdgeLabel extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w800,
           letterSpacing: 1,
-          color: active ? AppColors.primary : AppColors.outlineVariant,
+          color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
     );

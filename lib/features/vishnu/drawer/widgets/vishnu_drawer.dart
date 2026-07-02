@@ -6,7 +6,6 @@ import 'package:uniun/common/qr/uniun_qr_card.dart';
 import 'package:uniun/common/qr/uniun_qr_scanner_page.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
@@ -85,7 +84,7 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       width: 312,
       child: BlocBuilder<app_drawer.DrawerBloc, app_drawer.DrawerState>(
         builder: (context, state) {
@@ -356,7 +355,7 @@ class _DrawerHeader extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -374,10 +373,10 @@ class _DrawerHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -431,26 +430,26 @@ class _QrActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: AppColors.primary),
+            Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 8),
             Flexible(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -554,8 +553,8 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
                       AnimatedRotation(
                         turns: _expanded ? 0 : -0.25,
                         duration: const Duration(milliseconds: 200),
-                        child: const Icon(Icons.keyboard_arrow_down_rounded,
-                            size: 18, color: AppColors.outline),
+                        child: Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 18, color: Theme.of(context).colorScheme.outline),
                       ),
                       const SizedBox(width: 4),
                       Flexible(
@@ -563,11 +562,11 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
                           widget.title.toUpperCase(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
-                            color: AppColors.outline,
+                            color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
                       ),
@@ -579,10 +578,10 @@ class _CollapsibleSectionState extends State<_CollapsibleSection>
                 InkWell(
                   onTap: widget.onAdd,
                   borderRadius: BorderRadius.circular(999),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(4),
                     child: Icon(Icons.add_rounded,
-                        size: 18, color: AppColors.primary),
+                        size: 18, color: Theme.of(context).colorScheme.primary),
                   ),
                 ),
             ],
@@ -633,7 +632,7 @@ class _NavItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: active
-                ? AppColors.primary.withValues(alpha: 0.10)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.10)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -642,7 +641,7 @@ class _NavItem extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: active ? AppColors.primary : AppColors.onSurfaceVariant,
+                color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
               Text(
@@ -650,7 +649,7 @@ class _NavItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                  color: active ? AppColors.primary : AppColors.onSurface,
+                  color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -700,10 +699,10 @@ class _ListRow extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   if (subtitle != null)
@@ -713,9 +712,9 @@ class _ListRow extends StatelessWidget {
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.outline,
+                          color: Theme.of(context).colorScheme.outline,
                         ),
                       ),
                     ),
@@ -744,10 +743,10 @@ class _IconSquare extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.10),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, size: 18, color: AppColors.primary),
+      child: Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
     );
   }
 }
@@ -764,8 +763,8 @@ class _CountBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: activity
-            ? AppColors.primary.withValues(alpha: 0.12)
-            : AppColors.primary,
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+            : Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -773,7 +772,7 @@ class _CountBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: activity ? AppColors.primary : AppColors.onPrimary,
+          color: activity ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onPrimary,
         ),
       ),
     );
@@ -789,9 +788,9 @@ class _Dot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -826,31 +825,31 @@ class _DrawerSearchField extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
-        style: const TextStyle(fontSize: 14, color: AppColors.onSurface),
+        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
         decoration: InputDecoration(
           isDense: true,
           hintText: l10n.drawerSearchHint,
-          hintStyle: const TextStyle(fontSize: 14, color: AppColors.outline),
-          prefixIcon: const Icon(Icons.search_rounded,
-              size: 18, color: AppColors.outline),
+          hintStyle: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.outline),
+          prefixIcon: Icon(Icons.search_rounded,
+              size: 18, color: Theme.of(context).colorScheme.outline),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 38, minHeight: 38),
           suffixIcon: controller.text.isEmpty
               ? null
               : GestureDetector(
                   onTap: onClear,
-                  child: const Icon(Icons.close_rounded,
-                      size: 18, color: AppColors.outline),
+                  child: Icon(Icons.close_rounded,
+                      size: 18, color: Theme.of(context).colorScheme.outline),
                 ),
           suffixIconConstraints:
               const BoxConstraints(minWidth: 38, minHeight: 38),
           filled: true,
-          fillColor: AppColors.surfaceContainerLow,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
-          border: border(AppColors.outlineVariant.withValues(alpha: 0.4)),
+          border: border(Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4)),
           enabledBorder:
-              border(AppColors.outlineVariant.withValues(alpha: 0.4)),
-          focusedBorder: border(AppColors.primary.withValues(alpha: 0.5)),
+              border(Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4)),
+          focusedBorder: border(Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
         ),
       ),
     );
@@ -892,9 +891,9 @@ class _SearchResultsList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Text(
           l10n.drawerSearchNoResults,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: AppColors.outlineVariant,
+            color: Theme.of(context).colorScheme.outlineVariant,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -940,9 +939,9 @@ class _EmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: AppColors.outlineVariant,
+          color: Theme.of(context).colorScheme.outlineVariant,
           fontStyle: FontStyle.italic,
         ),
       ),
@@ -962,7 +961,7 @@ class _DrawerFooter extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -974,20 +973,20 @@ class _DrawerFooter extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                const Icon(Icons.settings_rounded,
-                    size: 22, color: AppColors.onSurfaceVariant),
+                Icon(Icons.settings_rounded,
+                    size: 22, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context)!.drawerSettings,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
-                    size: 20, color: AppColors.outlineVariant),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: Theme.of(context).colorScheme.outlineVariant),
               ],
             ),
           ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uniun/common/snackbar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/composer_chat/cubit/composer_chat_state.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// The inline Shiv chat surface shown INSIDE the composer (above the text
 /// field) while it is in Manas-chat mode. A Shiv-branded header (scope +
@@ -92,7 +92,7 @@ class ComposerChatPanel extends StatelessWidget {
               icon: const Icon(Icons.stop_circle_outlined, size: 16),
               label: Text(l10n.composerChatStop),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 minimumSize: const Size(0, 32),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -100,7 +100,7 @@ class ComposerChatPanel extends StatelessWidget {
             ),
           ),
         const SizedBox(height: 10),
-        const Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+        Divider(height: 1, thickness: 1, color: context.custom.borderSubtle),
       ],
     );
   }
@@ -124,12 +124,12 @@ class _Header extends StatelessWidget {
           width: 28,
           height: 28,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.auto_awesome_rounded,
-              size: 16, color: AppColors.onPrimary),
+          child: Icon(Icons.auto_awesome_rounded,
+              size: 16, color: Theme.of(context).colorScheme.onPrimary),
         ),
         const SizedBox(width: 9),
         Expanded(
@@ -139,11 +139,11 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 l10n.composerChatBrand,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.1,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 2),
@@ -151,11 +151,11 @@ class _Header extends StatelessWidget {
                 l10n.composerChatScopeEyebrow(scope).toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.6,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -166,8 +166,8 @@ class _Header extends StatelessWidget {
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          icon: const Icon(Icons.close_rounded,
-              size: 19, color: AppColors.onSurfaceVariant),
+          icon: Icon(Icons.close_rounded,
+              size: 19, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -188,22 +188,22 @@ class _GroundedHint extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.borderSubtle),
+          border: Border.all(color: context.custom.borderSubtle),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.tips_and_updates_outlined,
-                size: 14, color: AppColors.textMuted),
+            Icon(Icons.tips_and_updates_outlined,
+                size: 14, color: context.custom.textMuted),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 l10n.composerChatGroundedHint(scope),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: context.custom.textMuted),
               ),
             ),
           ],
@@ -270,14 +270,14 @@ class _ActionChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: AppColors.primary),
+              Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 4),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -300,7 +300,7 @@ class _StatusText extends StatelessWidget {
       text,
       style: TextStyle(
         fontSize: 12,
-        color: isError ? AppColors.error : AppColors.onSurfaceVariant,
+        color: isError ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -328,8 +328,8 @@ class _Bubble extends StatelessWidget {
           maxWidth: MediaQuery.sizeOf(context).width * 0.82,
         ),
         decoration: BoxDecoration(
-          color: isUser ? AppColors.primary : AppColors.surface,
-          border: isUser ? null : Border.all(color: AppColors.borderSubtle),
+          color: isUser ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
+          border: isUser ? null : Border.all(color: context.custom.borderSubtle),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(isUser ? 16 : 4),
             topRight: Radius.circular(isUser ? 4 : 16),
@@ -344,8 +344,8 @@ class _Bubble extends StatelessWidget {
             height: 1.5,
             fontStyle: dim ? FontStyle.italic : FontStyle.normal,
             color: isUser
-                ? AppColors.onPrimary
-                : (dim ? AppColors.textMuted : AppColors.textBody),
+                ? Theme.of(context).colorScheme.onPrimary
+                : (dim ? context.custom.textMuted : context.custom.textBody),
           ),
         ),
       ),

@@ -10,9 +10,9 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/private_groups/join/bloc/join_private_group_bloc.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class JoinPrivateGroupPage extends StatelessWidget {
   const JoinPrivateGroupPage({super.key, this.payload});
@@ -79,7 +79,7 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -88,7 +88,7 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
            ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.joinPrivateGroupSuccess),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -103,22 +103,22 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
       },
       child: KeyboardDismissOnTap(
         child: Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             centerTitle: true,
-            shape: const Border(
-              bottom: BorderSide(color: AppColors.borderSubtle),
+            shape: Border(
+              bottom: BorderSide(color: context.custom.borderSubtle),
             ),
             leading: UniunBackButton(
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
               l10n.joinPrivateGroupTitle,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
               ),
@@ -134,16 +134,16 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                     // ── Encrypted eyebrow ──────────────────────────────────
                     Row(
                       children: [
-                        const Icon(Icons.lock_rounded,
-                            size: 14, color: AppColors.success),
+                        Icon(Icons.lock_rounded,
+                            size: 14, color: context.custom.success),
                         const SizedBox(width: 6),
                         Text(
                           l10n.joinPrivateGroupEncrypted.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
-                            color: AppColors.success,
+                            color: context.custom.success,
                           ),
                         ),
                       ],
@@ -168,22 +168,22 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                     // ── Group ID ───────────────────────────────────────────
                     TextField(
                       controller: _groupIdController,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 14,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: AppColors.surfaceLow,
+                        fillColor: context.custom.surfaceLow,
                         hintText: l10n.joinPrivateGroupGroupIdHint,
-                        hintStyle: const TextStyle(
+                        hintStyle: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 14,
-                          color: AppColors.textMuted,
+                          color: context.custom.textMuted,
                         ),
-                        prefixIcon: const Icon(Icons.key_rounded,
-                            size: 20, color: AppColors.onSurfaceVariant),
+                        prefixIcon: Icon(Icons.key_rounded,
+                            size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 16),
                         border: OutlineInputBorder(
@@ -196,8 +196,8 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
                             width: 1.5,
                           ),
                         ),
@@ -206,10 +206,10 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                     const SizedBox(height: 10),
                     Text(
                       l10n.joinPrivateGroupGroupIdHelper,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         height: 1.45,
-                        color: AppColors.textMuted,
+                        color: context.custom.textMuted,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -231,23 +231,23 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceLow,
+                        color: context.custom.surfaceLow,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderSubtle),
+                        border: Border.all(color: context.custom.borderSubtle),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.how_to_reg_rounded,
-                              size: 20, color: AppColors.onSurfaceVariant),
+                          Icon(Icons.how_to_reg_rounded,
+                              size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               l10n.joinPrivateGroupApprovalInfo,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
-                                color: AppColors.onSurfaceVariant,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -263,23 +263,23 @@ class _JoinPrivateGroupViewState extends State<_JoinPrivateGroupView> {
                       child: ElevatedButton(
                         onPressed: state.isSubmitting ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.onPrimary,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           disabledBackgroundColor:
-                              AppColors.primary.withValues(alpha: 0.5),
-                          disabledForegroundColor: AppColors.onPrimary,
+                              Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                          disabledForegroundColor: Theme.of(context).colorScheme.onPrimary,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: state.isSubmitting
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: DropLoadingIndicator(
                                   size: 20,
-                                  color: AppColors.onPrimary,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               )
                             : Text(
@@ -326,9 +326,9 @@ class _ScanQrCard extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.custom.border),
           ),
           child: Column(
             children: [
@@ -336,30 +336,30 @@ class _ScanQrCard extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded,
-                    size: 34, color: AppColors.primary),
+                child: Icon(Icons.qr_code_scanner_rounded,
+                    size: 34, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.45,
-                  color: AppColors.textMuted,
+                  color: context.custom.textMuted,
                 ),
               ),
             ],
@@ -378,18 +378,18 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(
-          child: SizedBox(height: 1, child: ColoredBox(color: AppColors.borderSubtle)),
+        Expanded(
+          child: SizedBox(height: 1, child: ColoredBox(color: context.custom.borderSubtle)),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             AppLocalizations.of(context)!.commonOr,
-            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 12, color: context.custom.textMuted),
           ),
         ),
-        const Expanded(
-          child: SizedBox(height: 1, child: ColoredBox(color: AppColors.borderSubtle)),
+        Expanded(
+          child: SizedBox(height: 1, child: ColoredBox(color: context.custom.borderSubtle)),
         ),
       ],
     );

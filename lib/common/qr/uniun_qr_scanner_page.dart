@@ -7,7 +7,6 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/deep_link.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
@@ -175,7 +174,7 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
                 width: 240,
                 height: 240,
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary, width: 3),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary, width: 3),
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),

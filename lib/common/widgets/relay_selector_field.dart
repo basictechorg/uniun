@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/constants/app_constants.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/save_relay_usecase.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -86,7 +85,7 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -140,7 +139,7 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.outlineVariant,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -150,10 +149,10 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           l10n.relaySelectorPickerTitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -168,7 +167,7 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                                 child: Text(
                                   l10n.relaySelectorEmpty,
                                   style:
-                                      const TextStyle(color: AppColors.outline),
+                                      TextStyle(color: Theme.of(context).colorScheme.outline),
                                 ),
                               ),
                             )
@@ -197,21 +196,21 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                             child: TextField(
                               controller: _relayUrlController,
                               keyboardType: TextInputType.url,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 13,
-                                color: AppColors.onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                               decoration: InputDecoration(
                                 isDense: true,
                                 hintText: l10n.relayAddDialogHint,
-                                hintStyle: const TextStyle(
+                                hintStyle: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 13,
-                                  color: AppColors.outline,
+                                  color: Theme.of(context).colorScheme.outline,
                                 ),
-                                prefixIcon: const Icon(Icons.add_rounded,
-                                    size: 20, color: AppColors.primary),
+                                prefixIcon: Icon(Icons.add_rounded,
+                                    size: 20, color: Theme.of(context).colorScheme.primary),
                               ),
                               onSubmitted: (_) => addRelay(),
                             ),
@@ -221,8 +220,8 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                             onPressed: addRelay,
                             child: Text(
                               l10n.relayAddDialogAction,
-                              style: const TextStyle(
-                                color: AppColors.primary,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -238,8 +237,8 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                         child: ElevatedButton(
                           onPressed: () => Navigator.of(sheetContext).pop(),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.onPrimary,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
@@ -282,13 +281,13 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.dns_rounded,
-                      size: 20, color: AppColors.outline),
+                  Icon(Icons.dns_rounded,
+                      size: 20, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -297,16 +296,16 @@ class _RelaySelectorFieldState extends State<RelaySelectorField> {
                           : l10n.relaySelectorSelected(widget.selected.length),
                       style: TextStyle(
                         color: widget.selected.isEmpty
-                            ? AppColors.outline
-                            : AppColors.onSurface,
+                            ? Theme.of(context).colorScheme.outline
+                            : Theme.of(context).colorScheme.onSurface,
                         fontWeight: widget.selected.isEmpty
                             ? FontWeight.normal
                             : FontWeight.w600,
                       ),
                     ),
                   ),
-                  const Icon(Icons.expand_more_rounded,
-                      color: AppColors.outline),
+                  Icon(Icons.expand_more_rounded,
+                      color: Theme.of(context).colorScheme.outline),
                 ],
               ),
             ),
@@ -353,7 +352,7 @@ class _RelaySheetRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         color: selected
-            ? AppColors.primary.withValues(alpha: 0.06)
+            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.06)
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
@@ -361,7 +360,7 @@ class _RelaySheetRow extends StatelessWidget {
             Icon(
               Icons.dns_rounded,
               size: 18,
-              color: selected ? AppColors.primary : AppColors.outline,
+              color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -373,8 +372,8 @@ class _RelaySheetRow extends StatelessWidget {
                   fontFamily: 'monospace',
                   fontSize: 13,
                   color: selected
-                      ? AppColors.onSurface
-                      : AppColors.onSurfaceVariant,
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -382,7 +381,7 @@ class _RelaySheetRow extends StatelessWidget {
             Icon(
               selected ? Icons.check_circle_rounded : Icons.circle_outlined,
               size: 20,
-              color: selected ? AppColors.primary : AppColors.outlineVariant,
+              color: selected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outlineVariant,
             ),
           ],
         ),
@@ -404,7 +403,7 @@ class _RelayTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 7, 6, 7),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -412,11 +411,11 @@ class _RelayTag extends StatelessWidget {
         children: [
           Text(
             url,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(width: 6),
@@ -426,7 +425,7 @@ class _RelayTag extends StatelessWidget {
             child: Icon(
               Icons.close_rounded,
               size: 16,
-              color: AppColors.primary.withValues(alpha: 0.7),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
             ),
           ),
         ],

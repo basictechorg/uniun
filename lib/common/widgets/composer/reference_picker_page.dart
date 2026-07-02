@@ -6,10 +6,10 @@ import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Full-screen picker for attaching note/message references to a composer.
 ///
@@ -110,11 +110,11 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
     final pickerState = context.watch<ReferencePickerCubit>().state;
 
     // Mono-blue source dots (matches the Brahma graph) — null for "All".
-    const dots = <ReferenceTab, Color?>{
+    final dots = <ReferenceTab, Color?>{
       ReferenceTab.all: null,
-      ReferenceTab.saved: AppColors.graphNodeSaved,
-      ReferenceTab.own: AppColors.graphNodeOwn,
-      ReferenceTab.drafts: AppColors.graphNodeDraft,
+      ReferenceTab.saved: context.custom.graphNodeSaved,
+      ReferenceTab.own: context.custom.graphNodeOwn,
+      ReferenceTab.drafts: context.custom.graphNodeDraft,
     };
 
     // Enrich the held selection with profile/time metadata when the active tab
@@ -132,23 +132,23 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
         if (!didPop) Navigator.pop(context, _selected);
       },
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           centerTitle: true,
           surfaceTintColor: Colors.transparent,
           leading: IconButton(
-            icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
+            icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
             tooltip: l10n.actionBack,
             onPressed: () => Navigator.pop(context, _selected),
           ),
           title: Text(
             widget.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           actions: [
@@ -157,8 +157,8 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
               child: FilledButton(
                 onPressed: () => Navigator.pop(context, _selected),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   minimumSize: const Size(0, 36),
                   shape: RoundedRectangleBorder(
@@ -177,7 +177,7 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(height: 1, color: AppColors.borderSubtle),
+            child: Container(height: 1, color: context.custom.borderSubtle),
           ),
         ),
         body: Column(
@@ -189,15 +189,15 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
                 autofocus: true,
                 onChanged: (q) => context.read<ReferencePickerCubit>().search(q),
                 style:
-                    const TextStyle(fontSize: 14, color: AppColors.onSurface),
+                    TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: widget.searchHint,
-                  hintStyle: const TextStyle(
-                      color: AppColors.onSurfaceVariant, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      size: 20, color: AppColors.onSurfaceVariant),
+                  hintStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   filled: true,
-                  fillColor: AppColors.surfaceContainerLow,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -232,12 +232,12 @@ class _ReferencePickerViewState extends State<_ReferencePickerView> {
               child: rows.isEmpty
                   ? Center(
                       child: pickerState.loading
-                          ? const DropLoadingIndicator(
-                              color: AppColors.primary)
+                          ? DropLoadingIndicator(
+                              color: Theme.of(context).colorScheme.primary)
                           : Text(
                               widget.emptyLabel,
-                              style: const TextStyle(
-                                  color: AppColors.onSurfaceVariant,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   fontSize: 14),
                             ),
                     )
@@ -289,7 +289,7 @@ class _FilterChip extends StatelessWidget {
         height: 34,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? AppColors.primary : AppColors.surfaceContainerLow,
+          color: active ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
@@ -300,7 +300,7 @@ class _FilterChip extends StatelessWidget {
                 width: 7,
                 height: 7,
                 decoration: BoxDecoration(
-                  color: active ? AppColors.onPrimary : dot,
+                  color: active ? Theme.of(context).colorScheme.onPrimary : dot,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -312,7 +312,7 @@ class _FilterChip extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color:
-                    active ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                    active ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -352,10 +352,10 @@ class _ResultTile extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.06)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.06)
               : Colors.transparent,
-          border: const Border(
-            bottom: BorderSide(color: AppColors.borderSubtle),
+          border: Border(
+            bottom: BorderSide(color: context.custom.borderSubtle),
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -380,10 +380,10 @@ class _ResultTile extends StatelessWidget {
                           child: Text(
                             displayName,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
-                              color: AppColors.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -392,9 +392,9 @@ class _ResultTile extends StatelessWidget {
                       if (reference.created != null)
                         Text(
                           '· ${formatTimeAgo(reference.created!)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textMuted,
+                            color: context.custom.textMuted,
                           ),
                         ),
                     ],
@@ -407,7 +407,7 @@ class _ResultTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       height: 1.5,
-                      color: AppColors.onSurface.withValues(alpha: 0.55),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                     ),
                   ),
                 ],
@@ -423,14 +423,14 @@ class _ResultTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color:
-                      isSelected ? AppColors.primary : Colors.transparent,
+                      isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
                   border: isSelected
                       ? null
-                      : Border.all(color: AppColors.outlineVariant, width: 2),
+                      : Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 2),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check_rounded,
-                        size: 16, color: AppColors.onPrimary)
+                    ? Icon(Icons.check_rounded,
+                        size: 16, color: Theme.of(context).colorScheme.onPrimary)
                     : null,
               ),
             ),

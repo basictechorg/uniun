@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/enum/message_role.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
@@ -67,7 +66,7 @@ class _ShivChatPageState extends State<ShivChatPage> {
         return GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: Scaffold(
-            backgroundColor: AppColors.surfaceContainerLowest,
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
             resizeToAvoidBottomInset: false,
             drawer: const ShivHistoryDrawer(),
             onDrawerChanged: widget.onDrawerChanged,
@@ -199,10 +198,10 @@ class _ShivChatHeader extends StatelessWidget {
     return Container(
       padding: EdgeInsets.only(left: 8, right: 8, top: top + 8, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.85),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
             blurRadius: 32,
             offset: const Offset(0, 12),
           ),
@@ -220,10 +219,10 @@ class _ShivChatHeader extends StatelessWidget {
           Expanded(
             child: Text(
               threadTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 letterSpacing: 0.8,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -278,15 +277,15 @@ class _HeaderIcon extends StatelessWidget {
                       assetPath!,
                       width: 22,
                       height: 22,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.onSurfaceVariant,
+                      colorFilter: ColorFilter.mode(
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                         BlendMode.srcIn,
                       ),
                     )
                   : Icon(
                       icon,
                       size: 22,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     )),
         ),
       ),
@@ -313,21 +312,21 @@ class _EmptyChat extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const DropIcon(
+              child: DropIcon(
                 size: 28,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 14),
             Text(
               l10n.shivEmptyTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
                 letterSpacing: -0.3,
               ),
             ),
@@ -335,10 +334,10 @@ class _EmptyChat extends StatelessWidget {
             Text(
               l10n.shivEmptyBody,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.55,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

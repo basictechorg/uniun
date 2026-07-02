@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// Shared container styling for the grouped cards on the Settings page.
 ///
 /// Design-system "Settings group" (DESIGN.md §2.2): a white card lifted off the
@@ -8,19 +6,22 @@ import 'package:uniun/core/theme/app_theme.dart';
 /// so every settings card reads as the same contained group.
 const double kSettingsCardRadius = 20;
 
-BoxDecoration get kSettingsCardDecoration => BoxDecoration(
-      color: AppColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(kSettingsCardRadius),
-      border:
-          Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.onSurface.withValues(alpha: 0.04),
-          blurRadius: 16,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    );
+BoxDecoration settingsCardDecoration(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return BoxDecoration(
+    color: colorScheme.surfaceContainerLowest,
+    borderRadius: BorderRadius.circular(kSettingsCardRadius),
+    border: Border.all(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+    boxShadow: [
+      BoxShadow(
+        color: colorScheme.onSurface.withValues(alpha: 0.04),
+        blurRadius: 16,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+}
 
 /// Hairline used to separate rows inside a single Settings group card.
 /// Lighter than the card border (the design's `--border-subtle`).
@@ -31,7 +32,7 @@ class SettingsRowDivider extends StatelessWidget {
   Widget build(BuildContext context) => Divider(
         height: 1,
         thickness: 1,
-        color: AppColors.outlineVariant.withValues(alpha: 0.35),
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35),
       );
 }
 
@@ -51,7 +52,7 @@ class SettingsGroup extends StatelessWidget {
       rows.add(children[i]);
     }
     return Container(
-      decoration: kSettingsCardDecoration,
+      decoration: settingsCardDecoration(context),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(kSettingsCardRadius),
         child: Column(mainAxisSize: MainAxisSize.min, children: rows),
@@ -115,7 +116,7 @@ class SettingsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: iconColor ?? AppColors.onSurfaceVariant),
+          Icon(icon, size: 22, color: iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -129,7 +130,7 @@ class SettingsRow extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
-                          color: labelColor ?? AppColors.onSurface,
+                          color: labelColor ?? Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -143,18 +144,18 @@ class SettingsRow extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        textStyle: const TextStyle(
+                        textStyle: TextStyle(
                           fontSize: 12,
                           height: 1.4,
-                          color: AppColors.surface,
+                          color: Theme.of(context).colorScheme.surface,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.info_outline_rounded,
                           size: 16,
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -164,16 +165,16 @@ class SettingsRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          ..._buildTrailing(),
+          ..._buildTrailing(context),
         ],
       ),
     );
@@ -182,7 +183,8 @@ class SettingsRow extends StatelessWidget {
     return InkWell(onTap: onTap, child: row);
   }
 
-  List<Widget> _buildTrailing() {
+  List<Widget> _buildTrailing(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (trailing != null) return [const SizedBox(width: 12), trailing!];
     final parts = <Widget>[];
     if (value != null) {
@@ -201,15 +203,15 @@ class SettingsRow extends StatelessWidget {
             fontWeight: valueAccent ? FontWeight.w600 : FontWeight.w500,
             fontFamily: valueMono ? 'monospace' : null,
             color:
-                valueAccent ? AppColors.primary : AppColors.onSurfaceVariant,
+                valueAccent ? colorScheme.primary : colorScheme.onSurfaceVariant,
           ),
         ),
       );
     }
     if (showChevron) {
       parts.add(const SizedBox(width: 6));
-      parts.add(const Icon(Icons.chevron_right_rounded,
-          size: 20, color: AppColors.outline));
+      parts.add(Icon(Icons.chevron_right_rounded,
+          size: 20, color: colorScheme.outline));
     }
     return parts;
   }
@@ -248,15 +250,15 @@ class SettingsPickerButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                size: 20, color: AppColors.primary),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20, color: Theme.of(context).colorScheme.primary),
           ],
         ),
       ),
@@ -275,7 +277,7 @@ Future<void> showSettingsOptionSheet<T>({
 }) {
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surfaceContainerLowest,
+    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -291,7 +293,7 @@ Future<void> showSettingsOptionSheet<T>({
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(99),
                 ),
               ),
@@ -299,10 +301,10 @@ Future<void> showSettingsOptionSheet<T>({
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -327,14 +329,14 @@ Future<void> showSettingsOptionSheet<T>({
                                 ? FontWeight.w600
                                 : FontWeight.w500,
                             color: o.value == selected
-                                ? AppColors.primary
-                                : AppColors.onSurface,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
                       if (o.value == selected)
-                        const Icon(Icons.check_rounded,
-                            size: 20, color: AppColors.primary),
+                        Icon(Icons.check_rounded,
+                            size: 20, color: Theme.of(context).colorScheme.primary),
                     ],
                   ),
                 ),

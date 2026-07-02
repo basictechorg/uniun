@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/cubit/settings_cubit.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
 
@@ -18,7 +17,7 @@ class ProfileCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: kSettingsCardDecoration,
+      decoration: settingsCardDecoration(context),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(kSettingsCardRadius),
         child: InkWell(
@@ -41,29 +40,29 @@ class ProfileCard extends StatelessWidget {
                       Text(
                         state.userName ?? l10n.profileAnonymous,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         state.handle ?? '',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontFamily: 'monospace',
-                          color: AppColors.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right_rounded,
-                    size: 20, color: AppColors.outline),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20, color: Theme.of(context).colorScheme.outline),
               ],
             ),
           ),

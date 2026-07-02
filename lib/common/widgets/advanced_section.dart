@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// A collapsible "Advanced" section, collapsed by default.
 ///
@@ -35,28 +35,28 @@ class _AdvancedSectionState extends State<AdvancedSection> {
           onTap: () => setState(() => _expanded = !_expanded),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: context.custom.borderSubtle)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.tune_rounded,
-                    size: 20, color: AppColors.onSurfaceVariant),
+                Icon(Icons.tune_rounded,
+                    size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
                 AnimatedRotation(
                   turns: _expanded ? 0.25 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.chevron_right_rounded,
-                      size: 20, color: AppColors.neutral400),
+                  child: Icon(Icons.chevron_right_rounded,
+                      size: 20, color: context.custom.neutral400),
                 ),
               ],
             ),

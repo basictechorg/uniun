@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_history_drawer.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Shiv landing / home — the hero "ask Shiv" screen.
 ///
@@ -39,7 +39,7 @@ class ShivHomePage extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       drawer: const ShivHistoryDrawer(),
       onDrawerChanged: onDrawerChanged,
       // Builder gives a context below this Scaffold so openDrawer() resolves.
@@ -63,11 +63,11 @@ class ShivHomePage extends StatelessWidget {
                             Text(
                               l10n.shivHomeHeadline,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 26,
                                 height: 1.2,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 letterSpacing: -0.4,
                               ),
                             ),
@@ -130,8 +130,8 @@ class _HomeAppBar extends StatelessWidget {
               'assets/images/tabs/shiva.svg',
               width: 32,
               height: 32,
-              colorFilter: const ColorFilter.mode(
-                AppColors.onSurfaceVariant,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.onSurfaceVariant,
                 BlendMode.srcIn,
               ),
             ),
@@ -140,9 +140,9 @@ class _HomeAppBar extends StatelessWidget {
           IconButton(
             onPressed: onMenu,
             tooltip: l10n.shivHomeHistoryTooltip,
-            icon: const Icon(
+            icon: Icon(
               Icons.history_rounded,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -162,7 +162,7 @@ class _HeroLogo extends StatelessWidget {
       width: 72,
       height: 72,
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.10),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
@@ -170,8 +170,8 @@ class _HeroLogo extends StatelessWidget {
         'assets/images/tabs/shiva.svg',
         width: 36,
         height: 36,
-        colorFilter: const ColorFilter.mode(
-          AppColors.primary,
+        colorFilter: ColorFilter.mode(
+          Theme.of(context).colorScheme.primary,
           BlendMode.srcIn,
         ),
       ),
@@ -197,9 +197,9 @@ class _AskCard extends StatelessWidget {
           Expanded(
             child: Text(
               hint,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -207,14 +207,14 @@ class _AskCard extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.arrow_upward_rounded,
-              color: AppColors.onPrimary,
+              color: Theme.of(context).colorScheme.onPrimary,
               size: 22,
             ),
           ),
@@ -240,9 +240,9 @@ class _Suggestions extends StatelessWidget {
       children: [
         for (final s in items)
           Material(
-            color: AppColors.surface,
-            shape: const StadiumBorder(
-              side: BorderSide(color: AppColors.border),
+            color: Theme.of(context).colorScheme.surface,
+            shape: StadiumBorder(
+              side: BorderSide(color: context.custom.border),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -251,10 +251,10 @@ class _Suggestions extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 child: Text(
                   s,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -290,11 +290,11 @@ class _ToolButton extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 19, color: AppColors.primary),
+            child: Icon(icon, size: 19, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(width: 10),
           Flexible(
@@ -302,10 +302,10 @@ class _ToolButton extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -334,12 +334,12 @@ class _SurfaceCard extends StatelessWidget {
     final br = BorderRadius.circular(radius);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: br,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.custom.border),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.05),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

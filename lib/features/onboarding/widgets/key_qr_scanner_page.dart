@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Full-screen camera scanner used by the import-identity page's
@@ -59,7 +58,7 @@ class _KeyQrScannerPageState extends State<KeyQrScannerPage> {
                 width: 240,
                 height: 240,
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary, width: 3),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary, width: 3),
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),

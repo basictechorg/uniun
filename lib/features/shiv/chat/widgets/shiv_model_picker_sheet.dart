@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
@@ -25,7 +24,7 @@ class ShivModelPickerSheet extends StatefulWidget {
 Future<void> showModelPickerSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -118,7 +117,7 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.outlineVariant,
+              color: Theme.of(context).colorScheme.outlineVariant,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -129,10 +128,10 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
               children: [
                 Text(
                   l10n.modelPickerTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const Spacer(),
@@ -151,8 +150,8 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
                 onChanged: (v) => setState(() => _filter = v.trim()),
                 decoration: InputDecoration(
                   hintText: l10n.modelPickerSearchHint,
-                  prefixIcon: const Icon(Icons.search_rounded,
-                      color: AppColors.onSurfaceVariant),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   isDense: true,
                   border: const OutlineInputBorder(),
                 ),
@@ -176,16 +175,16 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const DropLoadingIndicator(
-              color: AppColors.primary,
+            DropLoadingIndicator(
+              color: Theme.of(context).colorScheme.primary,
             ),
             if (_backend == LlmBackendType.openRouter) ...[
               const SizedBox(height: 12),
               Text(
                 l10n.modelPickerLoadingCloud,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -200,9 +199,9 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           child: Text(
             _errorMessage!,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.error,
+              color: Theme.of(context).colorScheme.error,
             ),
           ),
         ),
@@ -213,9 +212,9 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
       return Center(
         child: Text(
           l10n.modelPickerNoModels,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       );
@@ -229,9 +228,9 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           onTap: () => _select(m),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: AppColors.outlineVariant, width: 0.5),
+                top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
               ),
             ),
             child: Row(
@@ -247,17 +246,17 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
                           fontWeight:
                               isActive ? FontWeight.w700 : FontWeight.w500,
                           color: isActive
-                              ? AppColors.primary
-                              : AppColors.onSurface,
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (m.id != m.displayName) ...[
                         const SizedBox(height: 2),
                         Text(
                           m.id,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -265,8 +264,8 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
                   ),
                 ),
                 if (isActive)
-                  const Icon(Icons.check_circle_rounded,
-                      color: AppColors.primary, size: 20),
+                  Icon(Icons.check_circle_rounded,
+                      color: Theme.of(context).colorScheme.primary, size: 20),
               ],
             ),
           ),
@@ -287,7 +286,7 @@ class _BackendChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
@@ -296,15 +295,15 @@ class _BackendChip extends StatelessWidget {
           Icon(
             isCloud ? Icons.cloud_outlined : Icons.phone_iphone_rounded,
             size: 12,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 4),
           Text(
             isCloud ? l10n.modelPickerCloudSection : l10n.modelPickerLocalSection,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -336,7 +335,7 @@ class _FooterCta extends StatelessWidget {
           icon: const Icon(Icons.tune_rounded),
           label: Text(l10n.modelPickerManageLocalCta),
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.primary,
+            foregroundColor: Theme.of(context).colorScheme.primary,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ),

@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/manas/bloc/manas_form_bloc.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/features/brahma/manas/widgets/manas_icon_picker.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class ManasFormPage extends StatelessWidget {
   const ManasFormPage({super.key, this.manasId});
@@ -68,7 +68,7 @@ class _ManasFormViewState extends State<_ManasFormView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -80,9 +80,9 @@ class _ManasFormViewState extends State<_ManasFormView> {
         final isEdit = state.isEditMode;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             scrolledUnderElevation: 0,
             leading: UniunBackButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -93,10 +93,10 @@ class _ManasFormViewState extends State<_ManasFormView> {
                       ? l10n.manasFormEditTitleFallback
                       : l10n.manasFormEditTitle(state.name))
                   : l10n.manasFormCreateTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             actions: [
@@ -111,8 +111,8 @@ class _ManasFormViewState extends State<_ManasFormView> {
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: state.canSave
-                        ? AppColors.primary
-                        : AppColors.outlineVariant,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outlineVariant,
                   ),
                 ),
               ),
@@ -121,13 +121,13 @@ class _ManasFormViewState extends State<_ManasFormView> {
               preferredSize: const Size.fromHeight(1),
               child: Container(
                 height: 1,
-                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
             ),
           ),
           body: loading
-              ? const Center(
-                  child: DropLoadingIndicator(color: AppColors.primary),
+              ? Center(
+                  child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
                 )
               : _Body(
                   state: state,
@@ -178,7 +178,7 @@ class _Body extends StatelessWidget {
                   const SizedBox(height: 6),
                   TextField(
                     controller: nameController,
-                    decoration: _inputDeco(l10n.manasFormNameHint),
+                    decoration: _inputDeco(context, l10n.manasFormNameHint),
                     onChanged: (v) => context
                         .read<ManasFormBloc>()
                         .add(ManasFormNameChangedEvent(v)),
@@ -194,7 +194,8 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: descController,
-          decoration: _inputDeco(l10n.manasFormDescriptionHint),
+          decoration:
+              _inputDeco(context, l10n.manasFormDescriptionHint),
           onChanged: (v) => context
               .read<ManasFormBloc>()
               .add(ManasFormDescriptionChangedEvent(v)),
@@ -225,9 +226,9 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 10),
         TextField(
           controller: searchController,
-          decoration: _inputDeco(l10n.manasFormSearchHint).copyWith(
-            prefixIcon: const Icon(Icons.search_rounded,
-                size: 20, color: AppColors.onSurfaceVariant),
+          decoration: _inputDeco(context, l10n.manasFormSearchHint).copyWith(
+            prefixIcon: Icon(Icons.search_rounded,
+                size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
             suffixIcon: searchController.text.isEmpty
                 ? null
                 : IconButton(
@@ -246,14 +247,14 @@ class _Body extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (state.searching)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: SizedBox(
                 width: 20,
                 height: 20,
                 child: DropLoadingIndicator(
-                    size: 20, color: AppColors.primary),
+                    size: 20, color: Theme.of(context).colorScheme.primary),
               ),
             ),
           )
@@ -275,9 +276,9 @@ class _Body extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _confirmDelete(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
+              foregroundColor: Theme.of(context).colorScheme.error,
               side: BorderSide(
-                color: AppColors.error.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -302,7 +303,7 @@ class _Body extends StatelessWidget {
             child: Text(l10n.manasFormDeleteConfirmCancel),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(dialogCtx, true),
             child: Text(l10n.manasFormDeleteConfirmConfirm),
           ),
@@ -314,31 +315,32 @@ class _Body extends StatelessWidget {
     context.read<ManasFormBloc>().add(const ManasFormDeleteEvent());
   }
 
-  InputDecoration _inputDeco(String hint) {
+  InputDecoration _inputDeco(BuildContext context, String hint) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.outlineVariant),
+      hintStyle: TextStyle(color: colorScheme.outlineVariant),
       filled: true,
-      fillColor: AppColors.surfaceContainerLow,
+      fillColor: colorScheme.surfaceContainerLow,
       counterText: '',
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide:
-            BorderSide(color: AppColors.primary.withValues(alpha: 0.6)),
+            BorderSide(color: colorScheme.primary.withValues(alpha: 0.6)),
       ),
     );
   }
@@ -360,15 +362,15 @@ class _IconPickerTile extends StatelessWidget {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.10),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.35),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
           ),
         ),
         child: Icon(
           ManasIcons.byName(iconName),
-          color: AppColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           size: 26,
         ),
       ),
@@ -382,10 +384,10 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: AppColors.onSurface,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       );
 }
@@ -396,10 +398,10 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: AppColors.outline,
+          color: Theme.of(context).colorScheme.outline,
           letterSpacing: 0.8,
         ),
       );
@@ -413,9 +415,9 @@ class _SubtleHint extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppColors.outlineVariant,
+            color: Theme.of(context).colorScheme.outlineVariant,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -443,10 +445,10 @@ class _MembershipChip extends StatelessWidget {
           style: const TextStyle(fontSize: 12),
         ),
       ),
-      avatar: const Icon(
+      avatar: Icon(
         Icons.bookmark_rounded,
         size: 16,
-        color: AppColors.primary,
+        color: Theme.of(context).colorScheme.primary,
       ),
       onDeleted: () => context.read<ManasFormBloc>().add(
             ManasFormToggleMembershipEvent(
@@ -458,9 +460,9 @@ class _MembershipChip extends StatelessWidget {
                   ),
             ),
           ),
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       side: BorderSide(
-        color: AppColors.outlineVariant.withValues(alpha: 0.4),
+        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
       ),
     );
   }
@@ -492,15 +494,15 @@ class _SearchResultRow extends StatelessWidget {
                   ? Icons.check_circle_rounded
                   : Icons.add_circle_outline_rounded,
               size: 20,
-              color: included ? AppColors.primary : AppColors.outline,
+              color: included ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 preview.preview,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -525,10 +527,10 @@ class _KindBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (kind) {
-      ManasNoteKind.saved => (l10n.manasFormKindSaved, AppColors.graphSaved),
-      ManasNoteKind.own   => (l10n.manasFormKindOwn,   AppColors.graphOwn),
-      ManasNoteKind.draft => (l10n.manasFormKindDraft, AppColors.graphDraft),
-      ManasNoteKind.unknown => ('', AppColors.outline),
+      ManasNoteKind.saved => (l10n.manasFormKindSaved, context.custom.graphSaved),
+      ManasNoteKind.own   => (l10n.manasFormKindOwn,   context.custom.graphOwn),
+      ManasNoteKind.draft => (l10n.manasFormKindDraft, context.custom.graphDraft),
+      ManasNoteKind.unknown => ('', Theme.of(context).colorScheme.outline),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

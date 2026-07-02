@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/moderation/cubit/report_sheet_cubit.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -32,16 +31,16 @@ class AlsoBlockToggle extends StatelessWidget {
                       : Icons.check_box_outline_blank_rounded,
                   size: 22,
                   color: state.alsoBlock
-                      ? AppColors.primary
-                      : AppColors.outline,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.outline,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.reportSheetAlsoBlock,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),

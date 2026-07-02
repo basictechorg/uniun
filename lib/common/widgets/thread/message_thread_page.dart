@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/thread/thread_conversation_body.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
@@ -58,7 +57,7 @@ class MessageThreadPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: appBar ?? _defaultAppBar(context, title),
       body: ThreadConversationBody(
         root: root,
@@ -81,7 +80,7 @@ class MessageThreadPage extends StatelessWidget {
 
   PreferredSizeWidget _defaultAppBar(BuildContext context, String? title) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       leading: UniunBackButton(
@@ -89,10 +88,10 @@ class MessageThreadPage extends StatelessWidget {
       ),
       title: Text(
         title ?? AppLocalizations.of(context)!.threadTitle,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w700,
-          color: AppColors.onSurface,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );

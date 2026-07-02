@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/common/widgets/drop_icon.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/shiv/shiv_message_entity.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_sources_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -109,7 +108,7 @@ class _UserBubble extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(24),
               bottomLeft: Radius.circular(24),
@@ -118,7 +117,7 @@ class _UserBubble extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.18),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -126,10 +125,10 @@ class _UserBubble extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               height: 1.6,
-              color: AppColors.onPrimary,
+              color: Theme.of(context).colorScheme.onPrimary,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -137,10 +136,10 @@ class _UserBubble extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           _formatTime(DateTime.now()),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
             letterSpacing: 1.2,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -189,23 +188,23 @@ class _ShivBubble extends StatelessWidget {
             Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(
-                color: AppColors.secondaryContainer,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const DropIcon(
+              child: DropIcon(
                 size: 16,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(width: 10),
             Text(
               l10n.shivName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -227,7 +226,7 @@ class _ShivBubble extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(24),
@@ -236,7 +235,7 @@ class _ShivBubble extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.06),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
                   blurRadius: 32,
                   offset: const Offset(0, 12),
                 ),
@@ -285,24 +284,24 @@ class _SourcesChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.12),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(99),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.menu_book_rounded,
                 size: 14,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 6),
               Text(
                 l10n.shivSourcesChip(count),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   letterSpacing: 0.2,
                 ),
               ),
@@ -359,9 +358,9 @@ class _ThinkingBlockState extends State<_ThinkingBlock>
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,7 +379,7 @@ class _ThinkingBlockState extends State<_ThinkingBlock>
                     child: Icon(
                       Icons.psychology_outlined,
                       size: 14,
-                      color: AppColors.primary.withValues(alpha: 0.7),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -389,7 +388,7 @@ class _ThinkingBlockState extends State<_ThinkingBlock>
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary.withValues(alpha: 0.7),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -397,7 +396,7 @@ class _ThinkingBlockState extends State<_ThinkingBlock>
                   Icon(
                     _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
                     size: 14,
-                    color: AppColors.primary.withValues(alpha: 0.5),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                   ),
                 ],
               ),
@@ -410,10 +409,10 @@ class _ThinkingBlockState extends State<_ThinkingBlock>
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: Text(
                 widget.text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   height: 1.6,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -432,12 +431,12 @@ class _MarkdownText extends StatelessWidget {
   const _MarkdownText({required this.text});
   final String text;
 
-  static const _base = TextStyle(
-    fontSize: 15,
-    height: 1.6,
-    color: AppColors.onSurface,
-    fontWeight: FontWeight.w400,
-  );
+  static TextStyle _baseFor(BuildContext context) => TextStyle(
+        fontSize: 15,
+        height: 1.6,
+        color: Theme.of(context).colorScheme.onSurface,
+        fontWeight: FontWeight.w400,
+      );
 
   // Compiled once and reused for every line of every build — re-creating these
   // inside the loop recompiled the pattern per line per token while streaming.
@@ -446,6 +445,7 @@ class _MarkdownText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final base = _baseFor(context);
     final lines = text.split('\n');
     final widgets = <Widget>[];
 
@@ -461,7 +461,7 @@ class _MarkdownText extends StatelessWidget {
           padding: EdgeInsets.only(top: i > 0 ? 8 : 0, bottom: 2),
           child: Text(
             content,
-            style: _base.copyWith(
+            style: base.copyWith(
               fontWeight: FontWeight.w700,
               fontSize: level == 1 ? 18 : level == 2 ? 16 : 15,
             ),
@@ -478,8 +478,8 @@ class _MarkdownText extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('• ', style: _base.copyWith(fontWeight: FontWeight.w600)),
-              Expanded(child: _InlineText(text: bulletMatch.group(1)!, base: _base)),
+              Text('• ', style: base.copyWith(fontWeight: FontWeight.w600)),
+              Expanded(child: _InlineText(text: bulletMatch.group(1)!, base: base, codeBg: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08))),
             ],
           ),
         ));
@@ -493,7 +493,7 @@ class _MarkdownText extends StatelessWidget {
       }
 
       // Regular paragraph with inline formatting
-      widgets.add(_InlineText(text: line, base: _base));
+      widgets.add(_InlineText(text: line, base: base, codeBg: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)));
     }
 
     return Column(
@@ -505,9 +505,11 @@ class _MarkdownText extends StatelessWidget {
 
 /// Renders inline markdown: **bold**, *italic*, `code`.
 class _InlineText extends StatelessWidget {
-  const _InlineText({required this.text, required this.base});
+  const _InlineText(
+      {required this.text, required this.base, required this.codeBg});
   final String text;
   final TextStyle base;
+  final Color codeBg;
 
   // **bold**, *italic*, `code` — compiled once, reused for every call.
   static final RegExp _pattern = RegExp(r'\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`');
@@ -523,10 +525,10 @@ class _InlineText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text.rich(_parseInline(text, base));
+    return Text.rich(_parseInline(text, base, codeBg));
   }
 
-  static TextSpan _parseInline(String input, TextStyle base) {
+  static TextSpan _parseInline(String input, TextStyle base, Color codeBg) {
     final cached = _cache[input];
     if (cached != null) return cached;
 
@@ -550,7 +552,7 @@ class _InlineText extends StatelessWidget {
           text: m.group(3),
           style: base.copyWith(
             fontFamily: 'monospace',
-            backgroundColor: AppColors.onSurface.withValues(alpha: 0.08),
+            backgroundColor: codeBg,
             fontSize: 13,
           ),
         ));
@@ -627,8 +629,8 @@ class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
         child: Container(
           width: 7,
           height: 7,
-          decoration: const BoxDecoration(
-            color: AppColors.onSurfaceVariant,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             shape: BoxShape.circle,
           ),
         ),

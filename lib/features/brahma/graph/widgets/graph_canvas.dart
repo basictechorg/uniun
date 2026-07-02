@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:graphview/GraphView.dart';
 import 'package:uniun/common/widgets/markdown/strip_markdown.dart';
 import 'package:uniun/common/widgets/safe_interactive_viewer.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/brahma/graph/layout/force_layout_tuning.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
@@ -369,17 +369,19 @@ class _GraphCanvasState extends State<GraphCanvas> {
     if (widget.nodes.isEmpty) {
       return Stack(
         children: [
-          const Positioned.fill(
-              child: CustomPaint(painter: DotPatternPainter())),
+          Positioned.fill(
+              child: CustomPaint(
+                  painter: DotPatternPainter(
+                      color: context.custom.graphDotPattern))),
           Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Text(
                 AppLocalizations.of(context)!.graphEmptyHint,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -390,7 +392,10 @@ class _GraphCanvasState extends State<GraphCanvas> {
 
     return Stack(
       children: [
-        const Positioned.fill(child: CustomPaint(painter: DotPatternPainter())),
+        Positioned.fill(
+            child: CustomPaint(
+                painter: DotPatternPainter(
+                    color: context.custom.graphDotPattern))),
 
         GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -428,6 +433,9 @@ class _GraphCanvasState extends State<GraphCanvas> {
                         graph: _graph,
                         selectedNodeId: widget.selectedNodeId,
                         dim: widget.isSearching,
+                        restColor: context.custom.neutral300,
+                        highlightColor:
+                            Theme.of(context).colorScheme.primary,
                       ),
                     ),
 
@@ -440,8 +448,8 @@ class _GraphCanvasState extends State<GraphCanvas> {
                       // the same fixed palette for the unscoped Brahma graph
                       // and every Manas-scoped view.
                       final color = nodeData != null
-                          ? graphNodeTypeColors[nodeData.type]!
-                          : AppColors.primary;
+                          ? graphNodeTypeColorsOf(context)[nodeData.type]!
+                          : Theme.of(context).colorScheme.primary;
                       final nodeSize = _sizeFor(nodeId);
                       final isSelected = widget.selectedNodeId == nodeId;
                       final isConnected =
@@ -556,7 +564,7 @@ class _GraphCanvasState extends State<GraphCanvas> {
                                       fontSize: 10,
                                       color: isSelected || isSearchMatch
                                           ? color
-                                          : AppColors.onSurfaceVariant,
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
                                       fontWeight: isSelected || isSearchMatch
                                           ? FontWeight.w600
                                           : FontWeight.w400,

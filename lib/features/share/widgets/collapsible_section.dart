@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// InkWell header + AnimatedRotation chevron + AnimatedCrossFade body.
 class CollapsibleSection extends StatefulWidget {
   const CollapsibleSection({
@@ -59,21 +57,21 @@ class _CollapsibleSectionState extends State<CollapsibleSection>
                 Expanded(
                   child: Text(
                     widget.label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
                 AnimatedRotation(
                   turns: _expanded ? 0 : -0.25,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(
+                  child: Icon(
                     Icons.keyboard_arrow_down_rounded,
                     size: 18,
-                    color: AppColors.outline,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                 ),
               ],

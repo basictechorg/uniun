@@ -8,7 +8,6 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/composer/markdown_text_editing_controller.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
@@ -243,7 +242,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
             state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.errorMessage!),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ));
         }
@@ -253,7 +252,7 @@ class _GraphComposeViewState extends State<_GraphComposeView> {
           (widget.initialDraftId != null && prev.drafts != curr.drafts),
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           resizeToAvoidBottomInset: true,
           // GestureDetector wraps SizedBox.expand so a tap anywhere on the
           // body — including the blank area below the composer card —

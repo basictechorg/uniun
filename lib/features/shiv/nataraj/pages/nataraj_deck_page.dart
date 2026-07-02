@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/usecases/app_settings_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
@@ -21,6 +20,7 @@ import 'package:uniun/features/shiv/nataraj/widgets/nataraj_drawer.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_empty_state.dart';
 import 'package:uniun/features/shiv/nataraj/widgets/nataraj_scope_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// The Nataraj swipe-deck screen — Shiv tab's home in Task 15.
 ///
@@ -191,7 +191,7 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         drawer: const NatarajDrawer(),
         onDrawerChanged: widget.onDrawerChanged,
         body: Builder(
@@ -216,13 +216,13 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
                       vertical: 8,
                     ),
                     color:
-                        AppColors.secondaryContainer.withValues(alpha: 0.45),
+                        Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.45),
                     child: Text(
                       l10n.natarajRevisitingHint,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -315,10 +315,10 @@ class _NatarajHeader extends StatelessWidget {
         bottom: 8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.9),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.06),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -330,10 +330,10 @@ class _NatarajHeader extends StatelessWidget {
           IconButton(
             onPressed: onBack,
             tooltip: l10n.actionBack,
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_rounded,
               size: 24,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const Spacer(),
@@ -383,32 +383,32 @@ class _ManasSelectorButton extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 168),
             padding: const EdgeInsets.fromLTRB(10, 7, 6, 7),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(99),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.22),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.22),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 18, color: AppColors.primary),
+                Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.expand_more_rounded,
                   size: 18,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -435,9 +435,9 @@ class _LoadingBody extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -619,13 +619,13 @@ class _ActionButton extends StatelessWidget {
             height: diameter,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: primary ? AppColors.primary : AppColors.surface,
+              color: primary ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surface,
               border:
-                  primary ? null : Border.all(color: AppColors.border),
+                  primary ? null : Border.all(color: context.custom.border),
               boxShadow: [
                 BoxShadow(
                   color: primary
-                      ? AppColors.primary.withValues(alpha: 0.30)
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.30)
                       : Colors.black.withValues(alpha: 0.06),
                   blurRadius: primary ? 18 : 10,
                   offset: const Offset(0, 6),
@@ -636,7 +636,7 @@ class _ActionButton extends StatelessWidget {
               icon,
               size: primary ? 28 : 23,
               color:
-                  primary ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+                  primary ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -646,7 +646,7 @@ class _ActionButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: primary ? AppColors.primary : AppColors.onSurfaceVariant,
+            color: primary ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -674,26 +674,26 @@ class _ErrorBody extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               '✦',
-              style: TextStyle(fontSize: 40, color: AppColors.primary),
+              style: TextStyle(fontSize: 40, color: Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(height: 12),
             Text(
               l10n.natarajModelErrorTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               l10n.natarajModelErrorBody,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -702,8 +702,8 @@ class _ErrorBody extends StatelessWidget {
             FilledButton(
               onPressed: onChangeModel,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

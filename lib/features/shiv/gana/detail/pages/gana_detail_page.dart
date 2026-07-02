@@ -6,7 +6,6 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/entities/gana/gana_run_entity.dart';
 import 'package:uniun/domain/usecases/gana_usecases.dart';
@@ -50,23 +49,23 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
     final l10n = AppLocalizations.of(context)!;
     final g = _gana;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         scrolledUnderElevation: 0,
         leading: UniunBackButton(onPressed: () => Navigator.of(context).pop()),
         title: Text(
           g?.name ?? l10n.ganaFormEditTitleFallback,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
             onPressed: g == null
                 ? null
                 : () async {
@@ -80,15 +79,15 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
         ],
       ),
       body: _loading
-          ? const Center(
+          ? Center(
               child: DropLoadingIndicator(
-                  color: AppColors.primary))
+                  color: Theme.of(context).colorScheme.primary))
           : g == null
               ? Center(
                   child: Text(
                   l10n.ganaFormEditTitleFallback,
                   style:
-                      const TextStyle(color: AppColors.onSurfaceVariant),
+                      TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -97,10 +96,10 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
                     const SizedBox(height: 24),
                     Text(
                       l10n.ganaFormRunsSectionTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -108,9 +107,9 @@ class _GanaDetailPageState extends State<GanaDetailPage> {
                     if (_runs.isEmpty)
                       Text(
                         l10n.ganaFormRunsEmpty,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.onSurfaceVariant),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant),
                       )
                     else
                       for (final r in _runs) _RunTile(run: r),
@@ -130,60 +129,64 @@ class _StatusRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _kv('Enabled', gana.enabled ? 'Yes' : 'No'),
-          _kv(l10n.ganaDetailManasesLabel, gana.manasIds.length.toString()),
-          _kv('Input',
+          _kv(context, 'Enabled', gana.enabled ? 'Yes' : 'No'),
+          _kv(context, l10n.ganaDetailManasesLabel,
+              gana.manasIds.length.toString()),
+          _kv(context, 'Input',
               gana.inputType?.name ?? 'standalone (interval-only)'),
-          _kv('Output', gana.outputType.name),
-          _kv('Mode',
+          _kv(context, 'Output', gana.outputType.name),
+          _kv(context, 'Mode',
               gana.triggerMode == GanaTriggerMode.oneShot ? 'one-shot' : 'recurring'),
           // Interval is meaningless in one-shot — the engine ignores it.
           // Hide it so the UI matches the engine's actual behavior.
           if (gana.triggerMode == GanaTriggerMode.recurring &&
               gana.triggerIntervalMinutes != null)
-            _kv('Interval', '${gana.triggerIntervalMinutes}m'),
-          if (gana.triggerReactive) _kv('Reactive', 'on'),
+            _kv(context, 'Interval', '${gana.triggerIntervalMinutes}m'),
+          if (gana.triggerReactive) _kv(context, 'Reactive', 'on'),
           if (gana.triggerMode == GanaTriggerMode.recurring &&
               gana.maxOutputs != null)
-            _kv('Max notes', gana.maxOutputs!.toString()),
+            _kv(context, 'Max notes', gana.maxOutputs!.toString()),
           if (gana.lastRunAt != null)
-            _kv('Last run', gana.lastRunAt!.toLocal().toString()),
+            _kv(context, 'Last run', gana.lastRunAt!.toLocal().toString()),
         ],
       ),
     );
   }
 
-  Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 90,
-              child: Text(
-                k,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurfaceVariant),
-              ),
+  Widget _kv(BuildContext context, String k, String v) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              k,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurfaceVariant),
             ),
-            Expanded(
-              child: Text(
-                v,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.onSurface),
-              ),
+          ),
+          Expanded(
+            child: Text(
+              v,
+              style: TextStyle(
+                  fontSize: 13, color: colorScheme.onSurface),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RunTile extends StatelessWidget {
@@ -194,10 +197,10 @@ class _RunTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final (label, color) = switch (run.status) {
-      GanaRunStatus.succeeded => (l10n.ganaRunStatusSucceeded, AppColors.primary),
-      GanaRunStatus.skipped => (l10n.ganaRunStatusSkipped, AppColors.onSurfaceVariant),
-      GanaRunStatus.failed => (l10n.ganaRunStatusFailed, AppColors.error),
-      GanaRunStatus.running => (l10n.ganaRunStatusRunning, AppColors.primary),
+      GanaRunStatus.succeeded => (l10n.ganaRunStatusSucceeded, Theme.of(context).colorScheme.primary),
+      GanaRunStatus.skipped => (l10n.ganaRunStatusSkipped, Theme.of(context).colorScheme.onSurfaceVariant),
+      GanaRunStatus.failed => (l10n.ganaRunStatusFailed, Theme.of(context).colorScheme.error),
+      GanaRunStatus.running => (l10n.ganaRunStatusRunning, Theme.of(context).colorScheme.primary),
     };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -225,21 +228,21 @@ class _RunTile extends StatelessWidget {
                 if (run.skipReason != null)
                   Text(
                     run.skipReason!.name,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 if (run.error != null)
                   Text(
                     run.error!,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.error),
+                    style: TextStyle(
+                        fontSize: 12, color: Theme.of(context).colorScheme.error),
                   ),
                 if (run.outputEventId != null)
                   Text(
                     'output: ${run.outputEventId}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     overflow: TextOverflow.ellipsis,
                   ),
               ],

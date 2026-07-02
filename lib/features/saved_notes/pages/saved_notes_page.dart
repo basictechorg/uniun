@@ -4,7 +4,6 @@ import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/common/note_thread_navigator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/saved_notes/cubit/saved_notes_cubit.dart';
@@ -58,20 +57,20 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         leading: const UniunBackButton(),
         title: Text(
           l10n.savedNotesTitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: AppColors.onSurface,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        iconTheme: const IconThemeData(color: AppColors.onSurface),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
         elevation: 0,
       ),
       body: KeyboardDismissOnTap(
@@ -79,16 +78,16 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
         builder: (context, state) {
           if (state.status == SavedNotesStatus.initial ||
               state.status == SavedNotesStatus.loading) {
-            return const Center(
+            return Center(
               child: DropLoadingIndicator(
-                  color: AppColors.primary),
+                  color: Theme.of(context).colorScheme.primary),
             );
           }
           if (state.status == SavedNotesStatus.error) {
             return Center(
               child: Text(
                 state.errorMessage ?? 'Failed to load saved notes',
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             );
           }
@@ -104,20 +103,20 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                 child: TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _query = v),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: l10n.savedNotesSearch,
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       fontSize: 14,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.search_rounded,
                       size: 20,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     suffixIcon: _query.isNotEmpty
                         ? GestureDetector(
@@ -125,15 +124,15 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
                               _searchController.clear();
                               setState(() => _query = '');
                             },
-                            child: const Icon(
+                            child: Icon(
                               Icons.close_rounded,
                               size: 18,
-                              color: AppColors.onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           )
                         : null,
                     filled: true,
-                    fillColor: AppColors.surfaceContainerLow,
+                    fillColor: Theme.of(context).colorScheme.surfaceContainerLow,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 10),
                     border: OutlineInputBorder(
@@ -147,7 +146,7 @@ class _SavedNotesViewState extends State<_SavedNotesView> {
               // ── List ────────────────────────────────────────────────────
               Expanded(
                 child: RefreshIndicator(
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   onRefresh: () => context.read<SavedNotesCubit>().load(),
                   child: filtered.isEmpty
                       ? ListView(
@@ -226,27 +225,27 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.bookmark_border_rounded,
               size: 56,
-              color: AppColors.outlineVariant,
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
             const SizedBox(height: 16),
             Text(
               l10n.savedNotesEmpty,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               l10n.savedNotesEmptySub,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -262,12 +261,12 @@ class _NoResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Text(
         'No notes match your search.',
         style: TextStyle(
           fontSize: 14,
-          color: AppColors.onSurfaceVariant,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );

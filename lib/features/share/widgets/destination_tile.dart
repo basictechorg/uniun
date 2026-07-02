@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 /// Flat destination row used by both share sheets — a tinted square icon chip,
 /// title (+ optional subtitle), and an optional "selected" check. Mirrors the
@@ -30,7 +30,7 @@ class DestinationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected
-          ? AppColors.primary.withValues(alpha: 0.08)
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
@@ -45,10 +45,10 @@ class DestinationTile extends StatelessWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, size: 20, color: AppColors.primary),
+                    child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
                   ),
               const SizedBox(width: 14),
               Expanded(
@@ -60,10 +60,10 @@ class DestinationTile extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -72,9 +72,9 @@ class DestinationTile extends StatelessWidget {
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textMuted,
+                          color: context.custom.textMuted,
                         ),
                       ),
                     ],
@@ -82,12 +82,12 @@ class DestinationTile extends StatelessWidget {
                 ),
               ),
               if (selected)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 8),
                   child: Icon(
                     Icons.check_circle_rounded,
                     size: 22,
-                    color: AppColors.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
             ],

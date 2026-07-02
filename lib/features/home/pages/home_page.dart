@@ -6,7 +6,6 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/router/app_router.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/share_intent/share_intent_service.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
 import 'package:uniun/features/vishnu/pages/vishnu_feed_page.dart';
@@ -111,7 +110,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         BlocProvider<VishnuFeedBloc>.value(value: _vishnuFeedBloc),
       ],
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         resizeToAvoidBottomInset: false,
         body: IndexedStack(
           index: _currentIndex == 2 ? 1 : 0,

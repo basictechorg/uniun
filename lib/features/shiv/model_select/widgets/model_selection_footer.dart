@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart';
 
@@ -16,10 +15,10 @@ class ModelSelectionFooter extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.92),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
         border: Border(
           top: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -39,9 +38,9 @@ class ModelSelectionFooter extends StatelessWidget {
                     value: state.downloadProgress,
                     minHeight: 6,
                     backgroundColor:
-                        AppColors.primary.withValues(alpha: 0.15),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                     valueColor:
-                        const AlwaysStoppedAnimation(AppColors.primary),
+                        AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -51,20 +50,20 @@ class ModelSelectionFooter extends StatelessWidget {
                     Text(
                       l10n.aiModelDownloadingProgress(
                           (state.downloadProgress * 100).round()),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     TextButton(
                       onPressed: () =>
                           context.read<SelectAIModelCubit>().cancelDownload(),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -78,11 +77,14 @@ class ModelSelectionFooter extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: const LinearProgressIndicator(
+                  child: LinearProgressIndicator(
                     minHeight: 6,
-                    backgroundColor: Color(0x1A6750A4),
-                    valueColor:
-                        AlwaysStoppedAnimation(AppColors.primary),
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation(
+                        Theme.of(context).colorScheme.primary),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -91,19 +93,19 @@ class ModelSelectionFooter extends StatelessWidget {
                   children: [
                     Text(
                       l10n.aiEmbeddingSetupInProgress,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     TextButton(
                       onPressed: () => context.read<SelectAIModelCubit>().close(),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primary,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -134,7 +136,7 @@ class ModelSelectionFooter extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   backgroundColor:
-                      isAlreadyActive ? AppColors.outline : AppColors.primary,
+                      isAlreadyActive ? Theme.of(context).colorScheme.outline : Theme.of(context).colorScheme.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -145,14 +147,14 @@ class ModelSelectionFooter extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Icon(icon, size: 18, color: AppColors.onPrimary),
+                    Icon(icon, size: 18, color: Theme.of(context).colorScheme.onPrimary),
                   ],
                 ),
               );

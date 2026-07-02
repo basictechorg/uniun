@@ -117,9 +117,8 @@ void main() {
     });
   });
 
-  test('color is the app primary', () {
-    expect(FileTypeStyle.fromMime('', 'x.pdf').color, isNotNull);
-  });
+  // (color is now resolved via colorFor(BuildContext); widget-level test lives
+  // in the note_card tests where the chip actually renders.)
 
   // ── Edge cases ─────────────────────────────────────────────────────────────
 

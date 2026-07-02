@@ -10,10 +10,10 @@ import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/advanced_section.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/dm/create/bloc/create_dm_bloc.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class CreateDmPage extends StatelessWidget {
   const CreateDmPage({super.key, this.initialPubkey, this.payload});
@@ -93,7 +93,7 @@ class _CreateDmViewState extends State<_CreateDmView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -110,9 +110,9 @@ class _CreateDmViewState extends State<_CreateDmView> {
       },
       child: KeyboardDismissOnTap(
         child: Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
@@ -121,16 +121,16 @@ class _CreateDmViewState extends State<_CreateDmView> {
             ),
             title: Text(
               l10n.createDmTitle,
-              style: const TextStyle(
-                color: AppColors.onSurface,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 17,
               ),
             ),
-            bottom: const PreferredSize(
+            bottom: PreferredSize(
               preferredSize: Size.fromHeight(1),
               child: Divider(
-                  height: 1, thickness: 1, color: AppColors.borderSubtle),
+                  height: 1, thickness: 1, color: context.custom.borderSubtle),
             ),
           ),
           body: BlocBuilder<CreateDmBloc, CreateDmState>(
@@ -153,13 +153,13 @@ class _CreateDmViewState extends State<_CreateDmView> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.mail_rounded,
                 size: 38,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -192,10 +192,10 @@ class _CreateDmViewState extends State<_CreateDmView> {
             children: [
               Text(
                 l10n.createDmRelaysNote,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
-                  color: AppColors.textMuted,
+                  color: context.custom.textMuted,
                 ),
               ),
               const SizedBox(height: 12),
@@ -213,22 +213,22 @@ class _CreateDmViewState extends State<_CreateDmView> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.12),
+              color: context.custom.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.lock_rounded,
-                    size: 20, color: AppColors.success),
+                Icon(Icons.lock_rounded,
+                    size: 20, color: context.custom.success),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.createDmEncryptedNote,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.55,
-                      color: AppColors.textBody,
+                      color: context.custom.textBody,
                     ),
                   ),
                 ),
@@ -244,22 +244,22 @@ class _CreateDmViewState extends State<_CreateDmView> {
             child: ElevatedButton(
               onPressed: state.isSubmitting ? null : _onSubmit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 disabledBackgroundColor:
-                    AppColors.primary.withValues(alpha: 0.5),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: state.isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: DropLoadingIndicator(
                         size: 20,
-                        color: AppColors.onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     )
                   : Text(

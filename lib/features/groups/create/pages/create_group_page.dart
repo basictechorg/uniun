@@ -7,9 +7,9 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/advanced_section.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/relay_selector_field.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/settings/widgets/section_label.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class CreateGroupPage extends StatelessWidget {
   const CreateGroupPage({super.key});
@@ -64,7 +64,7 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -73,7 +73,7 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.createGroupSuccess),
-              backgroundColor: AppColors.success,
+              backgroundColor: context.custom.success,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -81,9 +81,9 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
@@ -92,16 +92,16 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
           ),
           title: Text(
             l10n.createGroupHeaderTitle,
-            style: const TextStyle(
-              color: AppColors.onSurface,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
               fontSize: 17,
             ),
           ),
-          bottom: const PreferredSize(
+          bottom: PreferredSize(
             preferredSize: Size.fromHeight(1),
             child: Divider(
-                height: 1, thickness: 1, color: AppColors.borderSubtle),
+                height: 1, thickness: 1, color: context.custom.borderSubtle),
           ),
         ),
         body: KeyboardDismissOnTap(
@@ -125,13 +125,13 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.tag_rounded,
                 size: 40,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -167,23 +167,23 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceLow,
+              color: context.custom.surfaceLow,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderSubtle),
+              border: Border.all(color: context.custom.borderSubtle),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline_rounded,
-                    size: 20, color: AppColors.onSurfaceVariant),
+                Icon(Icons.info_outline_rounded,
+                    size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.createGroupPermanenceNote,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.5,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -198,10 +198,10 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
             children: [
               Text(
                 l10n.createGroupPublishRelaysBody,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
-                  color: AppColors.textMuted,
+                  color: context.custom.textMuted,
                 ),
               ),
               const SizedBox(height: 12),
@@ -223,19 +223,19 @@ class _CreateGroupViewState extends State<_CreateGroupView> {
             child: ElevatedButton(
               onPressed: state.isSubmitting ? null : _onSubmit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: state.isSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: DropLoadingIndicator(
                         size: 20,
-                        color: AppColors.onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     )
                   : Text(

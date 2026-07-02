@@ -12,7 +12,6 @@ import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/features/private_groups/detail/bloc/private_group_detail_bloc.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
@@ -116,7 +115,7 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
   void _showJoinRequests(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -152,7 +151,7 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.errorMessage!),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -165,9 +164,9 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
         final requestsCount = state.joinRequests.length;
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 0,
             surfaceTintColor: Colors.transparent,
             leading: UniunBackButton(
@@ -176,15 +175,15 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
             titleSpacing: 0,
             title: Row(
               children: [
-                const Icon(Icons.lock_rounded, size: 16, color: AppColors.outline),
+                Icon(Icons.lock_rounded, size: 16, color: Theme.of(context).colorScheme.outline),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -207,8 +206,8 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
                         top: 8,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error,
                             shape: BoxShape.circle,
                           ),
                           child: Text(
@@ -243,9 +242,9 @@ class _PrivateGroupDetailViewState extends State<_PrivateGroupDetailView> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'leave',
-                    child: Text('Leave Group', style: TextStyle(color: AppColors.error)),
+                    child: Text('Leave Group', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                   ),
                 ],
               ),
@@ -327,18 +326,18 @@ class _PendingApprovalView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.hourglass_top_rounded,
               size: 56,
-              color: AppColors.outline,
+              color: Theme.of(context).colorScheme.outline,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               "Pending approval",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -347,7 +346,7 @@ class _PendingApprovalView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -396,7 +395,7 @@ class _JoinRequestsSheet extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -404,16 +403,16 @@ class _JoinRequestsSheet extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.group_add_rounded,
-                    color: AppColors.primary, size: 22),
+                Icon(Icons.group_add_rounded,
+                    color: Theme.of(context).colorScheme.primary, size: 22),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.pendingRequestsTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -423,13 +422,13 @@ class _JoinRequestsSheet extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${requests.length}',
-                      style: const TextStyle(
-                        color: AppColors.onPrimary,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -440,9 +439,9 @@ class _JoinRequestsSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               l10n.pendingRequestsSubtitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -453,12 +452,12 @@ class _JoinRequestsSheet extends StatelessWidget {
                   children: [
                     Icon(Icons.inbox_outlined,
                         size: 36,
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.6)),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
                     const SizedBox(height: 8),
                     Text(
                       l10n.pendingRequestsEmpty,
-                      style: const TextStyle(
-                        color: AppColors.onSurfaceVariant,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
@@ -484,7 +483,7 @@ class _JoinRequestsSheet extends StatelessWidget {
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
+                        color: Theme.of(context).colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -503,19 +502,19 @@ class _JoinRequestsSheet extends StatelessWidget {
                                   name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.onSurface,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   _shortNpub(pubkey),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontFamily: 'monospace',
-                                    color: AppColors.onSurfaceVariant,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -529,8 +528,8 @@ class _JoinRequestsSheet extends StatelessWidget {
                                     onApprove(req.keyPackageB64 as String);
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: AppColors.onPrimary,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                               elevation: 0,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 10),
@@ -539,12 +538,12 @@ class _JoinRequestsSheet extends StatelessWidget {
                               ),
                             ),
                             child: isApproving
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 14,
                                     height: 14,
                                     child: DropLoadingIndicator(
                                       size: 14,
-                                      color: AppColors.onPrimary,
+                                      color: Theme.of(context).colorScheme.onPrimary,
                                     ),
                                   )
                                 : Text(

@@ -5,8 +5,6 @@ import 'package:uniun/common/widgets/drop_icon.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 /// "Learn how UNIUN works" — a simple, swipeable intro carousel reached from the
 /// Welcome screen's learn-more link.
 ///
@@ -62,22 +60,22 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
         body: l10n.howItWorksBrahmaBody,
         features: [
           _Feature(
-            icon: const Icon(Icons.edit_note_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.edit_note_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileNote,
             desc: l10n.howItWorksDescNote,
           ),
           _Feature(
             // Mirror the in-app Manas glyph (single source of truth) rather than
             // hardcoding it here, so the how-to tile tracks any change to it.
-            icon: const Icon(ManasIcons.fallback,
-                size: 24, color: AppColors.primary),
+            icon: Icon(ManasIcons.fallback,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileManas,
             desc: l10n.howItWorksDescManas,
           ),
           _Feature(
-            icon: const Icon(Icons.hub_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.hub_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileGraph,
             desc: l10n.howItWorksDescGraph,
           ),
@@ -89,26 +87,26 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
         body: l10n.howItWorksVishnuBody,
         features: [
           _Feature(
-            icon: const Icon(Icons.person_outline_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.person_outline_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTilePeople,
             desc: l10n.howItWorksDescPeople,
           ),
           _Feature(
-            icon: const Icon(Icons.tag_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.tag_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileGroups,
             desc: l10n.howItWorksDescGroups,
           ),
           _Feature(
-            icon: const Icon(Icons.lock_outline_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.lock_outline_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTilePrivate,
             desc: l10n.howItWorksDescPrivate,
           ),
           _Feature(
-            icon: const Icon(Icons.chat_bubble_outline_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.chat_bubble_outline_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileDms,
             desc: l10n.howItWorksDescDms,
           ),
@@ -120,22 +118,22 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
         body: l10n.howItWorksShivBody,
         features: [
           _Feature(
-            icon: const DropIcon(size: 24, color: AppColors.primary),
+            icon: DropIcon(size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileAdiyogi,
             desc: l10n.howItWorksDescAdiyogi,
           ),
           _Feature(
-            icon: const Icon(
+            icon: Icon(
               Icons.cyclone_rounded,
               size: 24,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
             name: l10n.howItWorksTileNataraj,
             desc: l10n.howItWorksDescNataraj,
           ),
           _Feature(
-            icon: const Icon(Icons.auto_mode_rounded,
-                size: 24, color: AppColors.primary),
+            icon: Icon(Icons.auto_mode_rounded,
+                size: 24, color: Theme.of(context).colorScheme.primary),
             name: l10n.howItWorksTileGana,
             desc: l10n.howItWorksDescGana,
           ),
@@ -160,7 +158,7 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
     final isLast = _index == slides.length - 1;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -202,8 +200,8 @@ class _HowItWorksPageState extends State<HowItWorksPage> {
                         onPressed: isLast ? null : () => _close(context),
                         child: Text(
                           l10n.howItWorksSkip,
-                          style: const TextStyle(
-                            color: AppColors.outline,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -277,13 +275,13 @@ class _SlideView extends StatelessWidget {
                   // system reserves this for brand/onboarding headlines.
                   // h1 28 · semibold · -0.02em tracking. Variable-font axes
                   // pin the weight + an optical size suited to display.
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Newsreader',
                     fontVariations: [
                       FontVariation('wght', 600),
                       FontVariation('opsz', 28),
                     ],
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.56,
@@ -295,8 +293,8 @@ class _SlideView extends StatelessWidget {
                   Text(
                     slide.body!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.onSurfaceVariant,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       height: 1.55,
@@ -335,9 +333,9 @@ class _GlowCircle extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.18),
-            AppColors.primaryContainer.withValues(alpha: 0.06),
-            AppColors.primary.withValues(alpha: 0.0),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
+            Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.06),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
           ],
           stops: const [0.0, 0.45, 0.75],
         ),
@@ -370,10 +368,10 @@ class _LogoHero extends StatelessWidget {
           ),
         ),
         ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
+          shaderCallback: (bounds) => LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.primary, AppColors.primaryContainer],
+            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primaryContainer],
           ).createShader(bounds),
           child: const Text(
             'UNIUN',
@@ -409,12 +407,12 @@ class _GlowHero extends StatelessWidget {
             height: 104,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.10),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.16),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
               ),
             ),
-            child: Icon(icon, size: 50, color: AppColors.primary),
+            child: Icon(icon, size: 50, color: Theme.of(context).colorScheme.primary),
           ),
         ],
       ),
@@ -443,9 +441,9 @@ class _DeityHero extends StatelessWidget {
             height: 124,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.10),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.16),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
               ),
             ),
             child: Center(
@@ -453,8 +451,8 @@ class _DeityHero extends StatelessWidget {
                 asset,
                 width: 72,
                 height: 72,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.primary,
+                colorFilter: ColorFilter.mode(
+                  Theme.of(context).colorScheme.primary,
                   BlendMode.srcIn,
                 ),
               ),
@@ -481,14 +479,14 @@ class _FeatureRow extends StatelessWidget {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.14),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.10),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
@@ -504,8 +502,8 @@ class _FeatureRow extends StatelessWidget {
             children: [
               Text(
                 feature.name,
-                style: const TextStyle(
-                  color: AppColors.onSurface,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
@@ -514,8 +512,8 @@ class _FeatureRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 feature.desc,
-                style: const TextStyle(
-                  color: AppColors.onSurfaceVariant,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   height: 1.35,
@@ -551,8 +549,8 @@ class _Dots extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(
             color: active
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.2),
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -583,15 +581,15 @@ class _PrimaryButton extends StatelessWidget {
         width: double.infinity,
         height: 58,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.primary, AppColors.primaryContainer],
+            colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primaryContainer],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.28),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.28),
               blurRadius: 32,
               offset: const Offset(0, 12),
             ),
@@ -603,16 +601,16 @@ class _PrimaryButton extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.onPrimary,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               if (showArrow) ...[
                 const SizedBox(width: 8),
-                const Icon(Icons.arrow_forward_rounded,
-                    color: AppColors.onPrimary, size: 20),
+                Icon(Icons.arrow_forward_rounded,
+                    color: Theme.of(context).colorScheme.onPrimary, size: 20),
               ],
             ],
           ),

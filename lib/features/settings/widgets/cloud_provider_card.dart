@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
@@ -65,7 +64,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
     final entered = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -140,7 +139,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
     final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceContainerLowest,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -159,7 +158,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.outlineVariant,
+                          color: Theme.of(context).colorScheme.outlineVariant,
                           borderRadius: BorderRadius.circular(99),
                         ),
                       ),
@@ -167,26 +166,26 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
                     const SizedBox(height: 18),
                     Text(
                       l10n.cloudProviderTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 16),
                     // Active model line
                     Row(
                       children: [
-                        const Icon(Icons.cloud_outlined,
-                            size: 16, color: AppColors.onSurfaceVariant),
+                        Icon(Icons.cloud_outlined,
+                            size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _activeModelId ?? l10n.cloudProviderNoActiveModel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -202,16 +201,16 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
                             _activeBackend == LlmBackendType.openRouter
                                 ? l10n.cloudProviderUseCloud
                                 : l10n.cloudProviderUseLocal,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
                         Switch.adaptive(
                           value: _activeBackend == LlmBackendType.openRouter,
-                          activeColor: AppColors.primary,
+                          activeColor: Theme.of(context).colorScheme.primary,
                           onChanged: (useCloud) async {
                             await _toggleBackend(useCloud);
                             setSheetState(() {});
@@ -220,7 +219,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Divider(color: AppColors.outlineVariant, height: 1),
+                    Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
                     const SizedBox(height: 4),
                     // Disconnect action
                     Align(
@@ -233,7 +232,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
                         icon: const Icon(Icons.link_off_rounded, size: 18),
                         label: Text(l10n.cloudProviderDisconnect),
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
+                          foregroundColor: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ),
@@ -256,10 +255,10 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
         icon: Icons.cloud_outlined,
         label: l10n.cloudProviderTitle,
         showChevron: false,
-        trailing: const SizedBox(
+        trailing: SizedBox(
           width: 18,
           height: 18,
-          child: DropLoadingIndicator(size: 18, color: AppColors.primary),
+          child: DropLoadingIndicator(size: 18, color: Theme.of(context).colorScheme.primary),
         ),
       );
     }
@@ -328,7 +327,7 @@ class _PasteKeySheetState extends State<_PasteKeySheet> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.outlineVariant,
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -336,10 +335,10 @@ class _PasteKeySheetState extends State<_PasteKeySheet> {
               const SizedBox(height: 18),
               Text(
                 l10n.cloudProviderPasteKeyTitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
@@ -359,9 +358,9 @@ class _PasteKeySheetState extends State<_PasteKeySheet> {
               const SizedBox(height: 8),
               Text(
                 l10n.cloudProviderPasteKeyHelper,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
@@ -375,7 +374,7 @@ class _PasteKeySheetState extends State<_PasteKeySheet> {
                   const SizedBox(width: 8),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary),
+                        backgroundColor: Theme.of(context).colorScheme.primary),
                     onPressed: () =>
                         Navigator.of(context).pop(_controller.text),
                     child: Text(l10n.actionSave),

@@ -26,10 +26,10 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: AppColors.onSurfaceVariant,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           letterSpacing: 0.6,
         ),
       );
@@ -41,10 +41,10 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w800,
-          color: AppColors.primary,
+          color: Theme.of(context).colorScheme.primary,
           letterSpacing: 1.2,
         ),
       );
@@ -56,8 +56,8 @@ class _SectionSubtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
-            fontSize: 12, color: AppColors.onSurfaceVariant),
+        style: TextStyle(
+            fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
       );
 }
 
@@ -74,22 +74,22 @@ class _SaveBlockerHint extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.tertiaryContainer.withValues(alpha: 0.18),
+        color: Theme.of(context).colorScheme.tertiaryContainer.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.tertiary.withValues(alpha: 0.3),
+          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded,
-              size: 18, color: AppColors.tertiary),
+          Icon(Icons.info_outline_rounded,
+              size: 18, color: Theme.of(context).colorScheme.tertiary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               reason,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.onSurface),
+              style: TextStyle(
+                  fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
         ],
@@ -109,10 +109,10 @@ class _NoManasesCta extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.35),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
           width: 1.2,
         ),
       ),
@@ -121,8 +121,8 @@ class _NoManasesCta extends StatelessWidget {
         children: [
           Text(
             l10n.ganaFormManasEmpty,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
           FilledButton.icon(
@@ -137,7 +137,7 @@ class _NoManasesCta extends StatelessWidget {
             icon: const Icon(Icons.add, size: 18),
             label: Text(l10n.ganaFormManasCreateNew),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -149,10 +149,12 @@ class _NoManasesCta extends StatelessWidget {
   }
 }
 
-InputDecoration _inputDeco(String hint) => InputDecoration(
+// ignore: unused_element
+InputDecoration _inputDeco(BuildContext context, String hint) =>
+    InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: AppColors.surfaceContainer,
+      fillColor: Theme.of(context).colorScheme.surfaceContainer,
       isDense: true,
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

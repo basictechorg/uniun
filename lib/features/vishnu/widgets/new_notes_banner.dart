@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Sticky pill at the top of the Vishnu feed showing the count of new arrivals
@@ -26,7 +25,7 @@ class NewNotesBanner extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Center(
                 child: Material(
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(20),
                   elevation: 2,
                   child: InkWell(

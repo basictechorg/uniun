@@ -1747,5 +1747,12 @@
 
   "graphEmptyHint": "अपना नॉलेज ग्राफ़ बनाने के लिए नोट्स सहेजें।\n\nजब कोई नोट किसी दूसरे नोट का संदर्भ देता है, तब एजेस दिखाई देते हैं।",
 
-  "ganaDetailManasesLabel": "मानस"
+  "ganaDetailManasesLabel": "मानस",
+
+  "settingsAppearance": "दिखावट",
+  "settingsTheme": "थीम",
+  "settingsThemeSheetTitle": "थीम चुनें",
+  "settingsThemeSystem": "सिस्टम के अनुसार",
+  "settingsThemeLight": "लाइट",
+  "settingsThemeDark": "डार्क"
 }

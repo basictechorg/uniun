@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/blocked_user/blocked_user_entity.dart';
 import 'package:uniun/features/settings/cubit/blocked_users_cubit.dart';
@@ -30,21 +29,21 @@ class _BlockedUsersView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       appBar: SettingsAppBar(title: l10n.blockedUsersTitle),
       body: BlocBuilder<BlockedUsersCubit, BlockedUsersState>(
         builder: (context, state) {
           if (state.status == BlockedUsersStatus.initial ||
               state.status == BlockedUsersStatus.loading) {
-            return const Center(
-              child: DropLoadingIndicator(color: AppColors.primary),
+            return Center(
+              child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
             );
           }
           if (state.status == BlockedUsersStatus.error) {
             return Center(
               child: Text(
                 state.errorMessage ?? '',
-                style: const TextStyle(color: AppColors.error),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             );
           }
@@ -60,10 +59,10 @@ class _BlockedUsersView extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 4, right: 4, bottom: 18),
                 child: Text(
                   l10n.blockedUsersDescription,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     height: 1.55,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -110,11 +109,11 @@ class _BlockedUserRow extends StatelessWidget {
                   formatShortPubkey(user.pubkeyHex),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'monospace',
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -127,9 +126,9 @@ class _BlockedUserRow extends StatelessWidget {
                         ? l10n.blockedUsersBlockedJustNow
                         : l10n.blockedUsersBlockedAgo(ago);
                   }(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -158,7 +157,7 @@ class _UnblockButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Material(
-      color: AppColors.surfaceContainerLow,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -167,10 +166,10 @@ class _UnblockButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Text(
             l10n.actionUnblock,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -194,34 +193,34 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceContainerLow,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.block_rounded,
                 size: 28,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 14),
             Text(
               l10n.blockedUsersEmpty,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               l10n.blockedUsersEmptyHint,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

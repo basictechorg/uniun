@@ -9,7 +9,7 @@ import 'package:uniun/common/widgets/open_user_profile.dart';
 import 'package:uniun/common/widgets/note_card/note_card_menu.dart';
 import 'package:uniun/common/widgets/note_card/save_toggle.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
-import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 import 'package:uniun/core/utils/formatters.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/share/pages/share_sheet_page.dart';
@@ -41,6 +41,8 @@ class _NoteCardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<NoteCardCubit>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final custom = context.custom;
     // Only collapse-on-delete needs the whole card to rebuild. Everything else
     // is scoped to the dynamic leaves below (avatar / name / menu / action row)
     // via BlocSelector, so the markdown body, media and embed — all derived
@@ -54,10 +56,10 @@ class _NoteCardView extends StatelessWidget {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
               border: Border(
-                bottom: BorderSide(color: AppColors.borderSubtle, width: 1),
+                bottom: BorderSide(color: custom.borderSubtle, width: 1),
               ),
             ),
             child: Row(
@@ -114,20 +116,20 @@ class _NoteCardView extends StatelessWidget {
                                   ),
                                   builder: (context, name) => Text(
                                     name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.onSurface,
+                                      color: colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   formatTimeAgo(note.created),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: AppColors.textMuted,
+                                    color: custom.textMuted,
                                   ),
                                 ),
                                 if (note.sourceLabel != null) ...[
@@ -137,17 +139,17 @@ class _NoteCardView extends StatelessWidget {
                                         ? Icons.lock_outline
                                         : Icons.tag_rounded,
                                     size: 13,
-                                    color: AppColors.primary,
+                                    color: colorScheme.primary,
                                   ),
                                   const SizedBox(width: 2),
                                   Flexible(
                                     child: Text(
                                       note.sourceLabel!,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.primary,
+                                        color: colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -186,9 +188,9 @@ class _NoteCardView extends StatelessWidget {
                           // is forwarded to the card's onTap so it still opens the
                           // thread — SelectableText would otherwise swallow it.
                           onTap: onTap,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
-                            color: AppColors.textBody,
+                            color: custom.textBody,
                             height: 1.55,
                           ),
                         ),
@@ -211,9 +213,9 @@ class _NoteCardView extends StatelessWidget {
                               .map(
                                 (t) => Text(
                                   '#$t',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: AppColors.primary,
+                                    color: colorScheme.primary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -243,7 +245,7 @@ class _NoteCardView extends StatelessWidget {
                             _ActionChip(
                               icon: Icons.chat_bubble_outline_rounded,
                               label: '${note.cachedReplyCount}',
-                              color: AppColors.onSurfaceVariant,
+                              color: colorScheme.onSurfaceVariant,
                               onTap: onTap,
                             ),
                             const SizedBox(width: 28),
@@ -254,8 +256,8 @@ class _NoteCardView extends StatelessWidget {
                               icon: Icons.link_rounded,
                               label: '${note.referenceCount}',
                               color: note.referenceCount > 0
-                                  ? AppColors.primary
-                                  : AppColors.onSurfaceVariant,
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
                               onTap: onTap,
                             ),
 
@@ -268,8 +270,8 @@ class _NoteCardView extends StatelessWidget {
                                     ? Icons.bookmark_rounded
                                     : Icons.bookmark_border_rounded,
                                 color: a.saved
-                                    ? AppColors.primary
-                                    : AppColors.onSurfaceVariant,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurfaceVariant,
                                 onTap: () => handleSaveToggle(context, cubit),
                               ),
                             ],
@@ -281,14 +283,14 @@ class _NoteCardView extends StatelessWidget {
                                   ? Icons.visibility
                                   : Icons.visibility_outlined,
                               color: a.followed
-                                  ? AppColors.primary
-                                  : AppColors.onSurfaceVariant,
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
                               onTap: () => cubit.toggleFollow(),
                             ),
                             const Spacer(),
                             _ActionChip(
                               icon: Icons.ios_share_rounded,
-                              color: AppColors.onSurfaceVariant,
+                              color: colorScheme.onSurfaceVariant,
                               onTap: () => ShareSheetPage.show(context, note.id),
                             ),
                           ],

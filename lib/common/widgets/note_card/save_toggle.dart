@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -31,10 +30,11 @@ Future<void> handleSaveToggle(BuildContext context, NoteCardCubit cubit) async {
 
 Future<bool?> _confirmUnsave(BuildContext context, List<ManasEntity> manases) {
   final l10n = AppLocalizations.of(context)!;
+  final colorScheme = Theme.of(context).colorScheme;
   return showDialog<bool>(
     context: context,
     builder: (dialogCtx) => AlertDialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -42,16 +42,16 @@ Future<bool?> _confirmUnsave(BuildContext context, List<ManasEntity> manases) {
       contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
       title: Row(
         children: [
-          const Icon(Icons.bookmark_remove_rounded,
-              color: AppColors.error, size: 20),
+          Icon(Icons.bookmark_remove_rounded,
+              color: colorScheme.error, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               l10n.unsaveManasDialogTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: colorScheme.onSurface,
               ),
             ),
           ),
@@ -65,9 +65,9 @@ Future<bool?> _confirmUnsave(BuildContext context, List<ManasEntity> manases) {
           children: [
             Text(
               l10n.unsaveManasDialogBody,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.onSurfaceVariant,
+                color: colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -92,7 +92,7 @@ Future<bool?> _confirmUnsave(BuildContext context, List<ManasEntity> manases) {
           child: Text(l10n.unsaveManasDialogCancel),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          style: TextButton.styleFrom(foregroundColor: colorScheme.error),
           onPressed: () => Navigator.pop(dialogCtx, true),
           child: Text(l10n.unsaveManasDialogConfirm),
         ),
@@ -111,13 +111,14 @@ class _ManasCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
@@ -125,13 +126,13 @@ class _ManasCard extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.12),
+              color: colorScheme.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(9),
             ),
             child: Icon(
               ManasIcons.byName(manas.iconName),
               size: 18,
-              color: AppColors.primary,
+              color: colorScheme.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -141,10 +142,10 @@ class _ManasCard extends StatelessWidget {
               children: [
                 Text(
                   manas.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
+                    color: colorScheme.onSurface,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -152,9 +153,9 @@ class _ManasCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   l10n.manasDrawerTileNoteCount(manas.noteCount),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.onSurfaceVariant,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

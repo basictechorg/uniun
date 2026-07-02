@@ -6,7 +6,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/vishnu/drawer/bloc/drawer_bloc.dart' as app_drawer;
 import 'package:uniun/features/vishnu/drawer/widgets/vishnu_drawer.dart';
 import 'package:uniun/features/vishnu/bloc/vishnu_feed_bloc.dart';
@@ -65,7 +64,7 @@ class _VishnuFeedPageState extends State<VishnuFeedPage> {
     return BlocProvider<app_drawer.DrawerBloc>.value(
       value: _drawerBloc,
       child: Scaffold(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         drawer: const VishnuDrawer(),
         onDrawerChanged: (isOpen) {
           if (isOpen) {
@@ -198,9 +197,9 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                 // Initial loading
                 if (feedState.status == VishnuFeedStatus.loading &&
                     feedState.items.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: DropLoadingIndicator(
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   );
                 }
@@ -225,7 +224,7 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                 return Builder(
                   builder: (context) {
                     return RefreshIndicator(
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                       onRefresh: _onRefresh,
                       child: Stack(
                         children: [
@@ -243,11 +242,11 @@ class _VishnuFeedViewState extends State<_VishnuFeedView> {
                                       : 0),
                               itemBuilder: (context, i) {
                                 if (i == feedState.items.length) {
-                                  return const Padding(
+                                  return Padding(
                                     padding: EdgeInsets.all(20),
                                     child: Center(
                                       child: DropLoadingIndicator(
-                                        color: AppColors.primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   );
@@ -320,10 +319,10 @@ class _FeedHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.92),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
         border: Border(
           bottom: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.2),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -362,18 +361,18 @@ class _EmptyFeedView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.group_add_outlined,
               size: 52,
-              color: AppColors.outlineVariant,
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
             const SizedBox(height: 16),
             Text(
               l10n.vishnuFeedEmptyTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -381,9 +380,9 @@ class _EmptyFeedView extends StatelessWidget {
             Text(
               l10n.vishnuFeedEmptySubtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.onSurfaceVariant,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 20),
@@ -401,7 +400,7 @@ class _EmptyFeedView extends StatelessWidget {
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: Text(l10n.vishnuFeedEmptyRefresh),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
@@ -415,9 +414,9 @@ class _EmptyFeedView extends StatelessWidget {
                   icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
                   label: Text(l10n.vishnuFeedEmptyCta),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                     side: BorderSide(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 12),
@@ -448,15 +447,15 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
             size: 48,
-            color: AppColors.error,
+            color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(height: 12),
           Text(
             message,
-            style: const TextStyle(color: AppColors.onSurfaceVariant),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),

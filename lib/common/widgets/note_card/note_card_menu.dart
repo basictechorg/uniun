@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/manas/widgets/manas_membership_sheet.dart';
 import 'package:uniun/features/moderation/pages/report_sheet_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -54,12 +53,13 @@ class NoteCardMenu extends StatelessWidget {
   Future<void> _onBlock(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
     final result = await cubit.blockUser();
     result.fold(
       (failure) => messenger.showSnackBar(
         SnackBar(
           content: Text(failure.toMessage()),
-          backgroundColor: AppColors.error,
+          backgroundColor: errorColor,
         ),
       ),
       (_) => messenger.showSnackBar(
@@ -71,12 +71,13 @@ class NoteCardMenu extends StatelessWidget {
   Future<void> _onManas(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
     final saved = await cubit.ensureSavedForManas();
     if (!saved) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(l10n.noteCardManasSaveFailed),
-          backgroundColor: AppColors.error,
+          backgroundColor: errorColor,
         ),
       );
       return;
@@ -88,12 +89,13 @@ class NoteCardMenu extends StatelessWidget {
   Future<void> _onDelete(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
     final result = await cubit.deleteNote();
     result.fold(
       (failure) => messenger.showSnackBar(
         SnackBar(
           content: Text(failure.toMessage()),
-          backgroundColor: AppColors.error,
+          backgroundColor: errorColor,
         ),
       ),
       (_) => messenger.showSnackBar(
@@ -105,16 +107,17 @@ class NoteCardMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
       padding: const EdgeInsets.all(10),
       position: PopupMenuPosition.under,
       offset: const Offset(0, 4),
       elevation: 8,
-      color: AppColors.surface,
+      color: colorScheme.surface,
       shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFF1F5F9)),
+        side: BorderSide(color: colorScheme.outlineVariant),
       ),
       menuPadding: const EdgeInsets.symmetric(vertical: 4),
       onSelected: (value) {
@@ -123,22 +126,22 @@ class NoteCardMenu extends StatelessWidget {
         if (value == 'block') _onBlock(context);
         if (value == 'delete') _onDelete(context);
       },
-      child: const Icon(
+      child: Icon(
         Icons.more_vert_rounded,
         size: 20,
-        color: AppColors.outline,
+        color: colorScheme.outline,
       ),
       itemBuilder: (context) => [
-        _neutralItem('manas', Icons.man_3_rounded,
+        _neutralItem(colorScheme, 'manas', Icons.man_3_rounded,
             l10n.noteCardAddToManas),
         const PopupMenuDivider(),
-        _destructiveItem('delete', Icons.delete_outline_rounded,
+        _destructiveItem(colorScheme, 'delete', Icons.delete_outline_rounded,
             l10n.noteCardDeleteNote),
         if (!isOwnNote) ...[
           _destructiveItem(
-              'report', Icons.flag_outlined, l10n.noteCardReport),
-          _destructiveItem(
-              'block', Icons.block_rounded, l10n.noteCardBlockUser),
+              colorScheme, 'report', Icons.flag_outlined, l10n.noteCardReport),
+          _destructiveItem(colorScheme, 'block', Icons.block_rounded,
+              l10n.noteCardBlockUser),
         ],
       ],
     );
@@ -146,7 +149,7 @@ class NoteCardMenu extends StatelessWidget {
 
   /// Non-destructive row (primary-coloured) — used for "Add to Manas".
   PopupMenuItem<String> _neutralItem(
-      String value, IconData icon, String label) {
+      ColorScheme colorScheme, String value, IconData icon, String label) {
     return PopupMenuItem<String>(
       value: value,
       height: 40,
@@ -154,14 +157,14 @@ class NoteCardMenu extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 17, color: AppColors.primary),
+          Icon(icon, size: 17, color: colorScheme.primary),
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppColors.onSurface,
+              color: colorScheme.onSurface,
             ),
           ),
         ],
@@ -171,7 +174,7 @@ class NoteCardMenu extends StatelessWidget {
 
   /// Compact, uniform destructive menu row.
   PopupMenuItem<String> _destructiveItem(
-      String value, IconData icon, String label) {
+      ColorScheme colorScheme, String value, IconData icon, String label) {
     return PopupMenuItem<String>(
       value: value,
       height: 40,
@@ -179,14 +182,14 @@ class NoteCardMenu extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 17, color: AppColors.error),
+          Icon(icon, size: 17, color: colorScheme.error),
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppColors.error,
+              color: colorScheme.error,
             ),
           ),
         ],

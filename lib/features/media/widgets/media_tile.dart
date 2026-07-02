@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/media/file_type_style.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 
 /// Grid tile for the Media gallery. Images render the cached file directly;
@@ -37,7 +36,7 @@ class MediaTile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: _buildBackground(),
+            child: _buildBackground(context),
           ),
           if (busy)
             Container(
@@ -56,49 +55,50 @@ class MediaTile extends StatelessWidget {
           if (selected)
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary, width: 3),
+                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 3),
                 borderRadius: BorderRadius.circular(12),
               ),
               alignment: Alignment.topRight,
               padding: const EdgeInsets.all(6),
-              child: const Icon(Icons.check_circle,
-                  color: AppColors.primary, size: 22),
+              child: Icon(Icons.check_circle,
+                  color: Theme.of(context).colorScheme.primary, size: 22),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildBackground() {
+  Widget _buildBackground(BuildContext context) {
     if (_isImage && blob.localPath != null) {
       return Image.file(
         File(blob.localPath!),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fileTile(),
+        errorBuilder: (_, __, ___) => _fileTile(context),
       );
     }
-    return _fileTile();
+    return _fileTile(context);
   }
 
   /// Same visual language as `_FileCard` in `media_attachment_view.dart`,
   /// laid out vertically for a square grid cell: tinted background, big
   /// icon, type chip, optional filename truncated below.
-  Widget _fileTile() {
+  Widget _fileTile(BuildContext context) {
     final style = FileTypeStyle.fromMime(blob.mime, blob.filename);
+    final c = style.colorFor(context);
     final filename = blob.filename?.trim();
     return Container(
-      color: style.color.withValues(alpha: 0.12),
+      color: c.withValues(alpha: 0.12),
       padding: const EdgeInsets.all(8),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(style.icon, size: 34, color: style.color),
+          Icon(style.icon, size: 34, color: c),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: style.color,
+              color: c,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -118,10 +118,10 @@ class MediaTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],

@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
 import 'package:uniun/features/brahma/utils/manas_icons.dart';
@@ -24,7 +23,7 @@ class ManasMembershipSheet extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -120,7 +119,7 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -129,16 +128,16 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
-                    const Icon(Icons.man_3_rounded,
-                        color: AppColors.primary, size: 20),
+                    Icon(Icons.man_3_rounded,
+                        color: Theme.of(context).colorScheme.primary, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         l10n.manasMembershipSheetTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -148,7 +147,7 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
               const SizedBox(height: 12),
               Flexible(
                 child: _loading
-                    ? const Padding(
+                    ? Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
                         child: Center(
                           child: SizedBox(
@@ -156,7 +155,7 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                             height: 22,
                             child: DropLoadingIndicator(
                               size: 22,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -189,7 +188,7 @@ class _ManasMembershipSheetState extends State<ManasMembershipSheet> {
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: Text(l10n.manasMembershipSheetCreate),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -227,16 +226,16 @@ class _Row extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: included
-                    ? AppColors.primary.withValues(alpha: 0.12)
-                    : AppColors.surfaceContainerLow,
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+                    : Theme.of(context).colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Icon(
                 ManasIcons.byName(manas.iconName),
                 size: 18,
                 color: included
-                    ? AppColors.primary
-                    : AppColors.onSurfaceVariant,
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 12),
@@ -250,8 +249,8 @@ class _Row extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: included
-                          ? AppColors.primary
-                          : AppColors.onSurface,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -261,9 +260,9 @@ class _Row extends StatelessWidget {
                     manas.noteCount == 0
                         ? l10n.manasTileEmptyHint
                         : l10n.manasDrawerTileNoteCount(manas.noteCount),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -273,7 +272,7 @@ class _Row extends StatelessWidget {
               included
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              color: included ? AppColors.primary : AppColors.outline,
+              color: included ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.outline,
               size: 22,
             ),
           ],
@@ -297,18 +296,18 @@ class _Empty extends StatelessWidget {
         children: [
           Text(
             l10n.manasMembershipSheetEmptyTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             l10n.manasMembershipSheetEmptyBody,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.4,
             ),
           ),
@@ -318,8 +317,8 @@ class _Empty extends StatelessWidget {
             icon: const Icon(Icons.add_rounded, size: 18),
             label: Text(l10n.manasMembershipSheetEmptyCta),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/shiv/chat/widgets/shiv_model_picker_sheet.dart';
 import 'package:uniun/features/shiv/composer_chat/widgets/manas_picker_sheet.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -84,8 +83,8 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(16, 10, 12, bottomPad),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -97,11 +96,11 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
             minLines: 1,
             maxLines: 6,
             textInputAction: TextInputAction.newline,
-            style: const TextStyle(fontSize: 15, color: AppColors.onSurface),
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
             decoration: InputDecoration(
               hintText: l10n.composerAskScope(_scope.name ?? 'Brahma'),
-              hintStyle: const TextStyle(
-                color: AppColors.outline,
+              hintStyle: TextStyle(
+                color: Theme.of(context).colorScheme.outline,
                 fontSize: 15,
               ),
               isDense: true,
@@ -141,8 +140,8 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
                   height: 40,
                   decoration: BoxDecoration(
                     color: isStreaming || canSend
-                        ? AppColors.primary
-                        : AppColors.surfaceContainerHigh,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surfaceContainerHigh,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -151,8 +150,8 @@ class _ShivInputComposerState extends State<ShivInputComposer> {
                         : Icons.arrow_upward_rounded,
                     size: isStreaming ? 20 : 18,
                     color: (isStreaming || canSend)
-                        ? AppColors.onPrimary
-                        : AppColors.onSurfaceVariant,
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -183,8 +182,8 @@ class _CircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = onTap == null
-        ? AppColors.outline
-        : (filled ? AppColors.primary : AppColors.onSurfaceVariant);
+        ? Theme.of(context).colorScheme.outline
+        : (filled ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant);
     final btn = GestureDetector(
       onTap: onTap,
       child: Container(
@@ -192,8 +191,8 @@ class _CircleButton extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: filled
-              ? AppColors.primary.withValues(alpha: 0.14)
-              : AppColors.surfaceContainerHigh,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.14)
+              : Theme.of(context).colorScheme.surfaceContainerHigh,
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 18, color: color),

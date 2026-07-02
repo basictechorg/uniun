@@ -16,6 +16,8 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:uniun/core/l10n/locale_cubit.dart';
 import 'package:uniun/core/router/app_router.dart';
 import 'package:uniun/core/theme/app_theme.dart';
+import 'package:uniun/core/theme/app_theme_mode.dart';
+import 'package:uniun/core/theme/theme_cubit.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/domain/services/marmot_transport_service.dart';
@@ -61,10 +63,18 @@ Future<void> main() async {
     systemLocales: binding.platformDispatcher.locales,
   );
 
+  // Same reasoning for theme: read once, sync, so the first frame renders in
+  // the right theme. Null (never picked) ⇒ AppThemeMode.system.
+  final initialThemeMode =
+      getIt<AppSettingsStore>().themeMode ?? AppThemeMode.system;
+
   // Remove native splash immediately → SplashPage takes over
   FlutterNativeSplash.remove();
 
-  runApp(UniunApp(initialLocale: initialLocale));
+  runApp(UniunApp(
+    initialLocale: initialLocale,
+    initialThemeMode: initialThemeMode,
+  ));
 }
 
 /// `background_downloader` (used by flutter_gemma to fetch models) stores its
@@ -85,45 +95,71 @@ Future<void> _ensureDownloaderCacheDir() async {
 }
 
 class UniunApp extends StatelessWidget {
-  const UniunApp({super.key, required this.initialLocale});
+  const UniunApp({
+    super.key,
+    required this.initialLocale,
+    required this.initialThemeMode,
+  });
 
   /// The locale resolved synchronously at startup (see `main`). Seeds
   /// [LocaleCubit]; the user can change it at runtime from the welcome screen,
   /// the language picker, or Settings.
   final Locale initialLocale;
 
+  /// The theme mode resolved synchronously at startup (see `main`). Seeds
+  /// [ThemeCubit]; the user can change it at runtime from Settings.
+  final AppThemeMode initialThemeMode;
+
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          LocaleCubit(getIt<SetAppLocaleUseCase>(), initial: initialLocale),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => LocaleCubit(
+            getIt<SetAppLocaleUseCase>(),
+            initial: initialLocale,
+          ),
+        ),
+        BlocProvider(
+          create: (_) => ThemeCubit(
+            getIt<SetThemeModeUseCase>(),
+            initial: initialThemeMode,
+          ),
+        ),
+      ],
       child: BlocBuilder<LocaleCubit, Locale>(
         builder: (context, locale) {
-          return MaterialApp.router(
-            title: 'UNIUN',
-            debugShowCheckedModeBanner: false,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('en'), Locale('hi')],
-            locale: locale,
-            theme: AppTheme.light,
-            routerConfig: appRouter,
-            builder: (context, child) {
-              // Global tap-outside-to-dismiss-keyboard. HitTestBehavior.opaque
-              // is required — the default (deferToChild) means taps on empty
-              // space never reach this GestureDetector. translucent leaves
-              // bubbling intact so list scrolls / button taps still work.
-              return GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () {
-                  final focus = FocusManager.instance.primaryFocus;
-                  if (focus != null && focus.hasFocus) focus.unfocus();
+          return BlocBuilder<ThemeCubit, AppThemeMode>(
+            builder: (context, themeMode) {
+              return MaterialApp.router(
+                title: 'UNIUN',
+                debugShowCheckedModeBanner: false,
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                supportedLocales: const [Locale('en'), Locale('hi')],
+                locale: locale,
+                theme: AppTheme.light,
+                darkTheme: AppTheme.dark,
+                themeMode: themeMode.materialThemeMode,
+                routerConfig: appRouter,
+                builder: (context, child) {
+                  // Global tap-outside-to-dismiss-keyboard. HitTestBehavior.opaque
+                  // is required — the default (deferToChild) means taps on empty
+                  // space never reach this GestureDetector. translucent leaves
+                  // bubbling intact so list scrolls / button taps still work.
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      final focus = FocusManager.instance.primaryFocus;
+                      if (focus != null && focus.hasFocus) focus.unfocus();
+                    },
+                    child: child ?? const SizedBox.shrink(),
+                  );
                 },
-                child: child ?? const SizedBox.shrink(),
               );
             },
           );

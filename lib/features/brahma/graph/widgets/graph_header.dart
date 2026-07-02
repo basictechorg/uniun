@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 import 'package:uniun/features/brahma/utils/brahma_scaffold_key.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 // Mono-blue knowledge-graph palette (DESIGN.md §1.1) — one hue, sources by
-// shade. The same fixed palette for the unscoped graph and every Manas view.
-const graphNodeTypeColors = {
-  GraphNodeType.saved: AppColors.graphNodeSaved,
-  GraphNodeType.own:   AppColors.graphNodeOwn,
-  GraphNodeType.draft: AppColors.graphNodeDraft,
-};
+// shade. Function (not const map) so both themes resolve at build time.
+Map<GraphNodeType, Color> graphNodeTypeColorsOf(BuildContext context) => {
+      GraphNodeType.saved: context.custom.graphNodeSaved,
+      GraphNodeType.own: context.custom.graphNodeOwn,
+      GraphNodeType.draft: context.custom.graphNodeDraft,
+    };
 
 /// Brahma graph app bar: a solid `logo · Brahma · search` header. The Brahma
 /// logo opens the Manas drawer (where scope is changed); the search icon
@@ -48,9 +48,9 @@ class _GraphHeaderState extends State<GraphHeader> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.borderSubtle)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(bottom: BorderSide(color: context.custom.borderSubtle)),
       ),
       child: SafeArea(
         bottom: false,
@@ -67,8 +67,8 @@ class _GraphHeaderState extends State<GraphHeader> {
                       'assets/images/tabs/brahma.svg',
                       width: 32,
                       height: 32,
-                      theme: const SvgTheme(
-                        currentColor: AppColors.onSurfaceVariant,
+                      theme: SvgTheme(
+                        currentColor: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     tooltip: l10n.graphMenuTooltip,
@@ -84,18 +84,18 @@ class _GraphHeaderState extends State<GraphHeader> {
                             onChanged: (v) => context
                                 .read<GraphBloc>()
                                 .add(SearchGraphEvent(v)),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
-                              color: AppColors.onSurface,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             decoration: InputDecoration(
                               isDense: true,
                               filled: false,
                               border: InputBorder.none,
                               hintText: l10n.graphSearchHint,
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                 fontSize: 16,
-                                color: AppColors.textMuted,
+                                color: context.custom.textMuted,
                               ),
                             ),
                           )
@@ -105,7 +105,7 @@ class _GraphHeaderState extends State<GraphHeader> {
                     icon: Icon(
                       _searchOpen ? Icons.close_rounded : Icons.search_rounded,
                     ),
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                     tooltip: _searchOpen
                         ? l10n.graphSearchClear
                         : l10n.graphSearchTooltip,
@@ -130,26 +130,27 @@ class GraphLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final palette = graphNodeTypeColorsOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.glassFill,
+        color: context.custom.glassFill,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: context.custom.borderSubtle),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _LegendDot(
-              color: graphNodeTypeColors[GraphNodeType.saved]!,
+              color: palette[GraphNodeType.saved]!,
               label: l10n.graphLegendSaved),
           const SizedBox(width: 12),
           _LegendDot(
-              color: graphNodeTypeColors[GraphNodeType.own]!,
+              color: palette[GraphNodeType.own]!,
               label: l10n.graphLegendOwn),
           const SizedBox(width: 12),
           _LegendDot(
-              color: graphNodeTypeColors[GraphNodeType.draft]!,
+              color: palette[GraphNodeType.draft]!,
               label: l10n.graphLegendDraft),
         ],
       ),
@@ -175,10 +176,10 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: AppColors.onSurfaceVariant,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],

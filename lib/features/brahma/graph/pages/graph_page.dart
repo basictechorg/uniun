@@ -6,7 +6,6 @@ import 'package:uniun/features/brahma/bloc/brahma_create_bloc.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_canvas.dart';
 import 'package:uniun/features/brahma/graph/widgets/graph_fab.dart';
@@ -75,7 +74,7 @@ class _GraphViewState extends State<_GraphView> {
                 state.errorMessage != null) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(state.errorMessage!),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
                 behavior: SnackBarBehavior.floating,
               ));
             }
@@ -92,7 +91,7 @@ class _GraphViewState extends State<_GraphView> {
       ],
       child: Scaffold(
         key: brahmaScaffoldKey,
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         drawer: BlocBuilder<GraphBloc, GraphState>(
           buildWhen: (prev, curr) => prev.scopedManasId != curr.scopedManasId,
           builder: (context, state) =>
@@ -155,12 +154,12 @@ class _GraphBody extends StatelessWidget {
       builder: (context, state) {
         if (state.status == GraphStatus.initial ||
             state.status == GraphStatus.loading) {
-          return const Column(
+          return Column(
             children: [
               GraphHeader(),
               Expanded(
                 child: Center(
-                  child: DropLoadingIndicator(color: AppColors.primary),
+                  child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ],
@@ -175,7 +174,7 @@ class _GraphBody extends StatelessWidget {
                 child: Center(
                   child: Text(
                     state.errorMessage ?? 'Failed to load graph',
-                    style: const TextStyle(color: AppColors.error),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               ),

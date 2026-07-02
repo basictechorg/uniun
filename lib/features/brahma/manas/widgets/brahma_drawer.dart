@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/manas/bloc/manas_list_bloc.dart';
@@ -56,7 +55,7 @@ class _BrahmaDrawerView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(16)),
@@ -72,14 +71,14 @@ class _BrahmaDrawerView extends StatelessWidget {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: 8),
               ListTile(
                 leading:
-                    const Icon(Icons.edit_outlined, color: AppColors.primary),
+                    Icon(Icons.edit_outlined, color: Theme.of(context).colorScheme.primary),
                 title: Text(l10n.manasTileActionEdit),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -87,7 +86,7 @@ class _BrahmaDrawerView extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.air, color: AppColors.primary),
+                leading: Icon(Icons.air, color: Theme.of(context).colorScheme.primary),
                 title: Text(l10n.natarajTileAction),
                 onTap: () {
                   Navigator.pop(sheetCtx);
@@ -99,10 +98,10 @@ class _BrahmaDrawerView extends StatelessWidget {
               ),
               ListTile(
                 leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
+                    Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
                 title: Text(
                   l10n.manasTileActionDelete,
-                  style: const TextStyle(color: AppColors.error),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () async {
                   Navigator.pop(sheetCtx);
@@ -142,7 +141,7 @@ class _BrahmaDrawerView extends StatelessWidget {
             child: Text(l10n.manasDeleteConfirmCancel),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             onPressed: () => Navigator.pop(dialogCtx, true),
             child: Text(l10n.manasDeleteConfirmConfirm),
           ),
@@ -156,7 +155,7 @@ class _BrahmaDrawerView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       width: 280,
       child: Column(
         children: [
@@ -183,7 +182,7 @@ class _BrahmaDrawerView extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     if (state.status == ManasListStatus.loading)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(
                           child: SizedBox(
@@ -191,7 +190,7 @@ class _BrahmaDrawerView extends StatelessWidget {
                             height: 22,
                             child: DropLoadingIndicator(
                               size: 22,
-                              color: AppColors.primary,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -244,7 +243,7 @@ class _Header extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
       ),
@@ -257,27 +256,27 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: 0.6,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded,
-                color: AppColors.onSurfaceVariant),
+            icon: Icon(Icons.close_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: onClose,
           ),
         ],
@@ -300,11 +299,11 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
-                color: AppColors.outline,
+                color: Theme.of(context).colorScheme.outline,
               ),
             ),
           ),
@@ -316,15 +315,15 @@ class _SectionHeader extends StatelessWidget {
                   horizontal: 8, vertical: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.add_rounded,
-                      size: 16, color: AppColors.primary),
+                  Icon(Icons.add_rounded,
+                      size: 16, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 2),
                   Text(
                     AppLocalizations.of(context)!.manasDrawerNewManasButton,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -352,13 +351,13 @@ class _BrahmaEntryTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : AppColors.surfaceContainerLow,
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.10)
+              : Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: active
-                ? AppColors.primary.withValues(alpha: 0.4)
-                : AppColors.outlineVariant.withValues(alpha: 0.4),
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
+                : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
           ),
         ),
         child: Row(
@@ -367,11 +366,11 @@ class _BrahmaEntryTile extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.hub_rounded,
-                  color: AppColors.primary, size: 20),
+              child: Icon(Icons.hub_rounded,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -384,16 +383,16 @@ class _BrahmaEntryTile extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: active
-                          ? AppColors.primary
-                          : AppColors.onSurface,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     l10n.manasDrawerBrahmaEntrySubtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -432,13 +431,13 @@ class _ManasTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: active
-                ? AppColors.primary.withValues(alpha: 0.08)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: active
-                  ? AppColors.primary.withValues(alpha: 0.4)
-                  : AppColors.outlineVariant.withValues(alpha: 0.35),
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
+                  : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
@@ -448,15 +447,15 @@ class _ManasTile extends StatelessWidget {
                 height: 32,
                 decoration: BoxDecoration(
                   color: active
-                      ? AppColors.primary.withValues(alpha: 0.12)
-                      : AppColors.surfaceContainerLow,
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.12)
+                      : Theme.of(context).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(
                   ManasIcons.byName(manas.iconName),
                   color: active
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 18,
                 ),
               ),
@@ -471,8 +470,8 @@ class _ManasTile extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: active
-                            ? AppColors.primary
-                            : AppColors.onSurface,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -482,9 +481,9 @@ class _ManasTile extends StatelessWidget {
                       manas.noteCount == 0
                           ? l10n.manasTileEmptyHint
                           : l10n.manasDrawerTileNoteCount(manas.noteCount),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -520,18 +519,18 @@ class _EmptyState extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             body,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.onSurfaceVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.4,
             ),
           ),
@@ -539,8 +538,8 @@ class _EmptyState extends StatelessWidget {
           FilledButton.icon(
             onPressed: onCta,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.onPrimary,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             icon: const Icon(Icons.add_rounded, size: 18),
             label: Text(ctaLabel),

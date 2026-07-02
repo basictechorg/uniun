@@ -2,8 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
-import 'package:uniun/core/theme/app_theme.dart';
-
 class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
   const SettingsAppBar({super.key, required this.title});
 
@@ -22,7 +20,7 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          color: AppColors.surface.withValues(alpha: 0.80),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.80),
           child: SafeArea(
             child: SizedBox(
               height: 64,
@@ -35,11 +33,11 @@ class SettingsAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 4),
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.4,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],

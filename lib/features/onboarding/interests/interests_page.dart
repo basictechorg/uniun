@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/features/onboarding/interests/onboarding_interest.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 // Chip metrics — shared by the width measurer and the chip widget so the
 // computed grid positions match what's actually rendered.
@@ -155,7 +155,7 @@ class _InterestsPageState extends State<InterestsPage> {
     final canContinue = n >= _minSelection && !_saving;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,33 +170,33 @@ class _InterestsPageState extends State<InterestsPage> {
                 children: [
                   Text(
                     l10n.interestsEyebrow.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.interestsTitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Newsreader',
                       fontVariations: [FontVariation('wght', 600)],
                       fontSize: 26,
                       fontWeight: FontWeight.w600,
                       height: 1.2,
                       letterSpacing: -0.5,
-                      color: AppColors.onSurface,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     l10n.interestsSubtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       height: 1.45,
-                      color: AppColors.onSurfaceVariant,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -234,13 +234,13 @@ class _InterestsPageState extends State<InterestsPage> {
                       height: 54,
                       decoration: BoxDecoration(
                         color: canContinue
-                            ? AppColors.primary
-                            : AppColors.surfaceContainerHigh,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: canContinue
                             ? [
                                 BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.24),
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.24),
                                   blurRadius: 20,
                                   offset: const Offset(0, 6),
                                 ),
@@ -249,12 +249,12 @@ class _InterestsPageState extends State<InterestsPage> {
                       ),
                       child: Center(
                         child: _saving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.4,
-                                  color: AppColors.onPrimary,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 ),
                               )
                             : Text(
@@ -263,8 +263,8 @@ class _InterestsPageState extends State<InterestsPage> {
                                     : l10n.interestsPickMore(_minSelection - n),
                                 style: TextStyle(
                                   color: canContinue
-                                      ? AppColors.onPrimary
-                                      : AppColors.outline,
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.outline,
                                   fontSize: 15.5,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -277,8 +277,8 @@ class _InterestsPageState extends State<InterestsPage> {
                     onPressed: _saving ? null : _skip,
                     child: Text(
                       l10n.interestsSkip,
-                      style: const TextStyle(
-                        color: AppColors.outline,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.outline,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -299,8 +299,8 @@ class _InterestsPageState extends State<InterestsPage> {
       return Center(
         child: Text(
           l10n.interestsNoResults,
-          style: const TextStyle(
-            color: AppColors.onSurfaceVariant,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
@@ -416,11 +416,17 @@ class _InterestChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  static const _unselected = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFFEEF5FF), Color(0xFFDCECFF)],
-  );
+  static LinearGradient _unselectedFor(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        primary.withValues(alpha: 0.06),
+        primary.withValues(alpha: 0.12),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -432,17 +438,17 @@ class _InterestChip extends StatelessWidget {
             _kChipPadL, _kChipVPad, _kChipPadR, _kChipVPad),
         decoration: BoxDecoration(
           gradient: selected
-              ? const LinearGradient(
+              ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [AppColors.primary, AppColors.primaryContainer],
+                  colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primaryContainer],
                 )
-              : _unselected,
+              : _unselectedFor(context),
           borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
               color: selected
-                  ? AppColors.primary.withValues(alpha: 0.45)
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.45)
                   : Colors.black.withValues(alpha: 0.08),
               blurRadius: selected ? 16 : 8,
               offset: const Offset(0, 4),
@@ -459,13 +465,13 @@ class _InterestChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: _kChipFont,
                 fontWeight: FontWeight.w700,
-                color: selected ? AppColors.onPrimary : AppColors.onSurface,
+                color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface,
               ),
             ),
             if (selected) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.check_rounded,
-                  size: 17, color: AppColors.onPrimary),
+              Icon(Icons.check_rounded,
+                  size: 17, color: Theme.of(context).colorScheme.onPrimary),
             ],
           ],
         ),
@@ -493,32 +499,32 @@ class _SearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: context.custom.borderSubtle),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded,
-              size: 20, color: AppColors.outline),
+          Icon(Icons.search_rounded,
+              size: 20, color: Theme.of(context).colorScheme.outline),
           const SizedBox(width: 9),
           Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.onSurface,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 13),
                 hintText: hint,
-                hintStyle: const TextStyle(
-                  color: AppColors.outline,
+                hintStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.outline,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -530,8 +536,8 @@ class _SearchBar extends StatelessWidget {
                 ? const SizedBox.shrink()
                 : GestureDetector(
                     onTap: onClear,
-                    child: const Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.outline),
+                    child: Icon(Icons.close_rounded,
+                        size: 18, color: Theme.of(context).colorScheme.outline),
                   ),
           ),
         ],
@@ -561,8 +567,8 @@ class _EdgeFade extends StatelessWidget {
               begin: _begin(align),
               end: _end(align),
               colors: [
-                AppColors.surface,
-                AppColors.surface.withValues(alpha: 0),
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0),
               ],
             ),
           ),

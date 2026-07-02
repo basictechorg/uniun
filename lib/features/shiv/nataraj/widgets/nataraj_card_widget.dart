@@ -6,7 +6,6 @@ import 'package:uniun/common/widgets/note_card/large_note_card.dart';
 import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/nataraj/nataraj_card_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
@@ -311,14 +310,14 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.4),
+          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.16),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
             blurRadius: 50,
             offset: const Offset(0, 20),
           ),
@@ -340,7 +339,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                 Icon(
                   Icons.link_rounded,
                   size: 13,
-                  color: AppColors.primary.withValues(alpha: 0.85),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -349,7 +348,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.0,
-                    color: AppColors.primary.withValues(alpha: 0.85),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.85),
                   ),
                 ),
                 if (extraCount > 0) ...[
@@ -359,7 +358,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
                     ),
                   ),
                 ],
@@ -385,7 +384,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
               if (i < _references.length - 1)
                 Divider(
                   height: 14,
-                  color: AppColors.outlineVariant.withValues(alpha: 0.25),
+                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
                 ),
             ],
             // Reveal the references not shown on the card (only when there are
@@ -404,7 +403,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: AppColors.primary,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                     textStyle: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -421,7 +420,7 @@ class _NatarajCardWidgetState extends State<NatarajCardWidget>
           // ── Divider before the synthesized note ────────────────────────
           Divider(
             height: 1,
-            color: AppColors.outlineVariant.withValues(alpha: 0.35),
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35),
           ),
           const SizedBox(height: 12),
 
@@ -476,10 +475,10 @@ class _PeekCard extends StatelessWidget {
         scale: 0.94 + 0.06 * rise,
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(26),
             border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
             ),
             boxShadow: [
               BoxShadow(
@@ -492,10 +491,10 @@ class _PeekCard extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Text(
             card.generatedParagraph,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               height: 1.6,
-              color: AppColors.onSurface,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
             maxLines: 6,
@@ -619,8 +618,8 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -632,7 +631,7 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -640,18 +639,18 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.link_rounded,
                   size: 16,
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   l10n.natarajReferencesLabel,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -660,7 +659,7 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -674,7 +673,7 @@ class _AllReferencesSheetState extends State<_AllReferencesSheet> {
                       itemCount: _refs.length,
                       separatorBuilder: (_, __) => Divider(
                         height: 16,
-                        color: AppColors.outlineVariant.withValues(alpha: 0.25),
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
                       ),
                       itemBuilder: (_, i) => ReferenceNoteCard(
                         note: _refs[i],

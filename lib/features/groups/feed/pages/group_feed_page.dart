@@ -11,12 +11,12 @@ import 'package:uniun/features/groups/feed/bloc/group_feed_state.dart';
 import 'package:uniun/common/widgets/composer/composer_host.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/nav_extensions.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/shiv/generation/chat_helpers.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/common/widgets/jump_to_bottom_button.dart';
 import 'package:uniun/common/widgets/note_card/note_card.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class GroupFeedPage extends StatelessWidget {
   const GroupFeedPage({super.key, required this.groupId});
@@ -197,9 +197,9 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
         final groupName = state.group?.name ?? '';
 
         return Scaffold(
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: AppColors.glassFill,
+            backgroundColor: context.custom.glassFill,
             elevation: 0,
             scrolledUnderElevation: 0,
             surfaceTintColor: Colors.transparent,
@@ -211,10 +211,10 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
             // below as a subtitle. No member count (DESIGN.md §3.5).
             title: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.tag_rounded,
                   size: 20,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -226,18 +226,18 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
                         groupName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (state.group?.about.isNotEmpty == true)
                         Text(
                           state.group!.about,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.textMuted,
+                            color: context.custom.textMuted,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -251,17 +251,17 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
               if (state.group != null) ...[
                 IconButton(
                   onPressed: () => _showGroupQrSheet(context, state),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.qr_code_rounded,
-                    color: AppColors.onSurface,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   tooltip: l10n.groupShareQrTitle,
                 ),
               ],
             ],
-            bottom: const PreferredSize(
+            bottom: PreferredSize(
               preferredSize: Size.fromHeight(1),
-              child: Divider(height: 1, thickness: 1, color: AppColors.borderSubtle),
+              child: Divider(height: 1, thickness: 1, color: context.custom.borderSubtle),
             ),
           ),
           body: Column(
@@ -292,8 +292,8 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
     String groupName,
   ) {
     if (state.isLoading) {
-      return const Center(
-        child: DropLoadingIndicator(color: AppColors.primary),
+      return Center(
+        child: DropLoadingIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
 
@@ -301,16 +301,16 @@ class _GroupFeedViewState extends State<_GroupFeedView> {
       return Center(
         child: Text(
           state.errorMessage ?? 'Something went wrong.',
-          style: const TextStyle(color: AppColors.onSurfaceVariant),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }
 
     if (state.messages.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No messages yet. Be the first!',
-          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+          style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       );
     }
@@ -394,7 +394,7 @@ class _EdgeSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const IgnorePointer(
+    return IgnorePointer(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Center(
@@ -403,7 +403,7 @@ class _EdgeSpinner extends StatelessWidget {
             height: 18,
             child: DropLoadingIndicator(
               size: 18,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ),

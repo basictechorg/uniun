@@ -1,5 +1,6 @@
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uniun/core/theme/app_theme_mode.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 
 @module
@@ -18,6 +19,7 @@ class AppSettingsStore {
   static const _kRecentSyncWindowDays = 'app_settings.recent_sync_window_days';
   static const _kNatarajCoachSeen = 'app_settings.nataraj_coach_seen';
   static const _kLocaleCode = 'app_settings.locale_code';
+  static const _kThemeMode = 'app_settings.theme_mode';
 
   final SharedPreferences _prefs;
 
@@ -87,6 +89,21 @@ class AppSettingsStore {
       await _prefs.remove(_kLocaleCode);
     } else {
       await _prefs.setString(_kLocaleCode, code);
+    }
+  }
+
+  /// The user's chosen theme mode (system / light / dark). `null` means
+  /// they've never picked one — treat as `AppThemeMode.system`. Read
+  /// synchronously at startup so `MaterialApp.themeMode` is right on the
+  /// first frame.
+  AppThemeMode? get themeMode =>
+      AppThemeMode.fromName(_prefs.getString(_kThemeMode));
+
+  Future<void> setThemeMode(AppThemeMode? mode) async {
+    if (mode == null) {
+      await _prefs.remove(_kThemeMode);
+    } else {
+      await _prefs.setString(_kThemeMode, mode.name);
     }
   }
 }

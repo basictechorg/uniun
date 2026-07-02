@@ -7,7 +7,6 @@ import 'package:uniun/common/widgets/composer/reference_picker_page.dart';
 import 'package:uniun/common/widgets/composer/uniun_composer.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/note_card/reference_note_card.dart';
-import 'package:uniun/core/theme/app_theme.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
@@ -17,6 +16,7 @@ import 'package:uniun/features/share/widgets/collapsible_section.dart';
 import 'package:uniun/features/share/widgets/destination_tile.dart';
 import 'package:uniun/features/share/widgets/dm_destination_tile.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class ShareSheetPage extends StatelessWidget {
   const ShareSheetPage({super.key, required this.sourceEventId});
@@ -27,7 +27,7 @@ class ShareSheetPage extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -101,7 +101,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: context.custom.border,
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -112,10 +112,10 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         l10n.shareSheetTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -231,11 +231,11 @@ class _SectionEyebrow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
-        color: AppColors.onSurfaceVariant,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -276,10 +276,10 @@ class _QuotingCardState extends State<_QuotingCard> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(width: 3, color: AppColors.primary),
+            Container(width: 3, color: Theme.of(context).colorScheme.primary),
             Expanded(
               child: Container(
-                color: AppColors.surfaceLow,
+                color: context.custom.surfaceLow,
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,9 +316,9 @@ class _ShareBar extends StatelessWidget {
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, 10 + bottomSafe),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: context.custom.borderSubtle)),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -326,21 +326,21 @@ class _ShareBar extends StatelessWidget {
         child: ElevatedButton.icon(
           onPressed: enabled ? onShare : null,
           icon: submitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.onPrimary,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 )
               : const Icon(Icons.send_rounded, size: 18),
           label: Text(l10n.shareActionShare),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.onPrimary,
-            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
-            disabledForegroundColor: AppColors.onPrimary.withValues(alpha: 0.7),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            disabledBackgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            disabledForegroundColor: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
@@ -423,9 +423,9 @@ class _DestinationList extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: Text(
                       l10n.shareNoDmConversations,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   )

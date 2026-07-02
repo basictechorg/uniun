@@ -1033,6 +1033,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i907.SetAppLocaleUseCase>(
       () => _i907.SetAppLocaleUseCase(gh<_i117.AppSettingsRepository>()),
     );
+    gh.lazySingleton<_i907.SetThemeModeUseCase>(
+      () => _i907.SetThemeModeUseCase(gh<_i117.AppSettingsRepository>()),
+    );
     gh.lazySingleton<_i858.UnsaveNoteUseCase>(
       () => _i858.UnsaveNoteUseCase(
         gh<_i43.SavedNoteRepository>(),
