@@ -36,6 +36,39 @@ host `go` is no longer used for building. If you want to keep the host
 Go installed for any reason it doesn't hurt, but it can't build this
 codebase directly.
 
+## Blossom media 404 under PM2 — check and fix
+
+**Symptom:** media uploads look fine but `GET https://dev.uniun.in:8080/<sha>.<ext>`
+returns 404 (while `HEAD` returns 200). Cause: `AZURE_FOR_BLOSSOM` or
+`AZURE_STORAGE_ACCOUNT_KEY` got dropped from the live PM2 env on a
+restart, so `initAzureBlossom` never registered the storage handlers —
+metadata still gets written to BadgerDB (that's why HEAD 200), but no
+bytes are stored anywhere (that's why GET 404).
+
+**Check:**
+
+```bash
+pm2 env $(pm2 pid uniun) | grep -iE 'azure|blossom'
+# expect: AZURE_FOR_BLOSSOM: true  (+ account name/key)
+
+pm2 logs uniun --nostream --lines 100 | grep -iE 'azure|blossom'
+# expect: "Initialized Azure Blossom storage container=blossom"
+# broken: "can't init azure blossom — media uploads will fail"
+```
+
+**Fix:**
+
+```bash
+export AZURE_FOR_BLOSSOM=true
+pm2 restart uniun --update-env
+pm2 save                              # persist to ~/.pm2/dump.pm2
+pm2 startup systemd -u azureuser --hp /home/azureuser
+# copy-paste the `sudo env ...` line it prints, run it, then `pm2 save` again
+```
+
+Blobs uploaded during the broken window are unrecoverable (metadata
+without bytes). Fresh uploads after the fix work end-to-end.
+
 ## First-time migration (from PM2 to Docker)
 
 ```bash

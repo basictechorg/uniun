@@ -52,9 +52,12 @@ class BlossomException implements Exception {
 /// content is public on a public Blossom server.
 @lazySingleton
 class BlossomClient {
-  BlossomClient();
+  // `httpClient` is a test seam — production DI never passes it, so the
+  // runtime `_http` is the same `http.Client()` as before.
+  BlossomClient({http.Client? httpClient})
+      : _http = httpClient ?? http.Client();
 
-  final http.Client _http = http.Client();
+  final http.Client _http;
 
   /// Per-request timeouts. Without these the http.Client waits forever for
   /// a slow / unreachable backend, which surfaces as a stuck UI (the

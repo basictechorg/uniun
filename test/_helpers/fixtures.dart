@@ -17,6 +17,7 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/entities/user_key/user_key_entity.dart';
+import 'package:uniun/domain/usecases/user_usecases.dart';
 
 // ── Fixed clocks ─────────────────────────────────────────────────────────────
 
@@ -357,6 +358,30 @@ UserKeyEntity aUserKey({
   );
 }
 
+// ── UserSigningKeys ──────────────────────────────────────────────────────────
+//
+// Hex-format keys ready for Nostr `Event.from` signing. The default privkey
+// is a valid secp256k1 scalar (64 hex chars, non-zero, below the curve order).
+// The pubkey field is a placeholder — nostr's `Event.from` derives the real
+// pubkey from privkey at sign time; tests that check pubkey shape assert on
+// the derived value, not this constant.
+
+const String kTestPrivHex =
+    '1111111111111111111111111111111111111111111111111111111111111111';
+const String kTestPubHex =
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+UserSigningKeys aSigningKeys({
+  String privkeyHex = kTestPrivHex,
+  String pubkeyHex = kTestPubHex,
+}) =>
+    UserSigningKeys(privkeyHex: privkeyHex, pubkeyHex: pubkeyHex);
+
+/// Compile-time signing keys — for `Right(...)` returns and other const
+/// contexts where a factory call would prevent const promotion.
+const UserSigningKeys kSigningKeys =
+    UserSigningKeys(privkeyHex: kTestPrivHex, pubkeyHex: kTestPubHex);
+
 // ── MediaBlobEntity ──────────────────────────────────────────────────────────
 
 MediaBlobEntity aMediaBlob({
@@ -396,3 +421,28 @@ MediaBlobEntity aVideoBlob() => aMediaBlob(
       filename: 'clip.mp4',
       sizeBytes: 5_000_000,
     );
+
+// ── Blossom wire payload (BlobDescriptor.fromJson input) ─────────────────────
+//
+// A minimal, well-formed BUD-01 blob descriptor as the server returns it. Use
+// `overrides` to drop-in individual malformed / missing fields for negative
+// tests, or pass `explicit: {'uploaded': null}` to inject an explicit null
+// (the two shapes are distinct on the wire and must be tested separately).
+Map<String, dynamic> aBlobDescriptorJson({
+  String? url,
+  String? sha256,
+  Object? size,
+  Object? type = 'image/jpeg',
+  Object? uploaded,
+  Map<String, Object?> explicit = const {},
+}) {
+  final base = <String, dynamic>{
+    'url': url ?? 'https://s/x.jpg',
+    'sha256': sha256 ?? 'sha',
+    'size': size ?? 1,
+    if (type != null) 'type': type,
+    if (uploaded != null) 'uploaded': uploaded,
+  };
+  base.addAll(explicit);
+  return base;
+}
