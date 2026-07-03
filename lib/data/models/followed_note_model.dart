@@ -1,8 +1,14 @@
 import 'package:isar_community/isar.dart';
-import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
 
 part 'followed_note_model.g.dart';
 
+/// A note the local user has subscribed to for graph updates.
+///
+/// The unread badge count is NOT stored here — it is derived at read time
+/// as `NoteRelationModel rows where parentId == eventId` intersected with
+/// live `UnreadNoteModel` rows (`childId ∈ unreadNoteModels.eventId`).
+/// Reading a referencing note deletes its unread row; the badge drops
+/// automatically. Idempotent by construction — no counter to drift.
 @Collection(ignore: {'copyWith'})
 @Name('FollowedNote')
 class FollowedNoteModel {
@@ -13,17 +19,4 @@ class FollowedNoteModel {
 
   late String contentPreview;
   late DateTime followedAt;
-
-  /// Incremented in the gateway isolate when a kind **1** `EVENT` references
-  /// this [eventId] via an **e** tag (deduped across duplicate relay deliveries).
-  late int newReferenceCount;
-}
-
-extension FollowedNoteModelExtension on FollowedNoteModel {
-  FollowedNoteEntity toDomain() => FollowedNoteEntity(
-        eventId: eventId,
-        contentPreview: contentPreview,
-        followedAt: followedAt,
-        newReferenceCount: newReferenceCount,
-      );
 }

@@ -27,6 +27,7 @@ class GanaFormState {
     this.groups = const [],
     this.privateGroups = const [],
     this.dmConversations = const [],
+    this.dmDisplayNames = const {},
     this.followedNotes = const [],
     this.availableModels = const [],
     this.errorMessage,
@@ -70,6 +71,11 @@ class GanaFormState {
   final List<GroupEntity> groups;
   final List<PrivateGroupEntity> privateGroups;
   final List<DmConversationEntity> dmConversations;
+
+  /// pubkeyHex → cached display name (profile.name ?? profile.username).
+  /// Empty entry means the profile isn't in Isar yet; UI falls back to a
+  /// short hex label until the profile arrives and _onLoad re-fires.
+  final Map<String, String> dmDisplayNames;
   final List<FollowedNoteEntity> followedNotes;
   final List<String> availableModels;
 
@@ -216,6 +222,7 @@ class GanaFormState {
     List<GroupEntity>? groups,
     List<PrivateGroupEntity>? privateGroups,
     List<DmConversationEntity>? dmConversations,
+    Map<String, String>? dmDisplayNames,
     List<FollowedNoteEntity>? followedNotes,
     List<String>? availableModels,
     String? errorMessage,
@@ -256,6 +263,7 @@ class GanaFormState {
       groups: groups ?? this.groups,
       privateGroups: privateGroups ?? this.privateGroups,
       dmConversations: dmConversations ?? this.dmConversations,
+      dmDisplayNames: dmDisplayNames ?? this.dmDisplayNames,
       followedNotes: followedNotes ?? this.followedNotes,
       availableModels: availableModels ?? this.availableModels,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),

@@ -18,10 +18,9 @@ import 'package:uniun/features/onboarding/widgets/terms_checkbox.dart';
 /// Shows the generated npub + nsec after profile setup.
 /// Route args: Map{'npub': String, 'nsec': String}
 ///
-/// Step-based reveal:
-///   Step 0 — public key only (must copy to proceed)
-///   Step 1 — private key revealed after pub is copied (must copy to proceed)
-///   Step 2 — Save & Continue enabled after both keys copied
+/// The user can Save & Continue as soon as Terms are accepted. If they haven't
+/// copied the private key yet, a confirmation dialog warns that losing the key
+/// means losing the account forever before proceeding.
 class YourIdentityKeysPage extends StatefulWidget {
   const YourIdentityKeysPage({super.key, this.args});
 
@@ -139,7 +138,7 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
     final args = widget.args ?? {};
     final npub = args['npub'] as String? ?? 'npub1...';
     final nsec = args['nsec'] as String? ?? 'nsec1...';
-    final canContinue = _pubKeyCopied && _privKeyCopied && _termsAccepted;
+    final canContinue = _termsAccepted;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -223,37 +222,6 @@ class _YourIdentityKeysPageState extends State<YourIdentityKeysPage> {
                                   () => _nsecVisible = !_nsecVisible),
                               isCopied: _privKeyCopied,
                               onCopy: () => _copyPriv(nsec),
-                            ),
-
-                            SizedBox(height: midGap + 4),
-
-                            // backup warning
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.errorContainer
-                                    .withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(Icons.key_rounded,
-                                      color: Theme.of(context).colorScheme.error, size: 18),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      l10n.keysPrivateKeyWarning,
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        height: 1.45,
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.onErrorContainer,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
 
                             SizedBox(height: midGap),

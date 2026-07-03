@@ -985,19 +985,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
-    gh.factory<_i942.GanaFormBloc>(
-      () => _i942.GanaFormBloc(
-        gh<_i219.UpsertGanaUseCase>(),
-        gh<_i219.GetGanaByIdUseCase>(),
-        gh<_i219.DeleteGanaUseCase>(),
-        gh<_i977.GetManasListUseCase>(),
-        gh<_i879.GetGroupsUseCase>(),
-        gh<_i1055.GetPrivateGroupsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i894.GetDownloadedModelIdsUseCase>(),
-      ),
-    );
     gh.factory<_i437.ManasListBloc>(
       () => _i437.ManasListBloc(
         gh<_i977.GetManasListUseCase>(),
@@ -1054,18 +1041,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i147.LlmCredentialsRepositoryImpl(
         gh<_i981.LlmCredentialsDataSource>(),
         gh<_i141.RemoteLlmDataSource>(),
-      ),
-    );
-    gh.factory<_i666.DrawerBloc>(
-      () => _i666.DrawerBloc(
-        gh<_i799.GetActiveUserUseCase>(),
-        gh<_i391.GetOwnProfileUseCase>(),
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i879.GetGroupsUseCase>(),
-        gh<_i1055.GetPrivateGroupsUsecase>(),
-        gh<_i63.GetFollowedUsersUseCase>(),
-        gh<_i985.GetRelaysUseCase>(),
-        gh<_i214.Isar>(),
       ),
     );
     gh.lazySingleton<_i918.HasActiveLlmModelUseCase>(
@@ -1131,11 +1106,39 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i475.SearchNotesUseCase>(
       () => _i475.SearchNotesUseCase(gh<_i47.NoteRepository>()),
     );
+    gh.factory<_i666.DrawerBloc>(
+      () => _i666.DrawerBloc(
+        gh<_i799.GetActiveUserUseCase>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i63.GetFollowedUsersUseCase>(),
+        gh<_i985.GetRelaysUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+        gh<_i214.Isar>(),
+      ),
+    );
     gh.factory<_i526.ComposerChatCubit>(
       () => _i526.ComposerChatCubit(
         gh<_i918.SendChatStreamUseCase>(),
         gh<_i651.ManasContextLoader>(),
         gh<_i918.HasActiveLlmModelUseCase>(),
+      ),
+    );
+    gh.factory<_i942.GanaFormBloc>(
+      () => _i942.GanaFormBloc(
+        gh<_i219.UpsertGanaUseCase>(),
+        gh<_i219.GetGanaByIdUseCase>(),
+        gh<_i219.DeleteGanaUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(
