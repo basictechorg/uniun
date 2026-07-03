@@ -7,16 +7,6 @@
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Background Gana execution. The engine isolate stays alive in the
-         foreground; when the app is paused, WorkManager schedules
-         one-shot ticks. FOREGROUND_SERVICE / DATA_SYNC are required by
-         workmanager when running tasks that exceed the 10-min wall budget
-         (e.g. an interval Gana that includes inference). WAKE_LOCK lets
-         the WorkManager runner keep the CPU awake for the brief tick.
-         POST_NOTIFICATIONS is required on Android 13+ for the foreground
-         service notification. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
