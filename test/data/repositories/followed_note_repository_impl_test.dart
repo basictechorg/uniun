@@ -51,7 +51,7 @@ void main() {
     });
 
     test('unicode + emoji + RTL preview persist', () async {
-      final payload = '🚨 ${Content.unicode} ${Content.rtl}';
+      const payload = '🚨 ${Content.unicode} ${Content.rtl}';
       await repo.followNote('ev-u', payload);
       final row = (await isar.followedNoteModels.where().findAll()).single;
       expect(row.contentPreview, payload);

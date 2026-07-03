@@ -4,6 +4,7 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 
+import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
 
 /// The Brahma graph reads counts through this use case so a node's comment
@@ -20,18 +21,13 @@ void main() {
 
   tearDown(() async => isar.close(deleteFromDisk: true));
 
-  NoteRelationModel edge(String parent, String child) => NoteRelationModel()
-    ..parentId = parent
-    ..childId = child
-    ..createdAt = DateTime(2026, 1, 1);
-
   test('counts every referencing note globally, saved or not', () async {
     await isar.writeTxn(() async {
       // A is referenced by B and C (neither needs to be saved).
-      await isar.noteRelationModels.put(edge('A', 'B'));
-      await isar.noteRelationModels.put(edge('A', 'C'));
+      await isar.noteRelationModels.put(relationEdge('A', 'B'));
+      await isar.noteRelationModels.put(relationEdge('A', 'C'));
       // A references one note Z.
-      await isar.noteRelationModels.put(edge('Z', 'A'));
+      await isar.noteRelationModels.put(relationEdge('Z', 'A'));
     });
 
     final result = await usecase.call(['A', 'Z']);

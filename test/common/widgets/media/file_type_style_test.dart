@@ -224,7 +224,7 @@ void main() {
       'md': 'Text',
     };
     for (final entry in typed.entries) {
-      test('${entry.key}', () {
+      test(entry.key, () {
         final s = FileTypeStyle.fromMime('', 'name.${entry.key}');
         expect(s.readableType, entry.value);
         expect(s.label, entry.key.toUpperCase());

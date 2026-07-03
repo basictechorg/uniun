@@ -63,7 +63,7 @@ void main() {
     });
 
     test('unicode/emoji/RTL content persist verbatim', () async {
-      final payload = '🚀 ${Content.unicode} ${Content.rtl}';
+      const payload = '🚀 ${Content.unicode} ${Content.rtl}';
       final r = await repo.saveNote(aNote(id: 'ev-u', content: payload));
       expect(r.isRight(), isTrue);
       expect(

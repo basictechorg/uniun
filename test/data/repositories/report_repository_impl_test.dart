@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/report_type.dart';
@@ -166,7 +165,7 @@ void main() {
 
     test('unicode + emoji + RTL + newlines in content persist verbatim',
         () async {
-      final payload =
+      const payload =
           '🚨 spam ${Content.unicode} ${Content.rtl}\nsecond line\ttab';
       final result = await repo.reportNote(
         targetEventId: targetEventId,

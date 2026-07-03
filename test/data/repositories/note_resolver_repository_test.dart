@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
@@ -11,6 +10,7 @@ import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
 import 'package:uniun/data/repositories/note_resolver_repository_impl.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
+import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
 
 /// Tests for [NoteResolverRepositoryImpl] — the resolver fronting Isar for
@@ -52,44 +52,32 @@ void main() {
           {String content = 'body',
           DateTime? created,
           String? embeddedNoteJson}) =>
-      NoteModel(
-        eventId: id,
-        sig: 's',
-        authorPubkey: 'pub',
+      noteRow(
+        id,
         content: content,
-        type: NoteType.text,
-        eTagRefs: const [],
-        pTagRefs: const [],
-        tTags: const [],
+        authorPubkey: 'pub',
+        sig: 's',
         created: created ?? DateTime(2026, 1, 1),
         embeddedNoteJson: embeddedNoteJson,
       );
 
-  NoteModel groupMessage(String id, String groupId) => NoteModel(
-        eventId: id,
-        sig: 's',
-        authorPubkey: 'pub',
+  NoteModel groupMessage(String id, String groupId) => noteRow(
+        id,
         content: 'msg',
-        type: NoteType.text,
+        authorPubkey: 'pub',
+        sig: 's',
         kind: kGroupMessageKind,
         groupId: groupId,
-        eTagRefs: const [],
-        pTagRefs: const [],
-        tTags: const [],
         created: DateTime(2026, 1, 1),
       );
 
-  NoteModel dmNote(String id, int conversationId) => NoteModel(
-        eventId: id,
-        sig: 's',
-        authorPubkey: 'pub',
+  NoteModel dmNote(String id, int conversationId) => noteRow(
+        id,
         content: 'dm',
-        type: NoteType.text,
+        authorPubkey: 'pub',
+        sig: 's',
         kind: kDmTextKind,
         conversationId: conversationId,
-        eTagRefs: const [],
-        pTagRefs: const [],
-        tTags: const [],
         created: DateTime(2026, 1, 1),
       );
 
@@ -99,14 +87,10 @@ void main() {
     test('returns the feed note with stitched edge-table counts', () async {
       await isar.writeTxn(() async {
         await isar.noteModels.put(feedNote('A'));
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'A'
-          ..childId = 'B'
-          ..createdAt = DateTime(2026, 1, 1));
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'A'
-          ..childId = 'C'
-          ..createdAt = DateTime(2026, 1, 1));
+        await isar.noteRelationModels
+            .put(relationEdge('A', 'B', createdAt: DateTime(2026, 1, 1)));
+        await isar.noteRelationModels
+            .put(relationEdge('A', 'C', createdAt: DateTime(2026, 1, 1)));
       });
       final res = await resolver.resolveById('A');
       final n = res.getOrElse(() => throw 'left');
@@ -171,14 +155,10 @@ void main() {
         // Both children edge into the parent — the resolver reads childIdsOf,
         // so both show up regardless of whether they used NIP-10 reply markers
         // or just an eTagRefs mention.
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'parent'
-          ..childId = 'reply'
-          ..createdAt = DateTime(2026, 1, 1));
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'parent'
-          ..childId = 'mention'
-          ..createdAt = DateTime(2026, 1, 2));
+        await isar.noteRelationModels.put(
+            relationEdge('parent', 'reply', createdAt: DateTime(2026, 1, 1)));
+        await isar.noteRelationModels.put(
+            relationEdge('parent', 'mention', createdAt: DateTime(2026, 1, 2)));
       });
       final replies =
           (await resolver.resolveReplies('parent')).getOrElse(() => []);
@@ -193,14 +173,10 @@ void main() {
             .put(feedNote('late', created: DateTime(2026, 6, 1)));
         await isar.noteModels
             .put(feedNote('early', created: DateTime(2026, 2, 1)));
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'parent'
-          ..childId = 'late'
-          ..createdAt = DateTime(2026, 6, 1));
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'parent'
-          ..childId = 'early'
-          ..createdAt = DateTime(2026, 2, 1));
+        await isar.noteRelationModels.put(
+            relationEdge('parent', 'late', createdAt: DateTime(2026, 6, 1)));
+        await isar.noteRelationModels.put(
+            relationEdge('parent', 'early', createdAt: DateTime(2026, 2, 1)));
       });
       final replies =
           (await resolver.resolveReplies('parent')).getOrElse(() => []);
@@ -223,10 +199,8 @@ void main() {
       await isar.writeTxn(() async {
         await isar.noteModels.put(feedNote('parent'));
         // Edge points to "ghost", but no NoteModel row exists for it.
-        await isar.noteRelationModels.put(NoteRelationModel()
-          ..parentId = 'parent'
-          ..childId = 'ghost'
-          ..createdAt = DateTime(2026, 1, 1));
+        await isar.noteRelationModels.put(
+            relationEdge('parent', 'ghost', createdAt: DateTime(2026, 1, 1)));
       });
       final replies =
           (await resolver.resolveReplies('parent')).getOrElse(() => []);

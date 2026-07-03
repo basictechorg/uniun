@@ -61,7 +61,7 @@ void main() {
           author.public,
         );
     return <String, dynamic>{
-      'id': 'evt-${createdAtSec}-${draftId.hashCode}',
+      'id': 'evt-$createdAtSec-${draftId.hashCode}',
       'pubkey': author.public,
       'created_at': createdAtSec,
       'kind': kDraftWrapKind,

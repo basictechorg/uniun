@@ -7,8 +7,6 @@ import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/data/repositories/share_repository_impl.dart';
-import 'package:uniun/domain/entities/media/media_blob_entity.dart';
-import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
 import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
@@ -100,9 +98,9 @@ void main() {
       when(() => resolver.resolveById(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('not found')));
 
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
 
       expect(r.isLeft(), isTrue);
@@ -115,9 +113,9 @@ void main() {
       when(() => getKeys()).thenAnswer(
           (_) async => const Left(Failure.errorFailure('no keys')));
 
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
 
       expect(r.isLeft(), isTrue);
@@ -128,9 +126,9 @@ void main() {
       when(() => resolver.resolveById(any()))
           .thenAnswer((_) async => throw StateError('boom'));
 
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
 
       expect(r.isLeft(), isTrue);
@@ -142,11 +140,11 @@ void main() {
   group('ShareToFeed', () {
     test('publishes a media note carrying the embed + refs + hashtags',
         () async {
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
         content: 'love this #nostr and #uniun',
-        referenceIds: const ['ref-1', 'ref-2'],
+        referenceIds: ['ref-1', 'ref-2'],
       ));
 
       expect(r.isRight(), isTrue);
@@ -201,9 +199,9 @@ void main() {
     });
 
     test('hashtag extraction: dedup + empty-tag filter', () async {
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
         content: '#tag #tag #other # #_underscore #123',
       ));
       final captured =
@@ -216,10 +214,10 @@ void main() {
     });
 
     test('unicode + emoji + RTL content survives to publisher', () async {
-      final payload = '🚀 ${Content.unicode} ${Content.rtl}';
-      await repo.shareNote(ShareNoteInput(
+      const payload = '🚀 ${Content.unicode} ${Content.rtl}';
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
         content: payload,
       ));
       final captured =
@@ -229,9 +227,9 @@ void main() {
     });
 
     test('content trim: leading + trailing whitespace stripped', () async {
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
         content: '   hello   \n',
       ));
       final captured =
@@ -243,9 +241,9 @@ void main() {
     test('publishFeed Left → repo Left', () async {
       when(() => publishFeed(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('relay boom')));
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
       expect(r.isLeft(), isTrue);
     });
@@ -255,11 +253,11 @@ void main() {
 
   group('ShareToPublicGroup', () {
     test('delegates to CreateGroupMessageUseCase with embed + refs', () async {
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.publicGroup(groupId: 'g-1'),
+        destination: ShareDestination.publicGroup(groupId: 'g-1'),
         content: 'to the group',
-        referenceIds: const ['r-1'],
+        referenceIds: ['r-1'],
       ));
       expect(r.isRight(), isTrue);
       final captured =
@@ -288,9 +286,9 @@ void main() {
     test('publishGroup Left → repo Left', () async {
       when(() => publishGroup(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('group down')));
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.publicGroup(groupId: 'g-1'),
+        destination: ShareDestination.publicGroup(groupId: 'g-1'),
       ));
       expect(r.isLeft(), isTrue);
     });
@@ -300,11 +298,11 @@ void main() {
 
   group('ShareToPrivateGroup', () {
     test('delegates via .execute(...) with embed + refs + keys', () async {
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.privateGroup(groupId: 'pg-1'),
+        destination: ShareDestination.privateGroup(groupId: 'pg-1'),
         content: 'hush',
-        referenceIds: const ['pr-1'],
+        referenceIds: ['pr-1'],
       ));
       expect(r.isRight(), isTrue);
 
@@ -333,9 +331,9 @@ void main() {
             embeddedNoteJson: any(named: 'embeddedNoteJson'),
             attachments: any(named: 'attachments'),
           )).thenAnswer((_) async {});
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.privateGroup(groupId: 'pg'),
+        destination: ShareDestination.privateGroup(groupId: 'pg'),
       ));
       expect(r.isRight(), isTrue);
     });
@@ -350,9 +348,9 @@ void main() {
             embeddedNoteJson: any(named: 'embeddedNoteJson'),
             attachments: any(named: 'attachments'),
           )).thenAnswer((_) async => throw StateError('mls boom'));
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.privateGroup(groupId: 'pg'),
+        destination: ShareDestination.privateGroup(groupId: 'pg'),
       ));
       expect(r.isLeft(), isTrue);
     });
@@ -383,9 +381,9 @@ void main() {
     });
 
     test('text-only DM stays NoteType.text', () async {
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.dm(otherPubkeyHex: 'peer'),
+        destination: ShareDestination.dm(otherPubkeyHex: 'peer'),
       ));
       final captured =
           verify(() => publishDm(captureAny())).captured.single as SendDmParams;
@@ -395,9 +393,9 @@ void main() {
     test('publishDm Left → repo Left', () async {
       when(() => publishDm(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('dm boom')));
-      final r = await repo.shareNote(ShareNoteInput(
+      final r = await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.dm(otherPubkeyHex: 'peer'),
+        destination: ShareDestination.dm(otherPubkeyHex: 'peer'),
       ));
       expect(r.isLeft(), isTrue);
     });
@@ -414,9 +412,9 @@ void main() {
       when(() => resolver.resolveById(any()))
           .thenAnswer((_) async => Right(middle));
 
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: 'middle',
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
 
       final captured =
@@ -435,9 +433,9 @@ void main() {
       when(() => resolver.resolveById(any()))
           .thenAnswer((_) async => Right(plain));
 
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: 'plain',
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
 
       final captured =
@@ -453,9 +451,9 @@ void main() {
 
   group('EmbeddedNoteCodec integration', () {
     test('snapshot JSON captures all 7 canonical event fields', () async {
-      await repo.shareNote(ShareNoteInput(
+      await repo.shareNote(const ShareNoteInput(
         sourceEventId: sourceId,
-        destination: const ShareDestination.feed(),
+        destination: ShareDestination.feed(),
       ));
       final captured =
           verify(() => publishFeed(captureAny())).captured.single
