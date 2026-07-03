@@ -672,6 +672,11 @@ at is the *mobile adaptation* in (1)–(3) above.
 
 ## 12. Future work
 
+- **Agent-round scheduling.** Agentic Ganas / Shiv "deep answer" mode
+  ([`agent_skills.md`](agent_skills.md) §9) submit each agent-loop
+  round as one scheduler job — T4 for Gana rounds, T0 for Shiv —
+  so chat preempts between rounds and vruntime bills per round. The
+  design is specified there; the scheduler itself needs no change.
 - **Dynamic embedding concurrency.** Read `system_info_plus`; raise
   `EmbeddingQueue` semaphore from 2 to 3 on flagships.
 - **Per-task time slice (Linux CFS-style `sched_slice`).** Currently a

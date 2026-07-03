@@ -519,10 +519,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: "4178418fa3074d1207538c858fb4cd601694ebde4b99653a66ca36d4ca4cf8bc"
+      sha256: "211656c2dce34fc8f9a3f414a5ea556ed2357b5908602e8c6220b176cdd4140b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.2.0"
   flutter_gemma_embeddings:
     dependency: "direct main"
     description:
@@ -543,10 +543,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma_mediapipe
-      sha256: "013dcd69f9d25d090712f385af8e1f8bf24c991388f127a5b44ab9aacfbd8df5"
+      sha256: "2ceceda0f41495fa50065c32737fcda65a435ba786e6a7f1b863539948a8eedc"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.0.3"
   flutter_image_compress:
     dependency: "direct main"
     description:
