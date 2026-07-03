@@ -28,11 +28,6 @@ const FollowedNoteModelSchema = CollectionSchema(
       name: r'followedAt',
       type: IsarType.dateTime,
     ),
-    r'newReferenceCount': PropertySchema(
-      id: 3,
-      name: r'newReferenceCount',
-      type: IsarType.long,
-    ),
   },
 
   estimateSize: _followedNoteModelEstimateSize,
@@ -84,7 +79,6 @@ void _followedNoteModelSerialize(
   writer.writeString(offsets[0], object.contentPreview);
   writer.writeString(offsets[1], object.eventId);
   writer.writeDateTime(offsets[2], object.followedAt);
-  writer.writeLong(offsets[3], object.newReferenceCount);
 }
 
 FollowedNoteModel _followedNoteModelDeserialize(
@@ -98,7 +92,6 @@ FollowedNoteModel _followedNoteModelDeserialize(
   object.eventId = reader.readString(offsets[1]);
   object.followedAt = reader.readDateTime(offsets[2]);
   object.id = id;
-  object.newReferenceCount = reader.readLong(offsets[3]);
   return object;
 }
 
@@ -115,8 +108,6 @@ P _followedNoteModelDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 2:
       return (reader.readDateTime(offset)) as P;
-    case 3:
-      return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -721,61 +712,6 @@ extension FollowedNoteModelQueryFilter
       );
     });
   }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterFilterCondition>
-  newReferenceCountEqualTo(int value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'newReferenceCount', value: value),
-      );
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterFilterCondition>
-  newReferenceCountGreaterThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'newReferenceCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterFilterCondition>
-  newReferenceCountLessThan(int value, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'newReferenceCount',
-          value: value,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterFilterCondition>
-  newReferenceCountBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'newReferenceCount',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
-    });
-  }
 }
 
 extension FollowedNoteModelQueryObject
@@ -825,20 +761,6 @@ extension FollowedNoteModelQuerySortBy
   sortByFollowedAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'followedAt', Sort.desc);
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterSortBy>
-  sortByNewReferenceCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'newReferenceCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterSortBy>
-  sortByNewReferenceCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'newReferenceCount', Sort.desc);
     });
   }
 }
@@ -899,20 +821,6 @@ extension FollowedNoteModelQuerySortThenBy
       return query.addSortBy(r'id', Sort.desc);
     });
   }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterSortBy>
-  thenByNewReferenceCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'newReferenceCount', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QAfterSortBy>
-  thenByNewReferenceCountDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'newReferenceCount', Sort.desc);
-    });
-  }
 }
 
 extension FollowedNoteModelQueryWhereDistinct
@@ -938,13 +846,6 @@ extension FollowedNoteModelQueryWhereDistinct
   distinctByFollowedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'followedAt');
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, FollowedNoteModel, QDistinct>
-  distinctByNewReferenceCount() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'newReferenceCount');
     });
   }
 }
@@ -974,13 +875,6 @@ extension FollowedNoteModelQueryProperty
   followedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'followedAt');
-    });
-  }
-
-  QueryBuilder<FollowedNoteModel, int, QQueryOperations>
-  newReferenceCountProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'newReferenceCount');
     });
   }
 }

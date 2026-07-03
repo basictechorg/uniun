@@ -154,13 +154,15 @@ class _InterestsPageState extends State<InterestsPage> {
     final n = _selected.length;
     final canContinue = n >= _minSelection && !_saving;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            OnboardingAppBar(onBack: () => Navigator.pop(context)),
+            const OnboardingAppBar(),
 
             // ── header ──────────────────────────────────────────────────────
             Padding(
@@ -289,6 +291,7 @@ class _InterestsPageState extends State<InterestsPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -56,5 +56,4 @@ FollowedUserModel followedUserSeed(String pubkeyHex) => FollowedUserModel()
 FollowedNoteModel followedNoteSeed(String eventId) => FollowedNoteModel()
   ..eventId = eventId
   ..contentPreview = 'preview'
-  ..followedAt = DateTime(2026, 1, 1)
-  ..newReferenceCount = 0;
+  ..followedAt = DateTime(2026, 1, 1);

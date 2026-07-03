@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:injectable/injectable.dart';
+import 'dart:async';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
@@ -19,6 +20,7 @@ import 'package:uniun/domain/usecases/gana_usecases.dart';
 import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
 import 'package:uniun/domain/usecases/private_group_usecases.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uuid/uuid.dart';
 
 part 'gana_form_event.dart';
@@ -35,6 +37,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
   final GetDmConversationsUseCase _getDms;
   final GetAllFollowedNotesUseCase _getFollowed;
   final GetDownloadedModelIdsUseCase _getModels;
+  final GetProfileUseCase _getProfile;
+  final RequestProfileFetchUseCase _requestProfileFetch;
 
   GanaFormBloc(
     this._upsert,
@@ -46,6 +50,8 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     this._getDms,
     this._getFollowed,
     this._getModels,
+    this._getProfile,
+    this._requestProfileFetch,
   ) : super(const GanaFormState()) {
     on<GanaFormLoadEvent>(_onLoad);
     on<GanaFormNameChangedEvent>((e, em) =>
@@ -114,6 +120,26 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         .fold<List<FollowedNoteEntity>>((_) => const [], (l) => l);
     final models = await modelsFuture;
 
+    // Resolve peer display names for the DM picker so it shows the same
+    // username the User Profile page shows. Missing profiles are nudged
+    // for a Kind-0 fetch; the form is one-shot (no live watch) so users
+    // may need to reopen the form after the profile lands.
+    final dmDisplayNames = <String, String>{};
+    for (final d in dms) {
+      final result = await _getProfile.call(d.otherPubkey);
+      final name = result.fold<String?>(
+        (_) => null,
+        (p) => (p.name?.trim().isNotEmpty == true)
+            ? p.name
+            : (p.username?.trim().isNotEmpty == true ? p.username : null),
+      );
+      if (name != null) {
+        dmDisplayNames[d.otherPubkey] = name;
+      } else {
+        unawaited(_requestProfileFetch.call(d.otherPubkey));
+      }
+    }
+
     if (event.ganaId == null) {
       emit(state.copyWith(
         status: GanaFormStatus.ready,
@@ -124,6 +150,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         groups: groups,
         privateGroups: privateGroups,
         dmConversations: dms,
+        dmDisplayNames: dmDisplayNames,
         followedNotes: followed,
         availableModels: models.map((m) => m.name).toList(),
       ));
@@ -164,6 +191,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       groups: groups,
       privateGroups: privateGroups,
       dmConversations: dms,
+      dmDisplayNames: dmDisplayNames,
       followedNotes: followed,
       availableModels: models.map((m) => m.name).toList(),
     ));

@@ -399,7 +399,8 @@ class _InputRefPicker extends StatelessWidget {
         return _SelectorTile(
           icon: Icons.alternate_email_rounded,
           title: l10n.ganaFormInputDm,
-          subtitle: _dmName(state.dmConversations, state.inputRefId) ??
+          subtitle: _dmName(state.dmConversations, state.dmDisplayNames,
+                  state.inputRefId) ??
               l10n.ganaFormInputPickHint,
           empty: state.inputRefId == null,
           onTap: () => _openSheet<String>(
@@ -410,7 +411,8 @@ class _InputRefPicker extends StatelessWidget {
               for (final d in state.dmConversations)
                 _PickOption(
                   value: d.id.toString(),
-                  label: _shortKey(d.otherPubkey),
+                  label: state.dmDisplayNames[d.otherPubkey] ??
+                      _shortKey(d.otherPubkey),
                 ),
             ],
             onPicked: (v) => context
@@ -536,6 +538,7 @@ class _OutputRefPicker extends StatelessWidget {
           title: l10n.ganaFormOutputDm,
           subtitle: _dmName(
                 state.dmConversations,
+                state.dmDisplayNames,
                 state.outputDmConversationId?.toString(),
               ) ??
               l10n.ganaFormOutputPickHint,
@@ -546,7 +549,11 @@ class _OutputRefPicker extends StatelessWidget {
             current: state.outputDmConversationId,
             options: [
               for (final d in state.dmConversations)
-                _PickOption(value: d.id, label: _shortKey(d.otherPubkey)),
+                _PickOption(
+                  value: d.id,
+                  label: state.dmDisplayNames[d.otherPubkey] ??
+                      _shortKey(d.otherPubkey),
+                ),
             ],
             onPicked: (v) => context
                 .read<GanaFormBloc>()

@@ -5,8 +5,12 @@ import 'package:uniun/common/atoms/uniun_back_button.dart';
 /// UNIUN logo/wordmark header was removed; back navigation is preserved and the
 /// freed space lets the onboarding content sit higher.
 class OnboardingAppBar extends StatelessWidget {
-  const OnboardingAppBar({super.key, required this.onBack});
-  final VoidCallback onBack;
+  const OnboardingAppBar({super.key, this.onBack});
+
+  /// When null, no back button is rendered (used on terminal onboarding steps
+  /// like the interests picker, where the previous route has already been
+  /// replaced via `goNamed` and there's nothing meaningful to pop to).
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +18,9 @@ class OnboardingAppBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: UniunBackButton(onPressed: onBack),
+        child: onBack == null
+            ? const SizedBox(height: kToolbarHeight - 12)
+            : UniunBackButton(onPressed: onBack!),
       ),
     );
   }

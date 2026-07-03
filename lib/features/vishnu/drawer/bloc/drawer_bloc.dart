@@ -30,6 +30,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetFollowedUsersUseCase _getFollowedUsers;
   final GetRelaysUseCase _getRelays;
+  final RequestProfileFetchUseCase _requestProfileFetch;
   final Isar _isar;
   StreamSubscription<void>? _dmWatcher;
   StreamSubscription<void>? _groupWatcher;
@@ -37,6 +38,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   StreamSubscription<void>? _followedUsersWatcher;
   StreamSubscription<void>? _followedNotesWatcher;
   StreamSubscription<void>? _unreadWatcher;
+  StreamSubscription<void>? _profileWatcher;
 
   DrawerBloc(
     this._getActiveUser,
@@ -46,6 +48,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     this._getPrivateGroups,
     this._getFollowedUsers,
     this._getRelays,
+    this._requestProfileFetch,
     this._isar,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
@@ -62,12 +65,19 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       if (!isClosed) add(DrawerLoadEvent());
     });
     // Reactive "Following" section: follow/unfollow from a NoteCard writes to
-    // followedNoteModels, and the gateway bumps newReferenceCount here.
+    // followedNoteModels — refresh so the list of rows is up to date.
     _followedNotesWatcher = _isar.followedNoteModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
-    // Unread badges: gateway inserts/marks delete unread rows.
+    // Unread badges (and derived followed-note ref count): kind-1/42/... inbound
+    // handlers insert unread rows, opening a thread deletes them, and
+    // clearNewReferences bulk-deletes the child rows of a followed root.
     _unreadWatcher = _isar.unreadNoteModels.watchLazy().listen((_) {
+      if (!isClosed) add(DrawerLoadEvent());
+    });
+    // Kind 0 arriving late: reload so DM/followed-user rows swap the hex
+    // fallback for the real display name once the profile lands in Isar.
+    _profileWatcher = _isar.profileModels.watchLazy().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
   }
@@ -144,6 +154,12 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       final dms = <DrawerDmItem>[];
       for (final conv in dmConversations) {
         final profile = await _isar.profileModels.where().pubkeyEqualTo(conv.otherPubkey).findFirst();
+        if (profile == null) {
+          // Nudge the gateway to fetch Kind 0 for this peer. The profile
+          // watcher above will reload the drawer once it lands so the row
+          // swaps hex for the real display name.
+          unawaited(_requestProfileFetch.call(conv.otherPubkey));
+        }
         dms.add(DrawerDmItem(
           pubkey: conv.otherPubkey,
           name: profile?.name ?? profile?.username ?? conv.otherPubkey,
@@ -180,6 +196,9 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
             .where()
             .pubkeyEqualTo(f.pubkeyHex)
             .findFirst();
+        if (profile == null) {
+          unawaited(_requestProfileFetch.call(f.pubkeyHex));
+        }
         final shortKey = f.pubkeyHex.length > 12
             ? '${f.pubkeyHex.substring(0, 12)}…'
             : f.pubkeyHex;
@@ -221,6 +240,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     _followedUsersWatcher?.cancel();
     _followedNotesWatcher?.cancel();
     _unreadWatcher?.cancel();
+    _profileWatcher?.cancel();
     return super.close();
   }
 }

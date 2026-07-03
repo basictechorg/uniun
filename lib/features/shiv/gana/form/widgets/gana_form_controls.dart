@@ -315,12 +315,15 @@ String? _privateGroupName(
   return id;
 }
 
-String? _dmName(List<DmConversationEntity> all, String? id) {
+String? _dmName(List<DmConversationEntity> all,
+    Map<String, String> displayNames, String? id) {
   if (id == null) return null;
   final parsed = int.tryParse(id);
   if (parsed == null) return null;
   for (final d in all) {
-    if (d.id == parsed) return _shortKey(d.otherPubkey);
+    if (d.id == parsed) {
+      return displayNames[d.otherPubkey] ?? _shortKey(d.otherPubkey);
+    }
   }
   return null;
 }

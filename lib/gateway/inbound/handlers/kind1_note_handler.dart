@@ -2,7 +2,6 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
-import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -13,9 +12,10 @@ import 'package:uniun/gateway/inbound/kind_handler.dart';
 /// Kind 1 — short text note.
 ///
 /// Persists to [NoteModel] (idempotent), records reference edges in
-/// [NoteRelationModel] for the direct parent + non-root mention refs, inserts an
-/// unread row for non-own notes, and bumps
-/// [FollowedNoteModel.newReferenceCount] for any followed root referenced.
+/// [NoteRelationModel] for the direct parent + non-root mention refs, and
+/// inserts an unread row for non-own notes. The followed-note "new refs"
+/// badge is derived at read-time by `FollowedNoteRepository` from the
+/// relation edges — this handler does not touch `FollowedNoteModel`.
 class Kind1NoteHandler implements KindHandler {
   Kind1NoteHandler({required this.activePubkey});
 
@@ -65,43 +65,6 @@ class Kind1NoteHandler implements KindHandler {
     } catch (_) {
       return;
     }
-
-    await _bumpFollowedReferenceCountsIfNeeded(event, isar);
-  }
-
-  Future<void> _bumpFollowedReferenceCountsIfNeeded(
-    Map<String, dynamic> event,
-    Isar isar,
-  ) async {
-    final incomingId = event['id'] as String?;
-    if (incomingId == null || incomingId.isEmpty) return;
-
-    final eRefs = EventParser.eTagIds(event);
-    if (eRefs.isEmpty) return;
-
-    final followed = await isar.followedNoteModels.where().findAll();
-    if (followed.isEmpty) return;
-
-    final followedRoots = followed.map((f) => f.eventId).toSet();
-    final refsToIncrement = <String>{};
-    for (final ref in eRefs) {
-      if (!followedRoots.contains(ref)) continue;
-      if (ref == incomingId) continue;
-      refsToIncrement.add(ref);
-    }
-    if (refsToIncrement.isEmpty) return;
-
-    await isar.writeTxn(() async {
-      for (final ref in refsToIncrement) {
-        final fresh = await isar.followedNoteModels
-            .where()
-            .eventIdEqualTo(ref)
-            .findFirst();
-        if (fresh == null) continue;
-        fresh.newReferenceCount = fresh.newReferenceCount + 1;
-        await isar.followedNoteModels.put(fresh);
-      }
-    });
   }
 
   NoteModel _parseNoteModel(Map<String, dynamic> event) {

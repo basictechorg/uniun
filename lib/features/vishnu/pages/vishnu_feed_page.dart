@@ -337,6 +337,10 @@ class _FeedHeader extends StatelessWidget {
                   'assets/images/tabs/vishnu.svg',
                   height: 32,
                   width: 32,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.onSurfaceVariant,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ],
             ),
