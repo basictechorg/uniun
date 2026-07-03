@@ -80,7 +80,10 @@ void main() {
       expect(call.eventId, entity.eventId);
       // pubkey is derived from the privkey by nostr.Event.from — 32-byte hex.
       expect(call.authorPubkey, matches(r'^[0-9a-f]{64}$'));
-      expect(call.sig, matches(r'^[0-9a-f]{128}$'));
+      // nostr's Event.from hex-encodes the Schnorr sig via BigInt, which
+      // drops leading zero bytes — so the sig can be shorter than the full
+      // 128 chars (~1-in-128 signatures). Assert hex shape, not exact length.
+      expect(call.sig, matches(r'^[0-9a-f]{120,128}$'));
     });
 
     test('created timestamp truncates to whole seconds', () async {
