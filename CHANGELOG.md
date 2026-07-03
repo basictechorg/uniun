@@ -12,6 +12,33 @@ See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure.
 
 ---
 
+## [2.1.0] — 2026-07-03
+
+A follow-up release focused on **theming**, **reliability of the followed-notes badge**, and a
+significant expansion of the test suite.
+
+### Added
+- **Dark mode.** Full dark theme across every screen and component, with a new theme system built
+  on `AppCustomColors` and a `ThemeCubit`. A **theme-mode setting** (System / Light / Dark) is
+  available in Settings and persists across launches via `AppSettingsStore`. All shared widgets —
+  note cards, composer, floating nav, QR views, thread views, drop indicators, media views, etc. —
+  were updated to use theme-aware colors instead of hard-coded values.
+- **Broader test coverage.** New tests for the theme system (`AppThemeMode`, `ThemeCubit`, theme-mode
+  persistence, Settings theme row), the media pipeline (`BlossomClient`, `MediaCacheDataSource`,
+  `MediaRepositoryImpl`, media use cases, gallery/detail cubits, media tile & settings row, and an
+  end-to-end media pipeline integration test), and additional common-layer tests.
+
+### Changed
+- **Followed-notes badge is now derived from unread rows.** The unread-reference indicator on
+  followed notes is computed directly from the unread rows rather than a cached counter, so the
+  badge stays consistent with what the user actually sees.
+
+### Fixed
+- CI pipeline fix.
+- Blossom media-upload failure path hardened, with matching backend `DEPLOY.md` guidance.
+
+---
+
 ## [2.0.0] — 2026-06-30
 
 A major release: the public **Channels** feature is now **Groups**, the app gets a visual
