@@ -33,6 +33,18 @@ const String kCarolPub = 'carol-pub';
 const String kEvePub = 'eve-pub';
 
 String pubkeyN(int n) => 'pubkey-$n';
+
+// ── 64-char hex constants ────────────────────────────────────────────────────
+//
+// Nostr event ids and pubkeys must be exactly 64 hex chars — some code paths
+// (e.g. `nostr.Event.from`, NIP-56 tag validators) reject shorter strings.
+// Use these when the code under test cares about hex shape; use the short
+// [kAlicePub] / [kBobPub] labels when the value is just an opaque identifier.
+
+const String kSampleEventIdHex =
+    '1111111111111111111111111111111111111111111111111111111111111111';
+const String kSampleTargetPubkeyHex =
+    '2222222222222222222222222222222222222222222222222222222222222222';
 String eventIdN(int n) => 'evt-$n';
 
 // ── NoteEntity ───────────────────────────────────────────────────────────────
