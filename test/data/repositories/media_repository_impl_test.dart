@@ -11,7 +11,6 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/blossom_client.dart';
 import 'package:uniun/data/datasources/media_cache_data_source.dart';
 import 'package:uniun/data/models/media/media_cache_model.dart';
-import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/repositories/media_repository_impl.dart';
 import 'package:uniun/domain/entities/media/media_filter.dart';
@@ -19,6 +18,7 @@ import 'package:uniun/domain/repositories/user_server_list_repository.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
 import '../../_helpers/fixtures.dart';
+import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
 
 class _MBlossom extends Mock implements BlossomClient {}
@@ -516,28 +516,22 @@ void main() {
           ..localPath = '/tmp/sha.jpg'
           ..downloadedAt = DateTime(2026, 1, 1));
 
-        final att = MediaAttachment()
-          ..sha256 = 'sha'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 42
-          ..url = 'https://s/sha.jpg'
-          ..width = 200
-          ..height = 100
-          ..blurhash = 'HASH'
-          ..filename = 'photo.jpg';
-        final note = NoteModel(
-          eventId: 'ev1',
-          sig: 'sig',
+        final att = mediaAttachmentRow(
+          sha256: 'sha',
+          sizeBytes: 42,
+          url: 'https://s/sha.jpg',
+          width: 200,
+          height: 100,
+          blurhash: 'HASH',
+          filename: 'photo.jpg',
+        );
+        await isar.noteModels.put(noteRow(
+          'ev1',
           authorPubkey: 'pk',
-          content: 'x',
           type: NoteType.image,
-          eTagRefs: const [],
-          pTagRefs: const [],
-          tTags: const [],
           created: DateTime(2026, 1, 1),
           attachments: [att],
-        );
-        await isar.noteModels.put(note);
+        ));
       });
 
       final res = await repo.getCachedBySha('sha');

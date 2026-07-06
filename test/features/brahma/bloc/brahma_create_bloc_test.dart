@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
@@ -475,8 +474,8 @@ class _PublishMedia implements PublishMediaNoteUseCase {
 
 class _UploadMedia implements UploadMediaUseCase {
   final List<UploadMediaInput> calls = [];
-  Either<Failure, MediaBlobEntity> result = Right(
-    const MediaBlobEntity(sha256: 'sha', mime: 'image/jpeg', sizeBytes: 0),
+  Either<Failure, MediaBlobEntity> result = const Right(
+    MediaBlobEntity(sha256: 'sha', mime: 'image/jpeg', sizeBytes: 0),
   );
   @override
   Future<Either<Failure, MediaBlobEntity>> call(UploadMediaInput input, {bool cached = false}) async {

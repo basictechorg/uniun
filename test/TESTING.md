@@ -92,6 +92,53 @@ If a test needs a shape no existing factory builds:
 
 ---
 
+## 2b. Shared helpers beyond fixtures — `test/_helpers/`
+
+Fixtures are for freezed **domain entities**. Everything else that would
+otherwise be duplicated across two or more test files lives in one of
+these siblings. **Never** hand-roll an Isar model row, an event-queue
+recorder, or a repository stub in a new test — use the shared helper
+below, or add one if the shape is missing.
+
+| Helper file | Exposes | Use for |
+|---|---|---|
+| `isar_test_harness.dart` | `openTestIsar()`, `groupSeed`, `privateGroupSeed`, `followedUserSeed`, `followedNoteSeed` | Opening an isolated on-disk Isar in `setUp` + one-liner seed rows for those specific collections. |
+| `isar_seeds.dart` | `seedNoteRow`, `seedUnreadRow`, `seedRelationEdge`, `seedReport` | Direct writes into `Note`, `UnreadNote`, `NoteRelation`, `Report` collections. Each helper wraps its own `writeTxn`, safe to call ad-hoc from any test using `openTestIsar()`. |
+| `recording_event_queue.dart` | `RecordingEventQueue`, `EnqueueCall` | Any repo that publishes through `EventQueueRepository.enqueueSignedEvent`. Configure `leftOnEnqueue` / `throwOnEnqueue` to simulate failure. Inspect `.calls` to assert wire shape. |
+| `fake_note_relations.dart` | `FakeNoteRelations` | Any repo that reads from `NoteRelationRepository`. Seed `.children[parentId]` / `.parents[childId]` before the test runs. |
+| `stub_user_repository.dart` | `StubUserRepository` | Any repo that calls `UserRepository.getActiveKeysHex()`. Set `.keys = null` to simulate a logged-out identity. |
+
+### Constants in `fixtures.dart`
+
+```dart
+kTestPrivHex, kTestPubHex, kSigningKeys, aSigningKeys(...)  // signing keys
+kSampleEventIdHex          // 64-char hex event id (for NIP-56 / nostr code paths)
+kSampleTargetPubkeyHex     // 64-char hex pubkey (same, for target-user args)
+```
+
+Use `kSampleEventIdHex` / `kSampleTargetPubkeyHex` when the code under
+test validates hex shape (schnorr sig, NIP-56 tag verify, etc). Use the
+short `kAlicePub` / `kBobPub` when the value is just an opaque identifier.
+
+### Adding a new shared helper
+
+Rule of thumb: **the moment a test double is copy-pasted into a second
+file, promote it.**
+
+1. Give it a distinctive name (`RecordingEventQueue`, not `_MockQueue`)
+   and move it to `test/_helpers/<snake_case>.dart`.
+2. Prefer `Recording*` for capture-and-inspect doubles, `Fake*` for
+   deterministic in-memory implementations, `Stub*` for
+   fixed-return-value doubles. Reserve `Mock*` for mocktail.
+3. Keep it self-contained — a shared helper must not depend on
+   test-file-local setup. Any collaborator it needs goes through named
+   fields with defaults.
+4. Everything under `test/_helpers/` is excluded from the CI
+   shard-coverage grep, so no CI update is needed when adding files
+   here.
+
+---
+
 ## 3. File layout — edges fold into the original
 
 There is **one** test file per source file (or per cohesive cohort like

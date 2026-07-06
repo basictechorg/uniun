@@ -1,11 +1,9 @@
-import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/domain/entities/draft/draft_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
@@ -20,6 +18,7 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/features/brahma/graph/bloc/graph_bloc.dart';
 import 'package:uniun/features/brahma/graph/models/graph_node_type.dart';
 
+import '../../../_helpers/isar_seeds.dart';
 import '../../../_helpers/isar_test_harness.dart';
 
 /// Full BLoC tests for [GraphBloc] — the load orchestrator behind the
@@ -425,11 +424,7 @@ void main() {
 
       // Insert a tombstone row directly into Isar. The bloc's
       // `watchLazy` subscription should fire `LoadGraphEvent`.
-      await isar.writeTxn(() async {
-        await isar.deletedNoteModels.put(DeletedNoteModel()
-          ..eventId = 'A'
-          ..deletedAt = DateTime.now());
-      });
+      await seedDeletedNote(isar, 'A', deletedAt: DateTime.now());
       await waitFor(
         bloc,
         (s) => s.status == GraphStatus.loaded && s.nodes.isEmpty,

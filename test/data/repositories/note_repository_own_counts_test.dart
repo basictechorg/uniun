@@ -9,6 +9,7 @@ import 'package:uniun/data/repositories/note_repository_impl.dart';
 import 'package:uniun/data/repositories/note_resolver_repository_impl.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 
+import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
 
 /// getOwnNotes feeds the Brahma graph (own nodes). Its entities must carry the
@@ -36,23 +37,6 @@ void main() {
     await isar.close(deleteFromDisk: true);
   });
 
-  NoteModel ownNote(String id) => NoteModel(
-        eventId: id,
-        sig: 'sig',
-        authorPubkey: 'mypub',
-        content: 'hello',
-        type: NoteType.text,
-        eTagRefs: const [],
-        pTagRefs: const [],
-        tTags: const [],
-        created: DateTime(2026, 1, 1),
-      );
-
-  NoteRelationModel edge(String parent, String child) => NoteRelationModel()
-    ..parentId = parent
-    ..childId = child
-    ..createdAt = DateTime(2026, 1, 1);
-
   NoteEntity ownEntity(String id, {List<String> eTagRefs = const []}) =>
       NoteEntity(
         id: id,
@@ -69,12 +53,15 @@ void main() {
   test('getOwnNotes stitches reference (outgoing) + comment (incoming) counts',
       () async {
     await isar.writeTxn(() async {
-      await isar.noteModels.put(ownNote('A'));
+      await isar.noteModels.put(noteRow('A',
+          authorPubkey: 'mypub',
+          content: 'hello',
+          created: DateTime(2026, 1, 1)));
       // A is referenced by two other notes → 2 incoming = comment count.
-      await isar.noteRelationModels.put(edge('A', 'B'));
-      await isar.noteRelationModels.put(edge('A', 'C'));
+      await isar.noteRelationModels.put(relationEdge('A', 'B'));
+      await isar.noteRelationModels.put(relationEdge('A', 'C'));
       // A references one note → 1 outgoing = reference count.
-      await isar.noteRelationModels.put(edge('Z', 'A'));
+      await isar.noteRelationModels.put(relationEdge('Z', 'A'));
     });
 
     final result = await repo.getOwnNotes('mypub');

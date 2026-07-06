@@ -41,7 +41,7 @@ void main() {
 
     test('collapses internal whitespace runs so multi-line notes stay 1-line',
         () {
-      final messy = 'line one\n\n   line   two\t\twith spacing';
+      const messy = 'line one\n\n   line   two\t\twith spacing';
       final prompt = NatarajPromptBuilder.build(notes: [note('a', messy)]);
       // The renderer must NOT leak literal newlines from the raw note into
       // the bulleted prompt — that breaks the "- " bullet boundary.

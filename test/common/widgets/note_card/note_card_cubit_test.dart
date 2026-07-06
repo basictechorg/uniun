@@ -114,7 +114,7 @@ void main() {
         .thenAnswer((_) => const Stream<bool>.empty());
     when(() => isSaved.call(any())).thenAnswer((_) async => const Right(false));
     when(() => getActive.call()).thenAnswer(
-      (_) async => Left(Failure.errorFailure('no user')),
+      (_) async => const Left(Failure.errorFailure('no user')),
     );
     when(() => embed.call(any())).thenAnswer((_) async => const Right(unit));
   });
@@ -240,7 +240,7 @@ void main() {
       'save failure: optimistic flip reverts to false',
       build: () {
         when(() => save.call(any())).thenAnswer(
-          (_) async => Left(Failure.errorFailure('write failed')),
+          (_) async => const Left(Failure.errorFailure('write failed')),
         );
         return build();
       },
@@ -279,7 +279,7 @@ void main() {
         when(() => isSaved.call(any()))
             .thenAnswer((_) async => const Right(true));
         when(() => unsave.call(any())).thenAnswer(
-          (_) async => Left(Failure.errorFailure('write failed')),
+          (_) async => const Left(Failure.errorFailure('write failed')),
         );
         return build();
       },
@@ -331,7 +331,7 @@ void main() {
 
     test('save failure: returns false, state unchanged', () async {
       when(() => save.call(any()))
-          .thenAnswer((_) async => Left(Failure.errorFailure('boom')));
+          .thenAnswer((_) async => const Left(Failure.errorFailure('boom')));
       final c = build();
       await Future<void>.delayed(Duration.zero);
       final ok = await c.ensureSavedForManas();
@@ -396,7 +396,7 @@ void main() {
         when(() => removeFromManas.call(any()))
             .thenAnswer((_) async => const Right(unit));
         when(() => unsave.call(any())).thenAnswer(
-          (_) async => Left(Failure.errorFailure('boom')),
+          (_) async => const Left(Failure.errorFailure('boom')),
         );
         when(() => isSaved.call(any()))
             .thenAnswer((_) async => const Right(true));
@@ -472,7 +472,7 @@ void main() {
       'deleteNote failure → isRemoved stays false',
       build: () {
         when(() => deleteNote.call(any()))
-            .thenAnswer((_) async => Left(Failure.errorFailure('no')));
+            .thenAnswer((_) async => const Left(Failure.errorFailure('no')));
         return build();
       },
       act: (c) async {

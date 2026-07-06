@@ -759,7 +759,7 @@ test/integration/
 | Item | Trigger to ship |
 |---|---|
 | **Background inference for DM/PC** | Currently bg tick skips kind 14 / 9023 (native plugins are main-isolate-only). Plumbing NIP-17 / MLS into the bg isolate would lift the limitation. |
-| **Function-calling output** | Dropped from the prompt entirely. Models leak `publish_message(body=...)` as text; we treated it as a sanitizer rule and the prompt now asks for plain text directly. If flutter_gemma exposes true tool-calling later we could revisit. |
+| **Function-calling output** | Dropped from the prompt entirely (models leaked `publish_message(body=...)` as text; sanitizer rule + plain-text prompt instead). flutter_gemma 1.2.0 now exposes true tool-calling + a skill runtime — the revisit is designed in [`agent_skills.md`](agent_skills.md) (agentic Ganas, typed publish via `publish-*` skills, per-round scheduling). Note the historical text-leak is exactly the small-model reliability risk that doc's P1 gate must measure. |
 | **Real `outputEventId` for DM + private channel** | Transport use cases (`SendDmUseCase`, `SendPrivateChannelMessageUsecase`) return `void` / `Unit`. Engine snapshots `noteModels` before/after the call to recover the new eventId — works but feels fragile. |
 | **User-private config sync across devices** | Out of scope; would need encrypted Nostr-based sync layer |
 | **"Run now" button** | Deferred; once we see how trigger model behaves in the wild |
