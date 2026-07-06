@@ -1,10 +1,13 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/data/models/relay_model.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -193,6 +196,32 @@ ProfileModel profileRow(
       ..updatedAt = updatedAt ?? tNow
       ..lastSeenAt = lastSeenAt;
 
+/// Build a [DmConversationModel] row without committing it.
+DmConversationModel dmConversationRow(
+  String otherPubkey, {
+  List<String> relays = const [],
+}) =>
+    DmConversationModel()
+      ..otherPubkey = otherPubkey
+      ..relays = List<String>.from(relays);
+
+/// Build a [RelayModel] row without committing it.
+RelayModel relayRow(
+  String url, {
+  bool read = true,
+  bool write = true,
+  RelayStatus status = RelayStatus.disconnected,
+  DateTime? lastConnectedAt,
+  bool isSystem = false,
+}) =>
+    RelayModel()
+      ..url = url
+      ..read = read
+      ..write = write
+      ..status = status
+      ..lastConnectedAt = lastConnectedAt
+      ..isSystem = isSystem;
+
 /// Build a [MediaAttachment] embedded row without committing it. Convenient
 /// when a test needs a note carrying media via [noteRow]`.attachments`.
 MediaAttachment mediaAttachmentRow({
@@ -329,6 +358,38 @@ Future<void> seedDeletedNote(
   await isar.writeTxn(() async {
     await isar.deletedNoteModels
         .put(deletedNoteRow(eventId, deletedAt: deletedAt));
+  });
+}
+
+Future<void> seedDmConversation(
+  Isar isar,
+  String otherPubkey, {
+  List<String> relays = const [],
+}) async {
+  await isar.writeTxn(() async {
+    await isar.dmConversationModels
+        .put(dmConversationRow(otherPubkey, relays: relays));
+  });
+}
+
+Future<void> seedRelay(
+  Isar isar,
+  String url, {
+  bool read = true,
+  bool write = true,
+  RelayStatus status = RelayStatus.disconnected,
+  DateTime? lastConnectedAt,
+  bool isSystem = false,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.relayModels.put(relayRow(
+      url,
+      read: read,
+      write: write,
+      status: status,
+      lastConnectedAt: lastConnectedAt,
+      isSystem: isSystem,
+    ));
   });
 }
 

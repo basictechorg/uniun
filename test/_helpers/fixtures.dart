@@ -9,12 +9,15 @@
 // - Times default to [tT0] / [tNow] so tests are deterministic.
 
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/media/media_dim.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/entities/relay/relay_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/entities/user_key/user_key_entity.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
@@ -289,6 +292,40 @@ ProfileEntity aProfile({
 /// Profile with no name and no username — forces short-pubkey fallback.
 ProfileEntity anAnonymousProfile({String pubkey = kAlicePub}) =>
     aProfile(pubkey: pubkey, name: null, username: null);
+
+// ── DmConversationEntity ─────────────────────────────────────────────────────
+
+DmConversationEntity aDmConversation({
+  int id = 0,
+  String otherPubkey = kSampleTargetPubkeyHex,
+  List<String> relays = const [],
+}) {
+  return DmConversationEntity(
+    id: id,
+    otherPubkey: otherPubkey,
+    relays: relays,
+  );
+}
+
+// ── RelayEntity ──────────────────────────────────────────────────────────────
+
+RelayEntity aRelay({
+  String url = 'wss://relay.example',
+  bool read = true,
+  bool write = true,
+  RelayStatus status = RelayStatus.disconnected,
+  DateTime? lastConnectedAt,
+  bool isSystem = false,
+}) {
+  return RelayEntity(
+    url: url,
+    read: read,
+    write: write,
+    status: status,
+    lastConnectedAt: lastConnectedAt,
+    isSystem: isSystem,
+  );
+}
 
 // ── SavedNoteEntity ──────────────────────────────────────────────────────────
 
