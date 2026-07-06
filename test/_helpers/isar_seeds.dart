@@ -2,7 +2,9 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
+import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
+import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -119,6 +121,78 @@ DeletedNoteModel deletedNoteRow(
       ..eventId = eventId
       ..deletedAt = deletedAt ?? tNow;
 
+/// Build an [EventQueueModel] row without committing it. Full param surface
+/// so canonical tag-order tests can exercise every serializer branch:
+/// - Report: `eventQueueRow('ev', kind: kReportKind, reportType: 'spam')`
+/// - Draft: `eventQueueRow('d', kind: kDraftWrapKind, dTag: 'id', quoteKind: 1)`
+/// - Private group: `eventQueueRow('pg', kind: kPrivateGroupKind, hTag: 'g')`
+EventQueueModel eventQueueRow(
+  String eventId, {
+  String authorPubkey = kAlicePub,
+  String sig = 'sig',
+  int kind = kNoteKind,
+  String content = 'x',
+  List<String> eTagRefs = const [],
+  List<String> pTagRefs = const [],
+  List<String> tTags = const [],
+  String? rootEventId,
+  String? replyToEventId,
+  String? embeddedNoteJson,
+  int? quoteKind,
+  String? hTag,
+  String? dTag,
+  int? expirationSec,
+  List<String> serverTags = const [],
+  List<MediaAttachment> imeta = const [],
+  String? reportType,
+  DateTime? created,
+  int sentCount = 0,
+  DateTime? enqueuedAt,
+}) =>
+    EventQueueModel()
+      ..eventId = eventId
+      ..authorPubkey = authorPubkey
+      ..sig = sig
+      ..kind = kind
+      ..content = content
+      ..eTagRefs = List<String>.from(eTagRefs)
+      ..pTagRefs = List<String>.from(pTagRefs)
+      ..tTags = List<String>.from(tTags)
+      ..rootEventId = rootEventId
+      ..replyToEventId = replyToEventId
+      ..embeddedNoteJson = embeddedNoteJson
+      ..quoteKind = quoteKind
+      ..hTag = hTag
+      ..dTag = dTag
+      ..expirationSec = expirationSec
+      ..serverTags = List<String>.from(serverTags)
+      ..imeta = imeta
+      ..reportType = reportType
+      ..created = created ?? tNow
+      ..sentCount = sentCount
+      ..enqueuedAt = enqueuedAt ?? tNow;
+
+/// Build a [ProfileModel] row without committing it.
+ProfileModel profileRow(
+  String pubkey, {
+  String? name = 'Alice',
+  String? username,
+  String? about,
+  String? avatarUrl,
+  String? nip05,
+  DateTime? updatedAt,
+  DateTime? lastSeenAt,
+}) =>
+    ProfileModel()
+      ..pubkey = pubkey
+      ..name = name
+      ..username = username
+      ..about = about
+      ..avatarUrl = avatarUrl
+      ..nip05 = nip05
+      ..updatedAt = updatedAt ?? tNow
+      ..lastSeenAt = lastSeenAt;
+
 /// Build a [MediaAttachment] embedded row without committing it. Convenient
 /// when a test needs a note carrying media via [noteRow]`.attachments`.
 MediaAttachment mediaAttachmentRow({
@@ -192,6 +266,9 @@ Future<void> seedUnreadRow(
   String eventId, {
   int kind = kNoteKind,
   String authorPubkey = kAlicePub,
+  String? groupId,
+  String? privateGroupId,
+  int? conversationId,
   DateTime? created,
 }) async {
   await isar.writeTxn(() async {
@@ -199,7 +276,35 @@ Future<void> seedUnreadRow(
       eventId,
       kind: kind,
       authorPubkey: authorPubkey,
+      groupId: groupId,
+      privateGroupId: privateGroupId,
+      conversationId: conversationId,
       created: created,
+    ));
+  });
+}
+
+Future<void> seedProfile(
+  Isar isar,
+  String pubkey, {
+  String? name = 'Alice',
+  String? username,
+  String? about,
+  String? avatarUrl,
+  String? nip05,
+  DateTime? updatedAt,
+  DateTime? lastSeenAt,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.profileModels.put(profileRow(
+      pubkey,
+      name: name,
+      username: username,
+      about: about,
+      avatarUrl: avatarUrl,
+      nip05: nip05,
+      updatedAt: updatedAt,
+      lastSeenAt: lastSeenAt,
     ));
   });
 }

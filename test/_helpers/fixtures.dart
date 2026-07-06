@@ -24,6 +24,10 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 final DateTime tT0 = DateTime.utc(2026, 1, 1);
 final DateTime tNow = DateTime.utc(2026, 6, 30, 12, 0, 0);
 
+/// Own-profile eviction sentinel — mirrors the production value the
+/// CleanupManager never reaches (`ProfileModel.lastSeenAt` docs).
+final DateTime tOwnProfileSentinel = DateTime(3000, 6, 1);
+
 // ── Predefined pubkeys ───────────────────────────────────────────────────────
 
 const String kSelfPub = 'self-pub';
