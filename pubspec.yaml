@@ -119,6 +119,11 @@ dev_dependencies:
   # Mocktail: null-safety-native mock library, no codegen, no
   # mockito @GenerateMocks boilerplate. Companion to bloc_test.
   mocktail: ^1.0.4
+  # Direct deps for test/_helpers/fake_path_provider.dart (platform-interface
+  # fakes). Both already resolve transitively via path_provider; declaring
+  # them keeps depend_on_referenced_packages honest.
+  path_provider_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.0
 
   flutter_lints: ^2.0.0
   build_runner: ^2.13.0

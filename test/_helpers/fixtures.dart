@@ -12,9 +12,12 @@ import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
+import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
+import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/media/media_dim.dart';
+import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/relay/relay_entity.dart';
@@ -394,6 +397,60 @@ ManasEntity aManas({
 List<ManasEntity> manyManas(int n) => [
       for (var i = 0; i < n; i++) aManas(manasId: 'm-$i', name: 'Manas $i'),
     ];
+
+// ── Graph entities ───────────────────────────────────────────────────────────
+
+GraphNodeEntity aGraphNode({
+  String key = 'node-1',
+  String name = 'Node One',
+  String type = 'topic',
+  DateTime? createdAt,
+  DateTime? updatedAt,
+}) {
+  return GraphNodeEntity(
+    key: key,
+    name: name,
+    type: type,
+    createdAt: createdAt ?? tT0,
+    updatedAt: updatedAt ?? tNow,
+  );
+}
+
+GraphEdgeEntity aGraphEdge({
+  String sourceKey = 'node-1',
+  String targetKey = 'node-2',
+  String relationType = 'mentions',
+  String sourceNoteId = 'note-1',
+  DateTime? createdAt,
+}) {
+  return GraphEdgeEntity(
+    sourceKey: sourceKey,
+    targetKey: targetKey,
+    relationType: relationType,
+    sourceNoteId: sourceNoteId,
+    createdAt: createdAt ?? tNow,
+  );
+}
+
+// ── MemoryNodeEntity ─────────────────────────────────────────────────────────
+
+MemoryNodeEntity aMemoryNode({
+  String noteId = 'note-1',
+  String summary = 'a wiki-style summary',
+  List<String> keyPoints = const ['point'],
+  List<String> concepts = const ['concept'],
+  List<String> linkedNoteIds = const [],
+  DateTime? updatedAt,
+}) {
+  return MemoryNodeEntity(
+    noteId: noteId,
+    summary: summary,
+    keyPoints: keyPoints,
+    concepts: concepts,
+    linkedNoteIds: linkedNoteIds,
+    updatedAt: updatedAt ?? tNow,
+  );
+}
 
 // ── UserKeyEntity ────────────────────────────────────────────────────────────
 

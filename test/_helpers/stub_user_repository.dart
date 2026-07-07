@@ -17,15 +17,22 @@ class StubUserRepository implements UserRepository {
     pubkeyHex: kTestPubHex,
   );
 
+  /// When set, [getActiveUser] returns exactly this entity. Use for code
+  /// paths that decode `user.nsec` (needs a real bech32 nsec, which the
+  /// default [aUserKey] placeholder is not).
+  UserKeyEntity? activeUser;
+
   @override
   Future<({String privkeyHex, String pubkeyHex})?> getActiveKeysHex() async =>
       keys;
 
   @override
-  Future<Either<Failure, UserKeyEntity>> getActiveUser() async =>
-      keys == null
-          ? const Left(Failure.notFoundFailure('no active user'))
-          : Right(aUserKey(pubkeyHex: keys!.pubkeyHex));
+  Future<Either<Failure, UserKeyEntity>> getActiveUser() async {
+    if (activeUser != null) return Right(activeUser!);
+    return keys == null
+        ? const Left(Failure.notFoundFailure('no active user'))
+        : Right(aUserKey(pubkeyHex: keys!.pubkeyHex));
+  }
 
   @override
   Future<Either<Failure, UserKeyEntity>> generateKey() =>

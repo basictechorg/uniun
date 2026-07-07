@@ -7,7 +7,11 @@ import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/saved_note_model.dart';
+import 'package:uniun/data/models/shiv_conversation_model.dart';
+import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -221,6 +225,75 @@ RelayModel relayRow(
       ..status = status
       ..lastConnectedAt = lastConnectedAt
       ..isSystem = isSystem;
+
+/// Build a [SavedNoteModel] row without committing it.
+SavedNoteModel savedNoteRow(
+  String eventId, {
+  String content = 'x',
+  String authorPubkey = kAlicePub,
+  String sig = 'sig',
+  NoteType type = NoteType.text,
+  List<String> eTagRefs = const [],
+  List<String> pTagRefs = const [],
+  List<String> tTags = const [],
+  String? rootEventId,
+  String? replyToEventId,
+  String? sourceGroupId,
+  String? sourcePrivateGroupId,
+  String? embeddedNoteJson,
+  List<MediaAttachment> attachments = const [],
+  DateTime? created,
+  DateTime? savedAt,
+}) =>
+    SavedNoteModel()
+      ..eventId = eventId
+      ..sig = sig
+      ..authorPubkey = authorPubkey
+      ..content = content
+      ..type = type
+      ..eTagRefs = List<String>.from(eTagRefs)
+      ..pTagRefs = List<String>.from(pTagRefs)
+      ..tTags = List<String>.from(tTags)
+      ..rootEventId = rootEventId
+      ..replyToEventId = replyToEventId
+      ..sourceGroupId = sourceGroupId
+      ..sourcePrivateGroupId = sourcePrivateGroupId
+      ..embeddedNoteJson = embeddedNoteJson
+      ..attachments = attachments
+      ..created = created ?? tNow
+      ..savedAt = savedAt ?? tNow;
+
+/// Build a [ShivConversationModel] row without committing it.
+ShivConversationModel shivConversationRow(
+  String conversationId, {
+  String title = 'chat',
+  String? activeLeafMessageId,
+  DateTime? createdAt,
+  DateTime? updatedAt,
+}) =>
+    ShivConversationModel()
+      ..conversationId = conversationId
+      ..title = title
+      ..activeLeafMessageId = activeLeafMessageId
+      ..createdAt = createdAt ?? tNow
+      ..updatedAt = updatedAt ?? tNow;
+
+/// Build a [ShivMessageModel] row without committing it.
+ShivMessageModel shivMessageRow(
+  String messageId, {
+  String conversationId = 'conv-1',
+  String? parentId,
+  MessageRole role = MessageRole.user,
+  String content = 'x',
+  DateTime? createdAt,
+}) =>
+    ShivMessageModel()
+      ..messageId = messageId
+      ..conversationId = conversationId
+      ..parentId = parentId
+      ..role = role
+      ..content = content
+      ..createdAt = createdAt ?? tNow;
 
 /// Build a [MediaAttachment] embedded row without committing it. Convenient
 /// when a test needs a note carrying media via [noteRow]`.attachments`.
