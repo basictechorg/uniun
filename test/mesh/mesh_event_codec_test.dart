@@ -54,6 +54,25 @@ void main() {
       expect(record.content['note'], tricky);
     });
 
+    test('signing storm: 256 fresh events all self-verify (bip340 padding)',
+        () async {
+      // Tripwire for the bip340 <0.2.0 unpadded-sig bug (~1/128 sigs
+      // self-invalid): a storm fails here deterministically, not as a
+      // random flake in whichever suite lost the dice roll.
+      for (var i = 0; i < 256; i++) {
+        final event = Event.from(
+          kind: 1,
+          tags: const [],
+          content: 'storm-$i',
+          privkey: me.privkey,
+          createdAt: 1720000000 + i,
+        );
+        expect(event.isValid(), isTrue,
+            reason: 'iteration $i produced a self-invalid signature '
+                '(sig length ${event.sig.length})');
+      }
+    });
+
     test('state=removed parses through', () async {
       final signed = await codec.signRecord(
         kind: MeshEventKinds.savedNote,
