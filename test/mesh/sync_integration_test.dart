@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
@@ -35,7 +34,10 @@ import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/mesh/sync/nip77_reconciler.dart';
 import 'package:uniun/features/mesh/sync/negentropy_sync_scopes.dart';
 
+import '../_helpers/isar_test_harness.dart';
+
 import 'support/paired_mesh_link.dart';
+import '../_helpers/mesh_test_helpers.dart';
 
 /// Drives the REAL Nip77Reconciler over the REAL
 /// Isar-backed scopes against two temp Isar instances — the only test that
@@ -46,29 +48,14 @@ import 'support/paired_mesh_link.dart';
 ///
 /// Requires the Isar native core; skips gracefully if it can't initialize.
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  stubSecureStorageChannel();
 
-  // NIP-44 PBKDF2 path can touch flutter_secure_storage — stub the channel
-  // so the sign step used to seed the SavedNote row doesn't fail
-  // platform-side. Matches the pattern in nip77_reconciler_test.dart.
-  const flutterSecureStorage = MethodChannel(
-    'plugins.it_nomads.com/flutter_secure_storage',
-  );
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(flutterSecureStorage, (_) async => null);
-
-  var isarReady = false;
   final temps = <Directory>[];
 
   setUpAll(() async {
-    try {
-      await Isar.initializeIsarCore(download: true);
-      isarReady = true;
-    } catch (e) {
-      // No native core / no network — skip the integration assertions.
-      // ignore: avoid_print
-      print('Isar core unavailable, skipping integration test: $e');
-    }
+    // A core init failure must FAIL the suite, not silently skip it —
+    // ensureIsarCore (shared harness) is race-safe and mock-proof.
+    await ensureIsarCore();
   });
 
   tearDownAll(() async {
@@ -86,8 +73,6 @@ void main() {
   test(
     'two real Isar peers converge notes, saved, DMs + unread rows',
     () async {
-      if (!isarReady) return; // skipped — see setUpAll log
-
       final isarA = await openIsar('a${temps.length}');
       final isarB = await openIsar('b${temps.length}');
       addTearDown(() async {

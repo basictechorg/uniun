@@ -3,20 +3,21 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import '../_helpers/mesh_test_helpers.dart';
 
 /// Covers MeshEventCodec sign→open roundtrip, LWW-relevant fields
 /// (kind/dTag/createdAt/state), and reject paths: wrong-pubkey, tampered
 /// event id, bad Schnorr signature, plaintext content (missed encryption),
 /// bogus JSON, missing d tag, non-addressable kind.
 void main() {
-  late Keychain me;
-  late Keychain other;
+  late MeshIdentity me;
+  late MeshIdentity other;
   late MeshEventCodec codec;
 
   setUp(() {
-    me = Keychain.generate();
-    other = Keychain.generate();
-    codec = MeshEventCodec(privkeyHex: me.private, pubkeyHex: me.public);
+    me = MeshIdentity.generate();
+    other = MeshIdentity.generate();
+    codec = me.codec;
   });
 
   group('happy path', () {
@@ -39,6 +40,18 @@ void main() {
       expect(record.state, MeshRecordState.active);
       expect(record.content['savedAt'], 1720000000000);
       expect(record.content['note'], {'id': 'evt-abc', 'author': 'alice'});
+    });
+
+    test('roundtrip survives Unicode, emoji, and RTL content', () async {
+      const tricky = '\u{1F680} \u0928\u092E\u0938\u094D\u0924\u0947 '
+          '\u05E9\u05DC\u05D5\u05DD \u200F\u0645\u0631\u062D\u0628\u0627 "q\u2019s"';
+      final signed = await codec.signRecord(
+        kind: MeshEventKinds.savedNote,
+        dTag: 'evt-unicode',
+        content: {'state': 'active', 'note': tricky},
+      );
+      final record = await codec.openRecord(signed);
+      expect(record.content['note'], tricky);
     });
 
     test('state=removed parses through', () async {
@@ -85,7 +98,7 @@ void main() {
       final json = jsonDecode(signed) as Map<String, dynamic>;
       final event = Event.fromJson(json, verify: false);
       expect(event.isValid(), isTrue);
-      expect(event.pubkey.toLowerCase(), me.public.toLowerCase());
+      expect(event.pubkey.toLowerCase(), me.pubkey.toLowerCase());
       expect(event.kind, MeshEventKinds.followedNote);
     });
   });
@@ -93,10 +106,7 @@ void main() {
   group('failure modes', () {
     test('open throws on wrong pubkey (event signed by another identity)',
         () async {
-      final foreign = MeshEventCodec(
-        privkeyHex: other.private,
-        pubkeyHex: other.public,
-      );
+      final foreign = other.codec;
       final signed = await foreign.signRecord(
         kind: MeshEventKinds.savedNote,
         dTag: 'evt-abc',
@@ -148,7 +158,7 @@ void main() {
           ['d', 'evt-abc'],
         ],
         content: '{"state":"active"}',
-        privkey: me.private,
+        privkey: me.privkey,
       );
       expect(
         () => codec.openRecord(jsonEncode(event.toJson())),
@@ -161,7 +171,7 @@ void main() {
         kind: MeshEventKinds.savedNote,
         tags: const [],
         content: 'anything',
-        privkey: me.private,
+        privkey: me.privkey,
       );
       expect(
         () => codec.openRecord(jsonEncode(event.toJson())),
@@ -184,7 +194,7 @@ void main() {
           ['d', ''],
         ],
         content: 'anything',
-        privkey: me.private,
+        privkey: me.privkey,
       );
       expect(
         () => codec.openRecord(jsonEncode(event.toJson())),

@@ -3,37 +3,29 @@
 // signedEvent finds by id, upsertSigned applies LWW + tombstone semantics
 // per plan §5a.
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:nostr_core_dart/nostr.dart';
-import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/features/mesh/sync/bodies/saved_note_body.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/mesh/sync/scopes/saved_note_sync_scope.dart';
 
+import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/mesh_test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  // NIP-44 v2 pulls in flutter_secure_storage inside its PBKDF2 helper on
-  // some paths — stub the channel so unit tests don't fail platform-side.
-  const flutterSecureStorage =
-      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(flutterSecureStorage, (_) async => null);
+  stubSecureStorageChannel();
 
   late Isar isar;
-  late Keychain me;
+  late MeshIdentity me;
   late MeshEventCodec codec;
   late SavedNoteSyncScope scope;
 
   setUp(() async {
     isar = await openTestIsar();
-    me = Keychain.generate();
-    codec = MeshEventCodec(privkeyHex: me.private, pubkeyHex: me.public);
+    me = MeshIdentity.generate();
+    codec = me.codec;
     scope = SavedNoteSyncScope(isar, codec);
   });
 
@@ -42,17 +34,7 @@ void main() {
   });
 
   SavedNoteModel makeRow(String eventId, {String content = 'c'}) =>
-      SavedNoteModel()
-        ..eventId = eventId
-        ..sig = 'sig'
-        ..authorPubkey = me.public
-        ..content = content
-        ..type = NoteType.text
-        ..eTagRefs = const []
-        ..pTagRefs = const []
-        ..tTags = const []
-        ..created = DateTime.fromMillisecondsSinceEpoch(1720000000000)
-        ..savedAt = DateTime.fromMillisecondsSinceEpoch(1720000100000);
+      savedNoteRow(eventId, content: content, authorPubkey: me.pubkey);
 
   Future<String> seedSignedRow(
     String eventId, {
@@ -167,6 +149,31 @@ void main() {
     expect(row!.content, 'local-wins');
   });
 
+  test('upsertSigned tie-break: equal createdAt keeps the higher event id',
+      () async {
+    // Plan §5a: at identical created_at, the lexicographically-higher
+    // event id wins deterministically — both peers converge on one row no
+    // matter the apply order.
+    final localSigned =
+        await seedSignedRow('ev-a', createdAtSec: 1720000100, content: 'L');
+    final incoming = await codec.signRecord(
+      kind: MeshEventKinds.savedNote,
+      dTag: 'ev-a',
+      content: SavedNoteBody.forActive(makeRow('ev-a', content: 'I')),
+      createdAtSec: 1720000100, // same second
+    );
+    final localId = (await codec.openRecord(localSigned)).event['id'] as String;
+    final incomingId = (await codec.openRecord(incoming)).event['id'] as String;
+
+    await scope.upsertSigned(incoming);
+
+    final row = await isar.savedNoteModels
+        .where()
+        .eventIdEqualTo('ev-a')
+        .findFirst();
+    expect(row!.content, localId.compareTo(incomingId) >= 0 ? 'L' : 'I');
+  });
+
   test('upsertSigned survives an out-of-order save→unsave→save sequence', () async {
     // Plan §5a: applying two events out of order still converges to the
     // terminal state at the highest `created_at`.
@@ -208,9 +215,7 @@ void main() {
 
   test('upsertSigned silently drops an event signed by another identity',
       () async {
-    final foreign = Keychain.generate();
-    final foreignCodec =
-        MeshEventCodec(privkeyHex: foreign.private, pubkeyHex: foreign.public);
+    final foreignCodec = MeshIdentity.generate().codec;
     final foreignSigned = await foreignCodec.signRecord(
       kind: MeshEventKinds.savedNote,
       dTag: 'ev-foreign',

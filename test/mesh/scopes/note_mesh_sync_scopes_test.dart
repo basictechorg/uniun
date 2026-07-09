@@ -7,7 +7,6 @@
 
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
@@ -17,26 +16,21 @@ import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/repositories/note_relation_repository_impl.dart';
-import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/mesh/sync/scopes/private_note_sync_scope.dart';
 import 'package:uniun/features/mesh/sync/scopes/signed_note_sync_scope.dart';
 
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/mesh_test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  const flutterSecureStorage =
-      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(flutterSecureStorage, (_) async => null);
+  stubSecureStorageChannel();
 
   late Isar isar;
-  late Keychain me;
+  late MeshIdentity me;
 
   setUp(() async {
     isar = await openTestIsar();
-    me = Keychain.generate();
+    me = MeshIdentity.generate();
   });
 
   tearDown(() async {
@@ -48,7 +42,7 @@ void main() {
         kind: 1,
         tags: const [],
         content: content,
-        privkey: me.private,
+        privkey: me.privkey,
         createdAt: createdAt,
       );
 
@@ -89,7 +83,7 @@ void main() {
     late SignedNoteSyncScope scope;
 
     setUp(() {
-      scope = SignedNoteSyncScope(isar, activePubkeyHex: me.public);
+      scope = SignedNoteSyncScope(isar, activePubkeyHex: me.pubkey);
     });
 
     test('localIndex advertises only kind 1/42 rows carrying rawEventJson',
@@ -153,9 +147,9 @@ void main() {
   group('PrivateNoteSyncScope', () {
     PrivateNoteSyncScope scopeOn(Isar db) => PrivateNoteSyncScope(
           db,
-          MeshEventCodec(privkeyHex: me.private, pubkeyHex: me.public),
+          me.codec,
           NoteRelationRepositoryImpl(isar: db),
-          activePubkeyHex: me.public,
+          activePubkeyHex: me.pubkey,
         );
 
     test('localIndex signs pending DM rows so a peer can rebuild them',
@@ -192,7 +186,7 @@ void main() {
     test('own DM does not get an unread row on the peer', () async {
       final scopeA = scopeOn(isar);
       await isar.writeTxn(
-          () => isar.noteModels.put(dmRow('dm2', author: me.public)));
+          () => isar.noteModels.put(dmRow('dm2', author: me.pubkey)));
       final index = await scopeA.localIndex();
       final signed = await scopeA.signedEvent(index.keys.first);
 

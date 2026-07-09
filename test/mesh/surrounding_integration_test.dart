@@ -18,23 +18,20 @@ import 'package:uniun/features/mesh/surrounding/surrounding_cleanup.dart';
 import 'package:uniun/features/mesh/surrounding/surrounding_exchange.dart';
 import 'package:uniun/features/mesh/surrounding/surrounding_inbound.dart';
 
+import '../_helpers/isar_test_harness.dart';
+
 import 'support/paired_mesh_link.dart';
 
 /// Exercises the Surrounding feed end-to-end over real Isar + real secp256k1 keys:
 /// genuine broadcast notes propagate (and verify), forged ones are dropped, and
 /// our own note is never re-ingested. Skips if the Isar native core is missing.
 void main() {
-  var isarReady = false;
   final temps = <Directory>[];
 
   setUpAll(() async {
-    try {
-      await Isar.initializeIsarCore(download: true);
-      isarReady = true;
-    } catch (e) {
-      // ignore: avoid_print
-      print('Isar core unavailable, skipping: $e');
-    }
+    // A core init failure must FAIL the suite, not silently skip it —
+    // ensureIsarCore (shared harness) is race-safe and mock-proof.
+    await ensureIsarCore();
   });
 
   tearDownAll(() async {
@@ -58,7 +55,6 @@ void main() {
   }
 
   test('a genuine broadcast note reaches the stranger, verified', () async {
-    if (!isarReady) return;
     final isarA = await openIsar('a');
     final isarB = await openIsar('b');
     addTearDown(() async {
@@ -156,7 +152,6 @@ void main() {
   });
 
   test('a forged note (tampered content) is rejected', () async {
-    if (!isarReady) return;
     final isarB = await openIsar('fb');
     addTearDown(() async => isarB.close());
     final keyA = Keychain.generate();
@@ -176,7 +171,6 @@ void main() {
   });
 
   test('our own note is not ingested as surrounding', () async {
-    if (!isarReady) return;
     final isarA = await openIsar('ob');
     addTearDown(() async => isarA.close());
     final keyA = Keychain.generate();
@@ -192,7 +186,6 @@ void main() {
   });
 
   test('a note tombstoned in the Surrounding view is not re-stored', () async {
-    if (!isarReady) return;
     final isarB = await openIsar('surrtomb');
     addTearDown(() async => isarB.close());
     final keyA = Keychain.generate();
@@ -218,7 +211,6 @@ void main() {
   });
 
   test('evictTombstonesBefore expires old tombstones only', () async {
-    if (!isarReady) return;
     final isar = await openIsar('tombevict');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {

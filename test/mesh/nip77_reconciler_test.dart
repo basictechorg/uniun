@@ -4,21 +4,15 @@
 
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/mesh/sync/nip77_reconciler.dart';
 import 'package:uniun/features/mesh/sync/sync_scope.dart';
+import '../_helpers/mesh_test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  // Suppress plugin channel calls made deep inside nip44's PBKDF2 helper.
-  const flutterSecureStorage =
-      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(flutterSecureStorage, (_) async => null);
+  stubSecureStorageChannel();
 
   late Keychain me;
   late Keychain other;
