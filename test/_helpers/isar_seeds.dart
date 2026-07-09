@@ -1,8 +1,17 @@
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
+import 'package:uniun/data/models/dm/dm_conversation_model.dart';
+import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
+import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/core/enum/message_role.dart';
+import 'package:uniun/data/models/relay_model.dart';
+import 'package:uniun/data/models/saved_note_model.dart';
+import 'package:uniun/data/models/shiv_conversation_model.dart';
+import 'package:uniun/data/models/shiv_message_model.dart';
 import 'package:uniun/data/models/notes/media_attachment.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
@@ -119,6 +128,173 @@ DeletedNoteModel deletedNoteRow(
       ..eventId = eventId
       ..deletedAt = deletedAt ?? tNow;
 
+/// Build an [EventQueueModel] row without committing it. Full param surface
+/// so canonical tag-order tests can exercise every serializer branch:
+/// - Report: `eventQueueRow('ev', kind: kReportKind, reportType: 'spam')`
+/// - Draft: `eventQueueRow('d', kind: kDraftWrapKind, dTag: 'id', quoteKind: 1)`
+/// - Private group: `eventQueueRow('pg', kind: kPrivateGroupKind, hTag: 'g')`
+EventQueueModel eventQueueRow(
+  String eventId, {
+  String authorPubkey = kAlicePub,
+  String sig = 'sig',
+  int kind = kNoteKind,
+  String content = 'x',
+  List<String> eTagRefs = const [],
+  List<String> pTagRefs = const [],
+  List<String> tTags = const [],
+  String? rootEventId,
+  String? replyToEventId,
+  String? embeddedNoteJson,
+  int? quoteKind,
+  String? hTag,
+  String? dTag,
+  int? expirationSec,
+  List<String> serverTags = const [],
+  List<MediaAttachment> imeta = const [],
+  String? reportType,
+  DateTime? created,
+  int sentCount = 0,
+  DateTime? enqueuedAt,
+}) =>
+    EventQueueModel()
+      ..eventId = eventId
+      ..authorPubkey = authorPubkey
+      ..sig = sig
+      ..kind = kind
+      ..content = content
+      ..eTagRefs = List<String>.from(eTagRefs)
+      ..pTagRefs = List<String>.from(pTagRefs)
+      ..tTags = List<String>.from(tTags)
+      ..rootEventId = rootEventId
+      ..replyToEventId = replyToEventId
+      ..embeddedNoteJson = embeddedNoteJson
+      ..quoteKind = quoteKind
+      ..hTag = hTag
+      ..dTag = dTag
+      ..expirationSec = expirationSec
+      ..serverTags = List<String>.from(serverTags)
+      ..imeta = imeta
+      ..reportType = reportType
+      ..created = created ?? tNow
+      ..sentCount = sentCount
+      ..enqueuedAt = enqueuedAt ?? tNow;
+
+/// Build a [ProfileModel] row without committing it.
+ProfileModel profileRow(
+  String pubkey, {
+  String? name = 'Alice',
+  String? username,
+  String? about,
+  String? avatarUrl,
+  String? nip05,
+  DateTime? updatedAt,
+  DateTime? lastSeenAt,
+}) =>
+    ProfileModel()
+      ..pubkey = pubkey
+      ..name = name
+      ..username = username
+      ..about = about
+      ..avatarUrl = avatarUrl
+      ..nip05 = nip05
+      ..updatedAt = updatedAt ?? tNow
+      ..lastSeenAt = lastSeenAt;
+
+/// Build a [DmConversationModel] row without committing it.
+DmConversationModel dmConversationRow(
+  String otherPubkey, {
+  List<String> relays = const [],
+}) =>
+    DmConversationModel()
+      ..otherPubkey = otherPubkey
+      ..relays = List<String>.from(relays);
+
+/// Build a [RelayModel] row without committing it.
+RelayModel relayRow(
+  String url, {
+  bool read = true,
+  bool write = true,
+  RelayStatus status = RelayStatus.disconnected,
+  DateTime? lastConnectedAt,
+  bool isSystem = false,
+}) =>
+    RelayModel()
+      ..url = url
+      ..read = read
+      ..write = write
+      ..status = status
+      ..lastConnectedAt = lastConnectedAt
+      ..isSystem = isSystem;
+
+/// Build a [SavedNoteModel] row without committing it.
+SavedNoteModel savedNoteRow(
+  String eventId, {
+  String content = 'x',
+  String authorPubkey = kAlicePub,
+  String sig = 'sig',
+  NoteType type = NoteType.text,
+  List<String> eTagRefs = const [],
+  List<String> pTagRefs = const [],
+  List<String> tTags = const [],
+  String? rootEventId,
+  String? replyToEventId,
+  String? sourceGroupId,
+  String? sourcePrivateGroupId,
+  String? embeddedNoteJson,
+  List<MediaAttachment> attachments = const [],
+  DateTime? created,
+  DateTime? savedAt,
+}) =>
+    SavedNoteModel()
+      ..eventId = eventId
+      ..sig = sig
+      ..authorPubkey = authorPubkey
+      ..content = content
+      ..type = type
+      ..eTagRefs = List<String>.from(eTagRefs)
+      ..pTagRefs = List<String>.from(pTagRefs)
+      ..tTags = List<String>.from(tTags)
+      ..rootEventId = rootEventId
+      ..replyToEventId = replyToEventId
+      ..sourceGroupId = sourceGroupId
+      ..sourcePrivateGroupId = sourcePrivateGroupId
+      ..embeddedNoteJson = embeddedNoteJson
+      ..attachments = attachments
+      ..created = created ?? tNow
+      ..savedAt = savedAt ?? tNow;
+
+/// Build a [ShivConversationModel] row without committing it.
+ShivConversationModel shivConversationRow(
+  String conversationId, {
+  String title = 'chat',
+  String? activeLeafMessageId,
+  DateTime? createdAt,
+  DateTime? updatedAt,
+}) =>
+    ShivConversationModel()
+      ..conversationId = conversationId
+      ..title = title
+      ..activeLeafMessageId = activeLeafMessageId
+      ..createdAt = createdAt ?? tNow
+      ..updatedAt = updatedAt ?? tNow;
+
+/// Build a [ShivMessageModel] row without committing it.
+ShivMessageModel shivMessageRow(
+  String messageId, {
+  String conversationId = 'conv-1',
+  String? parentId,
+  MessageRole role = MessageRole.user,
+  String content = 'x',
+  DateTime? createdAt,
+}) =>
+    ShivMessageModel()
+      ..messageId = messageId
+      ..conversationId = conversationId
+      ..parentId = parentId
+      ..role = role
+      ..content = content
+      ..createdAt = createdAt ?? tNow;
+
 /// Build a [MediaAttachment] embedded row without committing it. Convenient
 /// when a test needs a note carrying media via [noteRow]`.attachments`.
 MediaAttachment mediaAttachmentRow({
@@ -192,6 +368,9 @@ Future<void> seedUnreadRow(
   String eventId, {
   int kind = kNoteKind,
   String authorPubkey = kAlicePub,
+  String? groupId,
+  String? privateGroupId,
+  int? conversationId,
   DateTime? created,
 }) async {
   await isar.writeTxn(() async {
@@ -199,7 +378,35 @@ Future<void> seedUnreadRow(
       eventId,
       kind: kind,
       authorPubkey: authorPubkey,
+      groupId: groupId,
+      privateGroupId: privateGroupId,
+      conversationId: conversationId,
       created: created,
+    ));
+  });
+}
+
+Future<void> seedProfile(
+  Isar isar,
+  String pubkey, {
+  String? name = 'Alice',
+  String? username,
+  String? about,
+  String? avatarUrl,
+  String? nip05,
+  DateTime? updatedAt,
+  DateTime? lastSeenAt,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.profileModels.put(profileRow(
+      pubkey,
+      name: name,
+      username: username,
+      about: about,
+      avatarUrl: avatarUrl,
+      nip05: nip05,
+      updatedAt: updatedAt,
+      lastSeenAt: lastSeenAt,
     ));
   });
 }
@@ -224,6 +431,38 @@ Future<void> seedDeletedNote(
   await isar.writeTxn(() async {
     await isar.deletedNoteModels
         .put(deletedNoteRow(eventId, deletedAt: deletedAt));
+  });
+}
+
+Future<void> seedDmConversation(
+  Isar isar,
+  String otherPubkey, {
+  List<String> relays = const [],
+}) async {
+  await isar.writeTxn(() async {
+    await isar.dmConversationModels
+        .put(dmConversationRow(otherPubkey, relays: relays));
+  });
+}
+
+Future<void> seedRelay(
+  Isar isar,
+  String url, {
+  bool read = true,
+  bool write = true,
+  RelayStatus status = RelayStatus.disconnected,
+  DateTime? lastConnectedAt,
+  bool isSystem = false,
+}) async {
+  await isar.writeTxn(() async {
+    await isar.relayModels.put(relayRow(
+      url,
+      read: read,
+      write: write,
+      status: status,
+      lastConnectedAt: lastConnectedAt,
+      isSystem: isSystem,
+    ));
   });
 }
 

@@ -103,10 +103,12 @@ below, or add one if the shape is missing.
 | Helper file | Exposes | Use for |
 |---|---|---|
 | `isar_test_harness.dart` | `openTestIsar()`, `groupSeed`, `privateGroupSeed`, `followedUserSeed`, `followedNoteSeed` | Opening an isolated on-disk Isar in `setUp` + one-liner seed rows for those specific collections. |
-| `isar_seeds.dart` | `seedNoteRow`, `seedUnreadRow`, `seedRelationEdge`, `seedReport` | Direct writes into `Note`, `UnreadNote`, `NoteRelation`, `Report` collections. Each helper wraps its own `writeTxn`, safe to call ad-hoc from any test using `openTestIsar()`. |
+| `isar_seeds.dart` | builders `noteRow`, `unreadRow`, `relationEdge`, `reportRow`, `deletedNoteRow`, `eventQueueRow`, `profileRow`, `dmConversationRow`, `relayRow`, `savedNoteRow`, `shivConversationRow`, `shivMessageRow`, `mediaAttachmentRow` + committers `seedNoteRow`, `seedUnreadRow`, `seedRelationEdge`, `seedReport`, `seedDeletedNote`, `seedProfile`, `seedDmConversation`, `seedRelay` | Isar model rows for `Note`, `UnreadNote`, `NoteRelation`, `Report`, `DeletedNote`, `EventQueue`, `NostrProfile`, `DmConversation`, `Relay`, `SavedNote`, `ShivConversation`, `ShivMessage`. Builders return the model (batch them in one `writeTxn`); committers wrap their own `writeTxn`. |
 | `recording_event_queue.dart` | `RecordingEventQueue`, `EnqueueCall` | Any repo that publishes through `EventQueueRepository.enqueueSignedEvent`. Configure `leftOnEnqueue` / `throwOnEnqueue` to simulate failure. Inspect `.calls` to assert wire shape. |
 | `fake_note_relations.dart` | `FakeNoteRelations` | Any repo that reads from `NoteRelationRepository`. Seed `.children[parentId]` / `.parents[childId]` before the test runs. |
-| `stub_user_repository.dart` | `StubUserRepository` | Any repo that calls `UserRepository.getActiveKeysHex()`. Set `.keys = null` to simulate a logged-out identity. |
+| `stub_user_repository.dart` | `StubUserRepository` | Any repo that calls `UserRepository.getActiveKeysHex()` or `getActiveUser()` (both derive from `.keys`). Set `.keys = null` to simulate a logged-out identity. |
+| `stub_followed_users.dart` | `StubFollowedUsers` | Any repo that reads the follow list via `FollowedUserRepository.getAllPubkeys()`. Seed `.pubkeys`; set `.leftOnGetAllPubkeys` to simulate failure. |
+| `fake_path_provider.dart` | `FakePathProviderPlatform` | Code that calls `getApplicationDocumentsDirectory()` / `getApplicationSupportDirectory()`. Install via `PathProviderPlatform.instance = FakePathProviderPlatform(docs: ..., support: ...)` pointing at temp dirs. |
 
 ### Constants in `fixtures.dart`
 
@@ -114,7 +116,12 @@ below, or add one if the shape is missing.
 kTestPrivHex, kTestPubHex, kSigningKeys, aSigningKeys(...)  // signing keys
 kSampleEventIdHex          // 64-char hex event id (for NIP-56 / nostr code paths)
 kSampleTargetPubkeyHex     // 64-char hex pubkey (same, for target-user args)
+tOwnProfileSentinel        // DateTime(3000,6,1) own-profile eviction sentinel
 ```
+
+Isar round-trips `DateTime` as **local time** and SharedPreferences-backed
+stores truncate to millis — compare instants (`isAtSameMomentAs`) or epoch
+millis, never `==` against a UTC fixture.
 
 Use `kSampleEventIdHex` / `kSampleTargetPubkeyHex` when the code under
 test validates hex shape (schnorr sig, NIP-56 tag verify, etc). Use the

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 
+import '../../_helpers/isar_seeds.dart';
+
 /// Verifies the EventQueue canonical serializer emits NIP-56-shaped `e`/`p`
 /// tags when `reportType` is set, and otherwise keeps the standard NIP-10
 /// root/reply/mention shape. The relay rejects any deviation since the
@@ -16,23 +18,19 @@ void main() {
     String? reportType,
     String? rootEventId,
     String? replyToEventId,
-  }) {
-    return EventQueueModel()
-      ..eventId = 'a' * 64
-      ..authorPubkey = 'b' * 64
-      ..sig = 'c' * 128
-      ..content = 'reason'
-      ..kind = kind
-      ..eTagRefs = List<String>.from(eTagRefs)
-      ..pTagRefs = List<String>.from(pTagRefs)
-      ..tTags = const []
-      ..created = DateTime(2026, 6, 1)
-      ..rootEventId = rootEventId
-      ..replyToEventId = replyToEventId
-      ..reportType = reportType
-      ..sentCount = 0
-      ..enqueuedAt = DateTime(2026, 6, 1);
-  }
+  }) =>
+      eventQueueRow(
+        'a' * 64,
+        authorPubkey: 'b' * 64,
+        sig: 'c' * 128,
+        content: 'reason',
+        kind: kind,
+        eTagRefs: eTagRefs,
+        pTagRefs: pTagRefs,
+        rootEventId: rootEventId,
+        replyToEventId: replyToEventId,
+        reportType: reportType,
+      );
 
   List<List<String>> tagsOf(String serialized) {
     final outer = jsonDecode(serialized) as List<dynamic>;

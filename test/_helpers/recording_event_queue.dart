@@ -57,6 +57,7 @@ class RecordingEventQueue implements EventQueueRepository {
       hTag: hTag,
       embeddedNoteJson: embeddedNoteJson,
       reportType: reportType,
+      serverTags: serverTags,
       imeta: imeta,
     ));
     return const Right(1);
@@ -80,6 +81,7 @@ class EnqueueCall {
     this.hTag,
     this.embeddedNoteJson,
     this.reportType,
+    this.serverTags = const [],
     this.imeta = const [],
   });
 
@@ -96,5 +98,6 @@ class EnqueueCall {
   final String? hTag;
   final String? embeddedNoteJson;
   final String? reportType;
+  final List<String> serverTags;
   final List<MediaBlobEntity> imeta;
 }
