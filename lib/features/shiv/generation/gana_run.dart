@@ -6,6 +6,8 @@ import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/features/mesh/sync/bodies/gana_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_input_filter.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
@@ -48,12 +50,19 @@ Future<Set<String>> ganaSelfOutputs(Isar isar, String ganaId) async {
   return ids.cast<String>().toSet();
 }
 
-/// Resolve manas display names, skipping manases that no longer exist.
+/// Resolve manas display names, skipping manases that no longer exist
+/// (including tombstoned rows — a deleted Manas should not surface its name
+/// in Gana context).
 Future<List<String>> resolveManasNames(Isar isar, List<String> manasIds) async {
   if (manasIds.isEmpty) return const [];
   final names = <String>[];
   for (final id in manasIds) {
-    final row = await isar.manasModels.filter().manasIdEqualTo(id).findFirst();
+    final row = await isar.manasModels
+        .filter()
+        .manasIdEqualTo(id)
+        .and()
+        .removedAtIsNull()
+        .findFirst();
     if (row != null) names.add(row.name);
   }
   return names;
@@ -145,14 +154,28 @@ Future<void> writeGanaRun({
 /// Advance a Gana's input cursor + `lastRunAt`, auto-disabling one-shot Ganas
 /// after a real publish ([publishedOutput] = true). Re-fetches by ganaId so a
 /// concurrent write from the other isolate isn't trampled.
+///
+/// Cursor state (`lastProcessedEventId`, `lastProcessedCreated`, `lastRunAt`)
+/// is per-device — it never round-trips through mesh sync. But when an
+/// auto-disable fires (`publishedOutput && oneShot`), the `enabled=false`
+/// flip is a definition-level change that MUST sync — pass [codec] so we can
+/// re-sign the row. When [codec] is null (no active identity or a caller
+/// that hasn't wired one up), the flip still happens locally but peers will
+/// re-enable us from their older event on next sync; the Phase-0a migration
+/// pass will re-sign on the next launch that has keys.
 Future<void> advanceGanaCursor({
   required Isar isar,
   required String ganaId,
   required List<NoteModel> inputs,
   bool publishedOutput = false,
+  MeshEventCodec? codec,
 }) async {
-  final fresh =
-      await isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+  final fresh = await isar.ganaModels
+      .filter()
+      .ganaIdEqualTo(ganaId)
+      .and()
+      .removedAtIsNull()
+      .findFirst();
   if (fresh == null) return;
   if (inputs.isNotEmpty) {
     final last = inputs.last; // oldest-first → last is newest
@@ -161,9 +184,22 @@ Future<void> advanceGanaCursor({
       ..lastProcessedCreated = last.created;
   }
   fresh.lastRunAt = DateTime.now();
+
+  var flippedEnabled = false;
   if (publishedOutput && fresh.triggerMode == GanaTriggerMode.oneShot) {
     fresh.enabled = false;
+    fresh.updatedAt = DateTime.now();
+    flippedEnabled = true;
   }
+
+  if (flippedEnabled && codec != null) {
+    fresh.signedNostrEvent = await codec.signRecord(
+      kind: MeshEventKinds.gana,
+      dTag: ganaId,
+      content: GanaBody.forActive(fresh),
+    );
+  }
+
   await isar.writeTxn(() async {
     await isar.ganaModels.put(fresh);
   });

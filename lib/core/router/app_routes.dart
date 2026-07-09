@@ -23,6 +23,7 @@ abstract class AppRoutes {
   static const createGroup = 'createGroup';
   static const joinGroup = 'joinGroup';
   static const savedNotes = 'savedNotes';
+  static const surrounding = 'surrounding';
   static const blockedUsers = 'blockedUsers';
   static const groupDetail = 'groupDetail';
   static const graph = 'graph';

@@ -20,8 +20,10 @@ class FeedNotesSubscription extends SubscriptionProvider {
   Future<Map<String, dynamic>?> buildFilter(SubscriptionContext ctx) async {
     if (ctx.activePubkey == null) return null;
 
-    final followed =
-        await ctx.isar.followedUserModels.where().pubkeyHexProperty().findAll();
+    final followedRows = await ctx.isar.followedUserModels.where().findAll();
+    final followed = followedRows
+        .where((row) => row.removedAt == null)
+        .map((row) => row.pubkeyHex);
     final authors = <String>{ctx.activePubkey!, ...followed}.toList();
 
     return {

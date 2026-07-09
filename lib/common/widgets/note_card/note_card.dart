@@ -1,6 +1,8 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
 import 'package:uniun/common/widgets/note_card/embedded_note_card.dart';
 import 'package:uniun/common/widgets/note_card/media_attachment_view.dart';
@@ -18,25 +20,40 @@ import 'package:uniun/features/share/pages/share_sheet_page.dart';
 /// flag via an internal [NoteCardCubit] (follow state is watched reactively
 /// from Isar). Callers only pass the note and a tap handler.
 class NoteCard extends StatelessWidget {
-  const NoteCard({super.key, required this.note, required this.onTap});
+  const NoteCard({
+    super.key,
+    required this.note,
+    required this.onTap,
+    this.onDelete,
+  });
 
   final NoteEntity note;
   final VoidCallback onTap;
+
+  /// Overrides the overflow menu's "Delete note" action. Null = default
+  /// (suppress in the unified `Note` store). The Surrounding feed passes a
+  /// deleter that removes the note from its own ephemeral store instead.
+  final Future<Either<Failure, Unit>> Function()? onDelete;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<NoteCardCubit>(param1: note),
-      child: _NoteCardView(note: note, onTap: onTap),
+      child: _NoteCardView(note: note, onTap: onTap, onDelete: onDelete),
     );
   }
 }
 
 class _NoteCardView extends StatelessWidget {
-  const _NoteCardView({required this.note, required this.onTap});
+  const _NoteCardView({
+    required this.note,
+    required this.onTap,
+    this.onDelete,
+  });
 
   final NoteEntity note;
   final VoidCallback onTap;
+  final Future<Either<Failure, Unit>> Function()? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +192,7 @@ class _NoteCardView extends StatelessWidget {
                               cubit: cubit,
                               isOwnNote: m.isOwn,
                               displayName: m.name,
+                              onDelete: onDelete,
                             ),
                           ),
                         ],
@@ -291,7 +309,7 @@ class _NoteCardView extends StatelessWidget {
                             _ActionChip(
                               icon: Icons.ios_share_rounded,
                               color: colorScheme.onSurfaceVariant,
-                              onTap: () => ShareSheetPage.show(context, note.id),
+                              onTap: () => ShareSheetPage.show(context, note),
                             ),
                           ],
                         ),

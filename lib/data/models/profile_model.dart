@@ -22,6 +22,10 @@ class ProfileModel {
 
   late DateTime updatedAt;
 
+  /// Raw signed Kind 0 profile event JSON. Stored so same-identity mesh peers
+  /// can replay the profile event without a separate cache table.
+  String? rawEventJson;
+
   // CleanupManager evicts where lastSeenAt < now - 30 days.
   // Set DateTime(3000, 6, 1) for own profile so it is never evicted.
   DateTime? lastSeenAt;
@@ -41,8 +45,9 @@ class ProfileModel {
     model.about = meta['about'] as String?;
     model.avatarUrl = meta['picture'] as String?;
     model.nip05 = meta['nip05'] as String?;
-    model.updatedAt =
-        DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000);
+    model.updatedAt = DateTime.fromMillisecondsSinceEpoch(
+      event.createdAt * 1000,
+    );
     model.lastSeenAt = null;
     return model;
   }
@@ -50,13 +55,13 @@ class ProfileModel {
 
 extension ProfileModelExtension on ProfileModel {
   ProfileEntity toDomain() => ProfileEntity(
-        pubkey: pubkey,
-        name: name,
-        username: username,
-        about: about,
-        avatarUrl: avatarUrl,
-        nip05: nip05,
-        updatedAt: updatedAt,
-        lastSeenAt: lastSeenAt,
-      );
+    pubkey: pubkey,
+    name: name,
+    username: username,
+    about: about,
+    avatarUrl: avatarUrl,
+    nip05: nip05,
+    updatedAt: updatedAt,
+    lastSeenAt: lastSeenAt,
+  );
 }

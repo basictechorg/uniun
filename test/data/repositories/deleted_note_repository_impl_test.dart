@@ -18,6 +18,7 @@ void main() {
 
   setUp(() async {
     isar = await openTestIsar();
+    // Phase 6: local-hide is per-device, no mesh signer needed.
     repo = DeletedNoteRepositoryImpl(isar: isar);
   });
 

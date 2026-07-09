@@ -1,5 +1,7 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:uniun/common/widgets/note_card/cubit/note_card_cubit.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/features/brahma/manas/widgets/manas_membership_sheet.dart';
 import 'package:uniun/features/moderation/pages/report_sheet_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -19,11 +21,18 @@ class NoteCardMenu extends StatelessWidget {
     required this.cubit,
     required this.isOwnNote,
     required this.displayName,
+    this.onDelete,
   });
 
   final NoteCardCubit cubit;
   final bool isOwnNote;
   final String displayName;
+
+  /// Overrides what "Delete note" does. When null the default applies (suppress
+  /// the note in the unified `Note` store via the cubit). Surfaces backed by a
+  /// different store — e.g. the Surrounding feed — pass their own deleter here.
+  /// Either way the card collapses itself on success.
+  final Future<Either<Failure, Unit>> Function()? onDelete;
 
   Future<void> _onReport(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
@@ -90,7 +99,7 @@ class NoteCardMenu extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final errorColor = Theme.of(context).colorScheme.error;
-    final result = await cubit.deleteNote();
+    final result = await cubit.deleteNote(onDelete);
     result.fold(
       (failure) => messenger.showSnackBar(
         SnackBar(

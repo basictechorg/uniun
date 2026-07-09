@@ -20,6 +20,7 @@ class AppSettingsStore {
   static const _kNatarajCoachSeen = 'app_settings.nataraj_coach_seen';
   static const _kLocaleCode = 'app_settings.locale_code';
   static const _kThemeMode = 'app_settings.theme_mode';
+  static const _kMeshEnabled = 'app_settings.mesh_enabled';
 
   final SharedPreferences _prefs;
 
@@ -70,6 +71,13 @@ class AppSettingsStore {
 
   Future<void> setRecentSyncWindowDays(int days) =>
       _prefs.setInt(_kRecentSyncWindowDays, days);
+
+  /// Whether the offline Bluetooth/Wi-Fi mesh is enabled. Default off — opt-in for
+  /// privacy and battery.
+  bool get meshEnabled => _prefs.getBool(_kMeshEnabled) ?? false;
+
+  Future<void> setMeshEnabled(bool enabled) =>
+      _prefs.setBool(_kMeshEnabled, enabled);
 
   /// Whether the Nataraj first-run coach overlay ("Swipe to explore ideas")
   /// has been dismissed. Shown only once, ever — persists across launches.

@@ -58,6 +58,18 @@ class SavedNoteModel {
   /// attachments. SHA-keyed cache state still lives in [MediaCacheModel]
   /// and is joined per-render.
   List<MediaAttachment> attachments = const [];
+
+  /// Signed+encrypted Nostr Kind 30500 event for this row (§3 of the
+  /// mesh Nostr-events plan). Wire form on the mesh. Nullable during the
+  /// Phase 0a migration; queries that surface saves ignore any row where
+  /// it's still null.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Null on active saves; set to the wall-clock
+  /// time we processed a `state=removed` mesh event. Queries filter with
+  /// `removedAt == null`.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension SavedNoteModelExtension on SavedNoteModel {

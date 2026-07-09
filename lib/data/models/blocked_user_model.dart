@@ -15,6 +15,14 @@ class BlockedUserModel {
   late String pubkeyHex;
 
   late DateTime blockedAt;
+
+  /// Signed+encrypted Nostr Kind 30502 event for this row (§3). Nullable
+  /// during Phase 0a migration.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Null on active blocks.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension BlockedUserModelExtension on BlockedUserModel {

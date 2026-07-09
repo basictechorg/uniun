@@ -18,6 +18,7 @@ import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
 import 'package:uniun/features/shiv/generation/gana_run.dart';
@@ -153,6 +154,8 @@ void ganaWorkManagerDispatcher() {
       _log('step 3: scanning enabled Ganas');
       final candidates = await isar.ganaModels
           .filter()
+          .removedAtIsNull()
+          .and()
           .enabledEqualTo(true)
           .findAll();
       _log('step 3: ${candidates.length} enabled Gana(s) found');
@@ -430,7 +433,13 @@ Future<void> _runOneGana({
       skipReason: GanaSkipReason.noopReturned,
     );
     // Advance cursor anyway — model decided to stay silent on this input.
-    await _advanceCursor(isar: isar, ganaRow: ganaRow, inputs: inputs);
+    await _advanceCursor(
+      isar: isar,
+      ganaRow: ganaRow,
+      inputs: inputs,
+      selfPubkeyHex: selfPubkeyHex,
+      privkeyHex: privkeyHex,
+    );
     return;
   }
   _log('  body preview: "${_previewBody(trimmed)}"');
@@ -490,6 +499,8 @@ Future<void> _runOneGana({
     ganaRow: ganaRow,
     inputs: inputs,
     publishedOutput: true,
+    selfPubkeyHex: selfPubkeyHex,
+    privkeyHex: privkeyHex,
   );
   _log('runOneGana END status=succeeded '
       'totalRunMs=${DateTime.now().difference(startedAt).inMilliseconds}');
@@ -649,10 +660,20 @@ Future<void> _advanceCursor({
   required GanaModel ganaRow,
   required List<NoteModel> inputs,
   bool publishedOutput = false,
-}) =>
-    advanceGanaCursor(
-      isar: isar,
-      ganaId: ganaRow.ganaId,
-      inputs: inputs,
-      publishedOutput: publishedOutput,
-    );
+  String? selfPubkeyHex,
+  String? privkeyHex,
+}) {
+  final codec = (selfPubkeyHex != null &&
+          selfPubkeyHex.isNotEmpty &&
+          privkeyHex != null &&
+          privkeyHex.isNotEmpty)
+      ? MeshEventCodec(privkeyHex: privkeyHex, pubkeyHex: selfPubkeyHex)
+      : null;
+  return advanceGanaCursor(
+    isar: isar,
+    ganaId: ganaRow.ganaId,
+    inputs: inputs,
+    publishedOutput: publishedOutput,
+    codec: codec,
+  );
+}

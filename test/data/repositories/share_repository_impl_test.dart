@@ -8,7 +8,6 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/data/repositories/share_repository_impl.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
-import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
@@ -21,8 +20,6 @@ import '../../_helpers/fixtures.dart';
 /// pass-through to an existing publish use case, so the test doubles record
 /// the exact input passed to each of them and we assert on the captured
 /// [ShareNoteInput] → downstream input translation.
-class _MResolver extends Mock implements NoteResolverRepository {}
-
 class _MGetKeys extends Mock implements GetActiveUserKeysUseCase {}
 
 class _MPublishFeed extends Mock implements PublishMediaNoteUseCase {}
@@ -34,7 +31,6 @@ class _MPublishDm extends Mock implements SendDmUseCase {}
 class _MPublishPrivateGroup extends Mock implements SendPrivateGroupMessageUsecase {}
 
 void main() {
-  late _MResolver resolver;
   late _MGetKeys getKeys;
   late _MPublishFeed publishFeed;
   late _MPublishGroup publishGroup;
@@ -57,14 +53,12 @@ void main() {
   });
 
   setUp(() {
-    resolver = _MResolver();
     getKeys = _MGetKeys();
     publishFeed = _MPublishFeed();
     publishGroup = _MPublishGroup();
     publishDm = _MPublishDm();
     publishPrivateGroup = _MPublishPrivateGroup();
 
-    when(() => resolver.resolveById(any())).thenAnswer((_) async => Right(source));
     when(() => getKeys()).thenAnswer((_) async => const Right(kSigningKeys));
     when(() => publishFeed(any()))
         .thenAnswer((_) async => Right(source));
@@ -82,7 +76,6 @@ void main() {
         )).thenAnswer((_) async {});
 
     repo = ShareRepositoryImpl(
-      resolver,
       getKeys,
       publishFeed,
       publishGroup,
@@ -94,44 +87,17 @@ void main() {
   // ── Common failure gates ──────────────────────────────────────────────────
 
   group('preconditions', () {
-    test('resolver Left short-circuits — no publisher touched', () async {
-      when(() => resolver.resolveById(any())).thenAnswer(
-          (_) async => const Left(Failure.errorFailure('not found')));
-
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
-        destination: ShareDestination.feed(),
-      ));
-
-      expect(r.isLeft(), isTrue);
-      verifyNever(() => publishFeed(any()));
-      verifyNever(() => publishGroup(any()));
-      verifyNever(() => publishDm(any()));
-    });
-
     test('missing active keys → Left, no publish', () async {
       when(() => getKeys()).thenAnswer(
           (_) async => const Left(Failure.errorFailure('no keys')));
 
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
       ));
 
       expect(r.isLeft(), isTrue);
       verifyNever(() => publishFeed(any()));
-    });
-
-    test('resolver throw → caught → Left errorFailure', () async {
-      when(() => resolver.resolveById(any()))
-          .thenAnswer((_) async => throw StateError('boom'));
-
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
-        destination: ShareDestination.feed(),
-      ));
-
-      expect(r.isLeft(), isTrue);
     });
   });
 
@@ -140,8 +106,8 @@ void main() {
   group('ShareToFeed', () {
     test('publishes a media note carrying the embed + refs + hashtags',
         () async {
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
         content: 'love this #nostr and #uniun',
         referenceIds: ['ref-1', 'ref-2'],
@@ -170,7 +136,7 @@ void main() {
     test('image attachment upgrades NoteType to image', () async {
       final img = aMediaBlob(sha256: 'sha-img', mime: 'image/jpeg');
       final r = await repo.shareNote(ShareNoteInput(
-        sourceEventId: sourceId,
+        source: source,
         destination: const ShareDestination.feed(),
         attachments: [img],
       ));
@@ -186,7 +152,7 @@ void main() {
     test('non-image attachment (pdf) stays NoteType.text', () async {
       final pdf = aMediaBlob(sha256: 'sha-pdf', mime: 'application/pdf');
       final r = await repo.shareNote(ShareNoteInput(
-        sourceEventId: sourceId,
+        source: source,
         destination: const ShareDestination.feed(),
         attachments: [pdf],
       ));
@@ -199,8 +165,8 @@ void main() {
     });
 
     test('hashtag extraction: dedup + empty-tag filter', () async {
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
         content: '#tag #tag #other # #_underscore #123',
       ));
@@ -215,8 +181,8 @@ void main() {
 
     test('unicode + emoji + RTL content survives to publisher', () async {
       const payload = '🚀 ${Content.unicode} ${Content.rtl}';
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
         content: payload,
       ));
@@ -227,8 +193,8 @@ void main() {
     });
 
     test('content trim: leading + trailing whitespace stripped', () async {
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
         content: '   hello   \n',
       ));
@@ -241,8 +207,8 @@ void main() {
     test('publishFeed Left → repo Left', () async {
       when(() => publishFeed(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('relay boom')));
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
       ));
       expect(r.isLeft(), isTrue);
@@ -253,8 +219,8 @@ void main() {
 
   group('ShareToPublicGroup', () {
     test('delegates to CreateGroupMessageUseCase with embed + refs', () async {
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.publicGroup(groupId: 'g-1'),
         content: 'to the group',
         referenceIds: ['r-1'],
@@ -273,7 +239,7 @@ void main() {
     test('attachment carried through to group input', () async {
       final img = aMediaBlob(sha256: 'gsha', mime: 'image/png');
       await repo.shareNote(ShareNoteInput(
-        sourceEventId: sourceId,
+        source: source,
         destination: const ShareDestination.publicGroup(groupId: 'g-1'),
         attachments: [img],
       ));
@@ -286,8 +252,8 @@ void main() {
     test('publishGroup Left → repo Left', () async {
       when(() => publishGroup(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('group down')));
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.publicGroup(groupId: 'g-1'),
       ));
       expect(r.isLeft(), isTrue);
@@ -298,8 +264,8 @@ void main() {
 
   group('ShareToPrivateGroup', () {
     test('delegates via .execute(...) with embed + refs + keys', () async {
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.privateGroup(groupId: 'pg-1'),
         content: 'hush',
         referenceIds: ['pr-1'],
@@ -331,8 +297,8 @@ void main() {
             embeddedNoteJson: any(named: 'embeddedNoteJson'),
             attachments: any(named: 'attachments'),
           )).thenAnswer((_) async {});
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.privateGroup(groupId: 'pg'),
       ));
       expect(r.isRight(), isTrue);
@@ -348,8 +314,8 @@ void main() {
             embeddedNoteJson: any(named: 'embeddedNoteJson'),
             attachments: any(named: 'attachments'),
           )).thenAnswer((_) async => throw StateError('mls boom'));
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.privateGroup(groupId: 'pg'),
       ));
       expect(r.isLeft(), isTrue);
@@ -363,7 +329,7 @@ void main() {
         () async {
       final img = aMediaBlob(sha256: 'dm-img', mime: 'image/jpeg');
       final r = await repo.shareNote(ShareNoteInput(
-        sourceEventId: sourceId,
+        source: source,
         destination: const ShareDestination.dm(otherPubkeyHex: 'peer'),
         content: 'psst',
         referenceIds: const ['dm-ref'],
@@ -381,8 +347,8 @@ void main() {
     });
 
     test('text-only DM stays NoteType.text', () async {
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.dm(otherPubkeyHex: 'peer'),
       ));
       final captured =
@@ -393,8 +359,8 @@ void main() {
     test('publishDm Left → repo Left', () async {
       when(() => publishDm(any())).thenAnswer(
           (_) async => const Left(Failure.errorFailure('dm boom')));
-      final r = await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      final r = await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.dm(otherPubkeyHex: 'peer'),
       ));
       expect(r.isLeft(), isTrue);
@@ -409,11 +375,9 @@ void main() {
         'original, not the middle share', () async {
       final inner = aNote(id: 'inner', content: 'the actual thing');
       final middle = aNote(id: 'middle', content: 'my share', quotedNote: inner);
-      when(() => resolver.resolveById(any()))
-          .thenAnswer((_) async => Right(middle));
 
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: 'middle',
+      await repo.shareNote(ShareNoteInput(
+        source: middle,
         destination: ShareDestination.feed(),
       ));
 
@@ -430,11 +394,9 @@ void main() {
     test('sharing a plain note (no inner quote) snapshots the note itself',
         () async {
       final plain = aNote(id: 'plain', content: 'no quotes here');
-      when(() => resolver.resolveById(any()))
-          .thenAnswer((_) async => Right(plain));
 
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: 'plain',
+      await repo.shareNote(ShareNoteInput(
+        source: plain,
         destination: ShareDestination.feed(),
       ));
 
@@ -451,8 +413,8 @@ void main() {
 
   group('EmbeddedNoteCodec integration', () {
     test('snapshot JSON captures all 7 canonical event fields', () async {
-      await repo.shareNote(const ShareNoteInput(
-        sourceEventId: sourceId,
+      await repo.shareNote(ShareNoteInput(
+        source: source,
         destination: ShareDestination.feed(),
       ));
       final captured =

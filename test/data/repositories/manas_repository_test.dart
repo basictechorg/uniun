@@ -4,8 +4,10 @@ import 'package:uniun/data/models/manas_model.dart';
 import 'package:uniun/data/models/manas_note_link_model.dart';
 import 'package:uniun/data/repositories/manas_repository_impl.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 ManasEntity _manas({
   String id = 'm-1',
@@ -27,22 +29,32 @@ ManasEntity _manas({
 /// Data-layer tests for [ManasRepositoryImpl]. Real on-disk Isar (no mocks)
 /// via [openTestIsar]. Each test runs against a clean DB and tears it down.
 ///
+/// Signer is wired against a logged-out stub — `sign()` returns null so
+/// `signedNostrEvent` stays null. These tests assert on Isar row shape and
+/// query semantics; the wire form is covered by mesh integration tests.
+///
 /// Verifies:
 ///   - upsertManas: insert / update-in-place by `manasId` (no duplicate row)
-///   - getManasList: sortByUpdatedAt-DESC, with stitched noteCount per row
-///   - getManasById: hit / notFound failure
-///   - deleteManas: cascades the linked note rows
+///   - getManasList: sortByUpdatedAt-DESC, with stitched noteCount per row,
+///     tombstones hidden
+///   - getManasById: hit / notFound failure (tombstoned rows count as
+///     not-found — they are gone from the UI point of view)
+///   - deleteManas: TOMBSTONES the Manas + every active link (mesh-idempotent
+///     undo per plan §5a — rows survive so peer devices converge on "removed")
 ///   - addNoteToManas: idempotent (re-adding same pair is a no-op)
-///   - removeNoteFromManas: removes only the (manasId, noteId) pair
-///   - getNoteIdsForManas: sortByAddedAt — preserves insertion order
-///   - getManasIdsForNote: inverse query (1 note → many manases)
+///   - removeNoteFromManas: tombstones the specific pair, leaves others
+///   - getNoteIdsForManas: sortByAddedAt — preserves insertion order, hides
+///     tombstoned links
+///   - getManasIdsForNote: inverse query (1 note → many manases), hides
+///     tombstoned links
 void main() {
   late Isar isar;
   late ManasRepositoryImpl repo;
 
   setUp(() async {
     isar = await openTestIsar();
-    repo = ManasRepositoryImpl(isar: isar);
+    final signer = MeshEventSigner(StubUserRepository()..keys = null);
+    repo = ManasRepositoryImpl(isar: isar, signer: signer);
   });
 
   tearDown(() async {
@@ -133,7 +145,9 @@ void main() {
   // ── deleteManas ─────────────────────────────────────────────────────────
 
   group('deleteManas', () {
-    test('removes the manas AND every link belonging to it', () async {
+    test(
+        'tombstones the manas AND every active link belonging to it '
+        '(mesh-idempotent undo per §5a)', () async {
       await repo.upsertManas(_manas(id: 'doomed'));
       await repo.upsertManas(_manas(id: 'survivor'));
       await repo.addNoteToManas('doomed', 'n-1');
@@ -142,12 +156,23 @@ void main() {
 
       await repo.deleteManas('doomed');
 
-      expect(await isar.manasModels.where().count(), 1);
-      expect(await isar.manasNoteLinkModels.where().count(), 1,
-          reason: 'only the survivor\'s 1 link should remain');
+      // Rows survive (both Manas and links) as tombstones so peer devices
+      // converge on "removed" via negentropy.
+      expect(await isar.manasModels.where().count(), 2,
+          reason: 'raw row count includes the tombstoned Manas');
+      expect(await isar.manasNoteLinkModels.where().count(), 3,
+          reason: 'raw link count includes tombstoned links');
+
+      // Repo-level query hides tombstones from the UI.
+      final visible = (await repo.getManasList()).getOrElse(() => const []);
+      expect(visible.map((m) => m.manasId).toList(), ['survivor']);
+
       final survivor =
           (await repo.getManasById('survivor')).getOrElse(() => throw 'left');
       expect(survivor.noteCount, 1);
+
+      // Doomed Manas is no longer resolvable via the repo (notFound).
+      expect((await repo.getManasById('doomed')).isLeft(), isTrue);
     });
 
     test('deleting a missing manas is a silent no-op (Right(unit))', () async {
@@ -175,18 +200,26 @@ void main() {
   // ── removeNoteFromManas ─────────────────────────────────────────────────
 
   group('removeNoteFromManas', () {
-    test('removes only the targeted pair', () async {
+    test('tombstones only the targeted pair, leaves the others active',
+        () async {
       await repo.addNoteToManas('m1', 'n');
       await repo.addNoteToManas('m2', 'n');
       await repo.addNoteToManas('m1', 'other');
 
       await repo.removeNoteFromManas('m1', 'n');
 
-      final remaining = await isar.manasNoteLinkModels.where().findAll();
-      final pairs = remaining
-          .map((l) => '${l.manasId}/${l.noteId}')
-          .toSet();
-      expect(pairs, {'m2/n', 'm1/other'});
+      // Raw table still holds all three rows (tombstone survives).
+      expect(await isar.manasNoteLinkModels.where().count(), 3);
+
+      // Repo queries filter out the tombstoned row.
+      expect(
+        (await repo.getNoteIdsForManas('m1')).getOrElse(() => const <String>[]),
+        ['other'],
+      );
+      expect(
+        (await repo.getManasIdsForNote('n')).getOrElse(() => const <String>[]),
+        ['m2'],
+      );
     });
 
     test('removing a non-existent pair is a no-op', () async {

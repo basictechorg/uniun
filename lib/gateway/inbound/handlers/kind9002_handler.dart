@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kind 9002 — Marmot private group metadata.
 ///
@@ -13,15 +14,10 @@ class Kind9002Handler implements KindHandler {
   Set<int> get kinds => const {9002};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final eventId = event['id'] as String?;
-    final pubkey = event['pubkey'] as String?;
-    if (eventId == null || pubkey == null) return;
-
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
     Map<String, dynamic> metadata;
     try {
-      metadata =
-          jsonDecode(event['content'] as String? ?? '{}') as Map<String, dynamic>;
+      metadata = jsonDecode(event.content) as Map<String, dynamic>;
     } catch (_) {
       return;
     }
@@ -29,14 +25,13 @@ class Kind9002Handler implements KindHandler {
     await isar.writeTxn(() async {
       final group = await isar.privateGroupModels
           .where()
-          .groupIdEqualTo(eventId)
+          .groupIdEqualTo(event.id)
           .findFirst();
       if (group == null) return;
 
       group.name = metadata['name'] as String? ?? group.name;
-      group.description =
-          metadata['about'] as String? ?? group.description;
-      group.adminPubkey = pubkey;
+      group.description = metadata['about'] as String? ?? group.description;
+      group.adminPubkey = event.pubkey;
 
       final relays = metadata['relays'];
       if (relays is List && relays.isNotEmpty) {

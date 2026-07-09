@@ -2,9 +2,10 @@ part of 'share_sheet_bloc.dart';
 
 @freezed
 sealed class ShareSheetEvent with _$ShareSheetEvent {
-  /// Loads the destination lists and resolves [sourceEventId] into the quoted
-  /// note shown in the "Quoting" preview card.
-  const factory ShareSheetEvent.loadDestinations(String sourceEventId) =
+  /// Loads the destination lists. The [source] note is carried through directly
+  /// (no id resolution needed) so shares work from any store that renders a
+  /// NoteCard, including the ephemeral Surrounding (mesh) collection.
+  const factory ShareSheetEvent.loadDestinations(NoteEntity source) =
       LoadDestinations;
 
   /// Picks (highlights) a destination without sending — the bottom Share button
@@ -29,7 +30,7 @@ sealed class ShareSheetEvent with _$ShareSheetEvent {
   const factory ShareSheetEvent.removeMedia(String sha256) = RemoveMedia;
 
   const factory ShareSheetEvent.submit({
-    required String sourceEventId,
+    required NoteEntity source,
     required ShareDestination destination,
   }) = SubmitShare;
 }

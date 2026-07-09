@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kind 3 — NIP-02 contact list.
 ///
@@ -21,28 +22,20 @@ class Kind3ContactListHandler implements KindHandler {
   Set<int> get kinds => const {3};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
     if (activePubkey == null) return;
-    final pubkey = event['pubkey'] as String?;
-    final createdAtSec = event['created_at'] as int?;
-    if (pubkey == null || createdAtSec == null) return;
-    if (pubkey != activePubkey) return;
+    if (event.pubkey != activePubkey) return;
 
-    final incomingCreatedAt = EventParser.dateTimeFromSec(createdAtSec);
+    final incomingCreatedAt = EventParser.dateTimeFromSec(event.createdAt);
 
-    final rawTags = (event['tags'] as List?) ?? const [];
     final incoming = <String, ({String? relay, String? petname})>{};
-    for (final raw in rawTags) {
-      if (raw is! List || raw.isEmpty) continue;
+    for (final raw in event.tags) {
+      if (raw.isEmpty) continue;
       if (raw[0] != 'p' || raw.length < 2) continue;
-      final hex = raw[1] as String?;
-      if (hex == null || hex.isEmpty) continue;
-      final relay = raw.length >= 3 && (raw[2] as String?)?.isNotEmpty == true
-          ? raw[2] as String
-          : null;
-      final petname = raw.length >= 4 && (raw[3] as String?)?.isNotEmpty == true
-          ? raw[3] as String
-          : null;
+      final hex = raw[1];
+      if (hex.isEmpty) continue;
+      final relay = raw.length >= 3 && raw[2].isNotEmpty ? raw[2] : null;
+      final petname = raw.length >= 4 && raw[3].isNotEmpty ? raw[3] : null;
       incoming[hex] = (relay: relay, petname: petname);
     }
 
@@ -63,7 +56,9 @@ class Kind3ContactListHandler implements KindHandler {
 
         for (final row in existing) {
           if (!incoming.containsKey(row.pubkeyHex)) {
-            await isar.followedUserModels.delete(row.id);
+            row.lastKind3CreatedAt = incomingCreatedAt;
+            row.removedAt = incomingCreatedAt;
+            await isar.followedUserModels.put(row);
           }
         }
 
@@ -77,6 +72,7 @@ class Kind3ContactListHandler implements KindHandler {
           row.petname = meta.petname;
           row.followedAt = prev?.followedAt ?? incomingCreatedAt;
           row.lastKind3CreatedAt = incomingCreatedAt;
+          row.removedAt = null;
           await isar.followedUserModels.put(row);
         }
       });

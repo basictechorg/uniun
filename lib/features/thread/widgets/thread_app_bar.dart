@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/atoms/uniun_back_button.dart';
 import 'package:uniun/core/theme/app_custom_colors.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/features/share/pages/share_sheet_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const ThreadAppBar({super.key, this.sourceEventId});
+  const ThreadAppBar({super.key, this.sourceNote});
 
   /// The note this thread is anchored on. When null (loading / error states,
   /// before the root resolves) the share action is disabled.
-  final String? sourceEventId;
+  final NoteEntity? sourceNote;
 
   @override
   Size get preferredSize {
@@ -54,9 +55,9 @@ class ThreadAppBar extends StatelessWidget implements PreferredSizeWidget {
               IconButton(
                 icon: Icon(Icons.ios_share,
                     color: colorScheme.onSurfaceVariant),
-                onPressed: sourceEventId == null
+                onPressed: sourceNote == null
                     ? null
-                    : () => ShareSheetPage.show(context, sourceEventId!),
+                    : () => ShareSheetPage.show(context, sourceNote!),
               ),
             ],
           ),

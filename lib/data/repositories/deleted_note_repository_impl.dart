@@ -16,13 +16,19 @@ class DeletedNoteRepositoryImpl extends DeletedNoteRepository {
   @override
   Future<Either<Failure, Unit>> deleteNote(String eventId) async {
     try {
+      final existing = await isar.deletedNoteModels
+          .where()
+          .eventIdEqualTo(eventId)
+          .findFirst();
+
+      final row = (existing ?? DeletedNoteModel())
+        ..eventId = eventId
+        ..deletedAt = DateTime.now()
+        ..signedNostrEvent = null
+        ..removedAt = null;
+
       await isar.writeTxn(() async {
-        // Tombstone (idempotent — the unique eventId index replaces any prior).
-        await isar.deletedNoteModels.put(
-          DeletedNoteModel()
-            ..eventId = eventId
-            ..deletedAt = DateTime.now(),
-        );
+        await isar.deletedNoteModels.put(row);
 
         // Remove the note and its denormalized feed projection.
         await isar.noteModels.filter().eventIdEqualTo(eventId).deleteAll();

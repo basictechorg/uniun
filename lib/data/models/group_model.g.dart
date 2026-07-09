@@ -45,8 +45,18 @@ const GroupModelSchema = CollectionSchema(
       name: r'relays',
       type: IsarType.stringList,
     ),
-    r'updatedAt': PropertySchema(
+    r'removedAt': PropertySchema(
       id: 8,
+      name: r'removedAt',
+      type: IsarType.dateTime,
+    ),
+    r'signedNostrEvent': PropertySchema(
+      id: 9,
+      name: r'signedNostrEvent',
+      type: IsarType.string,
+    ),
+    r'updatedAt': PropertySchema(
+      id: 10,
       name: r'updatedAt',
       type: IsarType.long,
     ),
@@ -68,6 +78,19 @@ const GroupModelSchema = CollectionSchema(
           name: r'channelId',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+      ],
+    ),
+    r'removedAt': IndexSchema(
+      id: 4773562754172983303,
+      name: r'removedAt',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'removedAt',
+          type: IndexType.value,
+          caseSensitive: false,
         ),
       ],
     ),
@@ -105,6 +128,12 @@ int _groupModelEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.signedNostrEvent;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -122,7 +151,9 @@ void _groupModelSerialize(
   writer.writeString(offsets[5], object.name);
   writer.writeString(offsets[6], object.picture);
   writer.writeStringList(offsets[7], object.relays);
-  writer.writeLong(offsets[8], object.updatedAt);
+  writer.writeDateTime(offsets[8], object.removedAt);
+  writer.writeString(offsets[9], object.signedNostrEvent);
+  writer.writeLong(offsets[10], object.updatedAt);
 }
 
 GroupModel _groupModelDeserialize(
@@ -141,7 +172,9 @@ GroupModel _groupModelDeserialize(
   object.name = reader.readString(offsets[5]);
   object.picture = reader.readString(offsets[6]);
   object.relays = reader.readStringList(offsets[7]) ?? [];
-  object.updatedAt = reader.readLong(offsets[8]);
+  object.removedAt = reader.readDateTimeOrNull(offsets[8]);
+  object.signedNostrEvent = reader.readStringOrNull(offsets[9]);
+  object.updatedAt = reader.readLong(offsets[10]);
   return object;
 }
 
@@ -169,6 +202,10 @@ P _groupModelDeserializeProp<P>(
     case 7:
       return (reader.readStringList(offset) ?? []) as P;
     case 8:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -249,6 +286,14 @@ extension GroupModelQueryWhereSort
   QueryBuilder<GroupModel, GroupModel, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhere> anyRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'removedAt'),
+      );
     });
   }
 }
@@ -374,6 +419,132 @@ extension GroupModelQueryWhere
               ),
             );
       }
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtEqualTo(
+    DateTime? removedAt,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [removedAt]),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtNotEqualTo(
+    DateTime? removedAt,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtGreaterThan(
+    DateTime? removedAt, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [removedAt],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtLessThan(
+    DateTime? removedAt, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [],
+          upper: [removedAt],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterWhereClause> removedAtBetween(
+    DateTime? lowerRemovedAt,
+    DateTime? upperRemovedAt, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [lowerRemovedAt],
+          includeLower: includeLower,
+          upper: [upperRemovedAt],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -1578,6 +1749,240 @@ extension GroupModelQueryFilter
     });
   }
 
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition> removedAtEqualTo(
+    DateTime? value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'removedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  removedAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition> removedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition> removedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'removedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'signedNostrEvent',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'signedNostrEvent',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition>
+  signedNostrEventIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<GroupModel, GroupModel, QAfterFilterCondition> updatedAtEqualTo(
     int value,
   ) {
@@ -1728,6 +2133,31 @@ extension GroupModelQuerySortBy
     });
   }
 
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> sortByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> sortByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> sortBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy>
+  sortBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
+    });
+  }
+
   QueryBuilder<GroupModel, GroupModel, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1839,6 +2269,31 @@ extension GroupModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> thenByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> thenByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy> thenBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QAfterSortBy>
+  thenBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
+    });
+  }
+
   QueryBuilder<GroupModel, GroupModel, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1920,6 +2375,23 @@ extension GroupModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<GroupModel, GroupModel, QDistinct> distinctByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'removedAt');
+    });
+  }
+
+  QueryBuilder<GroupModel, GroupModel, QDistinct> distinctBySignedNostrEvent({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'signedNostrEvent',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
   QueryBuilder<GroupModel, GroupModel, QDistinct> distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
@@ -1980,6 +2452,19 @@ extension GroupModelQueryProperty
   QueryBuilder<GroupModel, List<String>, QQueryOperations> relaysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'relays');
+    });
+  }
+
+  QueryBuilder<GroupModel, DateTime?, QQueryOperations> removedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'removedAt');
+    });
+  }
+
+  QueryBuilder<GroupModel, String?, QQueryOperations>
+  signedNostrEventProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'signedNostrEvent');
     });
   }
 

@@ -43,6 +43,7 @@ import 'package:uniun/features/receive_share/widgets/shared_incoming.dart';
 import 'package:uniun/features/media/pages/media_detail_page.dart';
 import 'package:uniun/features/media/pages/media_gallery_page.dart';
 import 'package:uniun/features/saved_notes/pages/saved_notes_page.dart';
+import 'package:uniun/features/surrounding/pages/surrounding_feed_page.dart';
 import 'package:uniun/features/settings/pages/blocked_users_page.dart';
 import 'package:uniun/features/settings/pages/edit_profile_page.dart';
 import 'package:uniun/features/settings/pages/language_selection_page.dart';
@@ -174,6 +175,11 @@ final GoRouter appRouter = GoRouter(
       name: AppRoutes.blockedUsers,
       path: '/blocked-users',
       builder: (_, __) => const BlockedUsersPage(),
+    ),
+    GoRoute(
+      name: AppRoutes.surrounding,
+      path: '/surrounding',
+      builder: (_, __) => const SurroundingFeedPage(),
     ),
     // ── Deep-linkable: public group ──────────────────────────────────────
     // https://<host>/group/<groupId>?dl=1&relays=...&name=...

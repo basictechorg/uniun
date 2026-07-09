@@ -20,6 +20,14 @@ class ManasModel {
 
   late DateTime createdAt;
   late DateTime updatedAt;
+
+  /// Signed+encrypted Nostr Kind 30510 event for this row (§3). Nullable
+  /// during Phase 0a migration.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Null on active Manases.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension ManasModelExtension on ManasModel {

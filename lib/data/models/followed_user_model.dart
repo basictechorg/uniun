@@ -5,9 +5,9 @@ part 'followed_user_model.g.dart';
 
 /// Local persistence for users the active identity is following (NIP-02 Kind 3).
 ///
-/// Source of truth is the Nostr Kind 3 event for our own pubkey; this table is
-/// reconciled on every inbound Kind 3 (see `kind3_contact_list_handler.dart`)
-/// using last-write-wins by `created_at`.
+/// Relay sync still publishes / consumes the aggregate Kind 3 contact list, but
+/// same-identity mesh sync shares one followed user per addressable private
+/// record so unfollows can ride as per-pubkey tombstones.
 @Collection(ignore: {'copyWith'})
 @Name('FollowedUser')
 class FollowedUserModel {
@@ -24,13 +24,21 @@ class FollowedUserModel {
   /// Used by the handler to reject older Kind 3 events. Null = locally-added
   /// row that hasn't been confirmed back from a relay yet.
   DateTime? lastKind3CreatedAt;
+
+  /// Signed+encrypted Nostr Kind 30505 event for this row. Nullable for rows
+  /// learned only from a relay Kind 3 before this device mutates them.
+  String? signedNostrEvent;
+
+  /// Tombstone marker. Null on active follows.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension FollowedUserModelExtension on FollowedUserModel {
   FollowedUserEntity toDomain() => FollowedUserEntity(
-        pubkeyHex: pubkeyHex,
-        relayHint: relayHint,
-        petname: petname,
-        followedAt: followedAt,
-      );
+    pubkeyHex: pubkeyHex,
+    relayHint: relayHint,
+    petname: petname,
+    followedAt: followedAt,
+  );
 }

@@ -17,6 +17,9 @@ import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/services/marmot_mls_service.dart';
+import 'package:uniun/features/mesh/sync/bodies/private_group_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import 'package:injectable/injectable.dart';
 
@@ -25,9 +28,15 @@ class MarmotTransportService {
   final Isar _isar;
   final MarmotMlsService _mlsService;
   final NoteRelationRepository _relations;
+  final MeshEventSigner _signer;
   StreamSubscription<void>? _subscription;
 
-  MarmotTransportService(this._isar, this._mlsService, this._relations);
+  MarmotTransportService(
+    this._isar,
+    this._mlsService,
+    this._relations,
+    this._signer,
+  );
 
   void start() {
     _processPendingMessages();
@@ -58,8 +67,17 @@ class MarmotTransportService {
           if (group == null) {
             continue;
           }
+          // Welcome confirms real membership on THIS device: bind the MLS
+          // group id and re-stamp the mesh event so the confirmed group syncs
+          // to the user's other devices.
+          group.mlsGroupId = joinedMlsGroupIdB64;
+          group.removedAt = null;
+          group.signedNostrEvent = await _signer.sign(
+            kind: MeshEventKinds.privateGroup,
+            dTag: group.groupId,
+            content: PrivateGroupBody.forActive(group),
+          );
           await _isar.writeTxn(() async {
-            group.mlsGroupId = joinedMlsGroupIdB64;
             await _isar.privateGroupModels.put(group);
             await _isar.encryptedMessageModels.delete(encrypted.id);
           });
@@ -340,6 +358,13 @@ class MarmotTransportService {
       ..relays = relays
       ..adminPubkey = authorPubkey;
 
+    // Mesh-sync the created group to the user's other devices.
+    model.signedNostrEvent = await _signer.sign(
+      kind: MeshEventKinds.privateGroup,
+      dTag: groupId,
+      content: PrivateGroupBody.forActive(model),
+    );
+
     await _isar.writeTxn(() async {
       await _isar.privateGroupModels.put(model);
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
@@ -379,19 +404,33 @@ class MarmotTransportService {
         .groupIdEqualTo(groupId)
         .findFirst();
 
+    // Build/patch the row outside the txn so the mesh event can be signed
+    // (async NIP-44 crypto) before opening the write transaction.
+    PrivateGroupModel? toPut;
+    if (existing == null) {
+      toPut = PrivateGroupModel()
+        ..groupId = groupId
+        ..mlsGroupId = '' // filled in after Welcome is received
+        ..name = groupId // placeholder until metadata synced
+        ..description = ''
+        ..relays = relays
+        ..adminPubkey = '';
+    } else if (existing.relays.isEmpty && relays.isNotEmpty) {
+      existing.relays = relays;
+      toPut = existing;
+    }
+    if (toPut != null) {
+      toPut.removedAt = null;
+      toPut.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.privateGroup,
+        dTag: groupId,
+        content: PrivateGroupBody.forActive(toPut),
+      );
+    }
+
     await _isar.writeTxn(() async {
-      if (existing == null) {
-        final stub = PrivateGroupModel()
-          ..groupId = groupId
-          ..mlsGroupId = '' // filled in after Welcome is received
-          ..name = groupId  // placeholder until metadata synced
-          ..description = ''
-          ..relays = relays
-          ..adminPubkey = '';
-        await _isar.privateGroupModels.put(stub);
-      } else if (existing.relays.isEmpty && relays.isNotEmpty) {
-        existing.relays = relays;
-        await _isar.privateGroupModels.put(existing);
+      if (toPut != null) {
+        await _isar.privateGroupModels.put(toPut);
       }
       await _isar.eventQueueModels.put(_buildQueueEntry(event));
     });

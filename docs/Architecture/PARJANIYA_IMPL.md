@@ -131,10 +131,11 @@ Every incoming event's `pubkey` + `p` tags are checked against `ProfileModel`. A
 
 ---
 
-### What the Gateway Does NOT Do Yet
+### What the Gateway Does Now
 
-- Does **not** subscribe to channel messages (Kind 41/42). `SubscriptionRecordModel` exists in Isar but the Gateway doesn't read it yet to open live `REQ` filters for channels.
-- Does **not** handle incoming Kind 42 (channel messages) — only stores the raw gift-wrap for DMs.
+- Subscribes to joined public groups via `GroupsSubscription`: Kind 42 messages are pulled with the recent-sync window, while Kind 40/41 metadata rides uncapped companion REQs.
+- Handles incoming Kind 42 group messages through `Kind42Handler`, storing them in the unified `NoteModel` collection with `kind == 42` and `groupId` set.
+- Validates inbound relay events before dispatch: malformed events, id mismatches, and bad signatures are dropped before any kind handler sees them.
 
 ---
 
@@ -155,25 +156,24 @@ lastReadEventId   — unread tracking checkpoint (same pattern as Vishnu feed)
 lastReadAt        — unix timestamp of last read
 ```
 
-**`ChannelMessageModel`** — stores one Kind 42 message per row:
+**`NoteModel`** — stores Kind 42 group messages in the unified note table:
 ```
 eventId        — the message's Nostr event id
-channelId      — which channel it belongs to (Kind 40 event id)
+groupId        — which public group it belongs to (Kind 40 event id)
 authorPubkey   — who sent it
 content        — the message text
 eTagRefs       — e-tag references
-rootEventId    — the channelId (Kind 40 id is the "root" for Kind 42)
+rootEventId    — the groupId (Kind 40 id is the "root" for Kind 42)
 replyToEventId — if this message replies to another message in the channel
 created        — timestamp
 ```
 
-**`SubscriptionRecordModel`** — stores what channels the user is subscribed to:
+**Joined `GroupModel` rows** drive gateway subscriptions:
 ```
-channelId       — which channel
-kinds           — [41, 42, 43, 44]
-eTags           — [channelId]
-lastUntilByRelay — Map<relayUrl, unixTimestamp> (pagination cursor per relay)
-enabled         — true/false
+groupId       — Kind 40 event id
+relays        — relay hints for this group
+Kind 42 REQ   — {"kinds":[42], "#e":[groupId...], "since": recentWindow}
+Kind 40/41    — uncapped companion REQs for group creation + metadata
 ```
 
 ---
@@ -183,7 +183,7 @@ enabled         — true/false
 | Use Case | What It Does |
 |----------|-------------|
 | `CreateChannelUseCase` | Builds + signs Kind 40 → saves `ChannelModel` → enqueues in `EventQueueModel` → saves `SubscriptionRecordEntity` |
-| `CreateChannelMessageUseCase` | Builds + signs Kind 42 → saves to `ChannelMessageModel` → enqueues in `EventQueueModel` |
+| `CreateChannelMessageUseCase` | Builds + signs Kind 42 → saves to unified `NoteModel` → enqueues in `EventQueueModel` |
 | `SubscribeChannelUseCase` | Saves a `SubscriptionRecordEntity` for an existing channel |
 | `GetChannelsUseCase` | Returns all channels from Isar |
 | `GetChannelByIdUseCase` | Returns one channel by channelId |
@@ -265,7 +265,7 @@ Only `["p", recipient_pubkey]` is visible on the relay. The relay cannot read co
 ✅  Missing profile auto-fetch (MissingProfilePubkeyModel watcher)
 ✅  cachedReplyCount increment on incoming Kind 1 replies
 ✅  Followed note reference count bump
-✅  ChannelModel + ChannelMessageModel + SubscriptionRecordModel
+✅  GroupModel + unified NoteModel Kind 42 storage
 ✅  All channel use cases
 ✅  Create channel page
 ✅  Channel feed page (message list + composer)
@@ -276,10 +276,10 @@ Only `["p", recipient_pubkey]` is visible on the relay. The relay cannot read co
 ✅  Create DM page
 ✅  DM chat page
 
-🔲  Gateway: read SubscriptionRecordModel and open Kind 41/42 REQ per channel
-🔲  Gateway: handle incoming Kind 42 → ChannelMessageModel
-🔲  Channel list in drawer
-🔲  Channel unread badge
+✅  Gateway: open Kind 42 group subscriptions for joined groups
+✅  Gateway: handle incoming Kind 42 → unified NoteModel
+✅  Channel list in drawer
+✅  Channel unread badge
 🔲  Kind 41 metadata update UI
 🔲  Subscribe to existing channel by ID (discovery flow)
 ```

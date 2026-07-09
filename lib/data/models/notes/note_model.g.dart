@@ -64,21 +64,31 @@ const NoteModelSchema = CollectionSchema(
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
-    r'replyToEventId': PropertySchema(
+    r'rawEventJson': PropertySchema(
       id: 13,
+      name: r'rawEventJson',
+      type: IsarType.string,
+    ),
+    r'replyToEventId': PropertySchema(
+      id: 14,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'rootEventId',
       type: IsarType.string,
     ),
-    r'sig': PropertySchema(id: 15, name: r'sig', type: IsarType.string),
-    r'subject': PropertySchema(id: 16, name: r'subject', type: IsarType.string),
-    r'tTags': PropertySchema(id: 17, name: r'tTags', type: IsarType.stringList),
+    r'sig': PropertySchema(id: 16, name: r'sig', type: IsarType.string),
+    r'signedNostrEvent': PropertySchema(
+      id: 17,
+      name: r'signedNostrEvent',
+      type: IsarType.string,
+    ),
+    r'subject': PropertySchema(id: 18, name: r'subject', type: IsarType.string),
+    r'tTags': PropertySchema(id: 19, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'type',
       type: IsarType.string,
       enumMap: _NoteModeltypeEnumValueMap,
@@ -285,6 +295,12 @@ int _noteModelEstimateSize(
     }
   }
   {
+    final value = object.rawEventJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.replyToEventId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -297,6 +313,12 @@ int _noteModelEstimateSize(
     }
   }
   bytesCount += 3 + object.sig.length * 3;
+  {
+    final value = object.privateMeshEventJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   {
     final value = object.subject;
     if (value != null) {
@@ -338,12 +360,14 @@ void _noteModelSerialize(
   writer.writeBool(offsets[10], object.hasMedia);
   writer.writeLong(offsets[11], object.kind);
   writer.writeStringList(offsets[12], object.pTagRefs);
-  writer.writeString(offsets[13], object.replyToEventId);
-  writer.writeString(offsets[14], object.rootEventId);
-  writer.writeString(offsets[15], object.sig);
-  writer.writeString(offsets[16], object.subject);
-  writer.writeStringList(offsets[17], object.tTags);
-  writer.writeString(offsets[18], object.type.name);
+  writer.writeString(offsets[13], object.rawEventJson);
+  writer.writeString(offsets[14], object.replyToEventId);
+  writer.writeString(offsets[15], object.rootEventId);
+  writer.writeString(offsets[16], object.sig);
+  writer.writeString(offsets[17], object.privateMeshEventJson);
+  writer.writeString(offsets[18], object.subject);
+  writer.writeStringList(offsets[19], object.tTags);
+  writer.writeString(offsets[20], object.type.name);
 }
 
 NoteModel _noteModelDeserialize(
@@ -372,13 +396,15 @@ NoteModel _noteModelDeserialize(
     privateGroupId: reader.readStringOrNull(offsets[9]),
     kind: reader.readLongOrNull(offsets[11]) ?? kNoteKind,
     pTagRefs: reader.readStringList(offsets[12]) ?? [],
-    replyToEventId: reader.readStringOrNull(offsets[13]),
-    rootEventId: reader.readStringOrNull(offsets[14]),
-    sig: reader.readString(offsets[15]),
-    subject: reader.readStringOrNull(offsets[16]),
-    tTags: reader.readStringList(offsets[17]) ?? [],
+    rawEventJson: reader.readStringOrNull(offsets[13]),
+    replyToEventId: reader.readStringOrNull(offsets[14]),
+    rootEventId: reader.readStringOrNull(offsets[15]),
+    sig: reader.readString(offsets[16]),
+    privateMeshEventJson: reader.readStringOrNull(offsets[17]),
+    subject: reader.readStringOrNull(offsets[18]),
+    tTags: reader.readStringList(offsets[19]) ?? [],
     type:
-        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[18])] ??
+        _NoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[20])] ??
         NoteType.text,
   );
   object.hasMedia = reader.readBool(offsets[10]);
@@ -431,12 +457,16 @@ P _noteModelDeserializeProp<P>(
     case 14:
       return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readString(offset)) as P;
-    case 16:
       return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 20:
       return (_NoteModeltypeValueEnumMap[reader.readStringOrNull(offset)] ??
               NoteType.text)
           as P;
@@ -3069,6 +3099,168 @@ extension NoteModelQueryFilter
   }
 
   QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'rawEventJson'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'rawEventJson'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> rawEventJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> rawEventJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'rawEventJson',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition> rawEventJsonMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'rawEventJson',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'rawEventJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  rawEventJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'rawEventJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -3534,6 +3726,165 @@ extension NoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'sig', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'signedNostrEvent',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'signedNostrEvent',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterFilterCondition>
+  privateMeshEventJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'signedNostrEvent', value: ''),
       );
     });
   }
@@ -4181,6 +4532,18 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByRawEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByRawEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -4214,6 +4577,20 @@ extension NoteModelQuerySortBy on QueryBuilder<NoteModel, NoteModel, QSortBy> {
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> sortBySigDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  sortByPrivateMeshEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  sortByPrivateMeshEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
     });
   }
 
@@ -4377,6 +4754,18 @@ extension NoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByRawEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByRawEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'replyToEventId', Sort.asc);
@@ -4410,6 +4799,20 @@ extension NoteModelQuerySortThenBy
   QueryBuilder<NoteModel, NoteModel, QAfterSortBy> thenBySigDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  thenByPrivateMeshEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QAfterSortBy>
+  thenByPrivateMeshEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
     });
   }
 
@@ -4527,6 +4930,14 @@ extension NoteModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByRawEventJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rawEventJson', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByReplyToEventId({
     bool caseSensitive = true,
   }) {
@@ -4551,6 +4962,17 @@ extension NoteModelQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sig', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<NoteModel, NoteModel, QDistinct> distinctByPrivateMeshEventJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'signedNostrEvent',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -4665,6 +5087,12 @@ extension NoteModelQueryProperty
     });
   }
 
+  QueryBuilder<NoteModel, String?, QQueryOperations> rawEventJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rawEventJson');
+    });
+  }
+
   QueryBuilder<NoteModel, String?, QQueryOperations> replyToEventIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'replyToEventId');
@@ -4680,6 +5108,13 @@ extension NoteModelQueryProperty
   QueryBuilder<NoteModel, String, QQueryOperations> sigProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sig');
+    });
+  }
+
+  QueryBuilder<NoteModel, String?, QQueryOperations>
+  privateMeshEventJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'signedNostrEvent');
     });
   }
 

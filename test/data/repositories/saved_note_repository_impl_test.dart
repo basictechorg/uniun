@@ -4,10 +4,12 @@ import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/data/models/saved_note_model.dart';
 import 'package:uniun/data/repositories/note_attachments_enricher.dart';
 import 'package:uniun/data/repositories/saved_note_repository_impl.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../../_helpers/fake_note_relations.dart';
 import '../../_helpers/fixtures.dart';
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 /// End-to-end tests for [SavedNoteRepositoryImpl]. Real Isar so the sort +
 /// filter + unique-index behaviour runs unstubbed. The
@@ -23,10 +25,15 @@ void main() {
     isar = await openTestIsar();
     relations = FakeNoteRelations();
     enricher = NoteAttachmentsEnricher(isar: isar);
+    // Signer with a logged-out stub — `sign()` returns null so rows are
+    // written with `signedNostrEvent = null`. These tests assert on Isar
+    // shape only; the wire form is covered by mesh integration tests.
+    final signer = MeshEventSigner(StubUserRepository()..keys = null);
     repo = SavedNoteRepositoryImpl(
       isar: isar,
       relations: relations,
       attachments: enricher,
+      signer: signer,
     );
   });
 
@@ -108,11 +115,21 @@ void main() {
   // ── unsaveNote ───────────────────────────────────────────────────────────
 
   group('unsaveNote', () {
-    test('removes the row', () async {
+    test('keeps the row as a tombstone (plan §5a)', () async {
+      // Phase 1 replaced hard-delete with a `removedAt` tombstone: the row
+      // stays so future negentropy passes still surface the state flip.
+      // `isSaved` returns false; UI reads filter on `removedAt == null`.
       await repo.saveNote(aNote(id: 'ev-1'));
       final r = await repo.unsaveNote('ev-1');
       expect(r.isRight(), isTrue);
-      expect(await isar.savedNoteModels.count(), 0);
+      expect(await isar.savedNoteModels.count(), 1);
+      final row = (await isar.savedNoteModels
+          .where()
+          .eventIdEqualTo('ev-1')
+          .findFirst())!;
+      expect(row.removedAt, isNotNull);
+      final isSavedNow = await repo.isSaved('ev-1');
+      expect(isSavedNow.getOrElse(() => throw 'x'), isFalse);
     });
 
     test('unsave of non-existent id is a no-op Right', () async {
@@ -120,15 +137,20 @@ void main() {
       expect(r.isRight(), isTrue);
     });
 
-    test('unsave then re-save works (fresh row)', () async {
+    test('unsave then re-save reactivates the same row', () async {
+      // Same eventId row is reused: the tombstone is cleared and content
+      // refreshes to the latest save. Preserves the addressable-slot
+      // invariant of the Kind-30500 wire form.
       await repo.saveNote(aNote(id: 'ev-1', content: 'first'));
       await repo.unsaveNote('ev-1');
       await repo.saveNote(aNote(id: 'ev-1', content: 'second'));
+      expect(await isar.savedNoteModels.count(), 1);
       final row = (await isar.savedNoteModels
           .where()
           .eventIdEqualTo('ev-1')
           .findFirst())!;
       expect(row.content, 'second');
+      expect(row.removedAt, isNull);
     });
   });
 

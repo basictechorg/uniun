@@ -6,6 +6,7 @@ import 'package:uniun/data/models/blocked_user_model.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 import 'package:uniun/gateway/session/nostr_frame.dart';
 import 'package:uniun/gateway/session/relay_session.dart';
 
@@ -18,6 +19,7 @@ class InboundBus {
   final Isar _isar;
   final List<KindHandler> _handlers;
   final MissingProfileTracker _missingProfileTracker;
+  final NostrEventVerifier _verifier;
 
   final Map<int, KindHandler> _byKind = {};
   StreamSubscription<InboundEvent>? _sub;
@@ -39,9 +41,11 @@ class InboundBus {
     required Isar isar,
     required List<KindHandler> handlers,
     required MissingProfileTracker missingProfileTracker,
-  })  : _isar = isar,
-        _handlers = handlers,
-        _missingProfileTracker = missingProfileTracker {
+    NostrEventVerifier verifier = const NostrEventVerifier(),
+  }) : _isar = isar,
+       _handlers = handlers,
+       _missingProfileTracker = missingProfileTracker,
+       _verifier = verifier {
     for (final h in _handlers) {
       for (final k in h.kinds) {
         _byKind[k] = h;
@@ -64,14 +68,22 @@ class InboundBus {
   }
 
   Future<void> _reloadBlocked() async {
-    final rows = await _isar.blockedUserModels.where().findAll();
+    // Tombstoned rows (removedAt != null) are unblocked — they must NOT
+    // filter inbound traffic anymore. Same for [_reloadDeleted].
+    final rows = await _isar.blockedUserModels
+        .filter()
+        .removedAtIsNull()
+        .findAll();
     _blockedPubkeys
       ..clear()
       ..addAll(rows.map((r) => r.pubkeyHex));
   }
 
   Future<void> _reloadDeleted() async {
-    final rows = await _isar.deletedNoteModels.where().findAll();
+    final rows = await _isar.deletedNoteModels
+        .filter()
+        .removedAtIsNull()
+        .findAll();
     _deletedEventIds
       ..clear()
       ..addAll(rows.map((r) => r.eventId));
@@ -84,29 +96,31 @@ class InboundBus {
   }
 
   Future<void> _onEvent(InboundEvent msg) async {
-    final event = msg.event;
+    final event = _verifier.verify(msg.event);
+    if (event == null) {
+      debugPrint('GATEWAY: invalid inbound EVENT sub=${msg.subId} — dropped');
+      return;
+    }
     // Drop everything authored by a blocked user before any tracking or
     // persistence. Note: Kind-1059 DM gift wraps carry an ephemeral wrapper
     // pubkey, so this does not block DMs by their real author — acceptable,
     // since blocking targets feed/note content.
-    final pubkey = event['pubkey'] as String?;
-    if (pubkey != null && _blockedPubkeys.contains(pubkey)) {
-      debugPrint('GATEWAY: event from blocked $pubkey — dropped');
+    if (_blockedPubkeys.contains(event.pubkey)) {
+      debugPrint('GATEWAY: event from blocked ${event.pubkey} — dropped');
       return;
     }
     // Drop anything the user has locally deleted so it never resyncs.
-    final id = event['id'] as String?;
-    if (id != null && _deletedEventIds.contains(id)) {
-      debugPrint('GATEWAY: event $id is tombstoned — dropped');
+    if (_deletedEventIds.contains(event.id)) {
+      debugPrint('GATEWAY: event ${event.id} is tombstoned — dropped');
       return;
     }
-    unawaited(_missingProfileTracker.track(event));
-    final kind = event['kind'] as int?;
-    debugPrint('GATEWAY: inbound EVENT sub=${msg.subId} kind=$kind id=${event['id']}');
-    if (kind == null) return;
-    final handler = _byKind[kind];
+    unawaited(_missingProfileTracker.track(event.toMap()));
+    debugPrint(
+      'GATEWAY: inbound EVENT sub=${msg.subId} kind=${event.kind} id=${event.id}',
+    );
+    final handler = _byKind[event.kind];
     if (handler == null) {
-      debugPrint('GATEWAY: no handler for kind=$kind — dropped');
+      debugPrint('GATEWAY: no handler for kind=${event.kind} — dropped');
       return;
     }
     await handler.handle(event, _isar);

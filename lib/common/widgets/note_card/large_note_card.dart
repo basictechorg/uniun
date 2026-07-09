@@ -281,7 +281,7 @@ class _LargeNoteCardView extends StatelessWidget {
                 _LargeActionChip(
                   icon: Icons.ios_share_rounded,
                   color: colorScheme.onSurfaceVariant,
-                  onTap: () => ShareSheetPage.show(context, note.id),
+                  onTap: () => ShareSheetPage.show(context, note),
                 ),
               ],
             ),

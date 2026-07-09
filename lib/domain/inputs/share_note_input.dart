@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
+import 'package:uniun/domain/entities/note/note_entity.dart';
 
 part 'share_note_input.freezed.dart';
 
@@ -31,9 +32,11 @@ sealed class ShareDestination with _$ShareDestination {
 @freezed
 abstract class ShareNoteInput with _$ShareNoteInput {
   const factory ShareNoteInput({
-    /// Event id of the note being shared. Resolved by the repository so it can
-    /// snapshot the original into the outgoing event's `embeddedNoteJson` tag.
-    required String sourceEventId,
+    /// The note being shared. Carried directly from the UI (every share button
+    /// already renders a [NoteEntity]) so the repository never re-resolves by
+    /// id — it works for any store that backs a NoteCard, including the
+    /// ephemeral Surrounding (mesh) collection.
+    required NoteEntity source,
     required ShareDestination destination,
 
     /// The user's own composed note text published alongside the embed. May be

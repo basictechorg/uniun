@@ -96,5 +96,21 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
     end
+
+    # file_picker ships an *unprefixed* ObjC class `FileUtils` (statically linked
+    # into Runner.debug.dylib). It collides with Apple's private OSAnalytics.framework
+    # `FileUtils`, which loads under the `flutter run`/debug launch path — the objc
+    # runtime then keeps only one implementation and a retain on the wrong-layout
+    # instance faults (cold-start EXC_BAD_ACCESS, main thread). All file_picker
+    # references are compile-time symbols (no NSClassFromString), so a scoped
+    # preprocessor define renames the class declaration, implementation, and every
+    # call site consistently; `#import "FileUtils.h"` filenames are string literals
+    # and stay untouched. No system header file_picker imports has a `FileUtils` token.
+    if target.name == 'file_picker'
+      target.build_configurations.each do |config|
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FileUtils=FPFileUtils'
+      end
+    end
   end
 end

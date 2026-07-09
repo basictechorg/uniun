@@ -10,29 +10,39 @@ import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
 import 'package:uniun/domain/repositories/note_relation_repository.dart';
 import 'package:uniun/domain/repositories/saved_note_repository.dart';
+import 'package:uniun/features/mesh/sync/bodies/saved_note_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 @Injectable(as: SavedNoteRepository)
 class SavedNoteRepositoryImpl extends SavedNoteRepository {
   final Isar isar;
   final NoteRelationRepository _relations;
   final NoteAttachmentsEnricher _attachments;
+  final MeshEventSigner _signer;
   SavedNoteRepositoryImpl({
     required this.isar,
     required NoteRelationRepository relations,
     required NoteAttachmentsEnricher attachments,
+    required MeshEventSigner signer,
   })  : _relations = relations,
-        _attachments = attachments;
+        _attachments = attachments,
+        _signer = signer;
 
   @override
   Future<Either<Failure, SavedNoteEntity>> saveNote(NoteEntity note) async {
     try {
+      // Reactivate an existing tombstone rather than short-circuit if the row
+      // was previously unsaved on this device — the user meant "save again".
       final existing = await isar.savedNoteModels
           .where()
           .eventIdEqualTo(note.id)
           .findFirst();
-      if (existing != null) return Right(existing.toDomain());
+      if (existing != null && existing.removedAt == null) {
+        return Right(existing.toDomain());
+      }
 
-      final model = SavedNoteModel()
+      final model = (existing ?? SavedNoteModel())
         ..eventId = note.id
         ..sig = note.sig
         ..authorPubkey = note.authorPubkey
@@ -50,7 +60,14 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
         ..embeddedNoteJson = note.embeddedNoteJson
         ..attachments = [
           for (final a in note.attachments) _toEmbedded(a),
-        ];
+        ]
+        ..removedAt = null;
+
+      model.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.savedNote,
+        dTag: note.id,
+        content: SavedNoteBody.forActive(model),
+      );
 
       await isar.writeTxn(() async {
         await isar.savedNoteModels.put(model);
@@ -65,13 +82,25 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
   @override
   Future<Either<Failure, Unit>> unsaveNote(String eventId) async {
     try {
+      final model = await isar.savedNoteModels
+          .where()
+          .eventIdEqualTo(eventId)
+          .findFirst();
+      if (model == null || model.removedAt != null) return const Right(unit);
+
+      // Undo semantics per plan §5a: keep the row, flip to tombstone state,
+      // and re-sign a fresh mesh event with a NEWER `created_at`. Row stays
+      // so future negentropy passes still surface the "removed" state to
+      // other devices that only ever saw the "active" event.
+      model.removedAt = DateTime.now();
+      model.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.savedNote,
+        dTag: eventId,
+        content: SavedNoteBody.forRemoved(model),
+      );
+
       await isar.writeTxn(() async {
-        final model = await isar.savedNoteModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .findFirst();
-        if (model == null) return;
-        await isar.savedNoteModels.delete(model.id);
+        await isar.savedNoteModels.put(model);
       });
       return const Right(unit);
     } catch (e) {
@@ -82,11 +111,11 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
   @override
   Future<Either<Failure, bool>> isSaved(String eventId) async {
     try {
-      final exists = await isar.savedNoteModels
+      final row = await isar.savedNoteModels
           .where()
           .eventIdEqualTo(eventId)
           .findFirst();
-      return Right(exists != null);
+      return Right(row != null && row.removedAt == null);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
@@ -96,7 +125,8 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
   Future<Either<Failure, List<SavedNoteEntity>>> getAll() async {
     try {
       final all = await isar.savedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .sortBySavedAtDesc()
           .findAll();
       final savedIds = {for (final m in all) m.eventId};
@@ -138,6 +168,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
       final count = await isar.savedNoteModels
           .filter()
           .rootEventIdEqualTo(eventId)
+          .removedAtIsNull()
           .count();
       return Right(count);
     } catch (e) {
@@ -155,6 +186,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
       final replies = await isar.savedNoteModels
           .filter()
+          .removedAtIsNull()
           .anyOf(childIds.toSet(), (q, id) => q.eventIdEqualTo(id))
           .sortByCreated()
           .findAll();
@@ -184,6 +216,7 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
       final refs = await isar.savedNoteModels
           .filter()
+          .removedAtIsNull()
           .anyOf(parentIds.toSet(), (q, id) => q.eventIdEqualTo(id))
           .sortByCreated()
           .findAll();
@@ -205,9 +238,11 @@ class SavedNoteRepositoryImpl extends SavedNoteRepository {
 
 
   Future<Set<String>> _allSavedIds() async {
-    final ids =
-        await isar.savedNoteModels.where().eventIdProperty().findAll();
-    return ids.toSet();
+    final rows = await isar.savedNoteModels
+        .filter()
+        .removedAtIsNull()
+        .findAll();
+    return {for (final r in rows) r.eventId};
   }
 
   /// Maps a domain [MediaBlobEntity] back to the embedded Isar row for
