@@ -51,35 +51,45 @@ const SavedNoteModelSchema = CollectionSchema(
       name: r'pTagRefs',
       type: IsarType.stringList,
     ),
-    r'replyToEventId': PropertySchema(
+    r'removedAt': PropertySchema(
       id: 8,
+      name: r'removedAt',
+      type: IsarType.dateTime,
+    ),
+    r'replyToEventId': PropertySchema(
+      id: 9,
       name: r'replyToEventId',
       type: IsarType.string,
     ),
     r'rootEventId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'rootEventId',
       type: IsarType.string,
     ),
     r'savedAt': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'savedAt',
       type: IsarType.dateTime,
     ),
-    r'sig': PropertySchema(id: 11, name: r'sig', type: IsarType.string),
+    r'sig': PropertySchema(id: 12, name: r'sig', type: IsarType.string),
+    r'signedNostrEvent': PropertySchema(
+      id: 13,
+      name: r'signedNostrEvent',
+      type: IsarType.string,
+    ),
     r'sourceChannelId': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'sourceChannelId',
       type: IsarType.string,
     ),
     r'sourcePrivateGroupId': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'sourcePrivateGroupId',
       type: IsarType.string,
     ),
-    r'tTags': PropertySchema(id: 14, name: r'tTags', type: IsarType.stringList),
+    r'tTags': PropertySchema(id: 16, name: r'tTags', type: IsarType.stringList),
     r'type': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'type',
       type: IsarType.string,
       enumMap: _SavedNoteModeltypeEnumValueMap,
@@ -139,6 +149,19 @@ const SavedNoteModelSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'savedAt',
+          type: IndexType.value,
+          caseSensitive: false,
+        ),
+      ],
+    ),
+    r'removedAt': IndexSchema(
+      id: 4773562754172983303,
+      name: r'removedAt',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'removedAt',
           type: IndexType.value,
           caseSensitive: false,
         ),
@@ -209,6 +232,12 @@ int _savedNoteModelEstimateSize(
   }
   bytesCount += 3 + object.sig.length * 3;
   {
+    final value = object.signedNostrEvent;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.sourceGroupId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -250,14 +279,16 @@ void _savedNoteModelSerialize(
   writer.writeString(offsets[5], object.embeddedNoteJson);
   writer.writeString(offsets[6], object.eventId);
   writer.writeStringList(offsets[7], object.pTagRefs);
-  writer.writeString(offsets[8], object.replyToEventId);
-  writer.writeString(offsets[9], object.rootEventId);
-  writer.writeDateTime(offsets[10], object.savedAt);
-  writer.writeString(offsets[11], object.sig);
-  writer.writeString(offsets[12], object.sourceGroupId);
-  writer.writeString(offsets[13], object.sourcePrivateGroupId);
-  writer.writeStringList(offsets[14], object.tTags);
-  writer.writeString(offsets[15], object.type.name);
+  writer.writeDateTime(offsets[8], object.removedAt);
+  writer.writeString(offsets[9], object.replyToEventId);
+  writer.writeString(offsets[10], object.rootEventId);
+  writer.writeDateTime(offsets[11], object.savedAt);
+  writer.writeString(offsets[12], object.sig);
+  writer.writeString(offsets[13], object.signedNostrEvent);
+  writer.writeString(offsets[14], object.sourceGroupId);
+  writer.writeString(offsets[15], object.sourcePrivateGroupId);
+  writer.writeStringList(offsets[16], object.tTags);
+  writer.writeString(offsets[17], object.type.name);
 }
 
 SavedNoteModel _savedNoteModelDeserialize(
@@ -283,15 +314,17 @@ SavedNoteModel _savedNoteModelDeserialize(
   object.eventId = reader.readString(offsets[6]);
   object.id = id;
   object.pTagRefs = reader.readStringList(offsets[7]) ?? [];
-  object.replyToEventId = reader.readStringOrNull(offsets[8]);
-  object.rootEventId = reader.readStringOrNull(offsets[9]);
-  object.savedAt = reader.readDateTime(offsets[10]);
-  object.sig = reader.readString(offsets[11]);
-  object.sourceGroupId = reader.readStringOrNull(offsets[12]);
-  object.sourcePrivateGroupId = reader.readStringOrNull(offsets[13]);
-  object.tTags = reader.readStringList(offsets[14]) ?? [];
+  object.removedAt = reader.readDateTimeOrNull(offsets[8]);
+  object.replyToEventId = reader.readStringOrNull(offsets[9]);
+  object.rootEventId = reader.readStringOrNull(offsets[10]);
+  object.savedAt = reader.readDateTime(offsets[11]);
+  object.sig = reader.readString(offsets[12]);
+  object.signedNostrEvent = reader.readStringOrNull(offsets[13]);
+  object.sourceGroupId = reader.readStringOrNull(offsets[14]);
+  object.sourcePrivateGroupId = reader.readStringOrNull(offsets[15]);
+  object.tTags = reader.readStringList(offsets[16]) ?? [];
   object.type =
-      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[15])] ??
+      _SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(offsets[17])] ??
       NoteType.text;
   return object;
 }
@@ -327,20 +360,24 @@ P _savedNoteModelDeserializeProp<P>(
     case 7:
       return (reader.readStringList(offset) ?? []) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readDateTime(offset)) as P;
-    case 11:
-      return (reader.readString(offset)) as P;
-    case 12:
       return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readDateTime(offset)) as P;
+    case 12:
+      return (reader.readString(offset)) as P;
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 17:
       return (_SavedNoteModeltypeValueEnumMap[reader.readStringOrNull(
                 offset,
               )] ??
@@ -449,6 +486,14 @@ extension SavedNoteModelQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'savedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhere> anyRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'removedAt'),
       );
     });
   }
@@ -830,6 +875,129 @@ extension SavedNoteModelQueryWhere
           lower: [lowerSavedAt],
           includeLower: includeLower,
           upper: [upperSavedAt],
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtEqualTo(DateTime? removedAt) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [removedAt]),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtNotEqualTo(DateTime? removedAt) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtGreaterThan(DateTime? removedAt, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [removedAt],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtLessThan(DateTime? removedAt, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [],
+          upper: [removedAt],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterWhereClause>
+  removedAtBetween(
+    DateTime? lowerRemovedAt,
+    DateTime? upperRemovedAt, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [lowerRemovedAt],
+          includeLower: includeLower,
+          upper: [upperRemovedAt],
           includeUpper: includeUpper,
         ),
       );
@@ -1973,6 +2141,79 @@ extension SavedNoteModelQueryFilter
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'removedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  removedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'removedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
   replyToEventIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2478,6 +2719,165 @@ extension SavedNoteModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'sig', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'signedNostrEvent',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'signedNostrEvent',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterFilterCondition>
+  signedNostrEventIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'signedNostrEvent', value: ''),
       );
     });
   }
@@ -3221,6 +3621,19 @@ extension SavedNoteModelQuerySortBy
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> sortByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   sortByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
@@ -3271,6 +3684,20 @@ extension SavedNoteModelQuerySortBy
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> sortBySigDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  sortBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
     });
   }
 
@@ -3396,6 +3823,19 @@ extension SavedNoteModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> thenByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
   thenByReplyToEventId() {
     return QueryBuilder.apply(this, (query) {
@@ -3446,6 +3886,20 @@ extension SavedNoteModelQuerySortThenBy
   QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy> thenBySigDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sig', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QAfterSortBy>
+  thenBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
     });
   }
 
@@ -3544,6 +3998,13 @@ extension SavedNoteModelQueryWhereDistinct
   }
 
   QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
+  distinctByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'removedAt');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
   distinctByReplyToEventId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
@@ -3571,6 +4032,16 @@ extension SavedNoteModelQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sig', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, SavedNoteModel, QDistinct>
+  distinctBySignedNostrEvent({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'signedNostrEvent',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 
@@ -3670,6 +4141,13 @@ extension SavedNoteModelQueryProperty
     });
   }
 
+  QueryBuilder<SavedNoteModel, DateTime?, QQueryOperations>
+  removedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'removedAt');
+    });
+  }
+
   QueryBuilder<SavedNoteModel, String?, QQueryOperations>
   replyToEventIdProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -3693,6 +4171,13 @@ extension SavedNoteModelQueryProperty
   QueryBuilder<SavedNoteModel, String, QQueryOperations> sigProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sig');
+    });
+  }
+
+  QueryBuilder<SavedNoteModel, String?, QQueryOperations>
+  signedNostrEventProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'signedNostrEvent');
     });
   }
 

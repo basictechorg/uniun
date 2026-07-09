@@ -3,10 +3,12 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/followed_note_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/data/repositories/followed_note_repository_impl.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../../_helpers/fixtures.dart';
 import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 /// End-to-end tests for [FollowedNoteRepositoryImpl]. Real Isar so the derived
 /// `newReferenceCount` join against the edge + unread tables is exercised.
@@ -16,7 +18,11 @@ void main() {
 
   setUp(() async {
     isar = await openTestIsar();
-    repo = FollowedNoteRepositoryImpl(isar: isar);
+    // Signer with a logged-out stub — `sign()` returns null so rows are
+    // written with `signedNostrEvent = null`. These tests assert on Isar
+    // shape only; the wire form is covered by mesh integration tests.
+    final signer = MeshEventSigner(StubUserRepository()..keys = null);
+    repo = FollowedNoteRepositoryImpl(isar: isar, signer: signer);
   });
 
   tearDown(() async {
@@ -59,10 +65,15 @@ void main() {
   });
 
   group('unfollowNote', () {
-    test('removes the row', () async {
+    test('tombstones the row (mesh-idempotent undo per §5a)', () async {
       await repo.followNote('ev-1', 'x');
       await repo.unfollowNote('ev-1');
-      expect(await isar.followedNoteModels.count(), 0);
+      // Row survives as a tombstone so mesh negentropy propagates the undo.
+      final row = (await isar.followedNoteModels.where().findAll()).single;
+      expect(row.removedAt, isNotNull);
+      // getAll() hides tombstones from the UI.
+      final active = (await repo.getAll()).getOrElse(() => throw 'x');
+      expect(active, isEmpty);
     });
 
     test('unfollow non-existent id is a no-op Right', () async {

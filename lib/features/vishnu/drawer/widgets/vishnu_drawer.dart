@@ -136,6 +136,14 @@ class _VishnuDrawerState extends State<VishnuDrawer> {
                               context.pushNamed(AppRoutes.savedNotes);
                             },
                           ),
+                          _NavItem(
+                            icon: Icons.wifi_tethering_rounded,
+                            label: l10n.drawerSurrounding,
+                            onTap: () {
+                              _close(context);
+                              context.pushNamed(AppRoutes.surrounding);
+                            },
+                          ),
 
                           const SizedBox(height: 8),
 

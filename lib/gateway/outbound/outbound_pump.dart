@@ -29,9 +29,9 @@ class OutboundPump {
     required this.session,
     required int startFromQueueId,
     required Future<bool> Function(EventQueueModel) shouldSendToThisSession,
-  })  : _isar = isar,
-        _cursor = startFromQueueId,
-        _shouldSendToThisSession = shouldSendToThisSession {
+  }) : _isar = isar,
+       _cursor = startFromQueueId,
+       _shouldSendToThisSession = shouldSendToThisSession {
     _okSub = session.okAcks.listen(_onOk);
   }
 
@@ -83,8 +83,8 @@ class OutboundPump {
           await _isar.eventQueueModels.put(item);
         }
       });
-      _cursor = releasedQueueId;
     }
+    _cursor = releasedQueueId;
     unawaited(_processNext());
   }
 }

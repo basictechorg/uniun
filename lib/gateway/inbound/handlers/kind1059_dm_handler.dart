@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kind 1059 — NIP-17 gift-wrapped direct message.
 ///
@@ -12,32 +13,27 @@ class Kind1059DmHandler implements KindHandler {
   Set<int> get kinds => const {1059};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final eventId = event['id'] as String?;
-    if (eventId == null) {
-      return;
-    }
-
-    final pTagRef = EventParser.firstTagValue(event, 'p');
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
+    final pTagRef = EventParser.firstTagValue(event.toMap(), 'p');
     if (pTagRef == null) {
       return;
     }
 
     final model = EncryptedDmModel(
-      eventId: eventId,
-      sig: event['sig'] as String? ?? '',
-      authorPubkey: event['pubkey'] as String? ?? '',
+      eventId: event.id,
+      sig: event.sig,
+      authorPubkey: event.pubkey,
       pTagRef: pTagRef,
-      content: event['content'] as String? ?? '',
-      kind: event['kind'] as int? ?? 1059,
-      created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
+      content: event.content,
+      kind: event.kind,
+      created: EventParser.dateTimeFromSec(event.createdAt),
     );
 
     try {
       await isar.writeTxn(() async {
         final existing = await isar.encryptedDmModels
             .where()
-            .eventIdEqualTo(eventId)
+            .eventIdEqualTo(event.id)
             .findFirst();
         if (existing != null) return;
         await isar.encryptedDmModels.put(model);

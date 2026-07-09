@@ -7,11 +7,18 @@ import 'package:uniun/data/models/note_relation_model.dart';
 import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
 import 'package:uniun/domain/repositories/followed_note_repository.dart';
+import 'package:uniun/features/mesh/sync/bodies/followed_note_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 @Injectable(as: FollowedNoteRepository)
 class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   final Isar isar;
-  FollowedNoteRepositoryImpl({required this.isar});
+  final MeshEventSigner _signer;
+  FollowedNoteRepositoryImpl({
+    required this.isar,
+    required MeshEventSigner signer,
+  }) : _signer = signer;
 
   /// Child event IDs of [rootEventId] recorded in the reference edge table.
   Future<List<String>> _childIdsOf(String rootEventId) async {
@@ -47,7 +54,8 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   Future<Either<Failure, List<FollowedNoteEntity>>> getAll() async {
     try {
       final models = await isar.followedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .sortByFollowedAtDesc()
           .findAll();
       final entities = <FollowedNoteEntity>[];
@@ -64,16 +72,27 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   Future<Either<Failure, Unit>> followNote(
       String eventId, String contentPreview) async {
     try {
+      // Reactivate an existing tombstone rather than short-circuit if the row
+      // was previously unfollowed on this device — the user meant "follow again".
       final existing = await isar.followedNoteModels
           .where()
           .eventIdEqualTo(eventId)
           .findFirst();
-      if (existing != null) return const Right(unit);
+      if (existing != null && existing.removedAt == null) {
+        return const Right(unit);
+      }
 
-      final model = FollowedNoteModel()
+      final model = (existing ?? FollowedNoteModel())
         ..eventId = eventId
         ..contentPreview = contentPreview
-        ..followedAt = DateTime.now();
+        ..followedAt = DateTime.now()
+        ..removedAt = null;
+
+      model.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.followedNote,
+        dTag: eventId,
+        content: FollowedNoteBody.forActive(model),
+      );
 
       await isar.writeTxn(() async {
         await isar.followedNoteModels.put(model);
@@ -87,11 +106,23 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   @override
   Future<Either<Failure, Unit>> unfollowNote(String eventId) async {
     try {
+      final model = await isar.followedNoteModels
+          .where()
+          .eventIdEqualTo(eventId)
+          .findFirst();
+      if (model == null || model.removedAt != null) return const Right(unit);
+
+      // Undo semantics per plan §5a: keep the row, flip to tombstone state,
+      // re-sign a fresh mesh event with a NEWER `created_at`.
+      model.removedAt = DateTime.now();
+      model.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.followedNote,
+        dTag: eventId,
+        content: FollowedNoteBody.forRemoved(model),
+      );
+
       await isar.writeTxn(() async {
-        await isar.followedNoteModels
-            .where()
-            .eventIdEqualTo(eventId)
-            .deleteAll();
+        await isar.followedNoteModels.put(model);
       });
       return const Right(unit);
     } catch (e) {
@@ -123,8 +154,9 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   Future<Either<Failure, bool>> isFollowed(String eventId) async {
     try {
       final model = await isar.followedNoteModels
-          .where()
+          .filter()
           .eventIdEqualTo(eventId)
+          .removedAtIsNull()
           .findFirst();
       return Right(model != null);
     } catch (e) {
@@ -135,8 +167,9 @@ class FollowedNoteRepositoryImpl extends FollowedNoteRepository {
   @override
   Stream<bool> watchIsFollowed(String eventId) {
     return isar.followedNoteModels
-        .where()
+        .filter()
         .eventIdEqualTo(eventId)
+        .removedAtIsNull()
         .watch(fireImmediately: true)
         .map((rows) => rows.isNotEmpty);
   }

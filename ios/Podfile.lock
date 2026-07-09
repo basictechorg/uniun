@@ -1,6 +1,11 @@
 PODS:
   - background_downloader (0.0.1):
     - Flutter
+  - bonsoir_darwin (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - connectivity_plus (0.0.1):
+    - Flutter
   - disk_space_plus (0.0.1):
     - Flutter
   - DKImagePickerController/Core (4.3.9):
@@ -40,9 +45,9 @@ PODS:
   - Flutter (1.0.0)
   - flutter_file_dialog (0.0.1):
     - Flutter
-  - flutter_gemma (1.0.3):
+  - flutter_gemma (1.2.0):
     - Flutter
-  - flutter_gemma_mediapipe (0.1.0):
+  - flutter_gemma_mediapipe (1.0.3):
     - Flutter
     - MediaPipeTasksGenAI (= 0.10.33)
     - MediaPipeTasksGenAIC (= 0.10.33)
@@ -93,6 +98,9 @@ PODS:
     - Flutter
   - package_info_plus (0.4.5):
     - Flutter
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - receive_sharing_intent (1.8.1):
     - Flutter
   - SDWebImage (5.21.7):
@@ -121,6 +129,8 @@ PODS:
 
 DEPENDENCIES:
   - background_downloader (from `.symlinks/plugins/background_downloader/ios`)
+  - bonsoir_darwin (from `.symlinks/plugins/bonsoir_darwin/darwin`)
+  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - disk_space_plus (from `.symlinks/plugins/disk_space_plus/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - Flutter (from `Flutter`)
@@ -139,6 +149,7 @@ DEPENDENCIES:
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - open_filex (from `.symlinks/plugins/open_filex/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -163,6 +174,10 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   background_downloader:
     :path: ".symlinks/plugins/background_downloader/ios"
+  bonsoir_darwin:
+    :path: ".symlinks/plugins/bonsoir_darwin/darwin"
+  connectivity_plus:
+    :path: ".symlinks/plugins/connectivity_plus/ios"
   disk_space_plus:
     :path: ".symlinks/plugins/disk_space_plus/ios"
   file_picker:
@@ -199,6 +214,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/open_filex/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   receive_sharing_intent:
     :path: ".symlinks/plugins/receive_sharing_intent/ios"
   share_plus:
@@ -218,14 +235,16 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   background_downloader: 50e91d979067b82081aba359d7d916b3ba5fadad
+  bonsoir_darwin: 29c7ccf356646118844721f36e1de4b61f6cbd0e
+  connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   disk_space_plus: a36391fb5f732dbdd29628b0bac5a1acbd43aaef
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
   file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_file_dialog: ca8d7fbd1772d4f0c2777b4ab20a7787ef4e7dd8
-  flutter_gemma: 5e1c11add491439c2dae9a83b0f091787445a1a0
-  flutter_gemma_mediapipe: 4b7c676ab06a0ba2888e926885f451aec10847b2
+  flutter_gemma: 9786cf8594fc2b659c8925794922b008189b51f4
+  flutter_gemma_mediapipe: 63afceaaba87c31d73c36934c6a3990a4da8e2c3
   flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
   flutter_keyboard_visibility: 4625131e43015dbbe759d9b20daaf77e0e3f6619
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
@@ -242,6 +261,7 @@ SPEC CHECKSUMS:
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   open_filex: 432f3cd11432da3e39f47fcc0df2b1603854eff1
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
+  path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
   receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
@@ -254,6 +274,6 @@ SPEC CHECKSUMS:
   video_compress: f2133a07762889d67f0711ac831faa26f956980e
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 5627ee7ac0a6ca3aaf1ba198c16b6e255f714844
+PODFILE CHECKSUM: bbbc7ea8f39f945906ee7fa0c4b72f9948d18eba
 
 COCOAPODS: 1.16.2

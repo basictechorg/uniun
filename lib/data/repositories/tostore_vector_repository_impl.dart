@@ -76,6 +76,7 @@ class TostoreVectorRepositoryImpl implements VectorRepository {
 
     final saved = await _isar.savedNoteModels
         .filter()
+        .removedAtIsNull()
         .anyOf(wanted, (q, id) => q.eventIdEqualTo(id))
         .findAll();
     for (final s in saved) {

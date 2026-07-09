@@ -35,6 +35,16 @@ class GroupModel {
 
   /// Event id of the last accepted kind 41.
   String? lastMetaEvent;
+
+  /// Signed + NIP-44-self-encrypted Kind-30540 mesh event mirroring this
+  /// group's membership. Null for rows learned only from a relay (kind 40/41)
+  /// before this device mutates them; the same-identity mesh advertises only
+  /// rows that carry a signed event.
+  String? signedNostrEvent;
+
+  /// Tombstone marker for a left group. Null on active membership.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension GroupModelExtension on GroupModel {

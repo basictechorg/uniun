@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Handles inbound Nostr events of one (or a few) kind(s).
 ///
@@ -8,7 +9,7 @@ abstract class KindHandler {
   /// Set of Nostr `kind` integers this handler processes.
   Set<int> get kinds;
 
-  /// Parse, validate, and persist [event]. Must be idempotent — duplicate
+  /// Parse and persist [event]. Must be idempotent — duplicate
   /// deliveries from concurrent relays are expected.
-  Future<void> handle(Map<String, dynamic> event, Isar isar);
+  Future<void> handle(VerifiedNostrEvent event, Isar isar);
 }

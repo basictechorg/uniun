@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/data/models/blocked_user_model.dart';
 import 'package:uniun/data/repositories/blocked_user_repository_impl.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../../_helpers/fixtures.dart';
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 /// End-to-end tests for [BlockedUserRepositoryImpl]. Real Isar so the
 /// blockedAt sort + unique pubkey guard behave exactly as production.
@@ -14,7 +16,11 @@ void main() {
 
   setUp(() async {
     isar = await openTestIsar();
-    repo = BlockedUserRepositoryImpl(isar: isar);
+    // Signer with a logged-out stub — `sign()` returns null so rows are
+    // written with `signedNostrEvent = null`. These tests assert on Isar
+    // shape only; the wire form is covered by mesh integration tests.
+    final signer = MeshEventSigner(StubUserRepository()..keys = null);
+    repo = BlockedUserRepositoryImpl(isar: isar, signer: signer);
   });
 
   tearDown(() async {
@@ -54,11 +60,17 @@ void main() {
   // ── unblockUser ──────────────────────────────────────────────────────────
 
   group('unblockUser', () {
-    test('removes the row', () async {
+    test('tombstones the row (mesh-idempotent undo per §5a)', () async {
       await repo.blockUser(kAlicePub);
       final r = await repo.unblockUser(kAlicePub);
       expect(r.isRight(), isTrue);
-      expect(await isar.blockedUserModels.count(), 0);
+      // Row survives as a tombstone so mesh negentropy can propagate the
+      // "unblock" to peer devices.
+      final row = (await isar.blockedUserModels.where().findAll()).single;
+      expect(row.removedAt, isNotNull);
+      // Repo-level query hides tombstones from the UI.
+      final active = (await repo.getAll()).getOrElse(() => throw 'x');
+      expect(active, isEmpty);
     });
 
     test('unblock non-blocked pubkey is a no-op Right', () async {
@@ -100,7 +112,7 @@ void main() {
   // ── Scale ─────────────────────────────────────────────────────────────────
 
   group('scale', () {
-    test('100 blocks + one bulk unblock', () async {
+    test('100 blocks + one bulk unblock leaves 100 tombstones, 0 active', () async {
       for (var i = 0; i < 100; i++) {
         await repo.blockUser('pk-$i');
       }
@@ -108,7 +120,10 @@ void main() {
       for (var i = 0; i < 100; i++) {
         await repo.unblockUser('pk-$i');
       }
-      expect(await isar.blockedUserModels.count(), 0);
+      // Tombstones remain (mesh-syncable), but nothing is active.
+      expect(await isar.blockedUserModels.count(), 100);
+      final active = (await repo.getAll()).getOrElse(() => throw 'x');
+      expect(active, isEmpty);
     });
   });
 }

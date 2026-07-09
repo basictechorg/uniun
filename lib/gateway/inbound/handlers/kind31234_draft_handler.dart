@@ -6,6 +6,7 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/draft_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// NIP-37 — encrypted draft wrap (Kind 31234).
 ///
@@ -29,34 +30,26 @@ class Kind31234DraftHandler implements KindHandler {
   Set<int> get kinds => const {kDraftWrapKind};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final eventId = event['id'] as String?;
-    final pubkey = event['pubkey'] as String?;
-    final createdAtSec = event['created_at'] as int?;
-    final content = event['content'] as String?;
-    final tags = (event['tags'] as List?) ?? const [];
-    if (eventId == null ||
-        pubkey == null ||
-        createdAtSec == null ||
-        content == null ||
-        activePubkey == null ||
-        activePrivkey == null) {
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
+    if (activePubkey == null || activePrivkey == null) {
       return;
     }
-    if (pubkey != activePubkey) return;
+    if (event.pubkey != activePubkey) return;
 
-    final draftId = _firstTagValue(tags, 'd');
+    final draftId = _firstTagValue(event.tags, 'd');
     if (draftId == null) return;
 
-    final incomingCreatedAt = EventParser.dateTimeFromSec(createdAtSec);
+    final incomingCreatedAt = EventParser.dateTimeFromSec(event.createdAt);
 
-    final existing =
-        await isar.draftModels.filter().draftIdEqualTo(draftId).findFirst();
+    final existing = await isar.draftModels
+        .filter()
+        .draftIdEqualTo(draftId)
+        .findFirst();
     final lastSeen = existing?.lastSyncedCreatedAt;
     if (lastSeen != null && !incomingCreatedAt.isAfter(lastSeen)) return;
 
     // Empty content → NIP-37 deletion signal.
-    if (content.isEmpty) {
+    if (event.content.isEmpty) {
       if (existing == null) return;
       await isar.writeTxn(() async {
         await isar.draftModels.delete(existing.id);
@@ -68,7 +61,7 @@ class Kind31234DraftHandler implements KindHandler {
     Map<String, dynamic> inner;
     try {
       final plain = await Nip44.decryptMessage(
-        content,
+        event.content,
         activePrivkey!,
         activePubkey!,
       );
@@ -122,7 +115,7 @@ class Kind31234DraftHandler implements KindHandler {
         row.createdAt = existing?.createdAt ?? incomingCreatedAt;
         row.updatedAt = incomingCreatedAt;
         row.lastSyncedCreatedAt = incomingCreatedAt;
-        row.lastSyncedEventId = eventId;
+        row.lastSyncedEventId = event.id;
         await isar.draftModels.put(row);
       });
     } catch (_) {
@@ -145,8 +138,7 @@ class Kind31234DraftHandler implements KindHandler {
           final eid = publishedAsEventId;
           await isar.writeTxn(() async {
             for (final d in referencing) {
-              d.draftRefIds =
-                  d.draftRefIds.where((r) => r != draftId).toList();
+              d.draftRefIds = d.draftRefIds.where((r) => r != draftId).toList();
               if (!d.eTagRefs.contains(eid)) {
                 d.eTagRefs = [...d.eTagRefs, eid];
               }

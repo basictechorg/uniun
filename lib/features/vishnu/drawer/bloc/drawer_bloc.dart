@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import 'package:uniun/data/models/followed_user_model.dart';
 import 'package:uniun/domain/entities/followed_user/followed_user_entity.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
@@ -10,12 +9,7 @@ import 'package:uniun/domain/usecases/get_relays_usecase.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 import 'package:uniun/domain/usecases/private_group_usecases.dart';
-import 'package:isar_community/isar.dart';
-import 'package:uniun/data/models/group_model.dart';
-import 'package:uniun/data/models/dm/dm_conversation_model.dart';
-import 'package:uniun/data/models/followed_note_model.dart';
-import 'package:uniun/data/models/notes/unread_note_model.dart';
-import 'package:uniun/data/models/profile_model.dart';
+import 'package:uniun/features/vishnu/drawer/bloc/drawer_data_source.dart';
 import 'dart:async';
 
 part 'drawer_event.dart';
@@ -31,7 +25,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
   final GetFollowedUsersUseCase _getFollowedUsers;
   final GetRelaysUseCase _getRelays;
   final RequestProfileFetchUseCase _requestProfileFetch;
-  final Isar _isar;
+  final DrawerDataSource _drawerData;
   StreamSubscription<void>? _dmWatcher;
   StreamSubscription<void>? _groupWatcher;
   StreamSubscription<void>? _privateGroupWatcher;
@@ -49,44 +43,41 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     this._getFollowedUsers,
     this._getRelays,
     this._requestProfileFetch,
-    this._isar,
+    this._drawerData,
   ) : super(DrawerInitial()) {
     on<DrawerLoadEvent>(_onLoad);
 
     // NIP-28 public groups: creating/joining a group writes a GroupModel,
     // so the new group shows in the drawer immediately without a refresh.
-    _groupWatcher = _isar.groupModels.watchLazy().listen((_) {
+    _groupWatcher = _drawerData.watchGroups().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
     _privateGroupWatcher = _getPrivateGroups.execute().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
-    _followedUsersWatcher = _isar.followedUserModels.watchLazy().listen((_) {
+    _followedUsersWatcher = _drawerData.watchFollowedUsers().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
     // Reactive "Following" section: follow/unfollow from a NoteCard writes to
     // followedNoteModels — refresh so the list of rows is up to date.
-    _followedNotesWatcher = _isar.followedNoteModels.watchLazy().listen((_) {
+    _followedNotesWatcher = _drawerData.watchFollowedNotes().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
     // Unread badges (and derived followed-note ref count): kind-1/42/... inbound
     // handlers insert unread rows, opening a thread deletes them, and
     // clearNewReferences bulk-deletes the child rows of a followed root.
-    _unreadWatcher = _isar.unreadNoteModels.watchLazy().listen((_) {
+    _unreadWatcher = _drawerData.watchUnread().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
     // Kind 0 arriving late: reload so DM/followed-user rows swap the hex
     // fallback for the real display name once the profile lands in Isar.
-    _profileWatcher = _isar.profileModels.watchLazy().listen((_) {
+    _profileWatcher = _drawerData.watchProfiles().listen((_) {
       if (!isClosed) add(DrawerLoadEvent());
     });
   }
 
-  Future<void> _onLoad(
-    DrawerLoadEvent event,
-    Emitter<DrawerState> emit,
-  ) async {
-    _dmWatcher ??= _isar.dmConversationModels.watchLazy().listen((_) {
+  Future<void> _onLoad(DrawerLoadEvent event, Emitter<DrawerState> emit) async {
+    _dmWatcher ??= _drawerData.watchDmConversations().listen((_) {
       if (!isClosed) {
         add(DrawerLoadEvent());
       }
@@ -102,7 +93,7 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
     try {
       // Per-container unread counts from the UnreadNote collection (one batched
       // read; grouped in memory). Exactly one container field is set per row.
-      final unreadRows = await _isar.unreadNoteModels.where().findAll();
+      final unreadRows = await _drawerData.unreadRows();
       final groupUnread = <String, int>{};
       final privateGroupUnread = <String, int>{};
       final conversationUnread = <int, int>{};
@@ -110,10 +101,17 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         if (r.groupId != null) {
           groupUnread.update(r.groupId!, (v) => v + 1, ifAbsent: () => 1);
         } else if (r.privateGroupId != null) {
-          privateGroupUnread.update(r.privateGroupId!, (v) => v + 1, ifAbsent: () => 1);
+          privateGroupUnread.update(
+            r.privateGroupId!,
+            (v) => v + 1,
+            ifAbsent: () => 1,
+          );
         } else if (r.conversationId != null) {
-          conversationUnread.update(r.conversationId!, (v) => v + 1,
-              ifAbsent: () => 1);
+          conversationUnread.update(
+            r.conversationId!,
+            (v) => v + 1,
+            ifAbsent: () => 1,
+          );
         }
       }
 
@@ -143,70 +141,79 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
       final groups = groupsResult.fold(
         (_) => <DrawerGroupItem>[],
         (list) => list
-            .map((c) => DrawerGroupItem(
-                  id: c.groupId,
-                  name: c.name,
-                  hasUnread: (groupUnread[c.groupId] ?? 0) > 0,
-                ))
+            .map(
+              (c) => DrawerGroupItem(
+                id: c.groupId,
+                name: c.name,
+                hasUnread: (groupUnread[c.groupId] ?? 0) > 0,
+              ),
+            )
             .toList(),
       );
-      final dmConversations = await _isar.dmConversationModels.where().findAll();
+      final dmConversations = await _drawerData.activeDmConversations();
       final dms = <DrawerDmItem>[];
       for (final conv in dmConversations) {
-        final profile = await _isar.profileModels.where().pubkeyEqualTo(conv.otherPubkey).findFirst();
+        final profile = await _drawerData.profileByPubkey(conv.otherPubkey);
         if (profile == null) {
           // Nudge the gateway to fetch Kind 0 for this peer. The profile
           // watcher above will reload the drawer once it lands so the row
           // swaps hex for the real display name.
           unawaited(_requestProfileFetch.call(conv.otherPubkey));
         }
-        dms.add(DrawerDmItem(
-          pubkey: conv.otherPubkey,
-          name: profile?.name ?? profile?.username ?? conv.otherPubkey,
-          avatarUrl: profile?.avatarUrl,
-          unreadCount: conversationUnread[conv.id] ?? 0,
-        ));
+        dms.add(
+          DrawerDmItem(
+            pubkey: conv.otherPubkey,
+            name: profile?.name ?? profile?.username ?? conv.otherPubkey,
+            avatarUrl: profile?.avatarUrl,
+            unreadCount: conversationUnread[conv.id] ?? 0,
+          ),
+        );
       }
 
       final followedResult = await _getAllFollowedNotes.call();
       final followedNotes = followedResult.fold(
         (_) => <DrawerFollowedNoteItem>[],
         (list) => list
-            .map((e) => DrawerFollowedNoteItem(
-                  eventId: e.eventId,
-                  contentPreview: e.contentPreview,
-                  newReferenceCount: e.newReferenceCount,
-                ))
+            .map(
+              (e) => DrawerFollowedNoteItem(
+                eventId: e.eventId,
+                contentPreview: e.contentPreview,
+                newReferenceCount: e.newReferenceCount,
+              ),
+            )
             .toList(),
       );
 
       final privateGroupResult = await _getPrivateGroups.execute().first;
-      final privateGroups = privateGroupResult.map((c) => DrawerPrivateGroupItem(
-        id: c.groupId,
-        name: c.name,
-        hasUnread: (privateGroupUnread[c.groupId] ?? 0) > 0,
-      )).toList();
+      final privateGroups = privateGroupResult
+          .map(
+            (c) => DrawerPrivateGroupItem(
+              id: c.groupId,
+              name: c.name,
+              hasUnread: (privateGroupUnread[c.groupId] ?? 0) > 0,
+            ),
+          )
+          .toList();
 
       final followedUsersResult = await _getFollowedUsers.call();
-      final List<FollowedUserEntity> followedUsersDomain =
-          followedUsersResult.fold((_) => const [], (l) => l);
+      final List<FollowedUserEntity> followedUsersDomain = followedUsersResult
+          .fold((_) => const [], (l) => l);
       final followedUsers = <DrawerFollowedUserItem>[];
       for (final f in followedUsersDomain) {
-        final profile = await _isar.profileModels
-            .where()
-            .pubkeyEqualTo(f.pubkeyHex)
-            .findFirst();
+        final profile = await _drawerData.profileByPubkey(f.pubkeyHex);
         if (profile == null) {
           unawaited(_requestProfileFetch.call(f.pubkeyHex));
         }
         final shortKey = f.pubkeyHex.length > 12
             ? '${f.pubkeyHex.substring(0, 12)}…'
             : f.pubkeyHex;
-        followedUsers.add(DrawerFollowedUserItem(
-          pubkey: f.pubkeyHex,
-          name: profile?.name ?? profile?.username ?? f.petname ?? shortKey,
-          avatarUrl: profile?.avatarUrl,
-        ));
+        followedUsers.add(
+          DrawerFollowedUserItem(
+            pubkey: f.pubkeyHex,
+            name: profile?.name ?? profile?.username ?? f.petname ?? shortKey,
+            avatarUrl: profile?.avatarUrl,
+          ),
+        );
       }
 
       final relaysResult = await _getRelays.call();
@@ -215,18 +222,20 @@ class DrawerBloc extends Bloc<DrawerEvent, DrawerState> {
         (list) => list.map((r) => r.url).toList(),
       );
 
-      emit(DrawerLoaded(
-        userName: displayName,
-        npub: npub,
-        pubkeyHex: user?.pubkeyHex ?? '',
-        avatarUrl: avatarUrl,
-        followedNotes: followedNotes,
-        groups: groups,
-        privateGroups: privateGroups,
-        dms: dms,
-        followedUsers: followedUsers,
-        myRelays: myRelays,
-      ));
+      emit(
+        DrawerLoaded(
+          userName: displayName,
+          npub: npub,
+          pubkeyHex: user?.pubkeyHex ?? '',
+          avatarUrl: avatarUrl,
+          followedNotes: followedNotes,
+          groups: groups,
+          privateGroups: privateGroups,
+          dms: dms,
+          followedUsers: followedUsers,
+          myRelays: myRelays,
+        ),
+      );
     } catch (e) {
       emit(DrawerError(e.toString()));
     }

@@ -8,6 +8,7 @@ import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/data/models/notes/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kind 1 — short text note.
 ///
@@ -26,10 +27,8 @@ class Kind1NoteHandler implements KindHandler {
   Set<int> get kinds => const {1};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final eventId = event['id'] as String?;
-    if (eventId == null) return;
-
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
+    final eventId = event.id;
     final model = _parseNoteModel(event);
 
     try {
@@ -38,7 +37,16 @@ class Kind1NoteHandler implements KindHandler {
             .where()
             .eventIdEqualTo(eventId)
             .findFirst();
-        if (existing != null) return;
+        if (existing != null) {
+          // Own notes are inserted optimistically (via saveNote) without the
+          // raw signed event. Backfill it from the relay echo so mesh
+          // negentropy can advertise + forward them.
+          if (existing.rawEventJson == null && model.rawEventJson != null) {
+            existing.rawEventJson = model.rawEventJson;
+            await isar.noteModels.put(existing);
+          }
+          return;
+        }
         await isar.noteModels.put(model);
 
         // Unread row for notes from other users (own notes are already "seen").
@@ -67,9 +75,7 @@ class Kind1NoteHandler implements KindHandler {
     }
   }
 
-  NoteModel _parseNoteModel(Map<String, dynamic> event) {
-    final rawTags = (event['tags'] as List<dynamic>? ?? []);
-
+  NoteModel _parseNoteModel(VerifiedNostrEvent event) {
     String? rootEventId;
     String? replyToEventId;
     String? embeddedNoteJson;
@@ -77,45 +83,44 @@ class Kind1NoteHandler implements KindHandler {
     final pTagRefs = <String>[];
     final tTags = <String>[];
 
-    for (final rawTag in rawTags) {
-      if (rawTag is! List || rawTag.isEmpty) continue;
-      final tagName = rawTag[0] as String?;
-      if (tagName == null || rawTag.length < 2) continue;
+    for (final rawTag in event.tags) {
+      if (rawTag.isEmpty || rawTag.length < 2) continue;
+      final tagName = rawTag[0];
 
       switch (tagName) {
         case 'e':
-          final tagId = rawTag[1] as String;
+          final tagId = rawTag[1];
           eTagRefs.add(tagId);
           if (rawTag.length > 3) {
-            final marker = rawTag[3] as String?;
+            final marker = rawTag[3];
             if (marker == 'root') rootEventId = tagId;
             if (marker == 'reply') replyToEventId = tagId;
           }
         case EmbeddedNoteCodec.tagName:
           // Embed-by-value share — verify the snapshot once, here at the edge.
-          embeddedNoteJson =
-              EmbeddedNoteCodec.verifyAndSanitize(rawTag[1] as String);
+          embeddedNoteJson = EmbeddedNoteCodec.verifyAndSanitize(rawTag[1]);
         case 'p':
-          pTagRefs.add(rawTag[1] as String);
+          pTagRefs.add(rawTag[1]);
         case 't':
-          tTags.add(rawTag[1] as String);
+          tTags.add(rawTag[1]);
       }
     }
 
     return NoteModel(
-      eventId: event['id'] as String,
-      sig: event['sig'] as String? ?? '',
-      authorPubkey: event['pubkey'] as String? ?? '',
-      content: event['content'] as String? ?? '',
+      eventId: event.id,
+      sig: event.sig,
+      authorPubkey: event.pubkey,
+      content: event.content,
       type: NoteType.text,
       eTagRefs: eTagRefs,
       rootEventId: rootEventId,
       replyToEventId: replyToEventId,
       pTagRefs: pTagRefs,
       tTags: tTags,
-      created: EventParser.dateTimeFromSec(event['created_at'] as int? ?? 0),
+      created: EventParser.dateTimeFromSec(event.createdAt),
       embeddedNoteJson: embeddedNoteJson,
-      attachments: ImetaParser.parseAsAttachments(event),
+      rawEventJson: event.toCanonicalJson(),
+      attachments: ImetaParser.parseAsAttachments(event.toMap()),
     );
   }
 }

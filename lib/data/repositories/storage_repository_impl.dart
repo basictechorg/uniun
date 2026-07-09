@@ -85,11 +85,13 @@ class StorageRepositoryImpl implements StorageRepository {
 
       final totalNotes = await isar.noteModels.count();
       final savedIds = await isar.savedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .findAll()
           .then((list) => {for (final n in list) n.eventId});
       final followedIds = await isar.followedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .findAll()
           .then((list) => {for (final n in list) n.eventId});
       final topLevelNotes =
@@ -125,11 +127,13 @@ class StorageRepositoryImpl implements StorageRepository {
   Future<Either<Failure, int>> deleteFeedNotes(String ownPubkey) async {
     try {
       final savedIds = await isar.savedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .findAll()
           .then((list) => {for (final n in list) n.eventId});
       final followedIds = await isar.followedNoteModels
-          .where()
+          .filter()
+          .removedAtIsNull()
           .findAll()
           .then((list) => {for (final n in list) n.eventId});
       final topLevelNotes =

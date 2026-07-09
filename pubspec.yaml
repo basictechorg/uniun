@@ -34,6 +34,9 @@ dependencies:
   web_socket_channel: ^3.0.3
   convert: ^3.1.2
   crypto: ^3.0.7
+  # HKDF + ChaCha20-Poly1305 for the same-identity mesh channel encryption
+  # (already in the tree transitively; declared here since we import it directly).
+  cryptography_plus: ^2.7.1
   nostr: ^1.4.0
   nostr_core_dart: ^1.0.1
   json_annotation: ^4.9.0
@@ -105,6 +108,10 @@ dependencies:
   open_filex: ^4.5.0
   # No Windows backend; VideoCompressor short-circuits on Windows.
   video_compress: ^3.1.4
+  bonsoir: ^5.1.0
+  # Triggers a LAN-transport rebind when the network interface changes (Wi-Fi
+  # switch) so mesh sync recovers without an app restart — see MeshEngineHost.
+  connectivity_plus: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -160,6 +167,12 @@ flutter_launcher_icons:
 dependency_overrides:
   http: ^1.4.0
   hooks: ^2.0.0
+  # path_provider_foundation 2.6+ switched to package:objective_c (FFI), which is
+  # unstable on iOS/macOS in this app — it crashes with EXC_BAD_ACCESS (a retain on
+  # a freed objc object) when used off the main isolate OR across concurrent
+  # main-isolate callers (Isar, ToStore, Marmot MLS, storage, mesh). Pin to the last
+  # Pigeon-based release (no objective_c) until that's resolved upstream.
+  path_provider_foundation: 2.5.1
 
 flutter:
   generate: true

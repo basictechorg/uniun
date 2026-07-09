@@ -6,12 +6,17 @@ import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/repositories/gana_repository.dart';
+import 'package:uniun/features/mesh/sync/bodies/gana_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 @Injectable(as: GanaRepository)
 class GanaRepositoryImpl extends GanaRepository {
   final Isar isar;
+  final MeshEventSigner _signer;
 
-  GanaRepositoryImpl({required this.isar});
+  GanaRepositoryImpl({required this.isar, required MeshEventSigner signer})
+      : _signer = signer;
 
   @override
   Future<Either<Failure, GanaEntity>> upsertGana(GanaEntity g) async {
@@ -40,10 +45,27 @@ class GanaRepositoryImpl extends GanaRepository {
         ..lastProcessedCreated = g.lastProcessedCreated
         ..lastRunAt = g.lastRunAt
         ..createdAt = g.createdAt
-        ..updatedAt = g.updatedAt;
+        ..updatedAt = g.updatedAt
+        // Resurrection: re-signing as active clears any prior tombstone.
+        ..removedAt = null;
+      if (existing != null) {
+        model.id = existing.id;
+        // Preserve cursor state on update — the entity doesn't carry it back
+        // in every code path.
+        model.lastProcessedEventId = g.lastProcessedEventId ??
+            existing.lastProcessedEventId;
+        model.lastProcessedCreated = g.lastProcessedCreated ??
+            existing.lastProcessedCreated;
+        model.lastRunAt = g.lastRunAt ?? existing.lastRunAt;
+      }
+
+      model.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.gana,
+        dTag: g.ganaId,
+        content: GanaBody.forActive(model),
+      );
 
       await isar.writeTxn(() async {
-        if (existing != null) model.id = existing.id;
         await isar.ganaModels.put(model);
       });
 
@@ -56,8 +78,11 @@ class GanaRepositoryImpl extends GanaRepository {
   @override
   Future<Either<Failure, List<GanaEntity>>> getGanas() async {
     try {
-      final rows =
-          await isar.ganaModels.where().sortByUpdatedAtDesc().findAll();
+      final rows = await isar.ganaModels
+          .filter()
+          .removedAtIsNull()
+          .sortByUpdatedAtDesc()
+          .findAll();
       return Right(rows.map((m) => m.toDomain()).toList());
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -69,6 +94,8 @@ class GanaRepositoryImpl extends GanaRepository {
     try {
       final rows = await isar.ganaModels
           .filter()
+          .removedAtIsNull()
+          .and()
           .enabledEqualTo(true)
           .sortByUpdatedAtDesc()
           .findAll();
@@ -81,8 +108,12 @@ class GanaRepositoryImpl extends GanaRepository {
   @override
   Future<Either<Failure, GanaEntity>> getGanaById(String ganaId) async {
     try {
-      final row =
-          await isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo(ganaId)
+          .and()
+          .removedAtIsNull()
+          .findFirst();
       if (row == null) {
         return const Left(Failure.notFoundFailure('Gana not found'));
       }
@@ -95,8 +126,24 @@ class GanaRepositoryImpl extends GanaRepository {
   @override
   Future<Either<Failure, Unit>> deleteGana(String ganaId) async {
     try {
+      final row =
+          await isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+      if (row == null) return const Right(unit);
+
+      row
+        ..removedAt = DateTime.now()
+        ..enabled = false
+        ..updatedAt = DateTime.now();
+      row.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.gana,
+        dTag: ganaId,
+        content: GanaBody.forRemoved(row),
+      );
+
       await isar.writeTxn(() async {
-        await isar.ganaModels.filter().ganaIdEqualTo(ganaId).deleteAll();
+        await isar.ganaModels.put(row);
+        // Run history is local telemetry — never syncs (plan §Phase 5).
+        // Purge the local run rows so tombstoned Ganas don't leave orphans.
         await isar.ganaRunModels.filter().ganaIdEqualTo(ganaId).deleteAll();
       });
       return const Right(unit);
@@ -108,14 +155,23 @@ class GanaRepositoryImpl extends GanaRepository {
   @override
   Future<Either<Failure, Unit>> setEnabled(String ganaId, bool enabled) async {
     try {
-      final row =
-          await isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo(ganaId)
+          .and()
+          .removedAtIsNull()
+          .findFirst();
       if (row == null) {
         return const Left(Failure.notFoundFailure('Gana not found'));
       }
       row
         ..enabled = enabled
         ..updatedAt = DateTime.now();
+      row.signedNostrEvent = await _signer.sign(
+        kind: MeshEventKinds.gana,
+        dTag: ganaId,
+        content: GanaBody.forActive(row),
+      );
       await isar.writeTxn(() async {
         await isar.ganaModels.put(row);
       });
@@ -133,13 +189,17 @@ class GanaRepositoryImpl extends GanaRepository {
     required DateTime lastRunAt,
   }) async {
     try {
-      final row =
-          await isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo(ganaId)
+          .and()
+          .removedAtIsNull()
+          .findFirst();
       if (row == null) {
         return const Left(Failure.notFoundFailure('Gana not found'));
       }
-      // Only advance the input cursor when caller supplied a value — interval
-      // standalone Ganas advance only `lastRunAt`.
+      // Cursor state is per-device local — do NOT re-sign; leave
+      // `signedNostrEvent` untouched so peers keep their own cursors.
       if (lastProcessedEventId != null) {
         row.lastProcessedEventId = lastProcessedEventId;
       }

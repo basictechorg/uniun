@@ -9,7 +9,6 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
 import 'package:uniun/domain/inputs/share_note_input.dart';
-import 'package:uniun/domain/repositories/note_resolver_repository.dart';
 import 'package:uniun/domain/repositories/share_repository.dart';
 import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
@@ -24,7 +23,6 @@ import 'package:uniun/domain/usecases/user_usecases.dart';
 /// path.
 @Injectable(as: ShareRepository)
 class ShareRepositoryImpl implements ShareRepository {
-  final NoteResolverRepository _resolver;
   final GetActiveUserKeysUseCase _getKeys;
   final PublishMediaNoteUseCase _publishFeed;
   final CreateGroupMessageUseCase _publishGroup;
@@ -32,7 +30,6 @@ class ShareRepositoryImpl implements ShareRepository {
   final SendPrivateGroupMessageUsecase _publishPrivateGroup;
 
   ShareRepositoryImpl(
-    this._resolver,
     this._getKeys,
     this._publishFeed,
     this._publishGroup,
@@ -43,59 +40,57 @@ class ShareRepositoryImpl implements ShareRepository {
   @override
   Future<Either<Failure, Unit>> shareNote(ShareNoteInput input) async {
     try {
-      final sourceResult = await _resolver.resolveById(input.sourceEventId);
-      return await sourceResult.fold(
+      // The note is passed in from the UI (every share button already renders a
+      // NoteEntity) — no re-resolution, so any store that backs a NoteCard is
+      // shareable, including the ephemeral Surrounding (mesh) collection.
+      final source = input.source;
+      final keysResult = await _getKeys();
+      return await keysResult.fold(
         (f) async => Left(f),
-        (source) async {
-          final keysResult = await _getKeys();
-          return await keysResult.fold(
-            (f) async => Left(f),
-            (keys) async {
-              // Double-nest guard: if the shared note is itself a share, embed
-              // the genuine inner original so quotedNote stays one level deep.
-              final snapshotSource = source.quotedNote ?? source;
-              final snapshotJson =
-                  EmbeddedNoteCodec.encodeFromEntity(snapshotSource);
-              final content = input.content.trim();
+        (keys) async {
+          // Double-nest guard: if the shared note is itself a share, embed
+          // the genuine inner original so quotedNote stays one level deep.
+          final snapshotSource = source.quotedNote ?? source;
+          final snapshotJson =
+              EmbeddedNoteCodec.encodeFromEntity(snapshotSource);
+          final content = input.content.trim();
 
-              switch (input.destination) {
-                case ShareToFeed():
-                  return _dispatchFeed(
-                    keys: keys,
-                    content: content,
-                    referenceIds: input.referenceIds,
-                    attachments: input.attachments,
-                    snapshotJson: snapshotJson,
-                  );
-                case ShareToPublicGroup(groupId: final id):
-                  return _dispatchGroup(
-                    privkey: keys.privkeyHex,
-                    groupId: id,
-                    content: content,
-                    referenceIds: input.referenceIds,
-                    attachments: input.attachments,
-                    snapshotJson: snapshotJson,
-                  );
-                case ShareToPrivateGroup(groupId: final id):
-                  return _dispatchPrivateGroup(
-                    keys: keys,
-                    groupId: id,
-                    content: content,
-                    referenceIds: input.referenceIds,
-                    attachments: input.attachments,
-                    snapshotJson: snapshotJson,
-                  );
-                case ShareToDm(otherPubkeyHex: final pubkey):
-                  return _dispatchDm(
-                    otherPubkey: pubkey,
-                    content: content,
-                    referenceIds: input.referenceIds,
-                    attachments: input.attachments,
-                    snapshotJson: snapshotJson,
-                  );
-              }
-            },
-          );
+          switch (input.destination) {
+            case ShareToFeed():
+              return _dispatchFeed(
+                keys: keys,
+                content: content,
+                referenceIds: input.referenceIds,
+                attachments: input.attachments,
+                snapshotJson: snapshotJson,
+              );
+            case ShareToPublicGroup(groupId: final id):
+              return _dispatchGroup(
+                privkey: keys.privkeyHex,
+                groupId: id,
+                content: content,
+                referenceIds: input.referenceIds,
+                attachments: input.attachments,
+                snapshotJson: snapshotJson,
+              );
+            case ShareToPrivateGroup(groupId: final id):
+              return _dispatchPrivateGroup(
+                keys: keys,
+                groupId: id,
+                content: content,
+                referenceIds: input.referenceIds,
+                attachments: input.attachments,
+                snapshotJson: snapshotJson,
+              );
+            case ShareToDm(otherPubkeyHex: final pubkey):
+              return _dispatchDm(
+                otherPubkey: pubkey,
+                content: content,
+                referenceIds: input.referenceIds,
+                attachments: input.attachments,
+                snapshotJson: snapshotJson,
+              );
+          }
         },
       );
     } catch (e) {

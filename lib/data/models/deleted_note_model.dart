@@ -16,4 +16,15 @@ class DeletedNoteModel {
   late String eventId;
 
   late DateTime deletedAt;
+
+  /// Signed+encrypted Nostr Kind 30504 event for this row (§3). Nullable
+  /// during Phase 0a migration.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Set when the row itself is un-hidden via a
+  /// mesh `state=removed` event — semantically "the user un-deleted this
+  /// locally". Queries that suppress deleted notes filter on
+  /// `removedAt == null`.
+  @Index()
+  DateTime? removedAt;
 }

@@ -19,11 +19,13 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_custom_colors.dart';
 
 class ShareSheetPage extends StatelessWidget {
-  const ShareSheetPage({super.key, required this.sourceEventId});
+  const ShareSheetPage({super.key, required this.source});
 
-  final String sourceEventId;
+  /// The note being shared. Passed straight through to the repository so it
+  /// never re-resolves by id — shareable from any store that renders a NoteCard.
+  final NoteEntity source;
 
-  static Future<void> show(BuildContext context, String sourceEventId) {
+  static Future<void> show(BuildContext context, NoteEntity source) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -31,7 +33,7 @@ class ShareSheetPage extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) => ShareSheetPage(sourceEventId: sourceEventId),
+      builder: (_) => ShareSheetPage(source: source),
     );
   }
 
@@ -39,17 +41,17 @@ class ShareSheetPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<ShareSheetBloc>()
-        ..add(ShareSheetEvent.loadDestinations(sourceEventId)),
+        ..add(ShareSheetEvent.loadDestinations(source)),
       child: KeyboardDismissOnTap(
-        child: _ShareSheetView(sourceEventId: sourceEventId),
+        child: _ShareSheetView(source: source),
       ),
     );
   }
 }
 
 class _ShareSheetView extends StatefulWidget {
-  const _ShareSheetView({required this.sourceEventId});
-  final String sourceEventId;
+  const _ShareSheetView({required this.source});
+  final NoteEntity source;
 
   @override
   State<_ShareSheetView> createState() => _ShareSheetViewState();
@@ -185,7 +187,7 @@ class _ShareSheetViewState extends State<_ShareSheetView> {
                     submitting: state.submitting,
                     onShare: () => bloc.add(
                       ShareSheetEvent.submit(
-                        sourceEventId: widget.sourceEventId,
+                        source: widget.source,
                         destination: state.selectedDestination!,
                       ),
                     ),

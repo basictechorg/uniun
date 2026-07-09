@@ -50,7 +50,13 @@
 		<key>UIFileSharingEnabled</key>
 		<true/>
 		<key>NSLocalNetworkUsageDescription</key>
-		<string>UNIUN uses the local network for on-device AI model inference services.</string>
+		<string>UNIUN uses the local network for on-device AI model inference services and to sync your notes directly with your other nearby devices, without the internet.</string>
+		<key>NSBonjourServices</key>
+		<array>
+			<string>_uniun-sync._tcp</string>
+		</array>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>UNIUN uses Bluetooth to sync your notes directly with nearby devices, without the internet.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
@@ -106,6 +112,9 @@
 		<array>
 			<string>fetch</string>
 			<string>processing</string>
+			<!-- Keep already-connected BLE links syncing while backgrounded (central
+			     only; new-peer discovery is foreground). -->
+			<string>bluetooth-central</string>
 		</array>
 
 		<!-- BGTaskScheduler task identifiers. Must match the unique names

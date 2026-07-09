@@ -34,6 +34,8 @@ jobs:
             test/integration
             test/common
             test/core
+            test/mesh
+            test/surrounding
             test/widget_test.dart
             test/shiv_home_page_test.dart
             test/expandable_note_text_tap_test.dart
@@ -143,6 +145,9 @@ jobs:
           - name: core
             paths: test/core
             concurrency: 4
+          - name: mesh
+            paths: test/mesh test/surrounding
+            concurrency: 4
     steps:
       - uses: actions/checkout@v4
 
@@ -224,6 +229,7 @@ jobs:
         run: |
           flutter test --coverage --concurrency=1 \
             test/data test/domain test/features test/common test/core \
+            test/mesh test/surrounding \
             test/widget_test.dart test/shiv_home_page_test.dart \
             test/expandable_note_text_tap_test.dart test/llm_text_sanitizer_test.dart
 

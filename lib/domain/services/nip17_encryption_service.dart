@@ -7,6 +7,8 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/core/notes/embedded_note_codec.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/core/notes/reply_edge.dart';
+import 'package:uniun/features/mesh/sync/bodies/dm_conversation_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/gateway/inbound/missing_profile_tracker.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/dm/encrypted_dm_model.dart';
@@ -28,11 +30,26 @@ class Nip17EncryptionService {
   /// in the main isolate before spawn, since SecureStorage is unavailable in isolates).
   final String? _privkeyHex;
 
+  /// Lazily-built mesh codec bound to the active identity, used to sign the
+  /// auto-created DmConversation row when a first-time DM arrives. Nulled
+  /// out when there is no active user (that also nulls out DM decryption
+  /// itself). Cached because DM inbound is bursty.
+  MeshEventCodec? _meshCodec;
+
   Nip17EncryptionService(
     this._isar,
     this._relations, {
     String? privkeyHex,
   }) : _privkeyHex = privkeyHex;
+
+  MeshEventCodec? _codec() {
+    if (_meshCodec != null) return _meshCodec;
+    if (_privkeyHex == null || _privkeyHex.isEmpty) return null;
+    final pubkey = Keychain(_privkeyHex).public;
+    _meshCodec =
+        MeshEventCodec(privkeyHex: _privkeyHex, pubkeyHex: pubkey);
+    return _meshCodec;
+  }
 
   /// Start watching the Isar collection for new incoming encrypted DMs
   /// (e.g., from the gateway's WebSocketService)
@@ -125,20 +142,68 @@ class Nip17EncryptionService {
 
         final otherPubkey = sealSenderPubkey;
 
-        await _isar.writeTxn(() async {
-          // Lookup or create a Conversation wrapper for this other pubkey
-          var conv = await _isar.dmConversationModels
-              .where()
-              .otherPubkeyEqualTo(otherPubkey)
-              .findFirst();
-
-          if (conv == null) {
-            conv = DmConversationModel()..otherPubkey = otherPubkey;
-            await _isar.dmConversationModels.put(conv);
+        // Materialize (or reactivate) the DmConversation row BEFORE the inner
+        // note-write txn — signing the mesh event is async (NIP-44 encrypt),
+        // so it can't live inside `writeTxn`. The row's unique+replace index
+        // on `otherPubkey` makes this safe against a concurrent second DM
+        // from the same peer.
+        var conv = await _isar.dmConversationModels
+            .where()
+            .otherPubkeyEqualTo(otherPubkey)
+            .findFirst();
+        if (conv == null || conv.removedAt != null) {
+          conv = (conv ?? DmConversationModel())
+            ..otherPubkey = otherPubkey
+            ..removedAt = null;
+          final codec = _codec();
+          if (codec != null) {
+            try {
+              conv.signedNostrEvent = await codec.signRecord(
+                kind: MeshEventKinds.dmConversation,
+                dTag: otherPubkey,
+                content: DmConversationBody.forActive(conv),
+              );
+            } catch (_) {
+              // Non-fatal — the row still lands in Isar; the mesh migration
+              // pass will backfill `signedNostrEvent` on next launch.
+            }
           }
+          await _isar.writeTxn(() async {
+            await _isar.dmConversationModels.put(conv!);
+          });
+        }
 
-          final parsedEventId = chatEvent['id'] as String? ?? '';
+        final parsedEventId = chatEvent['id'] as String? ?? '';
+        final contentVal = chatEvent['content'] as String? ?? '';
+        final type = _inferTypeFromUrl(contentVal); // simple fallback
 
+        // NIP-92 imeta — embedded inside the encrypted rumor by sendDm.
+        // Parser is the same one Kind 1/42 handlers use; it just walks
+        // the tag list looking for `imeta` entries.
+        final attachments = ImetaParser.parseAsAttachments(chatEvent);
+
+        final dmModel = NoteModel(
+          eventId: parsedEventId,
+          sig: '', // Has no valid NIP-01 sig because it's deniable.
+          authorPubkey: chatEvent['pubkey'] as String? ?? '',
+          conversationId: conv.id,
+          pTagRefs: pTagRefs,
+          rootEventId: rootTo,
+          replyToEventId: replyTo,
+          eTagRefs: eTagRefs,
+          content: contentVal,
+          subject: subject,
+          kind: chatEvent['kind'] as int? ?? kDmTextKind,
+          type: chatKind == 15 ? type : NoteType.text,
+          tTags: const [],
+          created: DateTime.fromMillisecondsSinceEpoch(
+            (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
+          ),
+          embeddedNoteJson: embeddedNoteJson,
+          attachments: attachments,
+        );
+
+        await _isar.writeTxn(() async {
           // Duplicate collision defense
           final existingMsg = await _isar.noteModels
               .where()
@@ -150,35 +215,6 @@ class Nip17EncryptionService {
               await _isar.encryptedDmModels.delete(dm.id);
               return;
           }
-
-          final contentVal = chatEvent['content'] as String? ?? '';
-          final type = _inferTypeFromUrl(contentVal); // simple fallback
-
-          // NIP-92 imeta — embedded inside the encrypted rumor by sendDm.
-          // Parser is the same one Kind 1/42 handlers use; it just walks
-          // the tag list looking for `imeta` entries.
-          final attachments = ImetaParser.parseAsAttachments(chatEvent);
-
-          final dmModel = NoteModel(
-            eventId: parsedEventId,
-            sig: '', // Has no valid NIP-01 sig because it's deniable.
-            authorPubkey: chatEvent['pubkey'] as String? ?? '',
-            conversationId: conv.id,
-            pTagRefs: pTagRefs,
-            rootEventId: rootTo,
-            replyToEventId: replyTo,
-            eTagRefs: eTagRefs,
-            content: contentVal,
-            subject: subject,
-            kind: chatEvent['kind'] as int? ?? kDmTextKind,
-            type: chatKind == 15 ? type : NoteType.text,
-            tTags: const [],
-            created: DateTime.fromMillisecondsSinceEpoch(
-              (chatEvent['created_at'] as int? ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000)) * 1000,
-            ),
-            embeddedNoteJson: embeddedNoteJson,
-            attachments: attachments,
-          );
 
           await _isar.noteModels.put(dmModel);
           // Unread row for DMs from the other party (own copies are pre-seen).

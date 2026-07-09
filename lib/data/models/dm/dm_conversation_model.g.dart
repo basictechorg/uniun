@@ -28,6 +28,16 @@ const DmConversationModelSchema = CollectionSchema(
       name: r'relays',
       type: IsarType.stringList,
     ),
+    r'removedAt': PropertySchema(
+      id: 2,
+      name: r'removedAt',
+      type: IsarType.dateTime,
+    ),
+    r'signedNostrEvent': PropertySchema(
+      id: 3,
+      name: r'signedNostrEvent',
+      type: IsarType.string,
+    ),
   },
 
   estimateSize: _dmConversationModelEstimateSize,
@@ -40,12 +50,25 @@ const DmConversationModelSchema = CollectionSchema(
       id: 9140102187253743011,
       name: r'otherPubkey',
       unique: true,
-      replace: false,
+      replace: true,
       properties: [
         IndexPropertySchema(
           name: r'otherPubkey',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+      ],
+    ),
+    r'removedAt': IndexSchema(
+      id: 4773562754172983303,
+      name: r'removedAt',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'removedAt',
+          type: IndexType.value,
+          caseSensitive: false,
         ),
       ],
     ),
@@ -73,6 +96,12 @@ int _dmConversationModelEstimateSize(
       bytesCount += value.length * 3;
     }
   }
+  {
+    final value = object.signedNostrEvent;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -84,6 +113,8 @@ void _dmConversationModelSerialize(
 ) {
   writer.writeString(offsets[0], object.otherPubkey);
   writer.writeStringList(offsets[1], object.relays);
+  writer.writeDateTime(offsets[2], object.removedAt);
+  writer.writeString(offsets[3], object.signedNostrEvent);
 }
 
 DmConversationModel _dmConversationModelDeserialize(
@@ -93,9 +124,10 @@ DmConversationModel _dmConversationModelDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = DmConversationModel();
-  object.id = id;
   object.otherPubkey = reader.readString(offsets[0]);
   object.relays = reader.readStringList(offsets[1]) ?? [];
+  object.removedAt = reader.readDateTimeOrNull(offsets[2]);
+  object.signedNostrEvent = reader.readStringOrNull(offsets[3]);
   return object;
 }
 
@@ -110,6 +142,10 @@ P _dmConversationModelDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 1:
       return (reader.readStringList(offset) ?? []) as P;
+    case 2:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 3:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -129,9 +165,7 @@ void _dmConversationModelAttach(
   IsarCollection<dynamic> col,
   Id id,
   DmConversationModel object,
-) {
-  object.id = id;
-}
+) {}
 
 extension DmConversationModelByIndex on IsarCollection<DmConversationModel> {
   Future<DmConversationModel?> getByOtherPubkey(String otherPubkey) {
@@ -199,6 +233,15 @@ extension DmConversationModelQueryWhereSort
   QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhere>
+  anyRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'removedAt'),
+      );
     });
   }
 }
@@ -324,6 +367,129 @@ extension DmConversationModelQueryWhere
               ),
             );
       }
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtEqualTo(DateTime? removedAt) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'removedAt', value: [removedAt]),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtNotEqualTo(DateTime? removedAt) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [removedAt],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'removedAt',
+                lower: [],
+                upper: [removedAt],
+                includeUpper: false,
+              ),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtGreaterThan(DateTime? removedAt, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [removedAt],
+          includeLower: include,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtLessThan(DateTime? removedAt, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [],
+          upper: [removedAt],
+          includeUpper: include,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterWhereClause>
+  removedAtBetween(
+    DateTime? lowerRemovedAt,
+    DateTime? upperRemovedAt, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'removedAt',
+          lower: [lowerRemovedAt],
+          includeLower: includeLower,
+          upper: [upperRemovedAt],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -724,6 +890,238 @@ extension DmConversationModelQueryFilter
       );
     });
   }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'removedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'removedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'removedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  removedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'removedAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'signedNostrEvent'),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'signedNostrEvent',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'signedNostrEvent',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'signedNostrEvent',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterFilterCondition>
+  signedNostrEventIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'signedNostrEvent', value: ''),
+      );
+    });
+  }
 }
 
 extension DmConversationModelQueryObject
@@ -757,6 +1155,34 @@ extension DmConversationModelQuerySortBy
       return query.addSortBy(r'otherPubkey', Sort.desc);
     });
   }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  sortByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  sortByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  sortBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  sortBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
+    });
+  }
 }
 
 extension DmConversationModelQuerySortThenBy
@@ -788,6 +1214,34 @@ extension DmConversationModelQuerySortThenBy
       return query.addSortBy(r'otherPubkey', Sort.desc);
     });
   }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  thenByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  thenByRemovedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'removedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  thenBySignedNostrEvent() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QAfterSortBy>
+  thenBySignedNostrEventDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'signedNostrEvent', Sort.desc);
+    });
+  }
 }
 
 extension DmConversationModelQueryWhereDistinct
@@ -803,6 +1257,23 @@ extension DmConversationModelQueryWhereDistinct
   distinctByRelays() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'relays');
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QDistinct>
+  distinctByRemovedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'removedAt');
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DmConversationModel, QDistinct>
+  distinctBySignedNostrEvent({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'signedNostrEvent',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 }
@@ -826,6 +1297,20 @@ extension DmConversationModelQueryProperty
   relaysProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'relays');
+    });
+  }
+
+  QueryBuilder<DmConversationModel, DateTime?, QQueryOperations>
+  removedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'removedAt');
+    });
+  }
+
+  QueryBuilder<DmConversationModel, String?, QQueryOperations>
+  signedNostrEventProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'signedNostrEvent');
     });
   }
 }

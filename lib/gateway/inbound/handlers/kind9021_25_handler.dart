@@ -4,6 +4,7 @@ import 'package:uniun/data/models/private_group_join_request_model.dart';
 import 'package:uniun/data/models/private_group_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kinds 9021–9025 — Marmot private group envelopes.
 ///
@@ -21,26 +22,13 @@ class Kind9021To9025Handler implements KindHandler {
   Set<int> get kinds => const {9021, 9022, 9023, 9024, 9025};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final kind = event['kind'] as int?;
-    final eventId = event['id'] as String?;
-    final pubkey = event['pubkey'] as String?;
-    final content = event['content'] as String?;
-    final createdAtSec = event['created_at'] as int?;
-    if (kind == null ||
-        eventId == null ||
-        pubkey == null ||
-        content == null ||
-        createdAtSec == null) {
-      return;
-    }
-
-    final groupId = EventParser.firstTagValue(event, 'h');
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
+    final groupId = EventParser.firstTagValue(event.toMap(), 'h');
     if (groupId == null) return;
 
-    final timestamp = EventParser.dateTimeFromSec(createdAtSec);
+    final timestamp = EventParser.dateTimeFromSec(event.createdAt);
 
-    if (kind == 9021) {
+    if (event.kind == 9021) {
       // Only the group admin can approve join requests, so only the admin
       // needs to store them. Members (and the requester themselves) also receive
       // the relayed 9021 event but must not persist it.
@@ -55,16 +43,16 @@ class Kind9021To9025Handler implements KindHandler {
       }
 
       final model = PrivateGroupJoinRequestModel()
-        ..eventId = eventId
+        ..eventId = event.id
         ..groupId = groupId
-        ..senderPubkey = pubkey
-        ..keyPackageB64 = content
+        ..senderPubkey = event.pubkey
+        ..keyPackageB64 = event.content
         ..timestamp = timestamp;
       try {
         await isar.writeTxn(() async {
           final existing = await isar.privateGroupJoinRequestModels
               .where()
-              .eventIdEqualTo(eventId)
+              .eventIdEqualTo(event.id)
               .findFirst();
           if (existing != null) return;
           await isar.privateGroupJoinRequestModels.put(model);
@@ -74,17 +62,17 @@ class Kind9021To9025Handler implements KindHandler {
     }
 
     final model = EncryptedMessageModel()
-      ..eventId = eventId
+      ..eventId = event.id
       ..groupId = groupId
-      ..senderPubkey = pubkey
-      ..kind = kind
-      ..encryptedPayload = content
+      ..senderPubkey = event.pubkey
+      ..kind = event.kind
+      ..encryptedPayload = event.content
       ..timestamp = timestamp;
     try {
       await isar.writeTxn(() async {
         final existing = await isar.encryptedMessageModels
             .where()
-            .eventIdEqualTo(eventId)
+            .eventIdEqualTo(event.id)
             .findFirst();
         if (existing != null) return;
         await isar.encryptedMessageModels.put(model);

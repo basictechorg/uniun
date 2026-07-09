@@ -34,6 +34,9 @@ import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/nataraj/nataraj_card_model.dart';
 import 'package:uniun/data/models/report_model.dart';
+import 'package:uniun/data/models/surrounding_note_model.dart';
+import 'package:uniun/data/models/surrounding_tombstone_model.dart';
+import 'package:uniun/data/models/mesh/mesh_peer_state_model.dart';
 
 final List<CollectionSchema> isarSchemas = [
   NoteModelSchema,
@@ -69,5 +72,7 @@ final List<CollectionSchema> isarSchemas = [
   GanaRunModelSchema,
   NatarajCardModelSchema,
   ReportModelSchema,
+  SurroundingNoteModelSchema,
+  SurroundingTombstoneModelSchema,
+  MeshPeerStateModelSchema,
 ];
-

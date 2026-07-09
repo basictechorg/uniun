@@ -82,6 +82,23 @@ class NoteModel {
   /// resolved `quotedNote`; null when this note quotes nothing.
   String? embeddedNoteJson;
 
+  /// Raw signed Nostr event JSON, stored verbatim, for the real signed kinds
+  /// (1 feed / 42 group). This is the byte-exact event the author signed, so
+  /// mesh negentropy can forward it as-is and any peer verifies it by the
+  /// standard `id = SHA256(canonical) && Schnorr sig valid` rule (the
+  /// `PublicEventSyncScope` pattern). Null for the unsigned surfaces
+  /// (DM 14/15, private 9023) and for rows ingested before this field existed.
+  String? rawEventJson;
+
+  /// Fabricated, NIP-44 self-encrypted addressable mesh wrapper (Kind 30530)
+  /// for the unsigned surfaces (DM 14/15, private channel 9023) whose original
+  /// wire form is not a stateless-verifiable signed event. Carries the already
+  /// decrypted plaintext body so a same-identity peer can rebuild the row.
+  /// Mirrors the `signedNostrEvent` convention on the 3050x mesh-record rows.
+  /// Null for the real signed kinds (which use [rawEventJson] instead).
+  @Name('signedNostrEvent') // stored name preserved across Dart rename
+  String? privateMeshEventJson;
+
   /// True when [attachments] is non-empty. Stored (instead of derived) so
   /// the index lets feed queries cheaply skip text-only notes when needed.
   /// Set automatically by the constructor + the inbound parser.
@@ -111,6 +128,8 @@ class NoteModel {
     required this.tTags,
     required this.created,
     this.embeddedNoteJson,
+    this.rawEventJson,
+    this.privateMeshEventJson,
     List<MediaAttachment> attachments = const [],
   })  : attachments = attachments,
         hasMedia = attachments.isNotEmpty;
@@ -183,6 +202,7 @@ class NoteModel {
       tTags: tTags,
       created: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       embeddedNoteJson: embeddedNoteJson,
+      rawEventJson: jsonEncode(event.toJson()),
       attachments: ImetaParser.parseAsAttachments({'tags': event.tags}),
     );
   }

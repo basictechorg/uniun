@@ -115,6 +115,16 @@ class GanaModel {
 
   late DateTime createdAt;
   late DateTime updatedAt;
+
+  // ── Mesh sync (§3) ───────────────────────────────────────────────────────
+
+  /// Signed+encrypted Nostr Kind 30520 event for this row. Nullable during
+  /// Phase 0a migration.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Null on active Ganas.
+  @Index()
+  DateTime? removedAt;
 }
 
 extension GanaModelExtension on GanaModel {

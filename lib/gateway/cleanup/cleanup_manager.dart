@@ -153,10 +153,16 @@ class CleanupManager {
     if (r == null) return;
     final cutoff = DateTime.now().subtract(r);
 
-    final savedIds = (await isar.savedNoteModels.where().findAll())
+    final savedIds = (await isar.savedNoteModels
+            .filter()
+            .removedAtIsNull()
+            .findAll())
         .map((s) => s.eventId)
         .toSet();
-    final followedIds = (await isar.followedNoteModels.where().findAll())
+    final followedIds = (await isar.followedNoteModels
+            .filter()
+            .removedAtIsNull()
+            .findAll())
         .map((f) => f.eventId)
         .toSet();
 
@@ -216,7 +222,8 @@ class CleanupManager {
         referenced.add(a.sha256);
       }
     }
-    final saved = await isar.savedNoteModels.where().findAll();
+    final saved =
+        await isar.savedNoteModels.filter().removedAtIsNull().findAll();
     for (final s in saved) {
       for (final a in s.attachments) {
         referenced.add(a.sha256);

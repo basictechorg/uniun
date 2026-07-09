@@ -190,10 +190,15 @@ class NoteCardCubit extends Cubit<NoteCardState> {
   Future<Either<Failure, Unit>> blockUser() =>
       _blockUser.call(note.authorPubkey);
 
-  /// Deletes this note locally and tombstones it so the gateway never resyncs
-  /// it. On success the card collapses itself via [NoteCardState.isRemoved].
-  Future<Either<Failure, Unit>> deleteNote() async {
-    final result = await _deleteNote.call(note.id);
+  /// Deletes this note and, on success, collapses the card via
+  /// [NoteCardState.isRemoved]. By default this suppresses the note in the
+  /// unified `Note` store (tombstoned so the gateway never resyncs it). A
+  /// surface backed by a different store (e.g. the Surrounding feed) passes
+  /// [custom] to run its own deleter instead.
+  Future<Either<Failure, Unit>> deleteNote([
+    Future<Either<Failure, Unit>> Function()? custom,
+  ]) async {
+    final result = await (custom?.call() ?? _deleteNote.call(note.id));
     result.fold((_) {}, (_) {
       if (!isClosed) emit(state.copyWith(isRemoved: true));
     });

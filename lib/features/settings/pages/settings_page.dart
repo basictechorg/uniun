@@ -11,6 +11,7 @@ import 'package:uniun/features/settings/widgets/ai_card.dart';
 import 'package:uniun/features/settings/widgets/app_version_row.dart';
 import 'package:uniun/features/settings/widgets/cloud_provider_card.dart';
 import 'package:uniun/features/settings/widgets/identity_card.dart';
+import 'package:uniun/features/settings/widgets/mesh_card.dart';
 import 'package:uniun/features/settings/widgets/language_row.dart';
 import 'package:uniun/features/settings/widgets/logout_button.dart';
 import 'package:uniun/features/settings/widgets/theme_row.dart';
@@ -139,6 +140,16 @@ class _SettingsContent extends StatelessWidget {
                   RemoveDataRow(),
                 ],
               ),
+
+              const SizedBox(height: 24),
+
+              // ── Nearby Sync ───────────────────────────────────────────────
+              SettingsSectionLabel(
+                l10n.settingsNearbySync,
+                icon: Icons.wifi_tethering_rounded,
+              ),
+              const SizedBox(height: 10),
+              const MeshCard(),
 
               const SizedBox(height: 24),
 

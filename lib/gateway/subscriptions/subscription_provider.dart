@@ -49,8 +49,15 @@ abstract class SubscriptionProvider {
   /// [localIndex] so NIP-77 treats them as already-held and the relay stops
   /// re-offering them on every sync. (Reconciliation is download-only, so
   /// seeding ids the relay doesn't have under this filter is harmless.)
-  Future<Iterable<String>> deletedEventIds(SubscriptionContext ctx) =>
-      ctx.isar.deletedNoteModels.where().eventIdProperty().findAll();
+  ///
+  /// Tombstoned rows (`removedAt != null` — i.e. un-hidden) are excluded so
+  /// the relay is allowed to re-offer notes the user un-deleted.
+  Future<Iterable<String>> deletedEventIds(SubscriptionContext ctx) => ctx
+      .isar.deletedNoteModels
+      .filter()
+      .removedAtIsNull()
+      .eventIdProperty()
+      .findAll();
 
   /// Companion REQs to fire right after the main subscription opens. Each is a
   /// plain (non-NIP-77) REQ — used for by-id metadata lookups (kind 40 / 9002)

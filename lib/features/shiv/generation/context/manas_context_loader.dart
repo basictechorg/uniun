@@ -212,7 +212,8 @@ class ManasContextLoader {
       if (seen.add(p.id)) out.add(p);
     }
 
-    final saved = await isar.savedNoteModels.where().findAll();
+    final saved =
+        await isar.savedNoteModels.filter().removedAtIsNull().findAll();
     for (final s in saved) {
       add(PackedNote(
         id: s.eventId,
@@ -246,7 +247,12 @@ class ManasContextLoader {
     // Also include every note grouped into ANY Manas — a Manas can hold notes
     // the user didn't author, so "All notes" must be a true superset of every
     // scope (else those scopes spark cards but "All notes" reports < 2).
-    final linkIds = (await isar.manasNoteLinkModels.where().findAll())
+    // Tombstoned edges are excluded — a "remove note from Manas" mesh event
+    // means the user no longer wants the note grouped there.
+    final linkIds = (await isar.manasNoteLinkModels
+            .filter()
+            .removedAtIsNull()
+            .findAll())
         .map((l) => l.noteId)
         .toList();
     final byId = await _resolveMany(isar, linkIds);
@@ -265,6 +271,8 @@ class ManasContextLoader {
     final links = await isar.manasNoteLinkModels
         .filter()
         .anyOf(manasIds, (q, id) => q.manasIdEqualTo(id))
+        .and()
+        .removedAtIsNull()
         .findAll();
     return links.map((l) => l.noteId).toSet();
   }
@@ -310,6 +318,7 @@ class ManasContextLoader {
 
     final saved = await isar.savedNoteModels
         .filter()
+        .removedAtIsNull()
         .anyOf(wanted, (q, id) => q.eventIdEqualTo(id))
         .findAll();
     for (final s in saved) {

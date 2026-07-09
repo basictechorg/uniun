@@ -53,13 +53,21 @@ InboundMessage? decodeFrame(String raw) {
   switch (type) {
     case 'EVENT':
       if (data.length < 3) return null;
-      return InboundEvent(data[1] as String, data[2] as Map<String, dynamic>);
+      final subId = data[1];
+      final event = data[2];
+      if (subId is! String || event is! Map) return null;
+      return InboundEvent(subId, Map<String, dynamic>.from(event));
     case 'OK':
       if (data.length < 3) return null;
-      return InboundOk(data[1] as String, data[2] as bool? ?? false);
+      final eventId = data[1];
+      final accepted = data[2];
+      if (eventId is! String || accepted is! bool) return null;
+      return InboundOk(eventId, accepted);
     case 'EOSE':
       if (data.length < 2) return null;
-      return InboundEose(data[1] as String);
+      final subId = data[1];
+      if (subId is! String) return null;
+      return InboundEose(subId);
     case 'NOTICE':
       return InboundNotice(data.length > 1 ? '${data[1]}' : '');
     default:

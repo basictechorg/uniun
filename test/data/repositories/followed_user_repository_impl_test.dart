@@ -120,8 +120,17 @@ void main() {
       events.calls.clear();
       final r = await repo.unfollowUser(kAlicePub);
       expect(r.isRight(), isTrue);
-      final remaining = await isar.followedUserModels.where().findAll();
-      expect(remaining.map((r) => r.pubkeyHex), [kBobPub]);
+      // Soft-delete: alice row is retained with removedAt set (for mesh sync).
+      final alice = await isar.followedUserModels
+          .where()
+          .pubkeyHexEqualTo(kAlicePub)
+          .findFirst();
+      expect(alice?.removedAt, isNotNull);
+      // Active follow list excludes soft-deleted rows.
+      final active = (await isar.followedUserModels.where().findAll())
+          .where((row) => row.removedAt == null)
+          .toList();
+      expect(active.map((row) => row.pubkeyHex), [kBobPub]);
       expect(events.calls.single.pTagRefs, [kBobPub]);
     });
 

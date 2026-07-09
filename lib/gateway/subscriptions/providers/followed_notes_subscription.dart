@@ -10,7 +10,10 @@ class FollowedNotesSubscription extends SubscriptionProvider {
 
   @override
   Future<Map<String, dynamic>?> buildFilter(SubscriptionContext ctx) async {
-    final followed = await ctx.isar.followedNoteModels.where().findAll();
+    final followed = await ctx.isar.followedNoteModels
+        .filter()
+        .removedAtIsNull()
+        .findAll();
     if (followed.isEmpty) return null;
     return {
       'kinds': [1],

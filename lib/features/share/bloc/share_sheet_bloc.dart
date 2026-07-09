@@ -13,7 +13,6 @@ import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/get_groups_usecase.dart';
 import 'package:uniun/domain/usecases/media_usecases.dart';
 import 'package:uniun/domain/usecases/private_group_usecases.dart';
-import 'package:uniun/domain/usecases/saved_note_usecases.dart';
 import 'package:uniun/domain/usecases/share_usecases.dart';
 import 'package:uniun/domain/usecases/user_usecases.dart';
 
@@ -29,7 +28,6 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
   final ShareNoteUseCase _shareNote;
   final UploadMediaUseCase _uploadMedia;
   final GetActiveUserUseCase _getActiveUser;
-  final ResolveNotesByIdsUseCase _resolveNotes;
 
   ShareSheetBloc(
     this._getGroups,
@@ -38,7 +36,6 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
     this._shareNote,
     this._uploadMedia,
     this._getActiveUser,
-    this._resolveNotes,
   ) : super(const ShareSheetState()) {
     on<LoadDestinations>(_onLoad);
     on<SelectDestination>(
@@ -81,13 +78,8 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
       (list) => list,
     );
 
-    // Resolve the original note for the "Quoting" preview card. Degrades to
-    // null (card hidden) when the note can't be resolved.
-    final quotedResult = await _resolveNotes([event.sourceEventId]);
-    final quotedNote = quotedResult.fold<NoteEntity?>(
-      (_) => null,
-      (notes) => notes.isEmpty ? null : notes.first,
-    );
+    // The source note is carried in directly — no re-resolution.
+    final quotedNote = event.source;
 
     emit(state.copyWith(
       loading: false,
@@ -132,7 +124,7 @@ class ShareSheetBloc extends Bloc<ShareSheetEvent, ShareSheetState> {
 
     final result = await _shareNote(
       ShareNoteInput(
-        sourceEventId: event.sourceEventId,
+        source: event.source,
         destination: event.destination,
         content: state.content,
         referenceIds: [for (final r in state.references) r.id],

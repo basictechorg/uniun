@@ -21,6 +21,9 @@ import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
 import 'package:uniun/features/brahma/utils/nostr_event_utils.dart';
+import 'package:uniun/features/mesh/sync/bodies/gana_body.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
 import 'package:uniun/features/shiv/generation/gana_run.dart';
@@ -65,6 +68,7 @@ class GanaEngine {
     this._privateGroup,
     this._embedAndStore,
     this._manasLoader,
+    this._signer,
   );
 
   final Isar _isar;
@@ -77,6 +81,7 @@ class GanaEngine {
   final SendPrivateGroupMessageUsecase _privateGroup;
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final ManasContextLoader _manasLoader;
+  final MeshEventSigner _signer;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -152,8 +157,12 @@ class GanaEngine {
   // ── Schedule rebuild ───────────────────────────────────────────────────
 
   Future<void> _rebuildSchedule() async {
-    final rows =
-        await _isar.ganaModels.filter().enabledEqualTo(true).findAll();
+    final rows = await _isar.ganaModels
+        .filter()
+        .removedAtIsNull()
+        .and()
+        .enabledEqualTo(true)
+        .findAll();
     _enabledGanas = rows.map((m) => m.toDomain()).toList();
 
     final liveIds = {for (final g in _enabledGanas) g.ganaId};
@@ -207,8 +216,12 @@ class GanaEngine {
   }
 
   Future<void> _maybeRunInterval(String ganaId) async {
-    final row =
-        await _isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+    final row = await _isar.ganaModels
+        .filter()
+        .ganaIdEqualTo(ganaId)
+        .and()
+        .removedAtIsNull()
+        .findFirst();
     if (row == null || !row.enabled) return;
     final mins = row.triggerIntervalMinutes;
     if (mins == null || mins <= 0) return;
@@ -224,8 +237,12 @@ class GanaEngine {
     if (_runMutex != null) return; // single-flight
     final mutex = _runMutex = Completer<void>();
     try {
-      final row =
-          await _isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+      final row = await _isar.ganaModels
+          .filter()
+          .ganaIdEqualTo(ganaId)
+          .and()
+          .removedAtIsNull()
+          .findFirst();
       if (row == null || !row.enabled) return;
       await _runOnce(row.toDomain());
     } catch (e, st) {
@@ -545,9 +562,11 @@ class GanaEngine {
     final conv = await _isar.dmConversationModels
         .filter()
         .idEqualTo(conversationId)
+        .removedAtIsNull()
         .findFirst();
     if (conv == null) {
-      throw StateError('DM conversation $conversationId not found');
+      throw StateError(
+          'DM conversation $conversationId not found (or tombstoned)');
     }
     final before = await _latestSelfEventIdInDm(conv.id, pubkeyHex);
     final res = await _dm.call(SendDmParams(
@@ -622,21 +641,37 @@ class GanaEngine {
     List<NoteModel> inputs, {
     required DateTime lastRunAt,
     bool publishedOutput = false,
-  }) =>
-      advanceGanaCursor(
-        isar: _isar,
-        ganaId: g.ganaId,
-        inputs: inputs,
-        publishedOutput: publishedOutput,
-      );
+  }) async {
+    // Auto-disable (published one-shot) is a definition-level flip that must
+    // sync — sign it. Pure cursor advances stay unsigned.
+    final codec = await _signer.currentCodec();
+    return advanceGanaCursor(
+      isar: _isar,
+      ganaId: g.ganaId,
+      inputs: inputs,
+      publishedOutput: publishedOutput,
+      codec: codec,
+    );
+  }
 
   // ── Helpers ────────────────────────────────────────────────────────────
 
   Future<void> _disable(String ganaId) async {
-    final row =
-        await _isar.ganaModels.filter().ganaIdEqualTo(ganaId).findFirst();
+    final row = await _isar.ganaModels
+        .filter()
+        .ganaIdEqualTo(ganaId)
+        .and()
+        .removedAtIsNull()
+        .findFirst();
     if (row == null) return;
-    row.enabled = false;
+    row
+      ..enabled = false
+      ..updatedAt = DateTime.now();
+    row.signedNostrEvent = await _signer.sign(
+      kind: MeshEventKinds.gana,
+      dTag: ganaId,
+      content: GanaBody.forActive(row),
+    );
     await _isar.writeTxn(() async {
       await _isar.ganaModels.put(row);
     });

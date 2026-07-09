@@ -19,4 +19,12 @@ class FollowedNoteModel {
 
   late String contentPreview;
   late DateTime followedAt;
+
+  /// Signed+encrypted Nostr Kind 30501 event for this row (§3). Nullable
+  /// during Phase 0a migration.
+  String? signedNostrEvent;
+
+  /// Tombstone marker (§5a). Null on active follows.
+  @Index()
+  DateTime? removedAt;
 }

@@ -9,6 +9,7 @@ import 'package:uniun/data/models/notes/unread_note_model.dart';
 import 'package:uniun/gateway/inbound/event_parser.dart';
 import 'package:uniun/data/models/notes/imeta_parser.dart';
 import 'package:uniun/gateway/inbound/kind_handler.dart';
+import 'package:uniun/gateway/inbound/verified_nostr_event.dart';
 
 /// Kind 42 — NIP-28 group message.
 ///
@@ -24,34 +25,19 @@ class Kind42Handler implements KindHandler {
   Set<int> get kinds => const {42};
 
   @override
-  Future<void> handle(Map<String, dynamic> event, Isar isar) async {
-    final eventId = event['id'] as String?;
-    final pubkey = event['pubkey'] as String?;
-    final sig = event['sig'] as String?;
-    final content = event['content'] as String?;
-    final createdAtSec = event['created_at'] as int?;
-
-    if (eventId == null ||
-        pubkey == null ||
-        sig == null ||
-        content == null ||
-        createdAtSec == null) {
-      return;
-    }
-
-    final tags = event['tags'] as List<dynamic>? ?? [];
+  Future<void> handle(VerifiedNostrEvent event, Isar isar) async {
     String? groupId;
     String? replyEventId;
     String? embeddedNoteJson;
     final eTagRefs = <String>[];
 
-    for (final tag in tags) {
-      if (tag is! List || tag.isEmpty) continue;
+    for (final tag in event.tags) {
+      if (tag.isEmpty) continue;
       if (tag[0] == 'e') {
-        final eRef = tag[1] as String?;
+        final eRef = tag.length > 1 ? tag[1] : null;
         if (eRef != null) {
           eTagRefs.add(eRef);
-          final marker = tag.length > 3 ? tag[3] as String? : null;
+          final marker = tag.length > 3 ? tag[3] : null;
           if (marker == 'root') {
             groupId = eRef;
           } else if (marker == 'reply') {
@@ -60,8 +46,7 @@ class Kind42Handler implements KindHandler {
         }
       } else if (tag[0] == EmbeddedNoteCodec.tagName && tag.length >= 2) {
         // Embed-by-value share — verify the snapshot once, here at the edge.
-        embeddedNoteJson =
-            EmbeddedNoteCodec.verifyAndSanitize(tag[1] as String);
+        embeddedNoteJson = EmbeddedNoteCodec.verifyAndSanitize(tag[1]);
       }
     }
 
@@ -72,10 +57,10 @@ class Kind42Handler implements KindHandler {
     if (groupId == null) return;
 
     final model = NoteModel(
-      eventId: eventId,
-      sig: sig,
-      authorPubkey: pubkey,
-      content: content,
+      eventId: event.id,
+      sig: event.sig,
+      authorPubkey: event.pubkey,
+      content: event.content,
       kind: kGroupMessageKind,
       groupId: groupId,
       type: NoteType.text,
@@ -84,22 +69,32 @@ class Kind42Handler implements KindHandler {
       replyToEventId: replyEventId,
       pTagRefs: const [],
       tTags: const [],
-      created: EventParser.dateTimeFromSec(createdAtSec),
+      created: EventParser.dateTimeFromSec(event.createdAt),
       embeddedNoteJson: embeddedNoteJson,
-      attachments: ImetaParser.parseAsAttachments(event),
+      rawEventJson: event.toCanonicalJson(),
+      attachments: ImetaParser.parseAsAttachments(event.toMap()),
     );
 
     try {
       await isar.writeTxn(() async {
         final existing = await isar.noteModels
             .where()
-            .eventIdEqualTo(eventId)
+            .eventIdEqualTo(event.id)
             .findFirst();
-        if (existing != null) return;
+        if (existing != null) {
+          // Own messages are inserted optimistically without the raw signed
+          // event. Backfill it from the relay echo so mesh negentropy can
+          // advertise + forward them.
+          if (existing.rawEventJson == null && model.rawEventJson != null) {
+            existing.rawEventJson = model.rawEventJson;
+            await isar.noteModels.put(existing);
+          }
+          return;
+        }
         await isar.noteModels.put(model);
 
         // Unread row for messages from other users (own sends are pre-seen).
-        if (pubkey != activePubkey) {
+        if (event.pubkey != activePubkey) {
           await putUnreadRowInTxn(isar, model);
         }
 
@@ -114,8 +109,8 @@ class Kind42Handler implements KindHandler {
           await isar.noteRelationModels.put(
             NoteRelationModel()
               ..parentId = parentId
-              ..childId = eventId
-              ..createdAt = EventParser.dateTimeFromSec(createdAtSec),
+              ..childId = event.id
+              ..createdAt = EventParser.dateTimeFromSec(event.createdAt),
           );
         }
       });

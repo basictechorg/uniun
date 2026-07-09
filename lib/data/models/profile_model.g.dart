@@ -31,13 +31,18 @@ const ProfileModelSchema = CollectionSchema(
     r'name': PropertySchema(id: 3, name: r'name', type: IsarType.string),
     r'nip05': PropertySchema(id: 4, name: r'nip05', type: IsarType.string),
     r'pubkey': PropertySchema(id: 5, name: r'pubkey', type: IsarType.string),
-    r'updatedAt': PropertySchema(
+    r'rawEventJson': PropertySchema(
       id: 6,
+      name: r'rawEventJson',
+      type: IsarType.string,
+    ),
+    r'updatedAt': PropertySchema(
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'username': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'username',
       type: IsarType.string,
     ),
@@ -104,6 +109,12 @@ int _profileModelEstimateSize(
   }
   bytesCount += 3 + object.pubkey.length * 3;
   {
+    final value = object.rawEventJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.username;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -124,8 +135,9 @@ void _profileModelSerialize(
   writer.writeString(offsets[3], object.name);
   writer.writeString(offsets[4], object.nip05);
   writer.writeString(offsets[5], object.pubkey);
-  writer.writeDateTime(offsets[6], object.updatedAt);
-  writer.writeString(offsets[7], object.username);
+  writer.writeString(offsets[6], object.rawEventJson);
+  writer.writeDateTime(offsets[7], object.updatedAt);
+  writer.writeString(offsets[8], object.username);
 }
 
 ProfileModel _profileModelDeserialize(
@@ -142,8 +154,9 @@ ProfileModel _profileModelDeserialize(
   object.name = reader.readStringOrNull(offsets[3]);
   object.nip05 = reader.readStringOrNull(offsets[4]);
   object.pubkey = reader.readString(offsets[5]);
-  object.updatedAt = reader.readDateTime(offsets[6]);
-  object.username = reader.readStringOrNull(offsets[7]);
+  object.rawEventJson = reader.readStringOrNull(offsets[6]);
+  object.updatedAt = reader.readDateTime(offsets[7]);
+  object.username = reader.readStringOrNull(offsets[8]);
   return object;
 }
 
@@ -167,8 +180,10 @@ P _profileModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
+      return (reader.readDateTime(offset)) as P;
+    case 8:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1316,6 +1331,165 @@ extension ProfileModelQueryFilter
   }
 
   QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'rawEventJson'),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'rawEventJson'),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'rawEventJson',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'rawEventJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'rawEventJson',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'rawEventJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
+  rawEventJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'rawEventJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterFilterCondition>
   updatedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1611,6 +1785,19 @@ extension ProfileModelQuerySortBy
     });
   }
 
+  QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy> sortByRawEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy>
+  sortByRawEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1723,6 +1910,19 @@ extension ProfileModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy> thenByRawEventJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy>
+  thenByRawEventJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rawEventJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<ProfileModel, ProfileModel, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1796,6 +1996,14 @@ extension ProfileModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ProfileModel, ProfileModel, QDistinct> distinctByRawEventJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rawEventJson', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<ProfileModel, ProfileModel, QDistinct> distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
@@ -1852,6 +2060,12 @@ extension ProfileModelQueryProperty
   QueryBuilder<ProfileModel, String, QQueryOperations> pubkeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pubkey');
+    });
+  }
+
+  QueryBuilder<ProfileModel, String?, QQueryOperations> rawEventJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rawEventJson');
     });
   }
 

@@ -3,8 +3,10 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/data/repositories/manas_repository_impl.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/usecases/manas_usecases.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../_helpers/isar_test_harness.dart';
+import '../_helpers/stub_user_repository.dart';
 
 ManasEntity _manas(String id, {String? name, String? icon, DateTime? when}) =>
     ManasEntity(
@@ -41,7 +43,11 @@ void main() {
 
   setUp(() async {
     isar = await openTestIsar();
-    repo = ManasRepositoryImpl(isar: isar);
+    // Logged-out stub — `sign()` returns null so rows are written with
+    // `signedNostrEvent = null`. The integration test doesn't assert on
+    // the wire form; that's covered by test/mesh/sync_integration_test.dart.
+    final signer = MeshEventSigner(StubUserRepository()..keys = null);
+    repo = ManasRepositoryImpl(isar: isar, signer: signer);
     upsert = UpsertManasUseCase(repo);
     listManas = GetManasListUseCase(repo);
     getById = GetManasByIdUseCase(repo);

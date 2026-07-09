@@ -53,8 +53,9 @@ class BlossomException implements Exception {
 @lazySingleton
 class BlossomClient {
   // `httpClient` is a test seam — production DI never passes it, so the
-  // runtime `_http` is the same `http.Client()` as before.
-  BlossomClient({http.Client? httpClient})
+  // runtime `_http` is the same `http.Client()` as before. `@ignoreParam`
+  // tells injectable not to try resolving `http.Client` from GetIt.
+  BlossomClient({@ignoreParam http.Client? httpClient})
       : _http = httpClient ?? http.Client();
 
   final http.Client _http;
