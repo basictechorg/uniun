@@ -21,6 +21,7 @@ import 'package:uniun/data/repositories/note_resolver_repository_impl.dart';
 import 'package:uniun/data/repositories/report_repository_impl.dart';
 import 'package:uniun/data/repositories/source_label_repository_impl.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../_helpers/fixtures.dart';
 import '../_helpers/isar_seeds.dart';
@@ -59,7 +60,10 @@ void main() {
       userRepository: user,
     );
     deletions = DeletedNoteRepositoryImpl(isar: isar);
-    blocks = BlockedUserRepositoryImpl(isar: isar);
+    blocks = BlockedUserRepositoryImpl(
+      isar: isar,
+      signer: MeshEventSigner(StubUserRepository()..keys = null),
+    );
     relations = NoteRelationRepositoryImpl(isar: isar);
     feed = FeedRepositoryImpl(
       isar: isar,
