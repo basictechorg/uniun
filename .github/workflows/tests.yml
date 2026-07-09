@@ -34,6 +34,8 @@ jobs:
             test/integration
             test/common
             test/core
+            test/mesh
+            test/surrounding
             test/widget_test.dart
             test/shiv_home_page_test.dart
             test/expandable_note_text_tap_test.dart
@@ -142,6 +144,9 @@ jobs:
             concurrency: 4
           - name: core
             paths: test/core
+            concurrency: 4
+          - name: mesh
+            paths: test/mesh test/surrounding
             concurrency: 4
     steps:
       - uses: actions/checkout@v4
