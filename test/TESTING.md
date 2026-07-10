@@ -109,6 +109,18 @@ below, or add one if the shape is missing.
 | `stub_user_repository.dart` | `StubUserRepository` | Any repo that calls `UserRepository.getActiveKeysHex()` or `getActiveUser()` (both derive from `.keys`). Set `.keys = null` to simulate a logged-out identity. |
 | `stub_followed_users.dart` | `StubFollowedUsers` | Any repo that reads the follow list via `FollowedUserRepository.getAllPubkeys()`. Seed `.pubkeys`; set `.leftOnGetAllPubkeys` to simulate failure. |
 | `fake_path_provider.dart` | `FakePathProviderPlatform` | Code that calls `getApplicationDocumentsDirectory()` / `getApplicationSupportDirectory()`. Install via `PathProviderPlatform.instance = FakePathProviderPlatform(docs: ..., support: ...)` pointing at temp dirs. |
+| `mesh_test_helpers.dart` | `stubSecureStorageChannel()`, `MeshIdentity` | Any mesh test. The stub silences flutter_secure_storage's channel (NIP-44 PBKDF2 path) — call once at the top of `main()`. `MeshIdentity.generate()` = real Schnorr keypair + bound `MeshEventCodec`; generate a second one to play the attacker in signed-by-another-identity drop tests. |
+
+Two mesh-only doubles live in `test/mesh/support/` (feature-scoped, not
+general): `fake_signer.dart` (`FakeSigner` — deterministic handshake
+`MeshSigner`) and `paired_mesh_link.dart` (two in-memory `MeshLink` ends
+wired back-to-back). Also: `isar_test_harness.dart` exposes
+`ensureIsarCore()` — a race-safe, HttpClient-mock-proof download of the
+IsarCore native binary; `openTestIsar()` calls it for you, only call it
+directly if you open Isar instances by hand (see `sync_integration_test`).
+Never call `Isar.initializeIsarCore(download: true)` yourself — under
+parallel `flutter test` it races and under `TestWidgetsFlutterBinding` its
+download can never succeed (mocked HTTP 400).
 
 ### Constants in `fixtures.dart`
 

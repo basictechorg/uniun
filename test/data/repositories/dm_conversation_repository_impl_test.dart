@@ -3,10 +3,12 @@ import 'package:isar_community/isar.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/repositories/dm_conversation_repository_impl.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../../_helpers/fixtures.dart';
 import '../../_helpers/isar_seeds.dart';
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 /// Covers: DmConversationRepositoryImpl get/save/delete with pubkey
 /// normalization (npub decode, case-folding, trim), idempotent get-or-create,
@@ -17,7 +19,10 @@ void main() {
 
   setUp(() async {
     isar = await openTestIsar();
-    repo = DmConversationRepositoryImpl(isar: isar);
+    repo = DmConversationRepositoryImpl(
+      isar: isar,
+      signer: MeshEventSigner(StubUserRepository()..keys = null),
+    );
   });
 
   tearDown(() async {
@@ -134,12 +139,27 @@ void main() {
   });
 
   group('deleteConversation', () {
-    test('removes the row (accepts npub input)', () async {
+    test('tombstones the row instead of deleting it (accepts npub input)',
+        () async {
       await seedDmConversation(isar, kSampleTargetPubkeyHex);
       final r = await repo
           .deleteConversation(Nip19.encodePubkey(kSampleTargetPubkeyHex));
       expect(r.isRight(), isTrue);
-      expect(await isar.dmConversationModels.count(), 0);
+      // Mesh sync needs the state flip to survive: row stays, removedAt set.
+      final row = (await isar.dmConversationModels.where().findAll()).single;
+      expect(row.removedAt, isNotNull);
+      final listed = await repo.getConversations();
+      expect(listed.getOrElse(() => throw 'unreachable'), isEmpty);
+    });
+
+    test('re-saving a tombstoned conversation revives it', () async {
+      await seedDmConversation(isar, kSampleTargetPubkeyHex);
+      await repo.deleteConversation(kSampleTargetPubkeyHex);
+
+      final r = await repo.saveConversation(aDmConversation());
+      expect(r.isRight(), isTrue);
+      final row = (await isar.dmConversationModels.where().findAll()).single;
+      expect(row.removedAt, isNull);
     });
 
     test('idempotent on unknown pubkey', () async {

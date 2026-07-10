@@ -14,6 +14,7 @@ import 'package:uniun/data/repositories/note_resolver_repository_impl.dart';
 import 'package:uniun/data/repositories/source_label_repository_impl.dart';
 import 'package:uniun/data/repositories/unread_repository_impl.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/features/mesh/sync/mesh_event_signer.dart';
 
 import '../_helpers/fixtures.dart';
 import '../_helpers/isar_seeds.dart';
@@ -44,7 +45,10 @@ void main() {
       relations: relations,
       attachments: NoteAttachmentsEnricher(isar: isar),
     );
-    conversations = DmConversationRepositoryImpl(isar: isar);
+    conversations = DmConversationRepositoryImpl(
+      isar: isar,
+      signer: MeshEventSigner(StubUserRepository()..keys = null),
+    );
     messages = DmMessageRepositoryImpl(isar: isar, resolver: resolver);
     unread = UnreadRepositoryImpl(isar: isar);
     feed = FeedRepositoryImpl(

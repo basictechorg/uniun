@@ -2,34 +2,28 @@
 // MeshEventCodec. The `d` tag is the counterparty pubkey — save/delete
 // conversation both address the same addressable slot per plan §5.
 
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
-import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/features/mesh/sync/bodies/dm_conversation_body.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/mesh/sync/scopes/dm_conversation_sync_scope.dart';
 
 import '../../_helpers/isar_test_harness.dart';
+import '../../_helpers/mesh_test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  const flutterSecureStorage =
-      MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(flutterSecureStorage, (_) async => null);
+  stubSecureStorageChannel();
 
   late Isar isar;
-  late Keychain me;
+  late MeshIdentity me;
   late MeshEventCodec codec;
   late DmConversationSyncScope scope;
 
   setUp(() async {
     isar = await openTestIsar();
-    me = Keychain.generate();
-    codec = MeshEventCodec(privkeyHex: me.private, pubkeyHex: me.public);
+    me = MeshIdentity.generate();
+    codec = me.codec;
     scope = DmConversationSyncScope(isar, codec);
   });
 
@@ -163,9 +157,7 @@ void main() {
 
   test('upsertSigned silently drops an event signed by another identity',
       () async {
-    final foreign = Keychain.generate();
-    final foreignCodec =
-        MeshEventCodec(privkeyHex: foreign.private, pubkeyHex: foreign.public);
+    final foreignCodec = MeshIdentity.generate().codec;
     final foreignSigned = await foreignCodec.signRecord(
       kind: MeshEventKinds.dmConversation,
       dTag: 'pk-foreign',

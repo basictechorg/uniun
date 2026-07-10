@@ -13,20 +13,17 @@ import 'package:uniun/data/models/surrounding_tombstone_model.dart';
 import 'package:uniun/data/repositories/surrounding_note_repository_impl.dart';
 import 'package:uniun/domain/entities/surrounding/surrounding_note_entity.dart';
 
+import '../_helpers/isar_test_harness.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  var isarReady = false;
   final temps = <Directory>[];
 
   setUpAll(() async {
-    try {
-      await Isar.initializeIsarCore(download: true);
-      isarReady = true;
-    } catch (e) {
-      // ignore: avoid_print
-      print('Isar core unavailable, skipping: $e');
-    }
+    // A core init failure must FAIL the suite, not silently skip it —
+    // ensureIsarCore (shared harness) is race-safe and mock-proof.
+    await ensureIsarCore();
   });
 
   tearDownAll(() async {
@@ -71,7 +68,6 @@ void main() {
 
   test('getAfter returns notes strictly newer than the cursor, ascending',
       () async {
-    if (!isarReady) return;
     final isar = await openIsar('after');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -85,7 +81,6 @@ void main() {
   });
 
   test('getAfter inclusive includes the cursor note', () async {
-    if (!isarReady) return;
     final isar = await openIsar('afterinc');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -101,7 +96,6 @@ void main() {
 
   test('getBefore returns notes older than the cursor, oldest-to-newest, capped',
       () async {
-    if (!isarReady) return;
     final isar = await openIsar('before');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -117,7 +111,6 @@ void main() {
 
   test('getBefore with null cursor returns the newest page, ascending',
       () async {
-    if (!isarReady) return;
     final isar = await openIsar('beforenull');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -131,7 +124,6 @@ void main() {
   });
 
   test('orders by receivedAt, not author created', () async {
-    if (!isarReady) return;
     final isar = await openIsar('byreceived');
     addTearDown(() async => isar.close());
     // 'x' authored later (created 300) but received first (receivedAt 100);
@@ -149,7 +141,6 @@ void main() {
   });
 
   test('oldestUnreadReceivedAt is the first note past the watermark', () async {
-    if (!isarReady) return;
     final isar = await openIsar('unread');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -164,7 +155,6 @@ void main() {
   });
 
   test('delete removes the note and writes a tombstone', () async {
-    if (!isarReady) return;
     final isar = await openIsar('delete');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {
@@ -190,7 +180,6 @@ void main() {
   });
 
   test('oldestUnreadReceivedAt is null when everything is read', () async {
-    if (!isarReady) return;
     final isar = await openIsar('allread');
     addTearDown(() async => isar.close());
     await isar.writeTxn(() async {

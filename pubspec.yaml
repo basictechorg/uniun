@@ -178,6 +178,9 @@ dependency_overrides:
   # main-isolate callers (Isar, ToStore, Marmot MLS, storage, mesh). Pin to the last
   # Pigeon-based release (no objective_c) until that's resolved upstream.
   path_provider_foundation: 2.5.1
+  # 0.1.0 (nostr_core_dart's pin) emits unpadded sigs — ~1/128 fail their own
+  # verification. Fixed in 0.2.0; drop once nostr_core_dart bumps upstream.
+  bip340: ^0.2.0
 
 flutter:
   generate: true
