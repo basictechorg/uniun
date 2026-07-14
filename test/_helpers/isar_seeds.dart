@@ -5,7 +5,9 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/models/deleted_note_model.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
+import 'package:uniun/data/models/media/media_cache_model.dart';
 import 'package:uniun/data/models/note_relation_model.dart';
+import 'package:uniun/data/models/private_group_join_request_model.dart';
 import 'package:uniun/data/models/profile_model.dart';
 import 'package:uniun/core/enum/message_role.dart';
 import 'package:uniun/data/models/relay_model.dart';
@@ -178,6 +180,38 @@ EventQueueModel eventQueueRow(
       ..created = created ?? tNow
       ..sentCount = sentCount
       ..enqueuedAt = enqueuedAt ?? tNow;
+
+/// Build a [MediaCacheModel] row without committing it.
+MediaCacheModel mediaCacheRow(
+  String sha256, {
+  String? localPath,
+  DateTime? downloadedAt,
+  String mime = 'image/jpeg',
+  int sizeBytes = 1,
+}) =>
+    MediaCacheModel()
+      ..sha256 = sha256
+      ..localPath = localPath ?? '/data/media/$sha256'
+      ..downloadedAt = downloadedAt ?? tNow
+      ..mime = mime
+      ..sizeBytes = sizeBytes;
+
+/// Build a [PrivateGroupJoinRequestModel] row without committing it.
+PrivateGroupJoinRequestModel joinRequestRow(
+  String eventId, {
+  String groupId = 'pgroup-1',
+  String senderPubkey = kBobPub,
+  String keyPackageB64 = 'a2V5cGFja2FnZQ==',
+  DateTime? timestamp,
+  bool handled = false,
+}) =>
+    PrivateGroupJoinRequestModel()
+      ..eventId = eventId
+      ..groupId = groupId
+      ..senderPubkey = senderPubkey
+      ..keyPackageB64 = keyPackageB64
+      ..timestamp = timestamp ?? tNow
+      ..handled = handled;
 
 /// Build a [ProfileModel] row without committing it.
 ProfileModel profileRow(
