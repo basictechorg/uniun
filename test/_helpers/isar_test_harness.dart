@@ -95,15 +95,30 @@ Future<Isar> openTestIsar() async {
   );
 }
 
-GroupModel groupSeed(String groupId) => GroupModel()
-  ..groupId = groupId
-  ..creatorPubKey = 'creator'
-  ..name = 'name'
-  ..about = 'about'
-  ..picture = ''
-  ..relays = const []
-  ..createdAt = 0
-  ..updatedAt = 0;
+GroupModel groupSeed(
+  String groupId, {
+  String creatorPubKey = 'creator',
+  String name = 'name',
+  String about = 'about',
+  List<String> relays = const [],
+  int createdAt = 0,
+  int updatedAt = 0,
+  String? lastMetaEvent,
+  String? signedNostrEvent,
+  DateTime? removedAt,
+}) =>
+    GroupModel()
+      ..groupId = groupId
+      ..creatorPubKey = creatorPubKey
+      ..name = name
+      ..about = about
+      ..picture = ''
+      ..relays = relays
+      ..createdAt = createdAt
+      ..updatedAt = updatedAt
+      ..lastMetaEvent = lastMetaEvent
+      ..signedNostrEvent = signedNostrEvent
+      ..removedAt = removedAt;
 
 PrivateGroupModel privateGroupSeed(String groupId) => PrivateGroupModel()
   ..groupId = groupId

@@ -488,12 +488,10 @@ void main() {
     test('returns entity from cache row alone when no NoteModel references it',
         () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'sha'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 42
-          ..localPath = '/tmp/sha.jpg'
-          ..downloadedAt = DateTime(2026, 1, 1));
+        await isar.mediaCacheModels.put(mediaCacheRow('sha',
+            sizeBytes: 42,
+            localPath: '/tmp/sha.jpg',
+            downloadedAt: DateTime(2026, 1, 1)));
       });
 
       final res = await repo.getCachedBySha('sha');
@@ -509,12 +507,10 @@ void main() {
     test('joins attachment metadata from the first note carrying the sha',
         () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'sha'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 42
-          ..localPath = '/tmp/sha.jpg'
-          ..downloadedAt = DateTime(2026, 1, 1));
+        await isar.mediaCacheModels.put(mediaCacheRow('sha',
+            sizeBytes: 42,
+            localPath: '/tmp/sha.jpg',
+            downloadedAt: DateTime(2026, 1, 1)));
 
         final att = mediaAttachmentRow(
           sha256: 'sha',
@@ -549,12 +545,10 @@ void main() {
   group('watchAll', () {
     Future<void> seed(String sha, String mime) async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = sha
-          ..mime = mime
-          ..sizeBytes = 1
-          ..localPath = '/tmp/$sha'
-          ..downloadedAt = DateTime(2026, 1, 1));
+        await isar.mediaCacheModels.put(mediaCacheRow(sha,
+            mime: mime,
+            localPath: '/tmp/$sha',
+            downloadedAt: DateTime(2026, 1, 1)));
       });
     }
 
@@ -606,18 +600,10 @@ void main() {
 
     test('sorts newest first by downloadedAt', () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'old'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 1
-          ..localPath = '/tmp/old'
-          ..downloadedAt = DateTime(2024, 1, 1));
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'new'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 1
-          ..localPath = '/tmp/new'
-          ..downloadedAt = DateTime(2026, 6, 1));
+        await isar.mediaCacheModels.put(mediaCacheRow('old',
+            localPath: '/tmp/old', downloadedAt: DateTime(2024, 1, 1)));
+        await isar.mediaCacheModels.put(mediaCacheRow('new',
+            localPath: '/tmp/new', downloadedAt: DateTime(2026, 6, 1)));
       });
       final blobs = await repo.watchAll().first;
       expect(blobs.first.sha256, 'new');
@@ -655,12 +641,8 @@ void main() {
 
     test('deletes cache file + Isar row when row exists', () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'sha'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 1
-          ..localPath = '/tmp/sha.jpg'
-          ..downloadedAt = DateTime.now());
+        await isar.mediaCacheModels.put(mediaCacheRow('sha',
+            localPath: '/tmp/sha.jpg', downloadedAt: DateTime.now()));
       });
 
       final res = await repo.removeLocal('sha');
@@ -675,12 +657,10 @@ void main() {
 
     test('handles a stored localPath with no extension', () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'sha'
-          ..mime = 'application/octet-stream'
-          ..sizeBytes = 1
-          ..localPath = '/tmp/sha'
-          ..downloadedAt = DateTime.now());
+        await isar.mediaCacheModels.put(mediaCacheRow('sha',
+            mime: 'application/octet-stream',
+            localPath: '/tmp/sha',
+            downloadedAt: DateTime.now()));
       });
       final res = await repo.removeLocal('sha');
       expect(res, const Right<Failure, Unit>(unit));
@@ -689,12 +669,8 @@ void main() {
 
     test('wraps cache-delete failure into Left', () async {
       await isar.writeTxn(() async {
-        await isar.mediaCacheModels.put(MediaCacheModel()
-          ..sha256 = 'sha'
-          ..mime = 'image/jpeg'
-          ..sizeBytes = 1
-          ..localPath = '/tmp/sha.jpg'
-          ..downloadedAt = DateTime.now());
+        await isar.mediaCacheModels.put(mediaCacheRow('sha',
+            localPath: '/tmp/sha.jpg', downloadedAt: DateTime.now()));
       });
       when(() => cache.delete(any(), any()))
           .thenThrow(const FileSystemException('perm denied'));

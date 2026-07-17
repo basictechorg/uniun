@@ -13,12 +13,14 @@ import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
+import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/media/media_dim.dart';
 import 'package:uniun/domain/entities/memory_node/memory_node_entity.dart';
 import 'package:uniun/domain/entities/note/note_entity.dart';
+import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/entities/relay/relay_entity.dart';
 import 'package:uniun/domain/entities/saved_note/saved_note_entity.dart';
@@ -295,6 +297,54 @@ ProfileEntity aProfile({
 /// Profile with no name and no username — forces short-pubkey fallback.
 ProfileEntity anAnonymousProfile({String pubkey = kAlicePub}) =>
     aProfile(pubkey: pubkey, name: null, username: null);
+
+// ── GroupEntity (NIP-28 public group) ────────────────────────────────────────
+
+GroupEntity aGroup({
+  String groupId = 'group-1',
+  String creatorPubKey = kAlicePub,
+  String name = 'General',
+  String about = 'a public group',
+  String picture = '',
+  List<String> relays = const ['wss://relay.example'],
+  int createdAt = 1720000000,
+  int updatedAt = 1720000000,
+  String? lastMetaEvent,
+}) {
+  return GroupEntity(
+    groupId: groupId,
+    creatorPubKey: creatorPubKey,
+    name: name,
+    about: about,
+    picture: picture,
+    relays: relays,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    lastMetaEvent: lastMetaEvent,
+  );
+}
+
+// ── PrivateGroupEntity (MLS e2ee group) ──────────────────────────────────────
+
+PrivateGroupEntity aPrivateGroup({
+  int id = 0,
+  String groupId = 'pgroup-1',
+  String? mlsGroupId,
+  String name = 'Secret',
+  String description = 'a private group',
+  List<String> relays = const ['wss://relay.example'],
+  String adminPubkey = kAlicePub,
+}) {
+  return PrivateGroupEntity(
+    id: id,
+    groupId: groupId,
+    mlsGroupId: mlsGroupId ?? 'mls_$groupId',
+    relays: relays,
+    name: name,
+    description: description,
+    adminPubkey: adminPubkey,
+  );
+}
 
 // ── DmConversationEntity ─────────────────────────────────────────────────────
 

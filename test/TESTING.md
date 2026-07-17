@@ -46,6 +46,8 @@ Every domain entity has a factory there. **Never hand-roll a
 | `aGroupMessage(groupId: ...)` | Kind-42 public-group message |
 | `aPrivateGroupMessage(groupId: ...)` | Kind-9023 NIP-29 private-group message |
 | `aDmText(conversationId: ...)` | Kind-14 DM rumor |
+| `aGroup(...)` | NIP-28 public-group metadata entity (Kind-40 snapshot) |
+| `aPrivateGroup(...)` | MLS private-group entity (`mlsGroupId` defaults to `mls_<groupId>`) |
 | `aQuoteOf(original)` | Note quoting another by value |
 | `aFeed(n: ...)` | List of `n` notes, newest first |
 | `aThread(depth: ...)` | Linear reply chain root → r1 → r2 → … |
@@ -103,7 +105,7 @@ below, or add one if the shape is missing.
 | Helper file | Exposes | Use for |
 |---|---|---|
 | `isar_test_harness.dart` | `openTestIsar()`, `groupSeed`, `privateGroupSeed`, `followedUserSeed`, `followedNoteSeed` | Opening an isolated on-disk Isar in `setUp` + one-liner seed rows for those specific collections. |
-| `isar_seeds.dart` | builders `noteRow`, `unreadRow`, `relationEdge`, `reportRow`, `deletedNoteRow`, `eventQueueRow`, `profileRow`, `dmConversationRow`, `relayRow`, `savedNoteRow`, `shivConversationRow`, `shivMessageRow`, `mediaAttachmentRow` + committers `seedNoteRow`, `seedUnreadRow`, `seedRelationEdge`, `seedReport`, `seedDeletedNote`, `seedProfile`, `seedDmConversation`, `seedRelay` | Isar model rows for `Note`, `UnreadNote`, `NoteRelation`, `Report`, `DeletedNote`, `EventQueue`, `NostrProfile`, `DmConversation`, `Relay`, `SavedNote`, `ShivConversation`, `ShivMessage`. Builders return the model (batch them in one `writeTxn`); committers wrap their own `writeTxn`. |
+| `isar_seeds.dart` | builders `noteRow`, `unreadRow`, `relationEdge`, `reportRow`, `deletedNoteRow`, `eventQueueRow`, `profileRow`, `dmConversationRow`, `relayRow`, `savedNoteRow`, `shivConversationRow`, `shivMessageRow`, `mediaAttachmentRow`, `mediaCacheRow`, `joinRequestRow` + committers `seedNoteRow`, `seedUnreadRow`, `seedRelationEdge`, `seedReport`, `seedDeletedNote`, `seedProfile`, `seedDmConversation`, `seedRelay` | Isar model rows for `Note`, `UnreadNote`, `NoteRelation`, `Report`, `DeletedNote`, `EventQueue`, `NostrProfile`, `DmConversation`, `Relay`, `SavedNote`, `ShivConversation`, `ShivMessage`. Builders return the model (batch them in one `writeTxn`); committers wrap their own `writeTxn`. |
 | `recording_event_queue.dart` | `RecordingEventQueue`, `EnqueueCall` | Any repo that publishes through `EventQueueRepository.enqueueSignedEvent`. Configure `leftOnEnqueue` / `throwOnEnqueue` to simulate failure. Inspect `.calls` to assert wire shape. |
 | `fake_note_relations.dart` | `FakeNoteRelations` | Any repo that reads from `NoteRelationRepository`. Seed `.children[parentId]` / `.parents[childId]` before the test runs. |
 | `stub_user_repository.dart` | `StubUserRepository` | Any repo that calls `UserRepository.getActiveKeysHex()` or `getActiveUser()` (both derive from `.keys`). Set `.keys = null` to simulate a logged-out identity. |
