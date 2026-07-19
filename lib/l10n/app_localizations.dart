@@ -3368,12 +3368,6 @@ abstract class AppLocalizations {
   /// **'No models available.'**
   String get modelPickerNoModels;
 
-  /// Loading state shown while fetching the OpenRouter model list
-  ///
-  /// In en, this message translates to:
-  /// **'Fetching cloud models…'**
-  String get modelPickerLoadingCloud;
-
   /// Tooltip on the + icon in the chat input that opens the model picker
   ///
   /// In en, this message translates to:

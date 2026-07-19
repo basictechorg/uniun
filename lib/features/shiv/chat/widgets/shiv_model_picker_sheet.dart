@@ -3,14 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
+import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
-/// Bottom sheet that lists every model available on the **active backend**
-/// (local Gemma models when local is active, UNIUN gateway catalogue when cloud
-/// is active). Lets the user switch the selected model with one tap.
+/// Bottom sheet listing BOTH surfaces the user can run Shiv on: the UNIUN
+/// cloud models (when connected) and the downloaded on-device models.
+/// Picking a row IS the backend switch — a cloud row activates the cloud
+/// backend with that model, a local row activates the on-device backend.
 ///
 /// Show with [showModelPickerSheet] — handles the standard rounded sheet
 /// chrome so callers don't repeat the boilerplate.
@@ -35,11 +39,13 @@ Future<void> showModelPickerSheet(BuildContext context) {
 
 class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
   bool _loading = true;
-  LlmBackendType _backend = LlmBackendType.localGemma;
-  List<LlmModelInfo> _models = const [];
-  String? _activeModelId;
+  bool _switching = false;
+  List<LlmModelInfo> _cloudModels = const [];
+  List<AIModelEntity> _localModels = const [];
+  LlmBackendType _activeBackend = LlmBackendType.localGemma;
+  String? _activeCloudModelId;
+  AIModelId? _activeLocalModelId;
   String _filter = '';
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -54,47 +60,95 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
       (_) => LlmBackendType.localGemma,
       (b) => b,
     );
-    final modelsResult = await getIt<ListAvailableLlmModelsUseCase>().call();
-    final activeResult = await getIt<GetActiveLlmModelUseCase>().call();
+
+    // Cloud list only when already connected — merely opening the picker
+    // must not trigger the silent gateway login.
+    var cloud = const <LlmModelInfo>[];
+    if (await getIt<IsUniunCloudConnectedUseCase>().call()) {
+      final cloudResult = await getIt<ListCloudLlmModelsUseCase>().call();
+      cloud = cloudResult.fold((_) => const [], (list) => list);
+    }
+
+    final catalog = await getIt<GetAvailableAIModelsUseCase>().call();
+    final downloadedIds = await getIt<GetDownloadedModelIdsUseCase>().call();
+    final local =
+        catalog.where((m) => downloadedIds.contains(m.modelId)).toList();
+
+    final activeLocalResult = await getIt<GetActiveAIModelUseCase>().call();
+    final activeLocalId =
+        activeLocalResult.fold((_) => null, (m) => m?.modelId);
+    final activeModelResult = await getIt<GetActiveLlmModelUseCase>().call();
+    final activeCloudId = activeModelResult.fold(
+      (_) => null,
+      (m) => m?.backend == LlmBackendType.uniunCloud ? m?.id : null,
+    );
 
     if (!mounted) return;
-
-    modelsResult.fold(
-      (f) => setState(() {
-        _backend = backend;
-        _models = const [];
-        _activeModelId = activeResult.fold((_) => null, (m) => m?.id);
-        _loading = false;
-        _errorMessage = f.toMessage();
-      }),
-      (list) => setState(() {
-        _backend = backend;
-        _models = list;
-        _activeModelId = activeResult.fold((_) => null, (m) => m?.id);
-        _loading = false;
-        _errorMessage = null;
-      }),
-    );
+    setState(() {
+      _loading = false;
+      _activeBackend = backend;
+      _cloudModels = cloud;
+      _localModels = local;
+      _activeCloudModelId = activeCloudId;
+      _activeLocalModelId = activeLocalId;
+    });
   }
 
-  Future<void> _select(LlmModelInfo m) async {
-    final result = await getIt<SetActiveLlmModelUseCase>().call(m.id);
-    if (!mounted) return;
-    result.fold(
-      (f) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(f.toMessage())),
-      ),
-      (_) {
-        setState(() => _activeModelId = m.id);
-        Navigator.of(context).pop();
+  Future<void> _selectCloud(LlmModelInfo m) async {
+    if (_switching) return;
+    setState(() => _switching = true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final switched = await getIt<SetActiveLlmBackendUseCase>()
+        .call(LlmBackendType.uniunCloud);
+    final failure = await switched.fold(
+      (f) async => f,
+      (_) async {
+        final set = await getIt<SetActiveLlmModelUseCase>().call(m.id);
+        return set.fold((f) => f, (_) => null);
       },
     );
+    if (!mounted) return;
+    if (failure != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(failure.toMessage())),
+      );
+      setState(() => _switching = false);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
-  List<LlmModelInfo> get _filtered {
-    if (_filter.isEmpty) return _models;
+  Future<void> _selectLocal(AIModelEntity m) async {
+    if (_switching) return;
+    setState(() => _switching = true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final switched = await getIt<SetActiveLlmBackendUseCase>()
+        .call(LlmBackendType.localGemma);
+    final failure = await switched.fold(
+      (f) async => f,
+      (_) async {
+        final set =
+            await getIt<SetActiveLlmModelUseCase>().call(m.modelId.name);
+        return set.fold((f) => f, (_) => null);
+      },
+    );
+    if (!mounted) return;
+    if (failure != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(failure.toMessage())),
+      );
+      setState(() => _switching = false);
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  List<LlmModelInfo> get _filteredCloud {
+    if (_filter.isEmpty) return _cloudModels;
     final q = _filter.toLowerCase();
-    return _models
+    return _cloudModels
         .where((m) =>
             m.displayName.toLowerCase().contains(q) ||
             m.id.toLowerCase().contains(q))
@@ -135,15 +189,16 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
                   ),
                 ),
                 const Spacer(),
-                _BackendChip(
-                  backend: _backend,
-                  l10n: l10n,
-                ),
+                if (_switching)
+                  DropLoadingIndicator(
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
               ],
             ),
           ),
-          // Search bar — only useful when the catalogue is large (cloud)
-          if (_backend == LlmBackendType.uniunCloud)
+          // Search bar — only useful when the cloud catalogue is large
+          if (_cloudModels.length > 5)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: TextField(
@@ -158,12 +213,26 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
               ),
             ),
           // Body
-          Expanded(child: _buildBody(l10n)),
-          // Footer CTA
-          _FooterCta(backend: _backend, l10n: l10n, onTapManageLocal: () {
-            Navigator.of(context).pop();
-            context.pushNamed(AppRoutes.aiModelSelection);
-          }),
+          Flexible(child: _buildBody(l10n)),
+          // Footer CTA — manage (download / delete) on-device models
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.pushNamed(AppRoutes.aiModelSelection);
+                },
+                icon: const Icon(Icons.tune_rounded),
+                label: Text(l10n.modelPickerManageLocalCta),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -172,138 +241,88 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
   Widget _buildBody(AppLocalizations l10n) {
     if (_loading) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropLoadingIndicator(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            if (_backend == LlmBackendType.uniunCloud) ...[
-              const SizedBox(height: 12),
-              Text(
-                l10n.modelPickerLoadingCloud,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: DropLoadingIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       );
     }
-    if (_errorMessage != null) {
+
+    final cloud = _filteredCloud;
+    if (cloud.isEmpty && _localModels.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
+            l10n.modelPickerNoModels,
             style: TextStyle(
               fontSize: 13,
-              color: Theme.of(context).colorScheme.error,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
       );
     }
-    final filtered = _filtered;
-    if (filtered.isEmpty) {
-      return Center(
-        child: Text(
-          l10n.modelPickerNoModels,
-          style: TextStyle(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        if (cloud.isNotEmpty) ...[
+          _SectionHeader(
+            icon: Icons.cloud_outlined,
+            label: l10n.modelPickerCloudSection,
           ),
-        ),
-      );
-    }
-    return ListView.builder(
-      itemCount: filtered.length,
-      itemBuilder: (_, i) {
-        final m = filtered[i];
-        final isActive = m.id == _activeModelId;
-        return InkWell(
-          onTap: () => _select(m),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
-              ),
+          for (final m in cloud)
+            _ModelRow(
+              label: m.displayName,
+              sublabel: m.id != m.displayName ? m.id : null,
+              isActive: _activeBackend == LlmBackendType.uniunCloud &&
+                  m.id == _activeCloudModelId,
+              onTap: () => _selectCloud(m),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        m.displayName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight:
-                              isActive ? FontWeight.w700 : FontWeight.w500,
-                          color: isActive
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      if (m.id != m.displayName) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          m.id,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (isActive)
-                  Icon(Icons.check_circle_rounded,
-                      color: Theme.of(context).colorScheme.primary, size: 20),
-              ],
-            ),
+        ],
+        if (_localModels.isNotEmpty) ...[
+          _SectionHeader(
+            icon: Icons.phone_iphone_rounded,
+            label: l10n.modelPickerLocalSection,
           ),
-        );
-      },
+          for (final m in _localModels)
+            _ModelRow(
+              label: m.modelId.displayName(l10n),
+              sublabel: null,
+              isActive: _activeBackend == LlmBackendType.localGemma &&
+                  m.modelId == _activeLocalModelId,
+              onTap: () => _selectLocal(m),
+            ),
+        ],
+      ],
     );
   }
 }
 
-class _BackendChip extends StatelessWidget {
-  const _BackendChip({required this.backend, required this.l10n});
-  final LlmBackendType backend;
-  final AppLocalizations l10n;
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final isCloud = backend == LlmBackendType.uniunCloud;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(99),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isCloud ? Icons.cloud_outlined : Icons.phone_iphone_rounded,
-            size: 12,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 4),
+          Icon(icon,
+              size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
           Text(
-            isCloud ? l10n.modelPickerCloudSection : l10n.modelPickerLocalSection,
+            label,
             style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -312,32 +331,65 @@ class _BackendChip extends StatelessWidget {
   }
 }
 
-class _FooterCta extends StatelessWidget {
-  const _FooterCta({
-    required this.backend,
-    required this.l10n,
-    required this.onTapManageLocal,
+class _ModelRow extends StatelessWidget {
+  const _ModelRow({
+    required this.label,
+    required this.sublabel,
+    required this.isActive,
+    required this.onTap,
   });
-  final LlmBackendType backend;
-  final AppLocalizations l10n;
-  final VoidCallback onTapManageLocal;
+
+  final String label;
+  final String? sublabel;
+  final bool isActive;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Only show manage-local footer for now; cloud connect lives in Settings.
-    if (backend != LlmBackendType.localGemma) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: TextButton.icon(
-          onPressed: onTapManageLocal,
-          icon: const Icon(Icons.tune_rounded),
-          label: Text(l10n.modelPickerManageLocalCta),
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.primary,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 0.5),
           ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      color: isActive
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  if (sublabel != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      sublabel!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isActive)
+              Icon(Icons.check_circle_rounded,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
+          ],
         ),
       ),
     );

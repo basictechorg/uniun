@@ -1075,8 +1075,6 @@
 
   "cloudProviderCreditsLabel": "\u0915\u094d\u0930\u0947\u0921\u093f\u091f",
 
-
-
   "modelPickerTitle": "एक मॉडल चुनें",
 
   "modelPickerSearchHint": "मॉडल खोजें…",
@@ -1090,8 +1088,6 @@
   "modelPickerConnectCloudCta": "एक क्लाउड प्रदाता कनेक्ट करें",
 
   "modelPickerNoModels": "कोई मॉडल उपलब्ध नहीं।",
-
-  "modelPickerLoadingCloud": "क्लाउड मॉडल प्राप्त किए जा रहे हैं…",
 
   "chatInputPickModelTooltip": "मॉडल चुनें",
 

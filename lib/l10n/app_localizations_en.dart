@@ -1822,9 +1822,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelPickerNoModels => 'No models available.';
 
   @override
-  String get modelPickerLoadingCloud => 'Fetching cloud models…';
-
-  @override
   String get chatInputPickModelTooltip => 'Pick model';
 
   @override

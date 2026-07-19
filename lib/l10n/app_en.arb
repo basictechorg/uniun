@@ -1621,8 +1621,6 @@
   "cloudProviderCreditsLabel": "Credits",
   "@cloudProviderCreditsLabel": { "description": "Label for the credit balance in the cloud manage sheet" },
 
-
-
   "modelPickerTitle": "Pick a model",
   "@modelPickerTitle": { "description": "Title of the chat input model picker bottom sheet" },
 
@@ -1643,9 +1641,6 @@
 
   "modelPickerNoModels": "No models available.",
   "@modelPickerNoModels": { "description": "Empty state shown in the model picker" },
-
-  "modelPickerLoadingCloud": "Fetching cloud models…",
-  "@modelPickerLoadingCloud": { "description": "Loading state shown while fetching the OpenRouter model list" },
 
   "chatInputPickModelTooltip": "Pick model",
   "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" },

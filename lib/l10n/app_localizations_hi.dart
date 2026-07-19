@@ -1839,9 +1839,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get modelPickerNoModels => 'कोई मॉडल उपलब्ध नहीं।';
 
   @override
-  String get modelPickerLoadingCloud => 'क्लाउड मॉडल प्राप्त किए जा रहे हैं…';
-
-  @override
   String get chatInputPickModelTooltip => 'मॉडल चुनें';
 
   @override
