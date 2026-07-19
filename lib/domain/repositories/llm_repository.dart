@@ -7,7 +7,7 @@ import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 /// Single inference contract for the app.
 ///
 /// Hides whether the active backend is on-device flutter_gemma or a cloud
-/// API (OpenRouter, etc.). All callers — `ShivAIBloc`, `ExtractKnowledgeUseCase`,
+/// API (the UNIUN inference gateway). All callers — `ShivAIBloc`, `ExtractKnowledgeUseCase`,
 /// future extraction or summarisation flows — go through this interface and
 /// never touch a model engine directly.
 ///
@@ -79,6 +79,10 @@ abstract class LlmRepository {
   /// the currently-loaded model if any. For cloud: the provider's model
   /// catalogue.
   Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels();
+
+  /// Plan-allowed UNIUN Cloud models, regardless of the active backend.
+  /// Requires a connected cloud account; empty when the plan has none.
+  Future<Either<Failure, List<LlmModelInfo>>> listCloudModels();
 
   /// Pick a model on the active backend. For cloud, persists the chosen
   /// model id. For local, this is a no-op — local model selection happens

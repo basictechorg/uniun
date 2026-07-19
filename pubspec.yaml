@@ -88,7 +88,6 @@ dependencies:
   flutter_svg: ^2.2.4
   tostore: ^3.1.0
   visibility_detector: ^0.4.0+2
-  openrouter_api: ^1.0.2
   flutter_markdown_plus: ^1.0.3
   markdown: ^7.3.0
   url_launcher: ^6.3.0
@@ -118,6 +117,9 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  # Direct dev import so tests can BIP-340-verify what UniunCloudAuth signs
+  # (runtime version pinned by the dependency_overrides entry below).
+  bip340: ^0.2.0
 
   # Industry-standard BLoC testing helper. `blocTest()` gives the
   # declarative `act/expect/verify` style instead of hand-rolled

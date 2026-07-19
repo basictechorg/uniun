@@ -1,12 +1,25 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 
-/// Lets the Settings UI manage cloud LLM API keys.
+/// Manages the UNIUN cloud connection for the Settings UI.
 ///
-/// Backed by [flutter_secure_storage]. Keys never leave the device keychain.
+/// There is no key to paste: [connect] silently logs into the inference
+/// gateway with the user's own Nostr keypair (challenge → sign → login) and
+/// stores the minted `uk_` key in the device keychain. Keys never leave
+/// secure storage.
 abstract class LlmCredentialsRepository {
-  Future<Either<Failure, Unit>> saveOpenRouterKey(String key);
-  Future<Either<Failure, Unit>> clearOpenRouterKey();
-  Future<Either<Failure, String?>> getOpenRouterKey();
-  Future<bool> hasOpenRouterKey();
+  /// Ensure the device holds a gateway API key, logging in silently if
+  /// needed. First-ever connect auto-creates the account (plan `free`).
+  Future<Either<Failure, Unit>> connect();
+
+  /// Forget the stored key. The account and plan live on the gateway;
+  /// reconnecting resolves back to the same account via the pubkey.
+  Future<Either<Failure, Unit>> disconnect();
+
+  /// True when a gateway key is already in secure storage.
+  Future<bool> isConnected();
+
+  /// Plan name and credit balance of the connected account, straight from
+  /// the gateway. Fails when not connected.
+  Future<Either<Failure, ({String plan, num balance})>> accountStatus();
 }

@@ -9,7 +9,7 @@ import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Bottom sheet that lists every model available on the **active backend**
-/// (local Gemma models when local is active, OpenRouter catalogue when cloud
+/// (local Gemma models when local is active, UNIUN gateway catalogue when cloud
 /// is active). Lets the user switch the selected model with one tap.
 ///
 /// Show with [showModelPickerSheet] — handles the standard rounded sheet
@@ -143,7 +143,7 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
             ),
           ),
           // Search bar — only useful when the catalogue is large (cloud)
-          if (_backend == LlmBackendType.openRouter)
+          if (_backend == LlmBackendType.uniunCloud)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: TextField(
@@ -178,7 +178,7 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
             DropLoadingIndicator(
               color: Theme.of(context).colorScheme.primary,
             ),
-            if (_backend == LlmBackendType.openRouter) ...[
+            if (_backend == LlmBackendType.uniunCloud) ...[
               const SizedBox(height: 12),
               Text(
                 l10n.modelPickerLoadingCloud,
@@ -282,7 +282,7 @@ class _BackendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCloud = backend == LlmBackendType.openRouter;
+    final isCloud = backend == LlmBackendType.uniunCloud;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(

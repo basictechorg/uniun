@@ -1584,13 +1584,13 @@
   "settingsCloudProvider": "Cloud AI",
   "@settingsCloudProvider": { "description": "Section label for cloud LLM provider settings" },
 
-  "cloudProviderTitle": "OpenRouter",
+  "cloudProviderTitle": "UNIUN Cloud",
   "@cloudProviderTitle": { "description": "Title of the cloud provider settings card" },
 
-  "cloudProviderEmptyCta": "Connect API key",
+  "cloudProviderEmptyCta": "Sign in",
   "@cloudProviderEmptyCta": { "description": "CTA in cloud provider card when no API key is configured" },
 
-  "cloudProviderEmptySubtitle": "Run Shiv on any frontier model — paste an OpenRouter key to begin.",
+  "cloudProviderEmptySubtitle": "Run Shiv on Claude — sign in with your UNIUN identity.",
   "@cloudProviderEmptySubtitle": { "description": "Subtitle in cloud provider card when no API key is configured" },
 
   "cloudProviderConnectedSubtitle": "Connected · Tap to manage",
@@ -1599,29 +1599,29 @@
   "cloudProviderDisconnect": "Disconnect",
   "@cloudProviderDisconnect": { "description": "Action that removes the saved API key" },
 
-  "cloudProviderPasteKeyTitle": "Connect OpenRouter",
-  "@cloudProviderPasteKeyTitle": { "description": "Title of the dialog that asks the user to paste an API key" },
+  "cloudProviderConnecting": "Signing in…",
+  "@cloudProviderConnecting": { "description": "Shown while the silent keypair login to the UNIUN gateway runs" },
 
-  "cloudProviderPasteKeyHint": "sk-or-…",
-  "@cloudProviderPasteKeyHint": { "description": "Placeholder of the API key text field" },
+  "cloudProviderConnectFailed": "Could not sign in to UNIUN Cloud. Check your connection and try again.",
+  "@cloudProviderConnectFailed": { "description": "Error shown when the silent keypair login fails" },
+  "cloudProviderModelsHeader": "CLOUD MODELS",
+  "@cloudProviderModelsHeader": { "description": "Section header above the cloud model rows in the manage sheet" },
 
-  "cloudProviderPasteKeyHelper": "Get a free key from openrouter.ai/keys",
-  "@cloudProviderPasteKeyHelper": { "description": "Helper text below the API key text field" },
+  "cloudProviderOnDevice": "On-device",
+  "@cloudProviderOnDevice": { "description": "Label of the on-device model row in the manage sheet" },
 
-  "cloudProviderInvalidKey": "Invalid key — could not list models.",
-  "@cloudProviderInvalidKey": { "description": "Error shown when the pasted API key fails validation" },
+  "cloudProviderOnDeviceNotSet": "not downloaded",
+  "@cloudProviderOnDeviceNotSet": { "description": "Shown after On-device when no local model is installed" },
 
-  "cloudProviderActiveModelLabel": "Active model",
-  "@cloudProviderActiveModelLabel": { "description": "Label preceding the currently-selected cloud model name" },
+  "cloudProviderNoCloudModels": "No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.",
+  "@cloudProviderNoCloudModels": { "description": "Shown in the manage sheet when the plan allows no cloud-served models" },
+  "cloudProviderPlanLabel": "Plan",
+  "@cloudProviderPlanLabel": { "description": "Label for the account plan in the cloud manage sheet" },
 
-  "cloudProviderNoActiveModel": "No model selected — pick one from the chat input.",
-  "@cloudProviderNoActiveModel": { "description": "Shown in cloud provider card when no cloud model has been selected yet" },
+  "cloudProviderCreditsLabel": "Credits",
+  "@cloudProviderCreditsLabel": { "description": "Label for the credit balance in the cloud manage sheet" },
 
-  "cloudProviderUseCloud": "Use cloud backend",
-  "@cloudProviderUseCloud": { "description": "Toggle label that switches the active backend to cloud" },
 
-  "cloudProviderUseLocal": "Use on-device backend",
-  "@cloudProviderUseLocal": { "description": "Toggle label that switches the active backend back to local" },
 
   "modelPickerTitle": "Pick a model",
   "@modelPickerTitle": { "description": "Title of the chat input model picker bottom sheet" },

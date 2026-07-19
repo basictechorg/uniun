@@ -1775,14 +1775,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsCloudProvider => 'Cloud AI';
 
   @override
-  String get cloudProviderTitle => 'OpenRouter';
+  String get cloudProviderTitle => 'UNIUN Cloud';
 
   @override
-  String get cloudProviderEmptyCta => 'API कुंजी कनेक्ट करें';
+  String get cloudProviderEmptyCta => 'साइन इन करें';
 
   @override
   String get cloudProviderEmptySubtitle =>
-      'शिव को किसी भी अग्रणी मॉडल पर चलाएं — शुरू करने के लिए एक OpenRouter कुंजी पेस्ट करें।';
+      'शिव को Claude पर चलाएं — अपनी UNIUN पहचान से साइन इन करें।';
 
   @override
   String get cloudProviderConnectedSubtitle =>
@@ -1792,31 +1792,30 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cloudProviderDisconnect => 'डिस्कनेक्ट करें';
 
   @override
-  String get cloudProviderPasteKeyTitle => 'OpenRouter कनेक्ट करें';
+  String get cloudProviderConnecting => 'साइन इन हो रहा है…';
 
   @override
-  String get cloudProviderPasteKeyHint => 'sk-or-…';
+  String get cloudProviderConnectFailed =>
+      'UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।';
 
   @override
-  String get cloudProviderPasteKeyHelper =>
-      'openrouter.ai/keys से मुफ़्त कुंजी प्राप्त करें';
+  String get cloudProviderModelsHeader => 'क्लाउड मॉडल';
 
   @override
-  String get cloudProviderInvalidKey =>
-      'अमान्य कुंजी — मॉडल सूचीबद्ध नहीं कर सका।';
+  String get cloudProviderOnDevice => 'ऑन-डिवाइस';
 
   @override
-  String get cloudProviderActiveModelLabel => 'सक्रिय मॉडल';
+  String get cloudProviderOnDeviceNotSet => 'डाउनलोड नहीं हुआ';
 
   @override
-  String get cloudProviderNoActiveModel =>
-      'कोई मॉडल चयनित नहीं — चैट इनपुट से एक चुनें।';
+  String get cloudProviderNoCloudModels =>
+      'आपके प्लान में अभी कोई क्लाउड मॉडल नहीं है। इन्हें अनलॉक करने के लिए uniun.in पर अपना प्लान अपग्रेड करें।';
 
   @override
-  String get cloudProviderUseCloud => 'क्लाउड बैकएंड उपयोग करें';
+  String get cloudProviderPlanLabel => 'प्लान';
 
   @override
-  String get cloudProviderUseLocal => 'डिवाइस पर बैकएंड उपयोग करें';
+  String get cloudProviderCreditsLabel => 'क्रेडिट';
 
   @override
   String get modelPickerTitle => 'एक मॉडल चुनें';

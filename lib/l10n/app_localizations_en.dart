@@ -1759,14 +1759,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCloudProvider => 'Cloud AI';
 
   @override
-  String get cloudProviderTitle => 'OpenRouter';
+  String get cloudProviderTitle => 'UNIUN Cloud';
 
   @override
-  String get cloudProviderEmptyCta => 'Connect API key';
+  String get cloudProviderEmptyCta => 'Sign in';
 
   @override
   String get cloudProviderEmptySubtitle =>
-      'Run Shiv on any frontier model — paste an OpenRouter key to begin.';
+      'Run Shiv on Claude — sign in with your UNIUN identity.';
 
   @override
   String get cloudProviderConnectedSubtitle => 'Connected · Tap to manage';
@@ -1775,30 +1775,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudProviderDisconnect => 'Disconnect';
 
   @override
-  String get cloudProviderPasteKeyTitle => 'Connect OpenRouter';
+  String get cloudProviderConnecting => 'Signing in…';
 
   @override
-  String get cloudProviderPasteKeyHint => 'sk-or-…';
+  String get cloudProviderConnectFailed =>
+      'Could not sign in to UNIUN Cloud. Check your connection and try again.';
 
   @override
-  String get cloudProviderPasteKeyHelper =>
-      'Get a free key from openrouter.ai/keys';
+  String get cloudProviderModelsHeader => 'CLOUD MODELS';
 
   @override
-  String get cloudProviderInvalidKey => 'Invalid key — could not list models.';
+  String get cloudProviderOnDevice => 'On-device';
 
   @override
-  String get cloudProviderActiveModelLabel => 'Active model';
+  String get cloudProviderOnDeviceNotSet => 'not downloaded';
 
   @override
-  String get cloudProviderNoActiveModel =>
-      'No model selected — pick one from the chat input.';
+  String get cloudProviderNoCloudModels =>
+      'No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.';
 
   @override
-  String get cloudProviderUseCloud => 'Use cloud backend';
+  String get cloudProviderPlanLabel => 'Plan';
 
   @override
-  String get cloudProviderUseLocal => 'Use on-device backend';
+  String get cloudProviderCreditsLabel => 'Credits';
 
   @override
   String get modelPickerTitle => 'Pick a model';

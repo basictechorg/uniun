@@ -6,7 +6,7 @@ import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
 import 'package:uniun/common/widgets/floating_nav.dart';
 import 'package:uniun/core/router/app_routes.dart';
-import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/shiv/chat/bloc/shiv_ai_bloc.dart';
 import 'package:uniun/features/shiv/chat/pages/shiv_chat_page.dart';
 import 'package:uniun/features/shiv/pages/shiv_home_page.dart';
@@ -45,8 +45,9 @@ class _ShivPageState extends State<ShivPage> {
 
   Future<void> _checkModel() async {
     if (!mounted) return;
-    final result = await getIt<GetActiveAIModelUseCase>().call();
-    final hasModel = result.fold((_) => false, (m) => m != null);
+    // Backend-aware: a connected UNIUN Cloud setup counts as having a model,
+    // so the download screen is bypassed entirely on the cloud path.
+    final hasModel = await getIt<HasActiveLlmModelUseCase>().call();
     if (mounted) {
       setState(() => _hasModel = hasModel);
     }

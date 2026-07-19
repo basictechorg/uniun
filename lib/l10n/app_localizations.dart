@@ -3251,19 +3251,19 @@ abstract class AppLocalizations {
   /// Title of the cloud provider settings card
   ///
   /// In en, this message translates to:
-  /// **'OpenRouter'**
+  /// **'UNIUN Cloud'**
   String get cloudProviderTitle;
 
   /// CTA in cloud provider card when no API key is configured
   ///
   /// In en, this message translates to:
-  /// **'Connect API key'**
+  /// **'Sign in'**
   String get cloudProviderEmptyCta;
 
   /// Subtitle in cloud provider card when no API key is configured
   ///
   /// In en, this message translates to:
-  /// **'Run Shiv on any frontier model — paste an OpenRouter key to begin.'**
+  /// **'Run Shiv on Claude — sign in with your UNIUN identity.'**
   String get cloudProviderEmptySubtitle;
 
   /// Subtitle in cloud provider card when an API key is configured
@@ -3278,53 +3278,53 @@ abstract class AppLocalizations {
   /// **'Disconnect'**
   String get cloudProviderDisconnect;
 
-  /// Title of the dialog that asks the user to paste an API key
+  /// Shown while the silent keypair login to the UNIUN gateway runs
   ///
   /// In en, this message translates to:
-  /// **'Connect OpenRouter'**
-  String get cloudProviderPasteKeyTitle;
+  /// **'Signing in…'**
+  String get cloudProviderConnecting;
 
-  /// Placeholder of the API key text field
+  /// Error shown when the silent keypair login fails
   ///
   /// In en, this message translates to:
-  /// **'sk-or-…'**
-  String get cloudProviderPasteKeyHint;
+  /// **'Could not sign in to UNIUN Cloud. Check your connection and try again.'**
+  String get cloudProviderConnectFailed;
 
-  /// Helper text below the API key text field
+  /// Section header above the cloud model rows in the manage sheet
   ///
   /// In en, this message translates to:
-  /// **'Get a free key from openrouter.ai/keys'**
-  String get cloudProviderPasteKeyHelper;
+  /// **'CLOUD MODELS'**
+  String get cloudProviderModelsHeader;
 
-  /// Error shown when the pasted API key fails validation
+  /// Label of the on-device model row in the manage sheet
   ///
   /// In en, this message translates to:
-  /// **'Invalid key — could not list models.'**
-  String get cloudProviderInvalidKey;
+  /// **'On-device'**
+  String get cloudProviderOnDevice;
 
-  /// Label preceding the currently-selected cloud model name
+  /// Shown after On-device when no local model is installed
   ///
   /// In en, this message translates to:
-  /// **'Active model'**
-  String get cloudProviderActiveModelLabel;
+  /// **'not downloaded'**
+  String get cloudProviderOnDeviceNotSet;
 
-  /// Shown in cloud provider card when no cloud model has been selected yet
+  /// Shown in the manage sheet when the plan allows no cloud-served models
   ///
   /// In en, this message translates to:
-  /// **'No model selected — pick one from the chat input.'**
-  String get cloudProviderNoActiveModel;
+  /// **'No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.'**
+  String get cloudProviderNoCloudModels;
 
-  /// Toggle label that switches the active backend to cloud
+  /// Label for the account plan in the cloud manage sheet
   ///
   /// In en, this message translates to:
-  /// **'Use cloud backend'**
-  String get cloudProviderUseCloud;
+  /// **'Plan'**
+  String get cloudProviderPlanLabel;
 
-  /// Toggle label that switches the active backend back to local
+  /// Label for the credit balance in the cloud manage sheet
   ///
   /// In en, this message translates to:
-  /// **'Use on-device backend'**
-  String get cloudProviderUseLocal;
+  /// **'Credits'**
+  String get cloudProviderCreditsLabel;
 
   /// Title of the chat input model picker bottom sheet
   ///

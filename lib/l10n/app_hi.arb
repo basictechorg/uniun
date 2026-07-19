@@ -1051,31 +1051,31 @@
 
   "settingsCloudProvider": "Cloud AI",
 
-  "cloudProviderTitle": "OpenRouter",
+  "cloudProviderTitle": "UNIUN Cloud",
 
-  "cloudProviderEmptyCta": "API कुंजी कनेक्ट करें",
+  "cloudProviderEmptyCta": "साइन इन करें",
 
-  "cloudProviderEmptySubtitle": "शिव को किसी भी अग्रणी मॉडल पर चलाएं — शुरू करने के लिए एक OpenRouter कुंजी पेस्ट करें।",
+  "cloudProviderEmptySubtitle": "शिव को Claude पर चलाएं — अपनी UNIUN पहचान से साइन इन करें।",
 
   "cloudProviderConnectedSubtitle": "कनेक्ट किया गया · प्रबंधित करने के लिए टैप करें",
 
   "cloudProviderDisconnect": "डिस्कनेक्ट करें",
 
-  "cloudProviderPasteKeyTitle": "OpenRouter कनेक्ट करें",
+  "cloudProviderConnecting": "साइन इन हो रहा है…",
 
-  "cloudProviderPasteKeyHint": "sk-or-…",
+  "cloudProviderConnectFailed": "UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।",
+  "cloudProviderModelsHeader": "\u0915\u094d\u0932\u093e\u0909\u0921 \u092e\u0949\u0921\u0932",
 
-  "cloudProviderPasteKeyHelper": "openrouter.ai/keys से मुफ़्त कुंजी प्राप्त करें",
+  "cloudProviderOnDevice": "\u0911\u0928-\u0921\u093f\u0935\u093e\u0907\u0938",
 
-  "cloudProviderInvalidKey": "अमान्य कुंजी — मॉडल सूचीबद्ध नहीं कर सका।",
+  "cloudProviderOnDeviceNotSet": "\u0921\u093e\u0909\u0928\u0932\u094b\u0921 \u0928\u0939\u0940\u0902 \u0939\u0941\u0906",
 
-  "cloudProviderActiveModelLabel": "सक्रिय मॉडल",
+  "cloudProviderNoCloudModels": "\u0906\u092a\u0915\u0947 \u092a\u094d\u0932\u093e\u0928 \u092e\u0947\u0902 \u0905\u092d\u0940 \u0915\u094b\u0908 \u0915\u094d\u0932\u093e\u0909\u0921 \u092e\u0949\u0921\u0932 \u0928\u0939\u0940\u0902 \u0939\u0948\u0964 \u0907\u0928\u094d\u0939\u0947\u0902 \u0905\u0928\u0932\u0949\u0915 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f uniun.in \u092a\u0930 \u0905\u092a\u0928\u093e \u092a\u094d\u0932\u093e\u0928 \u0905\u092a\u0917\u094d\u0930\u0947\u0921 \u0915\u0930\u0947\u0902\u0964",
+  "cloudProviderPlanLabel": "\u092a\u094d\u0932\u093e\u0928",
 
-  "cloudProviderNoActiveModel": "कोई मॉडल चयनित नहीं — चैट इनपुट से एक चुनें।",
+  "cloudProviderCreditsLabel": "\u0915\u094d\u0930\u0947\u0921\u093f\u091f",
 
-  "cloudProviderUseCloud": "क्लाउड बैकएंड उपयोग करें",
 
-  "cloudProviderUseLocal": "डिवाइस पर बैकएंड उपयोग करें",
 
   "modelPickerTitle": "एक मॉडल चुनें",
 

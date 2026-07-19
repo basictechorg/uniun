@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
-import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/data/datasources/cloud/uniun_cloud_auth.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/datasources/llm/local_llm_data_source.dart';
@@ -15,16 +15,12 @@ import 'package:uniun/domain/repositories/ai_model_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
 
 /// Dispatches calls to the data source matching the user's active backend.
-///
-/// Phase 1: only [LocalLlmDataSource] is functional; switching to
-/// [LlmBackendType.openRouter] is rejected until Phase 3 ships the cloud
-/// data source.
 @Injectable(as: LlmRepository)
 class LlmRepositoryImpl implements LlmRepository {
   final LocalLlmDataSource _local;
   final RemoteLlmDataSource _remote;
   final LlmPreferencesDataSource _prefs;
-  final LlmCredentialsDataSource _credentials;
+  final UniunCloudAuth _cloudAuth;
   final AppSettingsStore _localSettings;
   final AIModelRepository _localCatalog;
 
@@ -32,7 +28,7 @@ class LlmRepositoryImpl implements LlmRepository {
     this._local,
     this._remote,
     this._prefs,
-    this._credentials,
+    this._cloudAuth,
     this._localSettings,
     this._localCatalog,
   );
@@ -41,7 +37,7 @@ class LlmRepositoryImpl implements LlmRepository {
     switch (_prefs.activeBackend) {
       case LlmBackendType.localGemma:
         return _local;
-      case LlmBackendType.openRouter:
+      case LlmBackendType.uniunCloud:
         return _remote;
     }
   }
@@ -95,11 +91,17 @@ class LlmRepositoryImpl implements LlmRepository {
 
   @override
   Future<Either<Failure, Unit>> setActiveBackend(LlmBackendType backend) async {
-    if (backend == LlmBackendType.openRouter) {
-      if (!await _credentials.hasOpenRouterKey()) {
-        return const Left(Failure.errorFailure(
-          'No OpenRouter API key configured. Connect a key in Settings first.',
-        ));
+    if (backend == LlmBackendType.uniunCloud) {
+      // Silent keypair login: first switch auto-creates the gateway account.
+      try {
+        final key = await _cloudAuth.ensureApiKey();
+        if (key == null) {
+          return const Left(Failure.errorFailure(
+            'Sign in to UNIUN before using cloud AI.',
+          ));
+        }
+      } catch (e) {
+        return Left(Failure.errorFailure(e.toString()));
       }
     }
     await _prefs.setActiveBackend(backend);
@@ -109,6 +111,10 @@ class LlmRepositoryImpl implements LlmRepository {
   @override
   Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() =>
       _active.listAvailableModels();
+
+  @override
+  Future<Either<Failure, List<LlmModelInfo>>> listCloudModels() =>
+      _remote.listAvailableModels();
 
   @override
   Future<Either<Failure, Unit>> setActiveModel(String modelId) async {
@@ -125,7 +131,7 @@ class LlmRepositoryImpl implements LlmRepository {
           }
           await _localSettings.setActiveModelId(id);
           return const Right(unit);
-        case LlmBackendType.openRouter:
+        case LlmBackendType.uniunCloud:
           await _prefs.setActiveCloudModelId(modelId);
           return const Right(unit);
       }
@@ -148,7 +154,7 @@ class LlmRepositoryImpl implements LlmRepository {
               backend: LlmBackendType.localGemma,
             ));
           });
-        case LlmBackendType.openRouter:
+        case LlmBackendType.uniunCloud:
           final id = _prefs.activeCloudModelId;
           if (id == null) return const Right(null);
           // We don't have a cached catalog entry; surface a minimal info
@@ -156,7 +162,7 @@ class LlmRepositoryImpl implements LlmRepository {
           return Right(LlmModelInfo(
             id: id,
             displayName: id,
-            backend: LlmBackendType.openRouter,
+            backend: LlmBackendType.uniunCloud,
           ));
       }
     } catch (e) {
