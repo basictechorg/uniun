@@ -446,6 +446,12 @@
   "aiModelSelectionSubtitle": "अपने डिवाइस की क्षमताओं के अनुकूल बुद्धिमत्ता स्तर चुनें।",
 
   "aiModelAvailableHeader": "उपलब्ध मॉडल",
+  "aiModelCloudTitle": "UNIUN \u0915\u094d\u0932\u093e\u0909\u0921",
+
+  "aiModelCloudSubtitle": "\u0921\u093e\u0909\u0928\u0932\u094b\u0921 \u0915\u0940 \u091c\u093c\u0930\u0942\u0930\u0924 \u0928\u0939\u0940\u0902 \u2014 \u0936\u093f\u0935 \u0906\u092a\u0915\u0940 \u092a\u0939\u091a\u093e\u0928 \u0915\u0947 \u0938\u093e\u0925 UNIUN \u0915\u0947 \u0938\u0930\u094d\u0935\u0930 \u092a\u0930 \u091a\u0932\u0924\u093e \u0939\u0948\u0964",
+
+  "aiModelCloudBadge": "\u092c\u093f\u0928\u093e \u0921\u093e\u0909\u0928\u0932\u094b\u0921",
+
 
   "aiModelRecommendedBadge": "अनुशंसित",
 

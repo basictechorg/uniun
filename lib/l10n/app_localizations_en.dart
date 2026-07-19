@@ -763,6 +763,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiModelAvailableHeader => 'Available Models';
 
   @override
+  String get aiModelCloudTitle => 'UNIUN Cloud';
+
+  @override
+  String get aiModelCloudSubtitle =>
+      'No download needed — Shiv runs on UNIUN\'s servers with your identity.';
+
+  @override
+  String get aiModelCloudBadge => 'No download';
+
+  @override
   String get aiModelRecommendedBadge => 'Recommended';
 
   @override

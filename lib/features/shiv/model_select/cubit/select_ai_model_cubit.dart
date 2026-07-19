@@ -4,8 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/services/download_cancellation.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/shiv/rag/embedding/embedding_model_downloader.dart';
 
 part 'select_ai_model_state.dart';
@@ -19,6 +22,13 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   final DownloadAndActivateAIModelUseCase _download;
   final DeleteAIModelUseCase _deleteModel;
   final EmbeddingModelDownloader _embeddingDownloader;
+  final ConnectUniunCloudUseCase _connectCloud;
+  final IsUniunCloudConnectedUseCase _isCloudConnected;
+  final ListCloudLlmModelsUseCase _listCloudModels;
+  final SetActiveLlmBackendUseCase _setBackend;
+  final SetActiveLlmModelUseCase _setLlmModel;
+  final GetActiveLlmModelUseCase _getLlmModel;
+  final GetActiveLlmBackendUseCase _getBackend;
 
   StreamSubscription<AIModelDownloadEvent>? _downloadSub;
   DownloadCancellation? _cancellation;
@@ -30,6 +40,13 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     this._download,
     this._deleteModel,
     this._embeddingDownloader,
+    this._connectCloud,
+    this._isCloudConnected,
+    this._listCloudModels,
+    this._setBackend,
+    this._setLlmModel,
+    this._getLlmModel,
+    this._getBackend,
   ) : super(const SelectAIModelState()) {
     _init();
   }
@@ -40,10 +57,31 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     final activeId = activeResult.fold((_) => null, (m) => m?.modelId);
     final downloadedIds = await _getDownloaded.call();
 
+    final backendResult = await _getBackend.call();
+    final backend =
+        backendResult.fold((_) => LlmBackendType.localGemma, (b) => b);
+
+    // Already-connected accounts see their cloud models immediately; a
+    // fresh install sees just the sign-in card (no silent login here).
+    var cloudModels = const <LlmModelInfo>[];
+    String? activeCloudId;
+    if (await _isCloudConnected.call()) {
+      final cloudResult = await _listCloudModels.call();
+      cloudModels = cloudResult.fold((_) => const [], (list) => list);
+      final activeModel = await _getLlmModel.call();
+      activeCloudId = activeModel.fold(
+        (_) => null,
+        (m) => m?.backend == LlmBackendType.uniunCloud ? m?.id : null,
+      );
+    }
+
     emit(state.copyWith(
       models: models,
       activeModelId: activeId,
       downloadedModelIds: downloadedIds,
+      activeBackend: backend,
+      cloudModels: cloudModels,
+      activeCloudModelId: activeCloudId,
       selectedModelId: activeId ??
           models.where((m) => m.isRecommended).firstOrNull?.modelId ??
           models.firstOrNull?.modelId,
@@ -78,7 +116,13 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     if (state.status == SelectAIModelStatus.downloading) return;
 
     if (modelId == state.activeModelId) {
-      emit(state.copyWith(status: SelectAIModelStatus.done));
+      // Re-activating the stored local model still counts as choosing
+      // on-device — switch back if the cloud backend was in use.
+      await _setBackend.call(LlmBackendType.localGemma);
+      emit(state.copyWith(
+        status: SelectAIModelStatus.done,
+        activeBackend: LlmBackendType.localGemma,
+      ));
       return;
     }
 
@@ -113,10 +157,15 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
               ));
             }
             if (isClosed) return;
+            // A fresh download is an explicit on-device choice — make sure
+            // the backend matches (the user may have been on cloud).
+            await _setBackend.call(LlmBackendType.localGemma);
+            if (isClosed) return;
             // All downloads complete — emit done status
             emit(state.copyWith(
               status: SelectAIModelStatus.done,
               activeModelId: id,
+              activeBackend: LlmBackendType.localGemma,
               downloadProgress: 1.0,
               isEmbeddingDownloading: false,
             ));
@@ -132,6 +181,73 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
         errorMessage: e.toString(),
       )),
     );
+  }
+
+  /// Signs in to UNIUN Cloud (silent keypair login) and loads the plan's
+  /// models — no download, no backend switch yet. The user then picks one
+  /// via [activateCloudModel].
+  Future<void> connectCloud() async {
+    if (state.isCloudConnecting) return;
+    emit(state.copyWith(isCloudConnecting: true, cloudErrorMessage: null));
+
+    final connected = await _connectCloud.call();
+    if (connected.isLeft()) {
+      if (isClosed) return;
+      emit(state.copyWith(
+        isCloudConnecting: false,
+        cloudErrorMessage: connected.fold((f) => f.toString(), (_) => ''),
+      ));
+      return;
+    }
+
+    final models = await _listCloudModels.call();
+    final list = models.fold((_) => const <LlmModelInfo>[], (l) => l);
+    if (isClosed) return;
+    if (list.isEmpty) {
+      emit(state.copyWith(
+        isCloudConnecting: false,
+        cloudErrorMessage: models.fold(
+            (f) => f.toString(), (_) => 'No cloud models on this plan'),
+      ));
+      return;
+    }
+    emit(state.copyWith(isCloudConnecting: false, cloudModels: list));
+  }
+
+  /// Activates a cloud model: switches the backend to uniunCloud, persists
+  /// the model, fetches the embedder RAG still needs locally, and finishes
+  /// the screen — zero downloads.
+  Future<void> activateCloudModel(String modelId) async {
+    if (state.activatingCloudModelId != null) return;
+    if (state.status == SelectAIModelStatus.downloading) return;
+    emit(state.copyWith(
+        activatingCloudModelId: modelId, cloudErrorMessage: null));
+
+    final switched = await _setBackend.call(LlmBackendType.uniunCloud);
+    final failure = await switched.fold(
+      (f) async => f,
+      (_) async {
+        final set = await _setLlmModel.call(modelId);
+        return set.fold((f) => f, (_) => null);
+      },
+    );
+    if (isClosed) return;
+    if (failure != null) {
+      emit(state.copyWith(
+        activatingCloudModelId: null,
+        cloudErrorMessage: failure.toString(),
+      ));
+      return;
+    }
+
+    await _ensureEmbeddingDownloaded();
+    if (isClosed) return;
+    emit(state.copyWith(
+      activatingCloudModelId: null,
+      activeCloudModelId: modelId,
+      activeBackend: LlmBackendType.uniunCloud,
+      status: SelectAIModelStatus.done,
+    ));
   }
 
   Future<void> cancelDownload() async {

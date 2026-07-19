@@ -1436,6 +1436,24 @@ abstract class AppLocalizations {
   /// **'Available Models'**
   String get aiModelAvailableHeader;
 
+  /// Cloud option card title on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'UNIUN Cloud'**
+  String get aiModelCloudTitle;
+
+  /// Cloud option card subtitle on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'No download needed — Shiv runs on UNIUN\'s servers with your identity.'**
+  String get aiModelCloudSubtitle;
+
+  /// Badge chip on the cloud option card
+  ///
+  /// In en, this message translates to:
+  /// **'No download'**
+  String get aiModelCloudBadge;
+
   /// Badge shown on the recommended model card
   ///
   /// In en, this message translates to:

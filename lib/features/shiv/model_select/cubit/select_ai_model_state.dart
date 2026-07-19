@@ -20,5 +20,19 @@ abstract class SelectAIModelState with _$SelectAIModelState {
     /// Model currently being deleted (shows spinner on that card).
     AIModelId? deletingModelId,
     String? errorMessage,
+    /// Which backend actually serves chats right now. Local cards only show
+    /// "Active" when this is localGemma — a downloaded model is NOT active
+    /// while the cloud backend is in use.
+    @Default(LlmBackendType.localGemma) LlmBackendType activeBackend,
+    /// True while the UNIUN Cloud sign-in runs.
+    @Default(false) bool isCloudConnecting,
+    /// Set when the cloud flow fails (sign-in or empty plan catalog).
+    String? cloudErrorMessage,
+    /// Plan-allowed cloud models, shown under the cloud card once signed in.
+    @Default([]) List<LlmModelInfo> cloudModels,
+    /// Cloud model currently being activated (spinner on that row).
+    String? activatingCloudModelId,
+    /// The cloud model in use when [activeBackend] is uniunCloud.
+    String? activeCloudModelId,
   }) = _SelectAIModelState;
 }

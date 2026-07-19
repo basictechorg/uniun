@@ -6,6 +6,8 @@ import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart';
 import 'package:uniun/features/shiv/model_select/widgets/model_card.dart';
 import 'package:uniun/features/shiv/model_select/widgets/model_selection_footer.dart';
+import 'package:uniun/features/shiv/model_select/widgets/uniun_cloud_card.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 
 class AIModelSelectionPage extends StatelessWidget {
   const AIModelSelectionPage({super.key});
@@ -27,7 +29,17 @@ class _AIModelSelectionView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return BlocConsumer<SelectAIModelCubit, SelectAIModelState>(
+      listenWhen: (prev, curr) =>
+          prev.status != curr.status ||
+          prev.cloudErrorMessage != curr.cloudErrorMessage,
       listener: (context, state) {
+        if (state.cloudErrorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.cloudProviderConnectFailed),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ));
+        }
         if (state.status == SelectAIModelStatus.done) {
           Navigator.of(context).maybePop(true);
         }
@@ -92,13 +104,39 @@ class _AIModelSelectionView extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
+                    // No-download path: sign in and run Shiv on UNIUN Cloud.
+                    UniunCloudCard(
+                      isConnecting: state.isCloudConnecting,
+                      onTap: () =>
+                          context.read<SelectAIModelCubit>().connectCloud(),
+                    ),
+                    ...state.cloudModels.map((model) => Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: CloudModelTile(
+                            model: model,
+                            isActive: state.activeBackend ==
+                                    LlmBackendType.uniunCloud &&
+                                state.activeCloudModelId == model.id,
+                            isActivating:
+                                state.activatingCloudModelId == model.id,
+                            onTap: () => context
+                                .read<SelectAIModelCubit>()
+                                .activateCloudModel(model.id),
+                          ),
+                        )),
+                    const SizedBox(height: 16),
+
                     ...state.models.map((model) => Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: ModelCard(
                             model: model,
                             isSelected:
                                 state.selectedModelId == model.modelId,
-                            isActive: state.activeModelId == model.modelId,
+                            // A downloaded model is only ACTIVE when the
+                            // on-device backend is actually in use.
+                            isActive: state.activeModelId == model.modelId &&
+                                state.activeBackend ==
+                                    LlmBackendType.localGemma,
                             isDownloaded: state.downloadedModelIds
                                 .contains(model.modelId),
                             isDeleting:

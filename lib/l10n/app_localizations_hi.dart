@@ -766,6 +766,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get aiModelAvailableHeader => 'उपलब्ध मॉडल';
 
   @override
+  String get aiModelCloudTitle => 'UNIUN क्लाउड';
+
+  @override
+  String get aiModelCloudSubtitle =>
+      'डाउनलोड की ज़रूरत नहीं — शिव आपकी पहचान के साथ UNIUN के सर्वर पर चलता है।';
+
+  @override
+  String get aiModelCloudBadge => 'बिना डाउनलोड';
+
+  @override
   String get aiModelRecommendedBadge => 'अनुशंसित';
 
   @override

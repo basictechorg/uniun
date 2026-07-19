@@ -1126,16 +1126,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i799.GetActiveUserKeysUseCase>(),
       ),
     );
-    gh.factory<_i687.SelectAIModelCubit>(
-      () => _i687.SelectAIModelCubit(
-        gh<_i894.GetAvailableAIModelsUseCase>(),
-        gh<_i894.GetActiveAIModelUseCase>(),
-        gh<_i894.GetDownloadedModelIdsUseCase>(),
-        gh<_i894.DownloadAndActivateAIModelUseCase>(),
-        gh<_i894.DeleteAIModelUseCase>(),
-        gh<_i850.EmbeddingModelDownloader>(),
-      ),
-    );
     gh.factory<_i205.LlmRepository>(
       () => _i19.LlmRepositoryImpl(
         gh<_i937.LocalLlmDataSource>(),
@@ -1374,6 +1364,23 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.SendChatStreamUseCase>(),
         gh<_i651.ManasContextLoader>(),
         gh<_i918.HasActiveLlmModelUseCase>(),
+      ),
+    );
+    gh.factory<_i687.SelectAIModelCubit>(
+      () => _i687.SelectAIModelCubit(
+        gh<_i894.GetAvailableAIModelsUseCase>(),
+        gh<_i894.GetActiveAIModelUseCase>(),
+        gh<_i894.GetDownloadedModelIdsUseCase>(),
+        gh<_i894.DownloadAndActivateAIModelUseCase>(),
+        gh<_i894.DeleteAIModelUseCase>(),
+        gh<_i850.EmbeddingModelDownloader>(),
+        gh<_i918.ConnectUniunCloudUseCase>(),
+        gh<_i918.IsUniunCloudConnectedUseCase>(),
+        gh<_i918.ListCloudLlmModelsUseCase>(),
+        gh<_i918.SetActiveLlmBackendUseCase>(),
+        gh<_i918.SetActiveLlmModelUseCase>(),
+        gh<_i918.GetActiveLlmModelUseCase>(),
+        gh<_i918.GetActiveLlmBackendUseCase>(),
       ),
     );
     gh.factory<_i1019.ShareRepository>(

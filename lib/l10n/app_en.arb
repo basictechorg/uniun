@@ -720,6 +720,15 @@
 
   "aiModelAvailableHeader": "Available Models",
   "@aiModelAvailableHeader": { "description": "Section header on model selection screen" },
+  "aiModelCloudTitle": "UNIUN Cloud",
+  "@aiModelCloudTitle": { "description": "Cloud option card title on model selection screen" },
+
+  "aiModelCloudSubtitle": "No download needed \u2014 Shiv runs on UNIUN's servers with your identity.",
+  "@aiModelCloudSubtitle": { "description": "Cloud option card subtitle on model selection screen" },
+
+  "aiModelCloudBadge": "No download",
+  "@aiModelCloudBadge": { "description": "Badge chip on the cloud option card" },
+
 
   "aiModelRecommendedBadge": "Recommended",
   "@aiModelRecommendedBadge": { "description": "Badge shown on the recommended model card" },
