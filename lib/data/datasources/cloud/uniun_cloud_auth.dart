@@ -6,6 +6,7 @@ import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
 
 /// Turns the user's Nostr identity into a UNIUN gateway API key, silently.
 ///
@@ -18,11 +19,13 @@ import 'package:uniun/domain/repositories/user_repository.dart';
 /// events, over `sha256(challenge)` — so `Keychain.sign` does all the work.
 @lazySingleton
 class UniunCloudAuth {
-  UniunCloudAuth(this._gateway, this._credentials, this._users);
+  UniunCloudAuth(
+      this._gateway, this._credentials, this._users, this._getOwnProfile);
 
   final UniunGatewayClient _gateway;
   final LlmCredentialsDataSource _credentials;
   final UserRepository _users;
+  final GetOwnProfileUseCase _getOwnProfile;
 
   /// The stored key, or a fresh one from a silent login. Returns null when
   /// no identity is logged into the app (nothing to sign with).
@@ -51,7 +54,38 @@ class UniunCloudAuth {
     if (keyId != null && keyId.isNotEmpty) {
       await _credentials.setUniunKeyId(keyId);
     }
+    // Gateway has no username yet — push the app's own Nostr profile name
+    // up once, so the account isn't blank on the website either. Best
+    // effort: a taken/invalid username just leaves the gateway profile
+    // empty, no different from not calling this at all.
+    if (!result.hasProfile) {
+      await _pushLocalProfile(apiKey, keys.pubkeyHex);
+    }
     return apiKey;
+  }
+
+  Future<void> _pushLocalProfile(String apiKey, String pubkeyHex) async {
+    try {
+      final profile = await _getOwnProfile.call(pubkeyHex);
+      final name = profile.fold((_) => null, (p) => p?.name);
+      final username = _sanitizeUsername(name);
+      if (username == null) return;
+      await _gateway.updateProfile(apiKey: apiKey, username: username);
+    } catch (_) {
+      // Network error, taken username, bad format — the gateway profile
+      // just stays empty, same as if we'd never tried.
+    }
+  }
+
+  /// Gateway usernames are `[a-z0-9_]{3,32}`, lowercased. A Nostr display
+  /// name can be anything, so this is a best-effort mapping, not a full
+  /// validator — the gateway itself is the source of truth on acceptance.
+  static String? _sanitizeUsername(String? name) {
+    if (name == null || name.isEmpty) return null;
+    final cleaned =
+        name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
+    final trimmed = cleaned.length > 32 ? cleaned.substring(0, 32) : cleaned;
+    return trimmed.length >= 3 ? trimmed : null;
   }
 
   /// True when a key is already in secure storage (no network touched).

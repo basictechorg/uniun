@@ -3344,6 +3344,18 @@ abstract class AppLocalizations {
   /// **'Credits'**
   String get cloudProviderCreditsLabel;
 
+  /// Button in the cloud manage sheet that opens the website pricing page for checkout
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade plan / add credits'**
+  String get cloudProviderUpgrade;
+
+  /// Explains why upgrading opens a browser instead of paying in-app
+  ///
+  /// In en, this message translates to:
+  /// **'Payment happens on uniun.in — sign in there with the same identity, then come back and reopen this sheet to see your new plan.'**
+  String get cloudProviderUpgradeHint;
+
   /// Title of the chat input model picker bottom sheet
   ///
   /// In en, this message translates to:

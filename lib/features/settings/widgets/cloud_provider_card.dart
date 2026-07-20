@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
@@ -9,6 +10,7 @@ import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Settings row for UNIUN Cloud. Lives inside the AI · Shiv group alongside
 /// the on-device model row, so it renders as a single [SettingsRow].
@@ -129,7 +131,7 @@ class _ManageSheet extends StatefulWidget {
   State<_ManageSheet> createState() => _ManageSheetState();
 }
 
-class _ManageSheetState extends State<_ManageSheet> {
+class _ManageSheetState extends State<_ManageSheet> with WidgetsBindingObserver {
   bool _loading = true;
   List<LlmModelInfo> _cloudModels = const [];
   bool _cloudLoadFailed = false;
@@ -142,7 +144,45 @@ class _ManageSheetState extends State<_ManageSheet> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Payment happens on the website (checkout there, not in-app, to avoid
+    // store IAP cuts) — refresh plan/credits when the user comes back from
+    // that browser tab so the new plan shows without reopening the sheet.
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  /// Opens the website's pricing page already signed in: mints a short-lived
+  /// (~5 min) key scoped to this handoff and passes it in the URL FRAGMENT
+  /// (`#uniun_token=...`), never a query param — fragments are never sent
+  /// in the HTTP request, so they never hit server access logs or land in a
+  /// `Referer` header. The permanent device key never leaves the device.
+  Future<void> _openPricing() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final result = await getIt<MintWebSessionTokenUseCase>().call();
+    final token = result.fold((_) => null, (t) => t.token);
+    if (token == null) {
+      scaffoldMessenger.showSnackBar(SnackBar(
+          content: Text(result.fold((f) => f.toMessage(), (_) => ''))));
+      return;
+    }
+    final uri = Uri(
+      scheme: kDeepLinkScheme,
+      host: kDeepLinkHost,
+      path: 'pricing',
+      fragment: 'uniun_token=$token',
+    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _load() async {
@@ -273,6 +313,27 @@ class _ManageSheetState extends State<_ManageSheet> {
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _openPricing,
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(l10n.cloudProviderUpgrade),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.primary,
+                  side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  minimumSize: const Size.fromHeight(40),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.cloudProviderUpgradeHint,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: scheme.onSurfaceVariant,
+                  height: 1.4,
                 ),
               ),
             ],

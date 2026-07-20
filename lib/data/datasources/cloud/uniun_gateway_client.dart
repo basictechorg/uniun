@@ -88,11 +88,16 @@ class UniunModel {
 class UniunLoginResult {
   const UniunLoginResult({
     required this.newAccount,
+    required this.hasProfile,
     this.apiKey,
     this.keyId,
   });
 
   final bool newAccount;
+
+  /// True once the account has a `username` set on the gateway. False is
+  /// the cue to push the app's own profile up via [UniunGatewayClient.updateProfile].
+  final bool hasProfile;
   final String? apiKey;
   final String? keyId;
 }
@@ -153,8 +158,24 @@ class UniunGatewayClient {
     });
     return UniunLoginResult(
       newAccount: data['new_account'] == true,
+      hasProfile: data['has_profile'] == true,
       apiKey: data['api_key'] as String?,
       keyId: data['key_id'] as String?,
+    );
+  }
+
+  /// Mints a short-lived key for handing the account off to a browser (the
+  /// website checkout, signed in without exposing the permanent key). The
+  /// token is a normal `uk_` key server-side — it just carries an
+  /// `expires_at` and works as a plain Bearer credential on `/profile`,
+  /// `/credits`, and `/payments/orders`.
+  Future<({String token, int expiresIn})> mintWebSessionToken(
+      String apiKey) async {
+    final data = await _postJson('/uniun/v1/auth/web-session', const {},
+        apiKey: apiKey);
+    return (
+      token: data['token'] as String,
+      expiresIn: (data['expires_in'] as num).toInt(),
     );
   }
 
@@ -182,6 +203,35 @@ class UniunGatewayClient {
   /// `{plan, username, pubkey, …}` for the key's account.
   Future<Map<String, dynamic>> getProfile(String apiKey) =>
       _getJson('/uniun/v1/profile', apiKey: apiKey);
+
+  /// Sets the account's `username`/`email` on the gateway (at least one
+  /// required). Used to push the app's own known profile up once, on first
+  /// connect — never overwrites unprompted after that. Throws
+  /// [UniunGatewayException] `invalidRequest` on bad format and
+  /// `unknown`(409) on a taken username; callers treat both as best-effort.
+  Future<void> updateProfile({
+    required String apiKey,
+    String? username,
+    String? email,
+  }) async {
+    final http.Response res;
+    try {
+      res = await _http
+          .put(
+            _u('/uniun/v1/profile'),
+            headers: _headers(apiKey: apiKey),
+            body: jsonEncode({
+              if (username != null) 'username': username,
+              if (email != null) 'email': email,
+            }),
+          )
+          .timeout(_requestTimeout);
+    } catch (e) {
+      throw UniunGatewayException(
+          UniunGatewayErrorType.network, 'Network error: $e');
+    }
+    _dataFrom(res);
+  }
 
   /// `{plan, balance}`.
   Future<Map<String, dynamic>> getCredits(String apiKey) =>

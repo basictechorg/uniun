@@ -535,6 +535,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i58.DeleteAllChatHistoryUseCase>(
       () => _i58.DeleteAllChatHistoryUseCase(gh<_i240.StorageRepository>()),
     );
+    gh.lazySingleton<_i895.UniunCloudAuth>(
+      () => _i895.UniunCloudAuth(
+        gh<_i83.UniunGatewayClient>(),
+        gh<_i981.LlmCredentialsDataSource>(),
+        gh<_i103.UserRepository>(),
+        gh<_i391.GetOwnProfileUseCase>(),
+      ),
+    );
     gh.factory<_i789.NoteResolverRepository>(
       () => _i526.NoteResolverRepositoryImpl(
         isar: gh<_i214.Isar>(),
@@ -722,13 +730,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i168.MarmotMlsService>(),
         gh<_i1017.NoteRelationRepository>(),
         gh<_i558.MeshEventSigner>(),
-      ),
-    );
-    gh.lazySingleton<_i895.UniunCloudAuth>(
-      () => _i895.UniunCloudAuth(
-        gh<_i83.UniunGatewayClient>(),
-        gh<_i981.LlmCredentialsDataSource>(),
-        gh<_i103.UserRepository>(),
       ),
     );
     gh.factory<_i331.SettingsCubit>(
@@ -1188,6 +1189,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.GetUniunCloudStatusUseCase>(
       () => _i918.GetUniunCloudStatusUseCase(
+        gh<_i819.LlmCredentialsRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i918.MintWebSessionTokenUseCase>(
+      () => _i918.MintWebSessionTokenUseCase(
         gh<_i819.LlmCredentialsRepository>(),
       ),
     );

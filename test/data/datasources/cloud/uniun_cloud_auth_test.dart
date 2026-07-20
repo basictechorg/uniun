@@ -2,16 +2,48 @@ import 'dart:convert';
 
 import 'package:bip340/bip340.dart' as bip340;
 import 'package:crypto/crypto.dart';
+import 'package:dartz/dartz.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/cloud/uniun_cloud_auth.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/domain/entities/profile/profile_entity.dart';
+import 'package:uniun/domain/repositories/profile_repository.dart';
+import 'package:uniun/domain/usecases/profile_usecases.dart';
 
 import '../../../_helpers/stub_user_repository.dart';
+
+/// Returns [name] as the local profile's `name` on every lookup — enough
+/// for [UniunCloudAuth]'s best-effort profile push after a fresh mint.
+class _StubProfileRepository implements ProfileRepository {
+  _StubProfileRepository({this.name});
+  final String? name;
+
+  @override
+  Future<Either<Failure, ProfileEntity?>> getOwnProfile(String pubkeyHex) async =>
+      Right(name == null
+          ? null
+          : ProfileEntity(
+              pubkey: pubkeyHex, name: name, updatedAt: DateTime.now()));
+
+  @override
+  Future<Either<Failure, ProfileEntity>> getProfile(String pubkey) =>
+      throw UnimplementedError();
+  @override
+  Future<Either<Failure, ProfileEntity>> saveProfile(ProfileEntity profile) =>
+      throw UnimplementedError();
+  @override
+  Stream<ProfileEntity?> watchProfile(String pubkeyHex) =>
+      throw UnimplementedError();
+  @override
+  Future<Either<Failure, Unit>> requestProfileFetch(String pubkeyHex) =>
+      throw UnimplementedError();
+}
 
 /// Covers: UniunCloudAuth — silent challenge→sign→login, key persistence in
 /// secure storage, expired-challenge retry, and the no-key recovery states.
@@ -47,14 +79,18 @@ void main() {
 
   final identity = Keychain.generate();
 
-  UniunCloudAuth authWith(MockClient mock, {bool loggedIn = true}) {
+  UniunCloudAuth authWith(MockClient mock,
+      {bool loggedIn = true, String? localName}) {
     final gateway =
         UniunGatewayClient(httpClient: mock, baseUrl: 'https://gw.test');
     final users = StubUserRepository()
       ..keys = loggedIn
           ? (privkeyHex: identity.private, pubkeyHex: identity.public)
           : null;
-    return UniunCloudAuth(gateway, LlmCredentialsDataSource(), users);
+    final getOwnProfile =
+        GetOwnProfileUseCase(_StubProfileRepository(name: localName));
+    return UniunCloudAuth(
+        gateway, LlmCredentialsDataSource(), users, getOwnProfile);
   }
 
   http.Response ok(Object data) =>
@@ -89,6 +125,65 @@ void main() {
     // key_id is persisted too — disconnect needs it to revoke server-side.
     expect(vault['uniun_llm_gateway_key_id'], 'kid-1');
     expect(await auth.hasStoredKey(), isTrue);
+  });
+
+  test(
+      'fresh mint with no gateway profile yet PUSHES the local Nostr name '
+      'as the username', () async {
+    String? putBody;
+    String? putAuth;
+    final auth = authWith(
+      MockClient((req) async {
+        if (req.url.path.endsWith('/auth/challenge')) {
+          return ok({'challenge': '1720.push'});
+        }
+        if (req.method == 'PUT' && req.url.path.endsWith('/profile')) {
+          putBody = req.body;
+          putAuth = req.headers['Authorization'];
+          return ok({'username': 'sam_test'});
+        }
+        return ok({
+          'api_key': 'uk_fresh',
+          'key_id': 'kid-1',
+          'new_account': true,
+          'has_profile': false,
+        });
+      }),
+      localName: 'Sam Test',
+    );
+
+    await auth.ensureApiKey();
+
+    expect(putAuth, 'Bearer uk_fresh');
+    expect(jsonDecode(putBody!), {'username': 'sam_test'});
+  });
+
+  test(
+      'fresh mint SKIPS the push when the gateway already has a username',
+      () async {
+    var putCalled = false;
+    final auth = authWith(
+      MockClient((req) async {
+        if (req.url.path.endsWith('/auth/challenge')) {
+          return ok({'challenge': '1720.skip'});
+        }
+        if (req.method == 'PUT' && req.url.path.endsWith('/profile')) {
+          putCalled = true;
+          return ok({});
+        }
+        return ok({
+          'api_key': 'uk_fresh2',
+          'key_id': 'kid-2',
+          'new_account': true,
+          'has_profile': true,
+        });
+      }),
+      localName: 'Sam Test',
+    );
+
+    await auth.ensureApiKey();
+
+    expect(putCalled, isFalse);
   });
 
   test('the signature is a REAL Schnorr over sha256(challenge) — self-check '

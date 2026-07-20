@@ -235,3 +235,14 @@ class GetUniunCloudStatusUseCase
   Future<Either<Failure, ({String plan, num balance})>> call() =>
       _repo.accountStatus();
 }
+
+@lazySingleton
+class MintWebSessionTokenUseCase
+    extends NoParamsUseCase<Either<Failure, ({String token, int expiresIn})>> {
+  final LlmCredentialsRepository _repo;
+  const MintWebSessionTokenUseCase(this._repo);
+
+  @override
+  Future<Either<Failure, ({String token, int expiresIn})>> call() =>
+      _repo.mintWebSessionToken();
+}

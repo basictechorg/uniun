@@ -55,4 +55,18 @@ class LlmCredentialsRepositoryImpl implements LlmCredentialsRepository {
       return Left(Failure.errorFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, ({String token, int expiresIn})>>
+      mintWebSessionToken() async {
+    try {
+      final key = await _auth.ensureApiKey();
+      if (key == null) {
+        return const Left(Failure.errorFailure('Not connected'));
+      }
+      return Right(await _gateway.mintWebSessionToken(key));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
 }

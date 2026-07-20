@@ -1811,6 +1811,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudProviderCreditsLabel => 'Credits';
 
   @override
+  String get cloudProviderUpgrade => 'Upgrade plan / add credits';
+
+  @override
+  String get cloudProviderUpgradeHint =>
+      'Payment happens on uniun.in — sign in there with the same identity, then come back and reopen this sheet to see your new plan.';
+
+  @override
   String get modelPickerTitle => 'Pick a model';
 
   @override
