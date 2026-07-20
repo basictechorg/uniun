@@ -195,7 +195,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
       if (isClosed) return;
       emit(state.copyWith(
         isCloudConnecting: false,
-        cloudErrorMessage: connected.fold((f) => f.toString(), (_) => ''),
+        cloudErrorMessage: connected.fold((f) => f.toMessage(), (_) => ''),
       ));
       return;
     }
@@ -207,7 +207,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
       emit(state.copyWith(
         isCloudConnecting: false,
         cloudErrorMessage: models.fold(
-            (f) => f.toString(), (_) => 'No cloud models on this plan'),
+            (f) => f.toMessage(), (_) => 'No cloud models on this plan'),
       ));
       return;
     }

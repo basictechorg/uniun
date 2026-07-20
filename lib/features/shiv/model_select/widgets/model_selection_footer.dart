@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/features/shiv/model_select/cubit/select_ai_model_cubit.dart';
 
@@ -117,7 +118,11 @@ class ModelSelectionFooter extends StatelessWidget {
               final selectedId = state.selectedModelId;
               final isAlreadyDownloaded = selectedId != null &&
                   state.downloadedModelIds.contains(selectedId);
-              final isAlreadyActive = selectedId == state.activeModelId;
+              // A downloaded local model is only "already active" when the
+              // local backend is actually serving — not while cloud is in
+              // use, even if this model was the last one downloaded.
+              final isAlreadyActive = selectedId == state.activeModelId &&
+                  state.activeBackend == LlmBackendType.localGemma;
               final label = isAlreadyActive
                   ? l10n.aiModelAlreadyActive
                   : isAlreadyDownloaded

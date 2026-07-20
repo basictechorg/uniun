@@ -34,8 +34,11 @@ class _AIModelSelectionView extends StatelessWidget {
           prev.cloudErrorMessage != curr.cloudErrorMessage,
       listener: (context, state) {
         if (state.cloudErrorMessage != null) {
+          final detail = state.cloudErrorMessage!;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.cloudProviderConnectFailed),
+            content: Text(detail.isEmpty
+                ? l10n.cloudProviderConnectFailed
+                : detail),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ));
