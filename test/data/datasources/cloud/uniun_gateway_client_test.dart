@@ -93,16 +93,16 @@ void main() {
       expect(authHeaders, ['Bearer uk_k', 'Bearer uk_k']);
     });
 
-    test('listModels maps backend and flags local-only rows', () async {
+    test('listModels maps category and flags paid rows', () async {
       final client = clientWith(MockClient((req) async => ok([
-            {'id': 'claude-sonnet-5', 'display_name': 'Claude Sonnet 5', 'backend': 'subscription'},
-            {'id': 'gemma4:e4b', 'display_name': 'Gemma 4 (local)', 'backend': 'local'},
+            {'id': 'claude-sonnet-5', 'display_name': 'Claude Sonnet 5', 'category': 'paid'},
+            {'id': 'gemma4:e4b', 'display_name': 'Gemma 4 (local)', 'category': 'free'},
           ])));
 
       final models = await client.listModels();
       expect(models.map((m) => m.id), ['claude-sonnet-5', 'gemma4:e4b']);
-      expect(models.first.isLocalOnly, isFalse);
-      expect(models.last.isLocalOnly, isTrue);
+      expect(models.first.isPaid, isTrue);
+      expect(models.last.isPaid, isFalse);
     });
 
     test('revokeKey DELETEs the key id with the Bearer key', () async {
@@ -134,6 +134,7 @@ void main() {
         'insufficient_credit': UniunGatewayErrorType.insufficientCredit,
         'invalid_api_key': UniunGatewayErrorType.unauthorized,
         'unauthorized': UniunGatewayErrorType.unauthorized,
+        'challenge_invalid': UniunGatewayErrorType.unauthorized,
         'rate_limited': UniunGatewayErrorType.rateLimited,
         'invalid_request': UniunGatewayErrorType.invalidRequest,
         'upstream_error': UniunGatewayErrorType.upstreamError,

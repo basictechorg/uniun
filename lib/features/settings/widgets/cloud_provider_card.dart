@@ -347,9 +347,7 @@ class _ManageSheetState extends State<_ManageSheet> {
   }
 }
 
-String _formatBalance(num balance) => balance == balance.roundToDouble()
-    ? balance.toInt().toString()
-    : balance.toString();
+String _formatBalance(num balance) => balance.toStringAsFixed(2);
 
 class _ModelRow extends StatelessWidget {
   const _ModelRow({

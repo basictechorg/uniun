@@ -181,8 +181,8 @@ class RemoteLlmDataSource implements LlmDataSource {
       final apiKey = await _auth.ensureApiKey();
       if (apiKey == null) return const Right([]);
 
-      // Catalog is public; the account's plan decides what actually serves.
-      // `backend == "local"` rows are on-device models — never cloud-callable.
+      // Catalog is public; the account's plan decides what serves flat-rate.
+      // `category == "free"` rows are the on-device tier — not cloud rows.
       final catalog = await _gateway.listModels();
       final profile = await _gateway.getProfile(apiKey);
       final plan = profile['plan'] as String?;
@@ -193,11 +193,15 @@ class RemoteLlmDataSource implements LlmDataSource {
             ...((p['models'] as List<dynamic>? ?? const []).cast<String>()),
       };
 
-      // Gateway rule (usage.Engine.ModelAllowed): an EMPTY plan model list
-      // means every model is allowed — that's the credits tier.
+      // Gateway rule: a paid model serves when the plan covers it, OR when
+      // the account holds a credit balance (billed per-token). Zero balance
+      // and no covering plan → the server answers 403 model_not_allowed.
+      final credits = await _gateway.getCredits(apiKey);
+      final balance = (credits['balance'] as num?) ?? 0;
+
       final infos = [
         for (final m in catalog)
-          if (!m.isLocalOnly && (allowed.isEmpty || allowed.contains(m.id)))
+          if (m.isPaid && (allowed.contains(m.id) || balance > 0))
             LlmModelInfo(
               id: m.id,
               displayName: m.displayName,

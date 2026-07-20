@@ -19,6 +19,7 @@ enum UniunGatewayErrorType {
     switch (type) {
       case 'unauthorized':
       case 'invalid_api_key':
+      case 'challenge_invalid':
         return UniunGatewayErrorType.unauthorized;
       case 'insufficient_credit':
         return UniunGatewayErrorType.insufficientCredit;
@@ -64,20 +65,21 @@ class UniunGatewayException implements Exception {
   String toString() => message;
 }
 
-/// One SSE model row from `GET /uniun/v1/models`. `backend == "local"` marks
-/// a model the GATEWAY cannot serve — the app runs it on-device instead.
+/// One model row from `GET /uniun/v1/models`. `category` is `free` (open to
+/// all, no charge — the on-device tier) or `paid` (flat under a covering
+/// subscription plan, otherwise per-token from the credit balance).
 class UniunModel {
   const UniunModel({
     required this.id,
     required this.displayName,
-    required this.backend,
+    required this.category,
   });
 
   final String id;
   final String displayName;
-  final String backend;
+  final String category;
 
-  bool get isLocalOnly => backend == 'local';
+  bool get isPaid => category == 'paid';
 }
 
 /// Result of a login. [apiKey] is non-null ONLY when the server minted one
@@ -129,8 +131,8 @@ class UniunGatewayClient {
 
   // ── Auth ──────────────────────────────────────────────────────────────
 
-  /// Issues a fresh login challenge for [pubkeyHex]. Single-use, short TTL —
-  /// sign and redeem immediately, never cache.
+  /// Issues a fresh login challenge for [pubkeyHex]. Stateless with a 60 s
+  /// TTL — sign and redeem immediately, never cache or reuse.
   Future<String> fetchChallenge(String pubkeyHex) async {
     final data = await _postJson('/uniun/v1/auth/challenge', {
       'pubkey': pubkeyHex,
@@ -199,7 +201,7 @@ class UniunGatewayClient {
         UniunModel(
           id: m['id'] as String,
           displayName: (m['display_name'] as String?) ?? m['id'] as String,
-          backend: (m['backend'] as String?) ?? '',
+          category: (m['category'] as String?) ?? '',
         ),
     ];
   }
