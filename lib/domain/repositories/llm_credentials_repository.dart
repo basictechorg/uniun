@@ -22,8 +22,4 @@ abstract class LlmCredentialsRepository {
   /// Plan name and credit balance of the connected account, straight from
   /// the gateway. Fails when not connected.
   Future<Either<Failure, ({String plan, num balance})>> accountStatus();
-
-  /// Mints a short-lived (~5 min) key for the website checkout handoff —
-  /// the permanent key never leaves the device. Fails when not connected.
-  Future<Either<Failure, ({String token, int expiresIn})>> mintWebSessionToken();
 }

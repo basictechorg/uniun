@@ -1192,11 +1192,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i819.LlmCredentialsRepository>(),
       ),
     );
-    gh.lazySingleton<_i918.MintWebSessionTokenUseCase>(
-      () => _i918.MintWebSessionTokenUseCase(
-        gh<_i819.LlmCredentialsRepository>(),
-      ),
-    );
     gh.lazySingleton<_i932.GetGroupMessagesUseCase>(
       () => _i932.GetGroupMessagesUseCase(gh<_i546.GroupMessageRepository>()),
     );

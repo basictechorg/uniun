@@ -164,21 +164,6 @@ class UniunGatewayClient {
     );
   }
 
-  /// Mints a short-lived key for handing the account off to a browser (the
-  /// website checkout, signed in without exposing the permanent key). The
-  /// token is a normal `uk_` key server-side — it just carries an
-  /// `expires_at` and works as a plain Bearer credential on `/profile`,
-  /// `/credits`, and `/payments/orders`.
-  Future<({String token, int expiresIn})> mintWebSessionToken(
-      String apiKey) async {
-    final data = await _postJson('/uniun/v1/auth/web-session', const {},
-        apiKey: apiKey);
-    return (
-      token: data['token'] as String,
-      expiresIn: (data['expires_in'] as num).toInt(),
-    );
-  }
-
   /// Revokes an API key by its gateway id. Requires a live key as Bearer.
   /// Used on disconnect so the account can mint again on the next login.
   Future<void> revokeKey({

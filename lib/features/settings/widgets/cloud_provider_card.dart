@@ -6,6 +6,7 @@ import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
@@ -162,25 +163,19 @@ class _ManageSheetState extends State<_ManageSheet> with WidgetsBindingObserver 
     if (state == AppLifecycleState.resumed) _load();
   }
 
-  /// Opens the website's pricing page already signed in: mints a short-lived
-  /// (~5 min) key scoped to this handoff and passes it in the URL FRAGMENT
-  /// (`#uniun_token=...`), never a query param — fragments are never sent
-  /// in the HTTP request, so they never hit server access logs or land in a
-  /// `Referer` header. The permanent device key never leaves the device.
+  /// Opens the website's pricing page. Payment is attributed by pubkey —
+  /// public by definition, so it's safe in a URL — not by any key, so there
+  /// is nothing to mint, nothing that can leak, nothing that expires
+  /// mid-checkout.
   Future<void> _openPricing() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final result = await getIt<MintWebSessionTokenUseCase>().call();
-    final token = result.fold((_) => null, (t) => t.token);
-    if (token == null) {
-      scaffoldMessenger.showSnackBar(SnackBar(
-          content: Text(result.fold((f) => f.toMessage(), (_) => ''))));
-      return;
-    }
+    final keys = await getIt<UserRepository>().getActiveKeysHex();
+    if (keys == null) return;
+
     final uri = Uri(
       scheme: kDeepLinkScheme,
       host: kDeepLinkHost,
       path: 'pricing',
-      fragment: 'uniun_token=$token',
+      queryParameters: {'pubkey': keys.pubkeyHex},
     );
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
