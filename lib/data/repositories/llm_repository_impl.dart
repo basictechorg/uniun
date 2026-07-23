@@ -93,16 +93,8 @@ class LlmRepositoryImpl implements LlmRepository {
   Future<Either<Failure, Unit>> setActiveBackend(LlmBackendType backend) async {
     if (backend == LlmBackendType.uniunCloud) {
       // Silent keypair login: first switch auto-creates the gateway account.
-      try {
-        final key = await _cloudAuth.ensureApiKey();
-        if (key == null) {
-          return const Left(Failure.errorFailure(
-            'Sign in to UNIUN before using cloud AI.',
-          ));
-        }
-      } catch (e) {
-        return Left(Failure.errorFailure(e.toString()));
-      }
+      final result = await _cloudAuth.connect();
+      if (result.isLeft()) return result;
     }
     await _prefs.setActiveBackend(backend);
     return const Right(unit);

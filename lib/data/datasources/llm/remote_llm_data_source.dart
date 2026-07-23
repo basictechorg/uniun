@@ -4,41 +4,36 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
-import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 /// Cloud LLM backend backed by the UNIUN inference gateway.
 ///
-/// Auth is the user's own Nostr keypair ([UniunRepository] silently logs in
-/// and stores the `uk_` key on first use — no key to paste). The gateway is
-/// OpenAI-compatible, so chat carries a REAL system role and SSE streaming.
-///
-/// Model access is plan-gated server-side (`403 model_not_allowed`);
-/// [listAvailableModels] pre-filters the catalog to the account's plan so
-/// the picker only offers models that will actually serve.
+/// [UniunRepository] is the only gateway-facing dependency — it owns the
+/// raw HTTP client, the account's key, catalog filtering, and 401 recovery.
+/// This class never sees a `uk_` key: it just asks for a model catalog or a
+/// token stream and picks which model / builds the OpenAI-shaped message
+/// list, which is the actual "cloud LLM chat" concern.
 ///
 /// Cancellation: callers cancel the `StreamSubscription` they get back from
 /// [sendChat]; exiting the `await for` tears down the underlying request.
 @lazySingleton
 class RemoteLlmDataSource implements LlmDataSource {
-  final UniunGatewayClient _gateway;
-  final UniunRepository _auth;
+  final UniunRepository _uniun;
   final LlmPreferencesDataSource _prefs;
 
   /// In-flight extraction subscription. Held so [preemptBackgroundWork] and
   /// [sendChat] can cancel it when the user wants the network for a chat.
   StreamSubscription<String>? _extractionSub;
 
-  RemoteLlmDataSource(this._gateway, this._auth, this._prefs);
+  RemoteLlmDataSource(this._uniun, this._prefs);
 
   @override
   Future<bool> hasActiveModel() async {
-    if (!await _auth.isConnected()) return false;
+    if (!await _uniun.isConnected()) return false;
     return _prefs.activeCloudModelId != null;
   }
 
@@ -67,11 +62,6 @@ class RemoteLlmDataSource implements LlmDataSource {
       _extractionSub = null;
     }
 
-    final apiKey = await _auth.ensureApiKey();
-    if (apiKey == null) {
-      throw const _RemoteLlmException(
-          'Sign in to UNIUN before using cloud AI');
-    }
     final modelId = _prefs.activeCloudModelId;
     if (modelId == null) {
       throw const _RemoteLlmException(
@@ -90,22 +80,12 @@ class RemoteLlmDataSource implements LlmDataSource {
     ];
 
     try {
-      yield* _gateway.streamChatCompletion(
-        apiKey: apiKey,
-        modelId: modelId,
-        messages: messages,
-      );
-    } on UniunGatewayException catch (e) {
-      // A stored key can go stale (revoked elsewhere, or just expired) —
-      // silently redo the login once and retry before surfacing the error.
-      if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
-      final refreshed = await _auth.refreshApiKey();
-      if (refreshed == null) rethrow;
-      yield* _gateway.streamChatCompletion(
-        apiKey: refreshed,
-        modelId: modelId,
-        messages: messages,
-      );
+      // `await for` + `yield`, NOT `yield* stream`: an exception thrown by a
+      // delegated async* stream is not caught by a `try` wrapping `yield*`.
+      await for (final token
+          in _uniun.streamChat(modelId: modelId, messages: messages)) {
+        yield token;
+      }
     } catch (e, st) {
       debugPrint('❌ RemoteLlmDataSource.sendChat failed: $e\n$st');
       rethrow;
@@ -120,13 +100,6 @@ class RemoteLlmDataSource implements LlmDataSource {
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract, // no local queue — kind is ignored for remote
   }) async {
-    final String? apiKey;
-    try {
-      apiKey = await _auth.ensureApiKey();
-    } catch (_) {
-      return const Right(null); // Not connected — caller treats null as skip.
-    }
-    if (apiKey == null) return const Right(null);
     final modelId = _prefs.activeCloudModelId;
     if (modelId == null) return const Right(null);
 
@@ -134,9 +107,8 @@ class RemoteLlmDataSource implements LlmDataSource {
     final buffer = StringBuffer();
 
     _extractionSub?.cancel();
-    _extractionSub = _gateway
-        .streamChatCompletion(
-          apiKey: apiKey,
+    _extractionSub = _uniun
+        .streamChat(
           modelId: modelId,
           maxTokens: maxTokens,
           messages: [
@@ -187,60 +159,8 @@ class RemoteLlmDataSource implements LlmDataSource {
   // ── Model listing ───────────────────────────────────────────────────────
 
   @override
-  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() async {
-    try {
-      var apiKey = await _auth.ensureApiKey();
-      if (apiKey == null) return const Right([]);
-
-      Map<String, dynamic> profile;
-      Map<String, dynamic> credits;
-      try {
-        profile = await _gateway.getProfile(apiKey);
-        credits = await _gateway.getCredits(apiKey);
-      } on UniunGatewayException catch (e) {
-        // A stored key can go stale (revoked elsewhere, or just expired) —
-        // silently redo the login once and retry before surfacing the error.
-        if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
-        final refreshed = await _auth.refreshApiKey();
-        if (refreshed == null) rethrow;
-        apiKey = refreshed;
-        profile = await _gateway.getProfile(apiKey);
-        credits = await _gateway.getCredits(apiKey);
-      }
-
-      // Catalog is public; the account's plan decides what serves flat-rate.
-      // `category == "free"` rows are open to everyone on the gateway, no
-      // charge and no plan check — they're cloud-servable too, not just the
-      // on-device tier (the app's own local catalog is a separate list).
-      final catalog = await _gateway.listModels();
-      final plan = profile['plan'] as String?;
-      final plans = await _gateway.listPlans();
-      final allowed = <String>{
-        for (final p in plans)
-          if (p['name'] == plan)
-            ...((p['models'] as List<dynamic>? ?? const []).cast<String>()),
-      };
-
-      // Gateway rule: free models are always usable. A paid model serves
-      // when the plan covers it, OR when the account holds a credit balance
-      // (billed per-token). Zero balance and no covering plan → the server
-      // answers 403 model_not_allowed.
-      final balance = (credits['balance'] as num?) ?? 0;
-
-      final infos = [
-        for (final m in catalog)
-          if (!m.isPaid || allowed.contains(m.id) || balance > 0)
-            LlmModelInfo(
-              id: m.id,
-              displayName: m.displayName,
-              backend: LlmBackendType.uniunCloud,
-            ),
-      ]..sort((a, b) => a.displayName.compareTo(b.displayName));
-      return Right(infos);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
+  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() =>
+      _uniun.listAvailableModels();
 }
 
 class _RemoteLlmException implements Exception {

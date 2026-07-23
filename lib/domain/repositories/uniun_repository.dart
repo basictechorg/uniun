@@ -1,12 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 
-/// Everything the app needs from the UNIUN inference gateway's identity
-/// side: turning the user's own Nostr keypair into a gateway API key, and
-/// managing that key's lifecycle. The single seam both the Settings UI and
-/// any data-layer class that needs a Bearer key for its own gateway calls
-/// go through — nobody composes signing/decryption/storage with the raw
-/// gateway HTTP client themselves.
+/// The ONLY thing anyone imports to talk to the UNIUN inference gateway.
+/// Wraps the raw gateway HTTP client (`UniunGatewayClient`, data-layer only,
+/// never imported anywhere else) together with all identity/signing/key
+/// logic that used to be a separate `UniunCloudAuth` class. No caller ever
+/// sees a `uk_` key, a `UniunGatewayException`, or the raw model catalog —
+/// everything (auth, catalog filtering, chat streaming, 401 recovery) is
+/// resolved inside the implementation.
 ///
 /// There is no key to paste: [connect] silently logs in with the user's own
 /// Nostr keypair (challenge → sign → login) and stores the minted `uk_` key
@@ -33,16 +35,27 @@ abstract class UniunRepository {
   /// the gateway. Fails when not connected.
   Future<Either<Failure, ({String plan, num balance})>> accountStatus();
 
-  /// The stored key, or a fresh one from a silent login. Returns null when
-  /// no identity is logged into the app (nothing to sign with). Any other
-  /// data-layer class that needs to attach a Bearer key to its own gateway
-  /// call goes through this instead of touching signing/storage itself.
-  ///
-  /// Throws the gateway's own typed exception when the gateway rejects the
-  /// login or the recovery mint.
-  Future<String?> ensureApiKey();
+  /// The cloud model catalog, already filtered to what this account can
+  /// actually use: free models always, paid models when the plan covers
+  /// them or the account holds a credit balance. Signs in silently if
+  /// needed; a stale key is refreshed and retried once, transparently.
+  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels();
 
-  /// Forces a fresh login even if a key is already stored — used to recover
-  /// from a 401 on a stored key (revoked elsewhere, or simply stale).
-  Future<String?> refreshApiKey();
+  /// Streams completion tokens for [modelId] given an OpenAI-shaped
+  /// `messages` list. Resolves a valid key internally (signing in silently
+  /// if needed) and retries once on a stale key. Throws
+  /// [UniunNotConnectedException] when no identity is logged into the app.
+  Stream<String> streamChat({
+    required String modelId,
+    required List<Map<String, String>> messages,
+    int? maxTokens,
+  });
+}
+
+/// Thrown by [UniunRepository.streamChat] when there is no Nostr identity
+/// to sign in with — nothing to attempt, silent or otherwise.
+class UniunNotConnectedException implements Exception {
+  const UniunNotConnectedException();
+  @override
+  String toString() => 'Sign in to UNIUN before using cloud AI';
 }

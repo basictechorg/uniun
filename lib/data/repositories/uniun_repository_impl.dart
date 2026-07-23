@@ -8,14 +8,18 @@ import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/cloud/uniun_key_recovery_cipher.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/repositories/uniun_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 
-/// Turns the user's Nostr identity into a UNIUN gateway API key, silently,
-/// and is the only place that composes [UniunGatewayClient] (raw HTTP) with
-/// signing/decryption/secure-storage — everyone else (Settings UI, other
-/// datasources needing a Bearer key) goes through this repository instead.
+/// The only class in the app that imports [UniunGatewayClient]. Every other
+/// consumer (datasources, other repos) goes through [UniunRepository] —
+/// nobody else sees a `uk_` key, a [UniunGatewayException], or the raw
+/// model catalog. This one class composes the raw HTTP client with
+/// signing/decryption/secure-storage AND the catalog/credit filtering and
+/// chat streaming that used to live in `RemoteLlmDataSource`.
 ///
 /// There is no signup: the first challenge→sign→login upserts the account on
 /// the gateway (plan `free`). The `uk_` key is decrypted from
@@ -34,10 +38,12 @@ class UniunRepositoryImpl implements UniunRepository {
   final UserRepository _users;
   final GetOwnProfileUseCase _getOwnProfile;
 
+  // ── Connection lifecycle (Settings UI) ──────────────────────────────────
+
   @override
   Future<Either<Failure, Unit>> connect() async {
     try {
-      final key = await ensureApiKey();
+      final key = await _ensureApiKey();
       if (key == null) {
         return const Left(
             Failure.errorFailure('No active identity to sign in with'));
@@ -69,7 +75,7 @@ class UniunRepositoryImpl implements UniunRepository {
   @override
   Future<Either<Failure, ({String plan, num balance})>> accountStatus() async {
     try {
-      final key = await ensureApiKey();
+      final key = await _ensureApiKey();
       if (key == null) {
         return const Left(Failure.errorFailure('Not connected'));
       }
@@ -83,15 +89,116 @@ class UniunRepositoryImpl implements UniunRepository {
     }
   }
 
+  // ── Catalog + chat ───────────────────────────────────────────────────────
+
   @override
-  Future<String?> ensureApiKey() async {
+  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() async {
+    try {
+      var apiKey = await _ensureApiKey();
+      if (apiKey == null) return const Right([]);
+
+      // `getCredits` already carries `plan` alongside `balance` — one call,
+      // not a separate `getProfile` just for the plan name.
+      Map<String, dynamic> credits;
+      try {
+        credits = await _gateway.getCredits(apiKey);
+      } on UniunGatewayException catch (e) {
+        // A stored key can go stale (revoked elsewhere, or just expired) —
+        // silently redo the login once and retry before surfacing the error.
+        if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
+        final refreshed = await _refreshApiKey();
+        if (refreshed == null) rethrow;
+        apiKey = refreshed;
+        credits = await _gateway.getCredits(apiKey);
+      }
+
+      // Catalog is public; the account's plan decides what serves flat-rate.
+      // `category == "free"` rows are open to everyone on the gateway, no
+      // charge and no plan check — they're cloud-servable too, not just the
+      // on-device tier (the app's own local catalog is a separate list).
+      final catalog = await _gateway.listModels();
+      final plan = credits['plan'] as String?;
+      final plans = await _gateway.listPlans();
+      final allowed = <String>{
+        for (final p in plans)
+          if (p['name'] == plan)
+            ...((p['models'] as List<dynamic>? ?? const []).cast<String>()),
+      };
+
+      // Gateway rule: free models are always usable. A paid model serves
+      // when the plan covers it, OR when the account holds a credit balance
+      // (billed per-token). Zero balance and no covering plan → the server
+      // answers 403 model_not_allowed.
+      final balance = (credits['balance'] as num?) ?? 0;
+
+      final infos = [
+        for (final m in catalog)
+          if (!m.isPaid || allowed.contains(m.id) || balance > 0)
+            LlmModelInfo(
+              id: m.id,
+              displayName: m.displayName,
+              backend: LlmBackendType.uniunCloud,
+            ),
+      ]..sort((a, b) => a.displayName.compareTo(b.displayName));
+      return Right(infos);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Stream<String> streamChat({
+    required String modelId,
+    required List<Map<String, String>> messages,
+    int? maxTokens,
+  }) async* {
+    final apiKey = await _ensureApiKey();
+    if (apiKey == null) {
+      throw const UniunNotConnectedException();
+    }
+    try {
+      // `await for` + `yield`, NOT `yield* stream`: an exception thrown by a
+      // delegated async* stream does not reach a `try` wrapping `yield*` —
+      // only a `try` wrapping an `await for` loop actually catches it.
+      await for (final token in _gateway.streamChatCompletion(
+        apiKey: apiKey,
+        modelId: modelId,
+        messages: messages,
+        maxTokens: maxTokens,
+      )) {
+        yield token;
+      }
+    } on UniunGatewayException catch (e) {
+      // A stored key can go stale (revoked elsewhere, or just expired) —
+      // silently redo the login once and retry before surfacing the error.
+      if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
+      final refreshed = await _refreshApiKey();
+      if (refreshed == null) rethrow;
+      await for (final token in _gateway.streamChatCompletion(
+        apiKey: refreshed,
+        modelId: modelId,
+        messages: messages,
+        maxTokens: maxTokens,
+      )) {
+        yield token;
+      }
+    }
+  }
+
+  // ── Identity / key lifecycle (private — nobody outside this class ever
+  //    sees a raw key) ──────────────────────────────────────────────────────
+
+  /// The stored key, or a fresh one from a silent login. Returns null when
+  /// no identity is logged into the app (nothing to sign with).
+  Future<String?> _ensureApiKey() async {
     final stored = await _credentials.getUniunApiKey();
     if (stored != null && stored.isNotEmpty) return stored;
     return _loginAndPersist();
   }
 
-  @override
-  Future<String?> refreshApiKey() async {
+  /// Forces a fresh login even if a key is already stored — used to recover
+  /// from a 401 on a stored key (revoked elsewhere, or simply stale).
+  Future<String?> _refreshApiKey() async {
     final keys = await _users.getActiveKeysHex();
     if (keys == null) return null;
     await _credentials.clearUniunApiKey();
