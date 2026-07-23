@@ -3,69 +3,42 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
-import 'package:openrouter_api/openrouter_api.dart';
-// OpenRouterInference is the concrete return type of OpenRouter.inference(...)
-// but isn't re-exported from the public barrel. Import directly.
-// ignore: implementation_imports
-import 'package:openrouter_api/src/models/open_router_inference.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
-import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
-import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 
-/// Cloud LLM backend backed by [OpenRouter].
+/// Cloud LLM backend backed by the UNIUN inference gateway.
 ///
-/// One API key unlocks every major frontier model (GPT, Claude, Gemini,
-/// Llama, Mistral, etc.). The user pastes a key in Settings → we expose all
-/// of OpenRouter's catalogue in the in-chat model picker.
+/// [UniunRepository] is the only gateway-facing dependency — it owns the
+/// raw HTTP client, the account's key, catalog filtering, and 401 recovery.
+/// This class never sees a `uk_` key: it just asks for a model catalog or a
+/// token stream and picks which model / builds the OpenAI-shaped message
+/// list, which is the actual "cloud LLM chat" concern.
 ///
 /// Cancellation: callers cancel the `StreamSubscription` they get back from
-/// [sendChat]. The `openrouter_api` package wraps each `streamCompletion`
-/// in a Dio `CancelToken` and cleans up in its `finally`, so when the outer
-/// `await for` exits the underlying HTTP request is torn down.
+/// [sendChat]; exiting the `await for` tears down the underlying request.
 @lazySingleton
 class RemoteLlmDataSource implements LlmDataSource {
-  final LlmCredentialsDataSource _credentials;
+  final UniunRepository _uniun;
   final LlmPreferencesDataSource _prefs;
 
-  /// Cached, lazily constructed when a key becomes available.
-  OpenRouterInference? _inference;
-
   /// In-flight extraction subscription. Held so [preemptBackgroundWork] and
-  /// [sendChat] can cancel it when the user wants to free the engine for a
-  /// chat turn.
+  /// [sendChat] can cancel it when the user wants the network for a chat.
   StreamSubscription<String>? _extractionSub;
 
-  RemoteLlmDataSource(this._credentials, this._prefs);
-
-  Future<OpenRouterInference?> _client() async {
-    final existing = _inference;
-    if (existing != null) return existing;
-    final key = await _credentials.getOpenRouterKey();
-    if (key == null || key.isEmpty) return null;
-    return _inference = OpenRouter.inference(
-      key: key,
-      appId: 'in.uniun',
-      appTitle: 'UNIUN',
-    );
-  }
-
-  /// Forget the cached client. Call when the user disconnects / replaces the
-  /// API key so the next call rebuilds with fresh credentials.
-  void invalidateClient() => _inference = null;
+  RemoteLlmDataSource(this._uniun, this._prefs);
 
   @override
   Future<bool> hasActiveModel() async {
-    if (!await _credentials.hasOpenRouterKey()) return false;
+    if (!await _uniun.isConnected()) return false;
     return _prefs.activeCloudModelId != null;
   }
 
   // ── Conversation session ────────────────────────────────────────────────
-  // OpenRouter is stateless — we always send the full prompt.
-  // openConversation/closeConversation are no-ops here.
+  // The gateway is stateless — we always send the full prompt.
 
   @override
   Future<Either<Failure, Unit>> openConversation() async => const Right(unit);
@@ -81,18 +54,14 @@ class RemoteLlmDataSource implements LlmDataSource {
     String? systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) async* {
-    // Preempt any in-flight extraction so its HTTP request doesn't keep
-    // racing chat for the user's quota.
+    // Preempt any in-flight extraction so it doesn't race chat for the
+    // user's plan quota.
     final extraction = _extractionSub;
     if (extraction != null) {
       await extraction.cancel();
       _extractionSub = null;
     }
 
-    final inference = await _client();
-    if (inference == null) {
-      throw const _RemoteLlmException('No OpenRouter API key configured');
-    }
     final modelId = _prefs.activeCloudModelId;
     if (modelId == null) {
       throw const _RemoteLlmException(
@@ -100,29 +69,22 @@ class RemoteLlmDataSource implements LlmDataSource {
       );
     }
 
-    // The OpenRouter wrapper exposes no system role here yet (Phase 3), so fold
-    // the per-turn system instruction into the leading user content — matching
-    // the local-backend fallback. TODO: use a real system message when the
-    // wrapper supports it.
-    final hasSystem =
-        systemInstruction != null && systemInstruction.isNotEmpty;
-    final leadingUser = hasSystem ? '$systemInstruction\n\n$message' : message;
-    final messages = <LlmMessage>[
+    final messages = <Map<String, String>>[
+      if (systemInstruction != null && systemInstruction.isNotEmpty)
+        {'role': 'system', 'content': systemInstruction},
       for (final (q, a) in cleanHistory) ...[
-        LlmMessage.user(LlmMessageContent.text(q)),
-        LlmMessage.assistant(a),
+        {'role': 'user', 'content': q},
+        {'role': 'assistant', 'content': a},
       ],
-      LlmMessage.user(LlmMessageContent.text(leadingUser)),
+      {'role': 'user', 'content': message},
     ];
 
     try {
-      await for (final chunk in inference.streamCompletion(
-        modelId: modelId,
-        messages: messages,
-      )) {
-        if (chunk.choices.isEmpty) continue;
-        final token = chunk.choices.first.content;
-        if (token.isNotEmpty) yield token;
+      // `await for` + `yield`, NOT `yield* stream`: an exception thrown by a
+      // delegated async* stream is not caught by a `try` wrapping `yield*`.
+      await for (final token
+          in _uniun.streamChat(modelId: modelId, messages: messages)) {
+        yield token;
       }
     } catch (e, st) {
       debugPrint('❌ RemoteLlmDataSource.sendChat failed: $e\n$st');
@@ -138,10 +100,6 @@ class RemoteLlmDataSource implements LlmDataSource {
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract, // no local queue — kind is ignored for remote
   }) async {
-    final inference = await _client();
-    if (inference == null) {
-      return const Right(null); // No key — caller treats null as skip.
-    }
     final modelId = _prefs.activeCloudModelId;
     if (modelId == null) return const Right(null);
 
@@ -149,13 +107,14 @@ class RemoteLlmDataSource implements LlmDataSource {
     final buffer = StringBuffer();
 
     _extractionSub?.cancel();
-    _extractionSub = inference
-        .streamCompletion(
+    _extractionSub = _uniun
+        .streamChat(
           modelId: modelId,
           maxTokens: maxTokens,
-          messages: [LlmMessage.user(LlmMessageContent.text(prompt))],
+          messages: [
+            {'role': 'user', 'content': prompt},
+          ],
         )
-        .map((r) => r.choices.isNotEmpty ? r.choices.first.content : '')
         .listen(
           buffer.write,
           onDone: () {
@@ -200,31 +159,8 @@ class RemoteLlmDataSource implements LlmDataSource {
   // ── Model listing ───────────────────────────────────────────────────────
 
   @override
-  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() async {
-    try {
-      final inference = await _client();
-      if (inference == null) return const Right([]);
-      final models = await inference.listModels();
-      final infos = models
-          .map((m) => LlmModelInfo(
-                id: m.id,
-                displayName: m.name,
-                backend: LlmBackendType.openRouter,
-                // openrouter_api 1.0.2 doesn't expose context_length on
-                // LlmModel; budgets fall back to a cloud default until we
-                // hydrate this from a raw HTTP call.
-                contextWindow: 0,
-                pricePerMillionInput: m.inputCost > 0 ? m.inputCost * 1e6 : null,
-                pricePerMillionOutput:
-                    m.outputCost > 0 ? m.outputCost * 1e6 : null,
-              ))
-          .toList()
-        ..sort((a, b) => a.displayName.compareTo(b.displayName));
-      return Right(infos);
-    } catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
-    }
-  }
+  Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() =>
+      _uniun.listAvailableModels();
 }
 
 class _RemoteLlmException implements Exception {

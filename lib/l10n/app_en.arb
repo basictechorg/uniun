@@ -720,6 +720,15 @@
 
   "aiModelAvailableHeader": "Available Models",
   "@aiModelAvailableHeader": { "description": "Section header on model selection screen" },
+  "aiModelCloudTitle": "UNIUN Cloud",
+  "@aiModelCloudTitle": { "description": "Cloud option card title on model selection screen" },
+
+  "aiModelCloudSubtitle": "No download needed \u2014 Shiv runs on UNIUN's servers with your identity.",
+  "@aiModelCloudSubtitle": { "description": "Cloud option card subtitle on model selection screen" },
+
+  "aiModelCloudBadge": "No download",
+  "@aiModelCloudBadge": { "description": "Badge chip on the cloud option card" },
+
 
   "aiModelRecommendedBadge": "Recommended",
   "@aiModelRecommendedBadge": { "description": "Badge shown on the recommended model card" },
@@ -1584,13 +1593,13 @@
   "settingsCloudProvider": "Cloud AI",
   "@settingsCloudProvider": { "description": "Section label for cloud LLM provider settings" },
 
-  "cloudProviderTitle": "OpenRouter",
+  "cloudProviderTitle": "UNIUN Cloud",
   "@cloudProviderTitle": { "description": "Title of the cloud provider settings card" },
 
-  "cloudProviderEmptyCta": "Connect API key",
+  "cloudProviderEmptyCta": "Sign in",
   "@cloudProviderEmptyCta": { "description": "CTA in cloud provider card when no API key is configured" },
 
-  "cloudProviderEmptySubtitle": "Run Shiv on any frontier model — paste an OpenRouter key to begin.",
+  "cloudProviderEmptySubtitle": "Run Shiv on Claude — sign in with your UNIUN identity.",
   "@cloudProviderEmptySubtitle": { "description": "Subtitle in cloud provider card when no API key is configured" },
 
   "cloudProviderConnectedSubtitle": "Connected · Tap to manage",
@@ -1599,29 +1608,39 @@
   "cloudProviderDisconnect": "Disconnect",
   "@cloudProviderDisconnect": { "description": "Action that removes the saved API key" },
 
-  "cloudProviderPasteKeyTitle": "Connect OpenRouter",
-  "@cloudProviderPasteKeyTitle": { "description": "Title of the dialog that asks the user to paste an API key" },
+  "cloudProviderLastKeyTitle": "This is your only active key",
+  "@cloudProviderLastKeyTitle": { "description": "Dialog title warning that disconnecting revokes the account's last active gateway key" },
 
-  "cloudProviderPasteKeyHint": "sk-or-…",
-  "@cloudProviderPasteKeyHint": { "description": "Placeholder of the API key text field" },
+  "cloudProviderLastKeyMessage": "Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.",
+  "@cloudProviderLastKeyMessage": { "description": "Dialog body explaining the consequence of revoking the last active key" },
 
-  "cloudProviderPasteKeyHelper": "Get a free key from openrouter.ai/keys",
-  "@cloudProviderPasteKeyHelper": { "description": "Helper text below the API key text field" },
+  "cloudProviderConnecting": "Signing in…",
+  "@cloudProviderConnecting": { "description": "Shown while the silent keypair login to the UNIUN gateway runs" },
 
-  "cloudProviderInvalidKey": "Invalid key — could not list models.",
-  "@cloudProviderInvalidKey": { "description": "Error shown when the pasted API key fails validation" },
+  "cloudProviderConnectFailed": "Could not sign in to UNIUN Cloud. Check your connection and try again.",
+  "@cloudProviderConnectFailed": { "description": "Error shown when the silent keypair login fails" },
+  "cloudProviderModelsHeader": "CLOUD MODELS",
+  "@cloudProviderModelsHeader": { "description": "Section header above the cloud model rows in the manage sheet" },
 
-  "cloudProviderActiveModelLabel": "Active model",
-  "@cloudProviderActiveModelLabel": { "description": "Label preceding the currently-selected cloud model name" },
+  "cloudProviderOnDevice": "On-device",
+  "@cloudProviderOnDevice": { "description": "Label of the on-device model row in the manage sheet" },
 
-  "cloudProviderNoActiveModel": "No model selected — pick one from the chat input.",
-  "@cloudProviderNoActiveModel": { "description": "Shown in cloud provider card when no cloud model has been selected yet" },
+  "cloudProviderOnDeviceNotSet": "not downloaded",
+  "@cloudProviderOnDeviceNotSet": { "description": "Shown after On-device when no local model is installed" },
 
-  "cloudProviderUseCloud": "Use cloud backend",
-  "@cloudProviderUseCloud": { "description": "Toggle label that switches the active backend to cloud" },
+  "cloudProviderNoCloudModels": "No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.",
+  "@cloudProviderNoCloudModels": { "description": "Shown in the manage sheet when the plan allows no cloud-served models" },
+  "cloudProviderPlanLabel": "Plan",
+  "@cloudProviderPlanLabel": { "description": "Label for the account plan in the cloud manage sheet" },
 
-  "cloudProviderUseLocal": "Use on-device backend",
-  "@cloudProviderUseLocal": { "description": "Toggle label that switches the active backend back to local" },
+  "cloudProviderCreditsLabel": "Credits",
+  "@cloudProviderCreditsLabel": { "description": "Label for the credit balance in the cloud manage sheet" },
+
+  "cloudProviderUpgrade": "Upgrade plan / add credits",
+  "@cloudProviderUpgrade": { "description": "Button in the cloud manage sheet that opens the website pricing page for checkout" },
+
+  "cloudProviderUpgradeHint": "Payment happens on uniun.in — sign in there with the same identity, then come back and reopen this sheet to see your new plan.",
+  "@cloudProviderUpgradeHint": { "description": "Explains why upgrading opens a browser instead of paying in-app" },
 
   "modelPickerTitle": "Pick a model",
   "@modelPickerTitle": { "description": "Title of the chat input model picker bottom sheet" },
@@ -1643,9 +1662,6 @@
 
   "modelPickerNoModels": "No models available.",
   "@modelPickerNoModels": { "description": "Empty state shown in the model picker" },
-
-  "modelPickerLoadingCloud": "Fetching cloud models…",
-  "@modelPickerLoadingCloud": { "description": "Loading state shown while fetching the OpenRouter model list" },
 
   "chatInputPickModelTooltip": "Pick model",
   "@chatInputPickModelTooltip": { "description": "Tooltip on the + icon in the chat input that opens the model picker" },

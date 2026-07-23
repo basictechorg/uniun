@@ -5,8 +5,8 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
-import 'package:uniun/domain/repositories/llm_credentials_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 // ── Capability ────────────────────────────────────────────────────────────────
 
@@ -163,6 +163,17 @@ class ListAvailableLlmModelsUseCase
 }
 
 @lazySingleton
+class ListCloudLlmModelsUseCase
+    extends NoParamsUseCase<Either<Failure, List<LlmModelInfo>>> {
+  final LlmRepository _repo;
+  const ListCloudLlmModelsUseCase(this._repo);
+
+  @override
+  Future<Either<Failure, List<LlmModelInfo>>> call() =>
+      _repo.listCloudModels();
+}
+
+@lazySingleton
 class SetActiveLlmModelUseCase
     extends UseCase<Either<Failure, Unit>, String> {
   final LlmRepository _repo;
@@ -183,34 +194,47 @@ class GetActiveLlmModelUseCase
   Future<Either<Failure, LlmModelInfo?>> call() => _repo.getActiveModel();
 }
 
-// ── Credentials ───────────────────────────────────────────────────────────────
+// ── UNIUN cloud connection ────────────────────────────────────────────────────
 
 @lazySingleton
-class SaveOpenRouterKeyUseCase
-    extends UseCase<Either<Failure, Unit>, String> {
-  final LlmCredentialsRepository _repo;
-  const SaveOpenRouterKeyUseCase(this._repo);
-
-  @override
-  Future<Either<Failure, Unit>> call(String key, {bool cached = false}) =>
-      _repo.saveOpenRouterKey(key);
-}
-
-@lazySingleton
-class ClearOpenRouterKeyUseCase
+class ConnectUniunCloudUseCase
     extends NoParamsUseCase<Either<Failure, Unit>> {
-  final LlmCredentialsRepository _repo;
-  const ClearOpenRouterKeyUseCase(this._repo);
+  final UniunRepository _repo;
+  const ConnectUniunCloudUseCase(this._repo);
 
   @override
-  Future<Either<Failure, Unit>> call() => _repo.clearOpenRouterKey();
+  Future<Either<Failure, Unit>> call() => _repo.connect();
 }
 
 @lazySingleton
-class HasOpenRouterKeyUseCase extends NoParamsUseCase<bool> {
-  final LlmCredentialsRepository _repo;
-  const HasOpenRouterKeyUseCase(this._repo);
+class DisconnectUniunCloudUseCase extends UseCase<Either<Failure, Unit>, bool> {
+  final UniunRepository _repo;
+  const DisconnectUniunCloudUseCase(this._repo);
+
+  /// [confirm] must be true to go through when this is the account's last
+  /// active key — the repo surfaces that as a `Failure` the caller can
+  /// pattern-match on (see [UniunRepository.disconnect]).
+  @override
+  Future<Either<Failure, Unit>> call(bool confirm, {bool cached = false}) =>
+      _repo.disconnect(confirm: confirm);
+}
+
+@lazySingleton
+class IsUniunCloudConnectedUseCase extends NoParamsUseCase<bool> {
+  final UniunRepository _repo;
+  const IsUniunCloudConnectedUseCase(this._repo);
 
   @override
-  Future<bool> call() => _repo.hasOpenRouterKey();
+  Future<bool> call() => _repo.isConnected();
+}
+
+@lazySingleton
+class GetUniunCloudStatusUseCase
+    extends NoParamsUseCase<Either<Failure, ({String plan, num balance})>> {
+  final UniunRepository _repo;
+  const GetUniunCloudStatusUseCase(this._repo);
+
+  @override
+  Future<Either<Failure, ({String plan, num balance})>> call() =>
+      _repo.accountStatus();
 }

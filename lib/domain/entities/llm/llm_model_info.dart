@@ -7,12 +7,12 @@ part 'llm_model_info.freezed.dart';
 ///
 /// Local Gemma models map onto this via [AIModelRepository] (Phase 1: only
 /// the active local model is exposed). Cloud models map onto this from
-/// OpenRouter's `listModels` response (Phase 3).
+/// the UNIUN gateway catalog.
 @freezed
 abstract class LlmModelInfo with _$LlmModelInfo {
   const factory LlmModelInfo({
     /// Stable identifier. For local: `AIModelId.name` (e.g. `gemma4E2b`).
-    /// For OpenRouter: the slug (e.g. `openai/gpt-4o-mini`).
+    /// For cloud: the gateway model id (e.g. `claude-sonnet-5`).
     required String id,
     required String displayName,
     required LlmBackendType backend,

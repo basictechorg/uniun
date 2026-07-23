@@ -41,7 +41,7 @@ class PromptBudget {
   /// dwarf any local model). Local → per-id table.
   factory PromptBudget.forActiveModel(LlmModelInfo? model) {
     if (model == null) return _local(null);
-    if (model.backend == LlmBackendType.openRouter) return _cloud(model);
+    if (model.backend == LlmBackendType.uniunCloud) return _cloud(model);
     return _local(_localIdFromName(model.id));
   }
 

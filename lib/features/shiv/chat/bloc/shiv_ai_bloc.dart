@@ -466,10 +466,31 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     }
   }
 
-  void _onStreamError(_StreamError event, Emitter<ShivAIState> emit) {
+  Future<void> _onStreamError(
+      _StreamError event, Emitter<ShivAIState> emit) async {
+    // Write the error into the assistant placeholder bubble — otherwise the
+    // turn ends as a silent empty bubble and the user never learns why
+    // (rate limit, no credit, model not allowed, network…).
+    final msgId = state.streamingMessageId;
+    var messages = state.messages;
+    var allMessages = state.allMessages;
+    if (msgId != null) {
+      await _updateMessageContent.call((msgId, event.message));
+      messages = messages
+          .map((m) =>
+              m.messageId == msgId ? m.copyWith(content: event.message) : m)
+          .toList();
+      allMessages = allMessages
+          .map((m) =>
+              m.messageId == msgId ? m.copyWith(content: event.message) : m)
+          .toList();
+    }
+
     emit(state.copyWith(
       status: ShivChatStatus.error,
       errorMessage: event.message,
+      messages: messages,
+      allMessages: allMessages,
       streamingContent: null,
       streamingMessageId: null,
     ));

@@ -12,7 +12,7 @@ import 'package:uniun/domain/repositories/scheduler_coordinator.dart';
 /// the coordinator is just the layer-correct doorway for use cases / BLoCs
 /// so they don't need to import `lib/data/`.
 ///
-/// Cloud backend coordination (cancelling the OpenRouter SSE on chat
+/// Cloud backend coordination (cancelling the cloud SSE on chat
 /// preempt) is intentionally not handled here — that path runs network-
 /// concurrent and already has its own cancel-port in `RemoteLlmDataSource`.
 @Injectable(as: SchedulerCoordinator)

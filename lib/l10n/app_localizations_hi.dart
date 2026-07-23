@@ -766,6 +766,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get aiModelAvailableHeader => 'उपलब्ध मॉडल';
 
   @override
+  String get aiModelCloudTitle => 'UNIUN क्लाउड';
+
+  @override
+  String get aiModelCloudSubtitle =>
+      'डाउनलोड की ज़रूरत नहीं — शिव आपकी पहचान के साथ UNIUN के सर्वर पर चलता है।';
+
+  @override
+  String get aiModelCloudBadge => 'बिना डाउनलोड';
+
+  @override
   String get aiModelRecommendedBadge => 'अनुशंसित';
 
   @override
@@ -1775,14 +1785,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsCloudProvider => 'Cloud AI';
 
   @override
-  String get cloudProviderTitle => 'OpenRouter';
+  String get cloudProviderTitle => 'UNIUN Cloud';
 
   @override
-  String get cloudProviderEmptyCta => 'API कुंजी कनेक्ट करें';
+  String get cloudProviderEmptyCta => 'साइन इन करें';
 
   @override
   String get cloudProviderEmptySubtitle =>
-      'शिव को किसी भी अग्रणी मॉडल पर चलाएं — शुरू करने के लिए एक OpenRouter कुंजी पेस्ट करें।';
+      'शिव को Claude पर चलाएं — अपनी UNIUN पहचान से साइन इन करें।';
 
   @override
   String get cloudProviderConnectedSubtitle =>
@@ -1792,31 +1802,44 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cloudProviderDisconnect => 'डिस्कनेक्ट करें';
 
   @override
-  String get cloudProviderPasteKeyTitle => 'OpenRouter कनेक्ट करें';
+  String get cloudProviderLastKeyTitle => 'यह आपकी एकमात्र सक्रिय कुंजी है';
 
   @override
-  String get cloudProviderPasteKeyHint => 'sk-or-…';
+  String get cloudProviderLastKeyMessage =>
+      'डिस्कनेक्ट करने से UNIUN Cloud पर आपकी अंतिम सक्रिय कुंजी रद्द हो जाएगी। आप बाद में फिर से कनेक्ट कर सकते हैं — इससे केवल यह डिवाइस साइन आउट होगा।';
 
   @override
-  String get cloudProviderPasteKeyHelper =>
-      'openrouter.ai/keys से मुफ़्त कुंजी प्राप्त करें';
+  String get cloudProviderConnecting => 'साइन इन हो रहा है…';
 
   @override
-  String get cloudProviderInvalidKey =>
-      'अमान्य कुंजी — मॉडल सूचीबद्ध नहीं कर सका।';
+  String get cloudProviderConnectFailed =>
+      'UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।';
 
   @override
-  String get cloudProviderActiveModelLabel => 'सक्रिय मॉडल';
+  String get cloudProviderModelsHeader => 'क्लाउड मॉडल';
 
   @override
-  String get cloudProviderNoActiveModel =>
-      'कोई मॉडल चयनित नहीं — चैट इनपुट से एक चुनें।';
+  String get cloudProviderOnDevice => 'ऑन-डिवाइस';
 
   @override
-  String get cloudProviderUseCloud => 'क्लाउड बैकएंड उपयोग करें';
+  String get cloudProviderOnDeviceNotSet => 'डाउनलोड नहीं हुआ';
 
   @override
-  String get cloudProviderUseLocal => 'डिवाइस पर बैकएंड उपयोग करें';
+  String get cloudProviderNoCloudModels =>
+      'आपके प्लान में अभी कोई क्लाउड मॉडल नहीं है। इन्हें अनलॉक करने के लिए uniun.in पर अपना प्लान अपग्रेड करें।';
+
+  @override
+  String get cloudProviderPlanLabel => 'प्लान';
+
+  @override
+  String get cloudProviderCreditsLabel => 'क्रेडिट';
+
+  @override
+  String get cloudProviderUpgrade => 'प्लान अपग्रेड करें / क्रेडिट जोड़ें';
+
+  @override
+  String get cloudProviderUpgradeHint =>
+      'पेमेंट uniun.in पर होता है — वहां अपनी उसी पहचान से साइन इन करें, फिर वापस आकर इस शीट को फिर से खोलें ताकि नया प्लान दिखे।';
 
   @override
   String get modelPickerTitle => 'एक मॉडल चुनें';
@@ -1838,9 +1861,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get modelPickerNoModels => 'कोई मॉडल उपलब्ध नहीं।';
-
-  @override
-  String get modelPickerLoadingCloud => 'क्लाउड मॉडल प्राप्त किए जा रहे हैं…';
 
   @override
   String get chatInputPickModelTooltip => 'मॉडल चुनें';

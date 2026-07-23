@@ -1436,6 +1436,24 @@ abstract class AppLocalizations {
   /// **'Available Models'**
   String get aiModelAvailableHeader;
 
+  /// Cloud option card title on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'UNIUN Cloud'**
+  String get aiModelCloudTitle;
+
+  /// Cloud option card subtitle on model selection screen
+  ///
+  /// In en, this message translates to:
+  /// **'No download needed — Shiv runs on UNIUN\'s servers with your identity.'**
+  String get aiModelCloudSubtitle;
+
+  /// Badge chip on the cloud option card
+  ///
+  /// In en, this message translates to:
+  /// **'No download'**
+  String get aiModelCloudBadge;
+
   /// Badge shown on the recommended model card
   ///
   /// In en, this message translates to:
@@ -3251,19 +3269,19 @@ abstract class AppLocalizations {
   /// Title of the cloud provider settings card
   ///
   /// In en, this message translates to:
-  /// **'OpenRouter'**
+  /// **'UNIUN Cloud'**
   String get cloudProviderTitle;
 
   /// CTA in cloud provider card when no API key is configured
   ///
   /// In en, this message translates to:
-  /// **'Connect API key'**
+  /// **'Sign in'**
   String get cloudProviderEmptyCta;
 
   /// Subtitle in cloud provider card when no API key is configured
   ///
   /// In en, this message translates to:
-  /// **'Run Shiv on any frontier model — paste an OpenRouter key to begin.'**
+  /// **'Run Shiv on Claude — sign in with your UNIUN identity.'**
   String get cloudProviderEmptySubtitle;
 
   /// Subtitle in cloud provider card when an API key is configured
@@ -3278,53 +3296,77 @@ abstract class AppLocalizations {
   /// **'Disconnect'**
   String get cloudProviderDisconnect;
 
-  /// Title of the dialog that asks the user to paste an API key
+  /// Dialog title warning that disconnecting revokes the account's last active gateway key
   ///
   /// In en, this message translates to:
-  /// **'Connect OpenRouter'**
-  String get cloudProviderPasteKeyTitle;
+  /// **'This is your only active key'**
+  String get cloudProviderLastKeyTitle;
 
-  /// Placeholder of the API key text field
+  /// Dialog body explaining the consequence of revoking the last active key
   ///
   /// In en, this message translates to:
-  /// **'sk-or-…'**
-  String get cloudProviderPasteKeyHint;
+  /// **'Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.'**
+  String get cloudProviderLastKeyMessage;
 
-  /// Helper text below the API key text field
+  /// Shown while the silent keypair login to the UNIUN gateway runs
   ///
   /// In en, this message translates to:
-  /// **'Get a free key from openrouter.ai/keys'**
-  String get cloudProviderPasteKeyHelper;
+  /// **'Signing in…'**
+  String get cloudProviderConnecting;
 
-  /// Error shown when the pasted API key fails validation
+  /// Error shown when the silent keypair login fails
   ///
   /// In en, this message translates to:
-  /// **'Invalid key — could not list models.'**
-  String get cloudProviderInvalidKey;
+  /// **'Could not sign in to UNIUN Cloud. Check your connection and try again.'**
+  String get cloudProviderConnectFailed;
 
-  /// Label preceding the currently-selected cloud model name
+  /// Section header above the cloud model rows in the manage sheet
   ///
   /// In en, this message translates to:
-  /// **'Active model'**
-  String get cloudProviderActiveModelLabel;
+  /// **'CLOUD MODELS'**
+  String get cloudProviderModelsHeader;
 
-  /// Shown in cloud provider card when no cloud model has been selected yet
+  /// Label of the on-device model row in the manage sheet
   ///
   /// In en, this message translates to:
-  /// **'No model selected — pick one from the chat input.'**
-  String get cloudProviderNoActiveModel;
+  /// **'On-device'**
+  String get cloudProviderOnDevice;
 
-  /// Toggle label that switches the active backend to cloud
+  /// Shown after On-device when no local model is installed
   ///
   /// In en, this message translates to:
-  /// **'Use cloud backend'**
-  String get cloudProviderUseCloud;
+  /// **'not downloaded'**
+  String get cloudProviderOnDeviceNotSet;
 
-  /// Toggle label that switches the active backend back to local
+  /// Shown in the manage sheet when the plan allows no cloud-served models
   ///
   /// In en, this message translates to:
-  /// **'Use on-device backend'**
-  String get cloudProviderUseLocal;
+  /// **'No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.'**
+  String get cloudProviderNoCloudModels;
+
+  /// Label for the account plan in the cloud manage sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get cloudProviderPlanLabel;
+
+  /// Label for the credit balance in the cloud manage sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get cloudProviderCreditsLabel;
+
+  /// Button in the cloud manage sheet that opens the website pricing page for checkout
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade plan / add credits'**
+  String get cloudProviderUpgrade;
+
+  /// Explains why upgrading opens a browser instead of paying in-app
+  ///
+  /// In en, this message translates to:
+  /// **'Payment happens on uniun.in — sign in there with the same identity, then come back and reopen this sheet to see your new plan.'**
+  String get cloudProviderUpgradeHint;
 
   /// Title of the chat input model picker bottom sheet
   ///
@@ -3367,12 +3409,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No models available.'**
   String get modelPickerNoModels;
-
-  /// Loading state shown while fetching the OpenRouter model list
-  ///
-  /// In en, this message translates to:
-  /// **'Fetching cloud models…'**
-  String get modelPickerLoadingCloud;
 
   /// Tooltip on the + icon in the chat input that opens the model picker
   ///

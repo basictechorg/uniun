@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/drop_loading_indicator.dart';
+import 'package:uniun/core/router/deep_link.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/features/settings/widgets/settings_card.dart';
+import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// Settings row for cloud LLM credentials (OpenRouter, today). Lives inside the
-/// AI · Shiv group alongside the on-device model row, so it renders as a single
-/// [SettingsRow] (not its own card).
+/// Settings row for UNIUN Cloud. Lives inside the AI · Shiv group alongside
+/// the on-device model row, so it renders as a single [SettingsRow].
 ///
-/// Empty state: the whole row opens a paste-key bottom sheet.
-/// Connected state: the whole row opens a manage bottom sheet (active model,
-/// backend toggle cloud vs on-device, and Disconnect).
+/// Empty state: tapping the row runs the SILENT keypair login (challenge →
+/// sign → login on the inference gateway) — no key to paste, the user's
+/// UNIUN identity is the account.
+/// Connected state: the row opens a manage sheet listing the plan-allowed
+/// cloud models plus the on-device model. Picking a row IS the backend
+/// switch — a cloud model activates the cloud backend, the on-device row
+/// activates local. There is no separate backend toggle.
 ///
 /// Self-contained — uses use cases directly rather than a cubit, since the
 /// row has only a handful of states and lives in the slow-changing Settings
@@ -27,9 +36,8 @@ class CloudProviderCard extends StatefulWidget {
 
 class _CloudProviderCardState extends State<CloudProviderCard> {
   bool _loading = true;
-  bool _hasKey = false;
-  String? _activeModelId;
-  LlmBackendType _activeBackend = LlmBackendType.localGemma;
+  bool _connecting = false;
+  bool _connected = false;
 
   @override
   void initState() {
@@ -38,233 +46,65 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
   }
 
   Future<void> _load() async {
-    final hasKey = await getIt<HasOpenRouterKeyUseCase>().call();
-    final backendResult = await getIt<GetActiveLlmBackendUseCase>().call();
-    final activeBackend = backendResult.fold(
-      (_) => LlmBackendType.localGemma,
-      (b) => b,
-    );
-    final modelResult = await getIt<GetActiveLlmModelUseCase>().call();
-    final activeModel = modelResult.fold(
-      (_) => null,
-      (m) => m?.backend == LlmBackendType.openRouter ? m?.id : null,
-    );
+    final connected = await getIt<IsUniunCloudConnectedUseCase>().call();
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _hasKey = hasKey;
-      _activeBackend = activeBackend;
-      _activeModelId = activeModel;
+      _connected = connected;
     });
   }
 
   Future<void> _connect() async {
     final l10n = AppLocalizations.of(context)!;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final entered = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => const _PasteKeySheet(),
-    );
-    if (entered == null || entered.trim().isEmpty) return;
+    setState(() => _connecting = true);
 
-    final saved = await getIt<SaveOpenRouterKeyUseCase>().call(entered.trim());
-    final ok = saved.isRight();
-    if (!ok) {
-      if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text(l10n.cloudProviderInvalidKey)),
-        );
-      }
-      return;
-    }
-    // Validate the key by listing models — surfaces fake/invalid keys early.
-    final listResult = await getIt<ListAvailableLlmModelsUseCase>().call();
-    final validated = await listResult.fold(
-      (_) async {
-        await getIt<ClearOpenRouterKeyUseCase>().call();
-        return false;
-      },
-      (_) async => true,
-    );
+    final result = await getIt<ConnectUniunCloudUseCase>().call();
     if (!mounted) return;
-    if (!validated) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(l10n.cloudProviderInvalidKey)),
-      );
-      return;
-    }
-    await _load();
-  }
-
-  Future<void> _disconnect() async {
-    await getIt<ClearOpenRouterKeyUseCase>().call();
-    // If cloud was active, fall back to local so the next chat send doesn't
-    // hit an empty-credentials state.
-    if (_activeBackend == LlmBackendType.openRouter) {
-      await getIt<SetActiveLlmBackendUseCase>().call(LlmBackendType.localGemma);
-    }
-    await _load();
-  }
-
-  Future<void> _toggleBackend(bool useCloud) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final target =
-        useCloud ? LlmBackendType.openRouter : LlmBackendType.localGemma;
-    final result = await getIt<SetActiveLlmBackendUseCase>().call(target);
+    setState(() => _connecting = false);
     result.fold(
-      (f) => scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(f.toMessage())),
+      (_) => scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(l10n.cloudProviderConnectFailed)),
       ),
-      (_) {
-        if (target == LlmBackendType.openRouter && _activeModelId == null) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(content: Text(l10n.cloudProviderNoActiveModel)),
-          );
-        }
-      },
+      (_) {},
     );
     await _load();
   }
 
-  /// Connected-state controls (active model · backend toggle · disconnect),
-  /// lifted into a bottom sheet so the row itself stays a single tappable row
-  /// inside the AI settings group.
   Future<void> _openManageSheet() async {
-    final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (sheetCtx) {
-        return StatefulBuilder(
-          builder: (sheetCtx, setSheetState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      l10n.cloudProviderTitle,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Active model line
-                    Row(
-                      children: [
-                        Icon(Icons.cloud_outlined,
-                            size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _activeModelId ?? l10n.cloudProviderNoActiveModel,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Backend toggle
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _activeBackend == LlmBackendType.openRouter
-                                ? l10n.cloudProviderUseCloud
-                                : l10n.cloudProviderUseLocal,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        Switch.adaptive(
-                          value: _activeBackend == LlmBackendType.openRouter,
-                          activeColor: Theme.of(context).colorScheme.primary,
-                          onChanged: (useCloud) async {
-                            await _toggleBackend(useCloud);
-                            setSheetState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Divider(color: Theme.of(context).colorScheme.outlineVariant, height: 1),
-                    const SizedBox(height: 4),
-                    // Disconnect action
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          await _disconnect();
-                          if (sheetCtx.mounted) Navigator.pop(sheetCtx);
-                        },
-                        icon: const Icon(Icons.link_off_rounded, size: 18),
-                        label: Text(l10n.cloudProviderDisconnect),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => const _ManageSheet(),
     );
+    await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    if (_loading) {
+    if (_loading || _connecting) {
       return SettingsRow(
         icon: Icons.cloud_outlined,
         label: l10n.cloudProviderTitle,
+        subtitle: _connecting ? l10n.cloudProviderConnecting : null,
         showChevron: false,
         trailing: SizedBox(
           width: 18,
           height: 18,
-          child: DropLoadingIndicator(size: 18, color: Theme.of(context).colorScheme.primary),
+          child: DropLoadingIndicator(
+              size: 18, color: Theme.of(context).colorScheme.primary),
         ),
       );
     }
 
-    if (!_hasKey) {
-      // Empty state — whole row opens the paste-key sheet.
+    if (!_connected) {
+      // Empty state — tapping the row signs in silently with the user's keys.
       return SettingsRow(
         icon: Icons.cloud_outlined,
         label: l10n.cloudProviderTitle,
@@ -273,7 +113,7 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
       );
     }
 
-    // Connected — whole row opens the manage sheet.
+    // Connected — whole row opens the model / manage sheet.
     return SettingsRow(
       icon: Icons.cloud_done_outlined,
       label: l10n.cloudProviderTitle,
@@ -283,106 +123,359 @@ class _CloudProviderCardState extends State<CloudProviderCard> {
   }
 }
 
-/// Paste-key input as a bottom sheet (the app prefers bottom sheets over modal
-/// dialogs — see CLAUDE.md). Returns the entered key via `Navigator.pop`.
-class _PasteKeySheet extends StatefulWidget {
-  const _PasteKeySheet();
+/// Bottom sheet listing the plan-allowed cloud models and the on-device
+/// model. Selecting a row activates both the model and its backend.
+class _ManageSheet extends StatefulWidget {
+  const _ManageSheet();
 
   @override
-  State<_PasteKeySheet> createState() => _PasteKeySheetState();
+  State<_ManageSheet> createState() => _ManageSheetState();
 }
 
-class _PasteKeySheetState extends State<_PasteKeySheet> {
-  final _controller = TextEditingController();
+class _ManageSheetState extends State<_ManageSheet> with WidgetsBindingObserver {
+  bool _loading = true;
+  List<LlmModelInfo> _cloudModels = const [];
+  bool _cloudLoadFailed = false;
+  LlmBackendType _activeBackend = LlmBackendType.localGemma;
+  String? _activeCloudModelId;
+  AIModelId? _localModelId;
+  String? _switchingId; // row showing a spinner ('' = on-device row)
+  ({String plan, num balance})? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _paste() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && data!.text!.isNotEmpty) {
-      _controller.text = data.text!;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Payment happens on the website (checkout there, not in-app, to avoid
+    // store IAP cuts) — refresh plan/credits when the user comes back from
+    // that browser tab so the new plan shows without reopening the sheet.
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  /// Opens the website's pricing page. Payment is attributed by pubkey —
+  /// public by definition, so it's safe in a URL — not by any key, so there
+  /// is nothing to mint, nothing that can leak, nothing that expires
+  /// mid-checkout.
+  Future<void> _openPricing() async {
+    final keys = await getIt<UserRepository>().getActiveKeysHex();
+    if (keys == null) return;
+
+    final uri = Uri(
+      scheme: kDeepLinkScheme,
+      host: kDeepLinkHost,
+      path: 'pricing',
+      queryParameters: {'pubkey': keys.pubkeyHex},
+    );
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _load() async {
+    final backendResult = await getIt<GetActiveLlmBackendUseCase>().call();
+    final backend =
+        backendResult.fold((_) => LlmBackendType.localGemma, (b) => b);
+    final modelResult = await getIt<GetActiveLlmModelUseCase>().call();
+    final activeCloudId = modelResult.fold(
+      (_) => null,
+      (m) => m?.backend == LlmBackendType.uniunCloud ? m?.id : null,
+    );
+    final localResult = await getIt<GetActiveAIModelUseCase>().call();
+    final localId = localResult.fold((_) => null, (m) => m?.modelId);
+    final cloudResult = await getIt<ListCloudLlmModelsUseCase>().call();
+    final statusResult = await getIt<GetUniunCloudStatusUseCase>().call();
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _activeBackend = backend;
+      _activeCloudModelId = activeCloudId;
+      _localModelId = localId;
+      _status = statusResult.fold((_) => null, (s) => s);
+      cloudResult.fold(
+        (_) => _cloudLoadFailed = true,
+        (list) => _cloudModels = list,
+      );
+    });
+  }
+
+  Future<void> _selectCloud(LlmModelInfo model) async {
+    if (_switchingId != null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    setState(() => _switchingId = model.id);
+
+    final switched = await getIt<SetActiveLlmBackendUseCase>()
+        .call(LlmBackendType.uniunCloud);
+    final failure = await switched.fold(
+      (f) async => f,
+      (_) async {
+        final set = await getIt<SetActiveLlmModelUseCase>().call(model.id);
+        return set.fold((f) => f, (_) => null);
+      },
+    );
+    if (!mounted) return;
+    if (failure != null) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(failure.toMessage())),
+      );
+      setState(() => _switchingId = null);
+      return;
     }
+    setState(() {
+      _switchingId = null;
+      _activeBackend = LlmBackendType.uniunCloud;
+      _activeCloudModelId = model.id;
+    });
+  }
+
+  Future<void> _selectOnDevice() async {
+    if (_switchingId != null) return;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    setState(() => _switchingId = '');
+
+    final result = await getIt<SetActiveLlmBackendUseCase>()
+        .call(LlmBackendType.localGemma);
+    if (!mounted) return;
+    result.fold(
+      (f) => scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(f.toMessage())),
+      ),
+      (_) {},
+    );
+    setState(() {
+      _switchingId = null;
+      _activeBackend = LlmBackendType.localGemma;
+    });
+  }
+
+  Future<void> _disconnect({bool confirm = false}) async {
+    final result = await getIt<DisconnectUniunCloudUseCase>().call(confirm);
+    final needsConfirm =
+        result.fold((f) => f.toMessage() == 'last_active_key', (_) => false);
+    if (needsConfirm) {
+      if (!mounted) return;
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.cloudProviderLastKeyTitle),
+          content:
+              Text(AppLocalizations.of(context)!.cloudProviderLastKeyMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(AppLocalizations.of(context)!.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(AppLocalizations.of(context)!.cloudProviderDisconnect),
+            ),
+          ],
+        ),
+      );
+      if (proceed == true) await _disconnect(confirm: true);
+      return;
+    }
+    // If cloud was active, fall back to local so the next chat send doesn't
+    // hit an empty-credentials state.
+    if (_activeBackend == LlmBackendType.uniunCloud) {
+      await getIt<SetActiveLlmBackendUseCase>()
+          .call(LlmBackendType.localGemma);
+    }
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
+    final scheme = Theme.of(context).colorScheme;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: scheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
-              const SizedBox(height: 18),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              l10n.cloudProviderTitle,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
+              ),
+            ),
+            if (_status != null) ...[
+              const SizedBox(height: 6),
               Text(
-                l10n.cloudProviderPasteKeyTitle,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _controller,
-                obscureText: true,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: l10n.cloudProviderPasteKeyHint,
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.content_paste_rounded),
-                    onPressed: _paste,
-                  ),
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.cloudProviderPasteKeyHelper,
+                '${l10n.cloudProviderPlanLabel}: ${_status!.plan} · '
+                '${l10n.cloudProviderCreditsLabel}: ${_formatBalance(_status!.balance)}',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.actionCancel),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary),
-                    onPressed: () =>
-                        Navigator.of(context).pop(_controller.text),
-                    child: Text(l10n.actionSave),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _openPricing,
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(l10n.cloudProviderUpgrade),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.primary,
+                  side: BorderSide(color: scheme.primary.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  minimumSize: const Size.fromHeight(40),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                l10n.cloudProviderUpgradeHint,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: scheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.cloudProviderModelsHeader,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (_loading)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child:
+                      DropLoadingIndicator(size: 20, color: scheme.primary),
+                ),
+              )
+            else if (_cloudLoadFailed || _cloudModels.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  l10n.cloudProviderNoCloudModels,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+              )
+            else
+              ..._cloudModels.map((m) => _ModelRow(
+                    icon: Icons.cloud_outlined,
+                    label: m.displayName,
+                    isActive: _activeBackend == LlmBackendType.uniunCloud &&
+                        _activeCloudModelId == m.id,
+                    isSwitching: _switchingId == m.id,
+                    onTap: () => _selectCloud(m),
+                  )),
+            const SizedBox(height: 4),
+            Divider(color: scheme.outlineVariant, height: 1),
+            const SizedBox(height: 4),
+            _ModelRow(
+              icon: Icons.phone_iphone_rounded,
+              label: _localModelId != null
+                  ? '${l10n.cloudProviderOnDevice} · ${_localModelId!.displayName(l10n)}'
+                  : '${l10n.cloudProviderOnDevice} · ${l10n.cloudProviderOnDeviceNotSet}',
+              isActive: _activeBackend == LlmBackendType.localGemma,
+              isSwitching: _switchingId == '',
+              onTap: _selectOnDevice,
+            ),
+            const SizedBox(height: 4),
+            Divider(color: scheme.outlineVariant, height: 1),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _disconnect,
+                icon: const Icon(Icons.link_off_rounded, size: 18),
+                label: Text(l10n.cloudProviderDisconnect),
+                style: TextButton.styleFrom(foregroundColor: scheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatBalance(num balance) => balance.toStringAsFixed(2);
+
+class _ModelRow extends StatelessWidget {
+  const _ModelRow({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.isSwitching,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final bool isSwitching;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return InkWell(
+      onTap: isSwitching ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon,
+                size: 18,
+                color: isActive ? scheme.primary : scheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? scheme.primary : scheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (isSwitching)
+              DropLoadingIndicator(size: 16, color: scheme.primary)
+            else if (isActive)
+              Icon(Icons.check_circle_rounded, size: 20, color: scheme.primary),
+          ],
         ),
       ),
     );

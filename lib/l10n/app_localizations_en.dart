@@ -763,6 +763,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiModelAvailableHeader => 'Available Models';
 
   @override
+  String get aiModelCloudTitle => 'UNIUN Cloud';
+
+  @override
+  String get aiModelCloudSubtitle =>
+      'No download needed — Shiv runs on UNIUN\'s servers with your identity.';
+
+  @override
+  String get aiModelCloudBadge => 'No download';
+
+  @override
   String get aiModelRecommendedBadge => 'Recommended';
 
   @override
@@ -1759,14 +1769,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCloudProvider => 'Cloud AI';
 
   @override
-  String get cloudProviderTitle => 'OpenRouter';
+  String get cloudProviderTitle => 'UNIUN Cloud';
 
   @override
-  String get cloudProviderEmptyCta => 'Connect API key';
+  String get cloudProviderEmptyCta => 'Sign in';
 
   @override
   String get cloudProviderEmptySubtitle =>
-      'Run Shiv on any frontier model — paste an OpenRouter key to begin.';
+      'Run Shiv on Claude — sign in with your UNIUN identity.';
 
   @override
   String get cloudProviderConnectedSubtitle => 'Connected · Tap to manage';
@@ -1775,30 +1785,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudProviderDisconnect => 'Disconnect';
 
   @override
-  String get cloudProviderPasteKeyTitle => 'Connect OpenRouter';
+  String get cloudProviderLastKeyTitle => 'This is your only active key';
 
   @override
-  String get cloudProviderPasteKeyHint => 'sk-or-…';
+  String get cloudProviderLastKeyMessage =>
+      'Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.';
 
   @override
-  String get cloudProviderPasteKeyHelper =>
-      'Get a free key from openrouter.ai/keys';
+  String get cloudProviderConnecting => 'Signing in…';
 
   @override
-  String get cloudProviderInvalidKey => 'Invalid key — could not list models.';
+  String get cloudProviderConnectFailed =>
+      'Could not sign in to UNIUN Cloud. Check your connection and try again.';
 
   @override
-  String get cloudProviderActiveModelLabel => 'Active model';
+  String get cloudProviderModelsHeader => 'CLOUD MODELS';
 
   @override
-  String get cloudProviderNoActiveModel =>
-      'No model selected — pick one from the chat input.';
+  String get cloudProviderOnDevice => 'On-device';
 
   @override
-  String get cloudProviderUseCloud => 'Use cloud backend';
+  String get cloudProviderOnDeviceNotSet => 'not downloaded';
 
   @override
-  String get cloudProviderUseLocal => 'Use on-device backend';
+  String get cloudProviderNoCloudModels =>
+      'No cloud models on your plan yet. Upgrade your plan at uniun.in to unlock them.';
+
+  @override
+  String get cloudProviderPlanLabel => 'Plan';
+
+  @override
+  String get cloudProviderCreditsLabel => 'Credits';
+
+  @override
+  String get cloudProviderUpgrade => 'Upgrade plan / add credits';
+
+  @override
+  String get cloudProviderUpgradeHint =>
+      'Payment happens on uniun.in — sign in there with the same identity, then come back and reopen this sheet to see your new plan.';
 
   @override
   String get modelPickerTitle => 'Pick a model';
@@ -1820,9 +1844,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelPickerNoModels => 'No models available.';
-
-  @override
-  String get modelPickerLoadingCloud => 'Fetching cloud models…';
 
   @override
   String get chatInputPickModelTooltip => 'Pick model';
