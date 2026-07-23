@@ -1608,6 +1608,12 @@
   "cloudProviderDisconnect": "Disconnect",
   "@cloudProviderDisconnect": { "description": "Action that removes the saved API key" },
 
+  "cloudProviderLastKeyTitle": "This is your only active key",
+  "@cloudProviderLastKeyTitle": { "description": "Dialog title warning that disconnecting revokes the account's last active gateway key" },
+
+  "cloudProviderLastKeyMessage": "Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.",
+  "@cloudProviderLastKeyMessage": { "description": "Dialog body explaining the consequence of revoking the last active key" },
+
   "cloudProviderConnecting": "Signing in…",
   "@cloudProviderConnecting": { "description": "Shown while the silent keypair login to the UNIUN gateway runs" },
 

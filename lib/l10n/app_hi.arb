@@ -1067,6 +1067,10 @@
 
   "cloudProviderDisconnect": "डिस्कनेक्ट करें",
 
+  "cloudProviderLastKeyTitle": "यह आपकी एकमात्र सक्रिय कुंजी है",
+
+  "cloudProviderLastKeyMessage": "डिस्कनेक्ट करने से UNIUN Cloud पर आपकी अंतिम सक्रिय कुंजी रद्द हो जाएगी। आप बाद में फिर से कनेक्ट कर सकते हैं — इससे केवल यह डिवाइस साइन आउट होगा।",
+
   "cloudProviderConnecting": "साइन इन हो रहा है…",
 
   "cloudProviderConnectFailed": "UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।",

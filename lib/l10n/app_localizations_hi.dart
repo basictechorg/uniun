@@ -1802,6 +1802,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cloudProviderDisconnect => 'डिस्कनेक्ट करें';
 
   @override
+  String get cloudProviderLastKeyTitle => 'यह आपकी एकमात्र सक्रिय कुंजी है';
+
+  @override
+  String get cloudProviderLastKeyMessage =>
+      'डिस्कनेक्ट करने से UNIUN Cloud पर आपकी अंतिम सक्रिय कुंजी रद्द हो जाएगी। आप बाद में फिर से कनेक्ट कर सकते हैं — इससे केवल यह डिवाइस साइन आउट होगा।';
+
+  @override
   String get cloudProviderConnecting => 'साइन इन हो रहा है…';
 
   @override

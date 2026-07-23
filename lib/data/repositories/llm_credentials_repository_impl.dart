@@ -27,10 +27,15 @@ class LlmCredentialsRepositoryImpl implements LlmCredentialsRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> disconnect() async {
+  Future<Either<Failure, Unit>> disconnect({bool confirm = false}) async {
     try {
-      await _auth.disconnect();
+      await _auth.disconnect(confirm: confirm);
       return const Right(unit);
+    } on UniunGatewayException catch (e) {
+      if (e.statusCode == 409) {
+        return const Left(Failure.errorFailure('last_active_key'));
+      }
+      return Left(Failure.errorFailure(e.toString()));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

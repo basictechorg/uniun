@@ -207,13 +207,16 @@ class ConnectUniunCloudUseCase
 }
 
 @lazySingleton
-class DisconnectUniunCloudUseCase
-    extends NoParamsUseCase<Either<Failure, Unit>> {
+class DisconnectUniunCloudUseCase extends UseCase<Either<Failure, Unit>, bool> {
   final LlmCredentialsRepository _repo;
   const DisconnectUniunCloudUseCase(this._repo);
 
+  /// [confirm] must be true to go through when this is the account's last
+  /// active key — the repo surfaces that as a `Failure` the caller can
+  /// pattern-match on (see [LlmCredentialsRepository.disconnect]).
   @override
-  Future<Either<Failure, Unit>> call() => _repo.disconnect();
+  Future<Either<Failure, Unit>> call(bool confirm, {bool cached = false}) =>
+      _repo.disconnect(confirm: confirm);
 }
 
 @lazySingleton

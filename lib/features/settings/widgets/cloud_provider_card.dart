@@ -257,8 +257,33 @@ class _ManageSheetState extends State<_ManageSheet> with WidgetsBindingObserver 
     });
   }
 
-  Future<void> _disconnect() async {
-    await getIt<DisconnectUniunCloudUseCase>().call();
+  Future<void> _disconnect({bool confirm = false}) async {
+    final result = await getIt<DisconnectUniunCloudUseCase>().call(confirm);
+    final needsConfirm =
+        result.fold((f) => f.toMessage() == 'last_active_key', (_) => false);
+    if (needsConfirm) {
+      if (!mounted) return;
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.cloudProviderLastKeyTitle),
+          content:
+              Text(AppLocalizations.of(context)!.cloudProviderLastKeyMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(AppLocalizations.of(context)!.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(AppLocalizations.of(context)!.cloudProviderDisconnect),
+            ),
+          ],
+        ),
+      );
+      if (proceed == true) await _disconnect(confirm: true);
+      return;
+    }
     // If cloud was active, fall back to local so the next chat send doesn't
     // hit an empty-credentials state.
     if (_activeBackend == LlmBackendType.uniunCloud) {

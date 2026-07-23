@@ -82,14 +82,17 @@ class UniunModel {
   bool get isPaid => category == 'paid';
 }
 
-/// Result of a login. [apiKey] is non-null ONLY when the server minted one
-/// (first login, or recovery when the account had no active key) — persist
-/// it immediately, it is never shown again.
+/// Result of a login. [encryptedApiKey] is a base64 blob present whenever
+/// the account holds an active key — decrypt with
+/// [UniunKeyRecoveryCipher.decrypt] using the caller's own Nostr private
+/// key; the same stored blob decrypts identically on any device, so there
+/// is no per-device state. Null only when the account has zero active keys
+/// — recover via [UniunGatewayClient.recoverKey].
 class UniunLoginResult {
   const UniunLoginResult({
     required this.newAccount,
     required this.hasProfile,
-    this.apiKey,
+    this.encryptedApiKey,
     this.keyId,
   });
 
@@ -98,7 +101,7 @@ class UniunLoginResult {
   /// True once the account has a `username` set on the gateway. False is
   /// the cue to push the app's own profile up via [UniunGatewayClient.updateProfile].
   final bool hasProfile;
-  final String? apiKey;
+  final String? encryptedApiKey;
   final String? keyId;
 }
 
@@ -159,22 +162,53 @@ class UniunGatewayClient {
     return UniunLoginResult(
       newAccount: data['new_account'] == true,
       hasProfile: data['has_profile'] == true,
-      apiKey: data['api_key'] as String?,
+      encryptedApiKey: data['encrypted_api_key'] as String?,
+      keyId: data['key_id'] as String?,
+    );
+  }
+
+  /// Mints a fresh key when the account has zero active ones (login came
+  /// back with no [UniunLoginResult.encryptedApiKey] to decrypt) — same
+  /// challenge/sign flow as [login], redeemed against `/uniun/v1/keys`
+  /// instead. The key comes back raw: this is a live authenticated mint,
+  /// not the stored-at-signup blob, so there's nothing to decrypt.
+  Future<({String apiKey, String? keyId})> recoverKey({
+    required String pubkeyHex,
+    required String challenge,
+    required String signatureHex,
+    String name = 'recovered',
+  }) async {
+    final data = await _postJson('/uniun/v1/keys', {
+      'name': name,
+      'pubkey': pubkeyHex,
+      'challenge': challenge,
+      'signature': signatureHex,
+    });
+    return (
+      apiKey: data['api_key'] as String,
       keyId: data['key_id'] as String?,
     );
   }
 
   /// Revokes an API key by its gateway id. Requires a live key as Bearer.
   /// Used on disconnect so the account can mint again on the next login.
+  ///
+  /// The server 409s (`last_active_key`) when this is the account's only
+  /// active key — [confirm] re-sends the request with `?confirm=true` to
+  /// go through anyway, after the caller has warned the user.
   Future<void> revokeKey({
     required String apiKey,
     required String keyId,
+    bool confirm = false,
   }) async {
+    var uri = _u('/uniun/v1/keys/$keyId');
+    if (confirm) {
+      uri = uri.replace(queryParameters: {'confirm': 'true'});
+    }
     final http.Response res;
     try {
       res = await _http
-          .delete(_u('/uniun/v1/keys/$keyId'),
-              headers: _headers(apiKey: apiKey))
+          .delete(uri, headers: _headers(apiKey: apiKey))
           .timeout(_requestTimeout);
     } catch (e) {
       throw UniunGatewayException(

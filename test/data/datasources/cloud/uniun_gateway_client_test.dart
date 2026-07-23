@@ -52,11 +52,12 @@ void main() {
       expect(await client.fetchChallenge('a' * 64), 'nonce64');
     });
 
-    test('login surfaces api_key + new_account on first login', () async {
+    test('login surfaces encrypted_api_key + new_account on first login',
+        () async {
       final client = clientWith(MockClient((req) async {
         expect(req.url.path, '/uniun/v1/auth/login');
         return ok({
-          'api_key': 'uk_secret',
+          'encrypted_api_key': 'ZW5jcnlwdGVk',
           'key_id': 'k-1',
           'new_account': true,
           'has_profile': false,
@@ -65,18 +66,52 @@ void main() {
 
       final r = await client.login(
           pubkeyHex: 'a' * 64, challenge: 'c', signatureHex: 'f' * 128);
-      expect(r.apiKey, 'uk_secret');
+      expect(r.encryptedApiKey, 'ZW5jcnlwdGVk');
       expect(r.newAccount, isTrue);
     });
 
-    test('returning login carries NO api_key — result reflects that',
-        () async {
+    test(
+        'account with zero active keys carries NO encrypted_api_key — '
+        'result reflects that', () async {
       final client = clientWith(MockClient(
           (req) async => ok({'new_account': false, 'has_profile': true})));
       final r = await client.login(
           pubkeyHex: 'a' * 64, challenge: 'c', signatureHex: 'f' * 128);
-      expect(r.apiKey, isNull);
+      expect(r.encryptedApiKey, isNull);
       expect(r.newAccount, isFalse);
+    });
+
+    test('recoverKey posts pubkey/challenge/signature and returns the raw key',
+        () async {
+      Map<String, dynamic>? sentBody;
+      final client = clientWith(MockClient((req) async {
+        expect(req.url.path, '/uniun/v1/keys');
+        sentBody = jsonDecode(req.body) as Map<String, dynamic>;
+        return ok({'api_key': 'uk_recovered', 'key_id': 'k-2'});
+      }));
+
+      final r = await client.recoverKey(
+          pubkeyHex: 'a' * 64, challenge: 'c', signatureHex: 'f' * 128);
+      expect(r.apiKey, 'uk_recovered');
+      expect(r.keyId, 'k-2');
+      expect(sentBody, {
+        'name': 'recovered',
+        'pubkey': 'a' * 64,
+        'challenge': 'c',
+        'signature': 'f' * 128,
+      });
+    });
+
+    test('revokeKey with confirm:true appends ?confirm=true', () async {
+      Uri? sentUri;
+      final client = clientWith(MockClient((req) async {
+        sentUri = req.url;
+        return ok({'revoked': true});
+      }));
+
+      await client.revokeKey(apiKey: 'uk_k', keyId: 'kid-1', confirm: true);
+      expect(sentUri!.path, '/uniun/v1/keys/kid-1');
+      expect(sentUri!.queryParameters, {'confirm': 'true'});
     });
   });
 

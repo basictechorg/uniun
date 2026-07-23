@@ -95,6 +95,17 @@ class RemoteLlmDataSource implements LlmDataSource {
         modelId: modelId,
         messages: messages,
       );
+    } on UniunGatewayException catch (e) {
+      // A stored key can go stale (revoked elsewhere, or just expired) —
+      // silently redo the login once and retry before surfacing the error.
+      if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
+      final refreshed = await _auth.refreshApiKey();
+      if (refreshed == null) rethrow;
+      yield* _gateway.streamChatCompletion(
+        apiKey: refreshed,
+        modelId: modelId,
+        messages: messages,
+      );
     } catch (e, st) {
       debugPrint('❌ RemoteLlmDataSource.sendChat failed: $e\n$st');
       rethrow;
@@ -178,15 +189,30 @@ class RemoteLlmDataSource implements LlmDataSource {
   @override
   Future<Either<Failure, List<LlmModelInfo>>> listAvailableModels() async {
     try {
-      final apiKey = await _auth.ensureApiKey();
+      var apiKey = await _auth.ensureApiKey();
       if (apiKey == null) return const Right([]);
+
+      Map<String, dynamic> profile;
+      Map<String, dynamic> credits;
+      try {
+        profile = await _gateway.getProfile(apiKey);
+        credits = await _gateway.getCredits(apiKey);
+      } on UniunGatewayException catch (e) {
+        // A stored key can go stale (revoked elsewhere, or just expired) —
+        // silently redo the login once and retry before surfacing the error.
+        if (e.type != UniunGatewayErrorType.unauthorized) rethrow;
+        final refreshed = await _auth.refreshApiKey();
+        if (refreshed == null) rethrow;
+        apiKey = refreshed;
+        profile = await _gateway.getProfile(apiKey);
+        credits = await _gateway.getCredits(apiKey);
+      }
 
       // Catalog is public; the account's plan decides what serves flat-rate.
       // `category == "free"` rows are open to everyone on the gateway, no
       // charge and no plan check — they're cloud-servable too, not just the
       // on-device tier (the app's own local catalog is a separate list).
       final catalog = await _gateway.listModels();
-      final profile = await _gateway.getProfile(apiKey);
       final plan = profile['plan'] as String?;
       final plans = await _gateway.listPlans();
       final allowed = <String>{
@@ -199,7 +225,6 @@ class RemoteLlmDataSource implements LlmDataSource {
       // when the plan covers it, OR when the account holds a credit balance
       // (billed per-token). Zero balance and no covering plan → the server
       // answers 403 model_not_allowed.
-      final credits = await _gateway.getCredits(apiKey);
       final balance = (credits['balance'] as num?) ?? 0;
 
       final infos = [
@@ -212,8 +237,6 @@ class RemoteLlmDataSource implements LlmDataSource {
             ),
       ]..sort((a, b) => a.displayName.compareTo(b.displayName));
       return Right(infos);
-    } on UniunKeyUnavailableException catch (e) {
-      return Left(Failure.errorFailure(e.toString()));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }

@@ -3296,6 +3296,18 @@ abstract class AppLocalizations {
   /// **'Disconnect'**
   String get cloudProviderDisconnect;
 
+  /// Dialog title warning that disconnecting revokes the account's last active gateway key
+  ///
+  /// In en, this message translates to:
+  /// **'This is your only active key'**
+  String get cloudProviderLastKeyTitle;
+
+  /// Dialog body explaining the consequence of revoking the last active key
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.'**
+  String get cloudProviderLastKeyMessage;
+
   /// Shown while the silent keypair login to the UNIUN gateway runs
   ///
   /// In en, this message translates to:

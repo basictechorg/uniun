@@ -1785,6 +1785,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cloudProviderDisconnect => 'Disconnect';
 
   @override
+  String get cloudProviderLastKeyTitle => 'This is your only active key';
+
+  @override
+  String get cloudProviderLastKeyMessage =>
+      'Disconnecting will revoke your last active key on UNIUN Cloud. You can always reconnect later — this just signs this device out.';
+
+  @override
   String get cloudProviderConnecting => 'Signing in…';
 
   @override

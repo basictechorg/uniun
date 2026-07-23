@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
+import 'package:uniun/data/datasources/cloud/uniun_key_recovery_cipher.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
@@ -30,27 +31,33 @@ class UniunCloudAuth {
   /// The stored key, or a fresh one from a silent login. Returns null when
   /// no identity is logged into the app (nothing to sign with).
   ///
-  /// Throws [UniunGatewayException] when the gateway rejects the login, and
-  /// [UniunKeyUnavailableException] when the account exists with an active
-  /// key elsewhere — the server won't re-issue, the user must manage keys
-  /// on the website.
+  /// Throws [UniunGatewayException] when the gateway rejects the login or
+  /// the recovery mint.
   Future<String?> ensureApiKey() async {
     final stored = await _credentials.getUniunApiKey();
     if (stored != null && stored.isNotEmpty) return stored;
+    return _loginAndPersist();
+  }
 
+  /// Forces a fresh login even if a key is already stored — used to recover
+  /// from a 401 on a stored key (revoked elsewhere, or simply stale).
+  Future<String?> refreshApiKey() async {
+    final keys = await _users.getActiveKeysHex();
+    if (keys == null) return null;
+    await _credentials.clearUniunApiKey();
+    await _credentials.clearUniunKeyId();
+    return _loginAndPersist();
+  }
+
+  Future<String?> _loginAndPersist() async {
     final keys = await _users.getActiveKeysHex();
     if (keys == null) return null;
 
     final result = await _login(keys.privkeyHex, keys.pubkeyHex);
-    final apiKey = result.apiKey;
-    if (apiKey == null || apiKey.isEmpty) {
-      // Account exists and holds an active key we don't have (reinstall /
-      // second device). POST /uniun/v1/keys needs a Bearer key, so the app
-      // cannot self-recover — surface a clear, actionable state.
-      throw const UniunKeyUnavailableException();
-    }
-    await _credentials.setUniunApiKey(apiKey);
-    final keyId = result.keyId;
+    final resolved = await _resolveApiKey(result, keys.privkeyHex, keys.pubkeyHex);
+
+    await _credentials.setUniunApiKey(resolved.apiKey);
+    final keyId = resolved.keyId;
     if (keyId != null && keyId.isNotEmpty) {
       await _credentials.setUniunKeyId(keyId);
     }
@@ -59,9 +66,33 @@ class UniunCloudAuth {
     // effort: a taken/invalid username just leaves the gateway profile
     // empty, no different from not calling this at all.
     if (!result.hasProfile) {
-      await _pushLocalProfile(apiKey, keys.pubkeyHex);
+      await _pushLocalProfile(resolved.apiKey, keys.pubkeyHex);
     }
-    return apiKey;
+    return resolved.apiKey;
+  }
+
+  /// Decrypts [UniunLoginResult.encryptedApiKey] when present. When the
+  /// account has zero active keys (encryptedApiKey null), mints a fresh one
+  /// via a second challenge/sign round against `/uniun/v1/keys`.
+  Future<({String apiKey, String? keyId})> _resolveApiKey(
+    UniunLoginResult result,
+    String privkeyHex,
+    String pubkeyHex,
+  ) async {
+    final encrypted = result.encryptedApiKey;
+    if (encrypted != null && encrypted.isNotEmpty) {
+      final apiKey = await UniunKeyRecoveryCipher.decrypt(encrypted, privkeyHex);
+      return (apiKey: apiKey, keyId: result.keyId);
+    }
+    final challenge = await _gateway.fetchChallenge(pubkeyHex);
+    final digestHex = sha256.convert(utf8.encode(challenge)).toString();
+    final signature = Keychain(privkeyHex).sign(digestHex);
+    final recovered = await _gateway.recoverKey(
+      pubkeyHex: pubkeyHex,
+      challenge: challenge,
+      signatureHex: signature,
+    );
+    return (apiKey: recovered.apiKey, keyId: recovered.keyId);
   }
 
   Future<void> _pushLocalProfile(String apiKey, String pubkeyHex) async {
@@ -96,12 +127,21 @@ class UniunCloudAuth {
   /// so a disconnect that left the key active would make every reconnect
   /// come back key-less. Best-effort — an offline disconnect still clears
   /// local state (the server key then needs revoking from the website).
-  Future<void> disconnect() async {
+  ///
+  /// The server 409s when this is the account's only active key; that
+  /// rethrows [UniunGatewayException] (statusCode 409) with local state
+  /// left untouched, so the caller can warn the user and retry with
+  /// [confirm]: true.
+  Future<void> disconnect({bool confirm = false}) async {
     final key = await _credentials.getUniunApiKey();
     final keyId = await _credentials.getUniunKeyId();
     if (key != null && key.isNotEmpty && keyId != null && keyId.isNotEmpty) {
       try {
-        await _gateway.revokeKey(apiKey: key, keyId: keyId);
+        await _gateway.revokeKey(apiKey: key, keyId: keyId, confirm: confirm);
+      } on UniunGatewayException catch (e) {
+        if (e.statusCode == 409 && !confirm) rethrow;
+        // Offline, already revoked, or confirmed anyway — local cleanup
+        // still proceeds.
       } catch (_) {
         // Offline or already revoked — local cleanup still proceeds.
       }
@@ -132,15 +172,4 @@ class UniunCloudAuth {
       }
     }
   }
-}
-
-/// The account already has an active API key that this device doesn't hold;
-/// the gateway only re-issues via an authenticated `POST /uniun/v1/keys`.
-class UniunKeyUnavailableException implements Exception {
-  const UniunKeyUnavailableException();
-
-  @override
-  String toString() =>
-      'This identity already has an API key on another device. '
-      'Manage your keys at uniun.in.';
 }
