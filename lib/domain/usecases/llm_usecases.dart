@@ -5,8 +5,8 @@ import 'package:uniun/core/usecases/usecase.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
-import 'package:uniun/domain/repositories/llm_credentials_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 // ── Capability ────────────────────────────────────────────────────────────────
 
@@ -199,7 +199,7 @@ class GetActiveLlmModelUseCase
 @lazySingleton
 class ConnectUniunCloudUseCase
     extends NoParamsUseCase<Either<Failure, Unit>> {
-  final LlmCredentialsRepository _repo;
+  final UniunRepository _repo;
   const ConnectUniunCloudUseCase(this._repo);
 
   @override
@@ -208,12 +208,12 @@ class ConnectUniunCloudUseCase
 
 @lazySingleton
 class DisconnectUniunCloudUseCase extends UseCase<Either<Failure, Unit>, bool> {
-  final LlmCredentialsRepository _repo;
+  final UniunRepository _repo;
   const DisconnectUniunCloudUseCase(this._repo);
 
   /// [confirm] must be true to go through when this is the account's last
   /// active key — the repo surfaces that as a `Failure` the caller can
-  /// pattern-match on (see [LlmCredentialsRepository.disconnect]).
+  /// pattern-match on (see [UniunRepository.disconnect]).
   @override
   Future<Either<Failure, Unit>> call(bool confirm, {bool cached = false}) =>
       _repo.disconnect(confirm: confirm);
@@ -221,7 +221,7 @@ class DisconnectUniunCloudUseCase extends UseCase<Either<Failure, Unit>, bool> {
 
 @lazySingleton
 class IsUniunCloudConnectedUseCase extends NoParamsUseCase<bool> {
-  final LlmCredentialsRepository _repo;
+  final UniunRepository _repo;
   const IsUniunCloudConnectedUseCase(this._repo);
 
   @override
@@ -231,7 +231,7 @@ class IsUniunCloudConnectedUseCase extends NoParamsUseCase<bool> {
 @lazySingleton
 class GetUniunCloudStatusUseCase
     extends NoParamsUseCase<Either<Failure, ({String plan, num balance})>> {
-  final LlmCredentialsRepository _repo;
+  final UniunRepository _repo;
   const GetUniunCloudStatusUseCase(this._repo);
 
   @override

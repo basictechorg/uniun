@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
-import 'package:uniun/data/datasources/cloud/uniun_cloud_auth.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/datasources/llm/local_llm_data_source.dart';
@@ -13,6 +12,7 @@ import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
 import 'package:uniun/domain/repositories/llm_repository.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 /// Dispatches calls to the data source matching the user's active backend.
 @Injectable(as: LlmRepository)
@@ -20,7 +20,7 @@ class LlmRepositoryImpl implements LlmRepository {
   final LocalLlmDataSource _local;
   final RemoteLlmDataSource _remote;
   final LlmPreferencesDataSource _prefs;
-  final UniunCloudAuth _cloudAuth;
+  final UniunRepository _cloudAuth;
   final AppSettingsStore _localSettings;
   final AIModelRepository _localCatalog;
 

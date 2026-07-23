@@ -76,10 +76,10 @@ Strict downward calls. Presentation never imports `flutter_gemma`. Data never im
 | **Presentation** | `lib/features/shiv/` | `ShivAIBloc`, pages, widgets, model picker sheet |
 | **Presentation** | `lib/features/settings/widgets/` | `CloudProviderCard` (API key paste + backend toggle) |
 | **Domain — entities** | `lib/domain/entities/llm/` | `LlmBackendType`, `LlmModelInfo` |
-| **Domain — repositories** | `lib/domain/repositories/` | `LlmRepository`, `LlmCredentialsRepository` |
+| **Domain — repositories** | `lib/domain/repositories/` | `LlmRepository`, `UniunRepository` |
 | **Domain — use cases** | `lib/domain/usecases/llm_usecases.dart` | 14 use cases grouped per SRP — chat, one-shot, lifecycle, backend, credentials |
 | **Core primitives** | `lib/core/llm/` | `LlmCancellationToken` |
-| **Data — repositories** | `lib/data/repositories/` | `LlmRepositoryImpl`, `LlmCredentialsRepositoryImpl` |
+| **Data — repositories** | `lib/data/repositories/` | `LlmRepositoryImpl`, `UniunRepositoryImpl` |
 | **Data — data sources** | `lib/data/datasources/llm/` | Both backends + runner + queue + prefs + credentials store |
 
 ---
@@ -360,7 +360,7 @@ Leaving the tab does the inverse plus `DrainPendingExtractionsUseCase.call()` to
 SettingsPage → CloudProviderCard → "Connect API key"
    │  user pastes sk-or-…
    ▼
-SaveOpenRouterKeyUseCase  →  LlmCredentialsRepositoryImpl
+SaveOpenRouterKeyUseCase  →  UniunRepositoryImpl
    │  writes secure storage; invalidates cached OpenRouterInference
    ▼
 ListAvailableLlmModelsUseCase  ←  validates the key by calling listModels()

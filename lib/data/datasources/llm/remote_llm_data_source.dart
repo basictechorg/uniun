@@ -4,17 +4,17 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/datasources/cloud/uniun_cloud_auth.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 /// Cloud LLM backend backed by the UNIUN inference gateway.
 ///
-/// Auth is the user's own Nostr keypair ([UniunCloudAuth] silently logs in
+/// Auth is the user's own Nostr keypair ([UniunRepository] silently logs in
 /// and stores the `uk_` key on first use — no key to paste). The gateway is
 /// OpenAI-compatible, so chat carries a REAL system role and SSE streaming.
 ///
@@ -27,7 +27,7 @@ import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 @lazySingleton
 class RemoteLlmDataSource implements LlmDataSource {
   final UniunGatewayClient _gateway;
-  final UniunCloudAuth _auth;
+  final UniunRepository _auth;
   final LlmPreferencesDataSource _prefs;
 
   /// In-flight extraction subscription. Held so [preemptBackgroundWork] and
@@ -38,7 +38,7 @@ class RemoteLlmDataSource implements LlmDataSource {
 
   @override
   Future<bool> hasActiveModel() async {
-    if (!await _auth.hasStoredKey()) return false;
+    if (!await _auth.isConnected()) return false;
     return _prefs.activeCloudModelId != null;
   }
 

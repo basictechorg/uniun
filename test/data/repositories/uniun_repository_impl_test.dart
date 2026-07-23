@@ -12,17 +12,17 @@ import 'package:http/testing.dart';
 import 'package:nostr_core_dart/nostr.dart';
 import 'package:pointycastle/export.dart' show ECDomainParameters;
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/data/datasources/cloud/uniun_cloud_auth.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/data/repositories/uniun_repository_impl.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/repositories/profile_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 
-import '../../../_helpers/stub_user_repository.dart';
+import '../../_helpers/stub_user_repository.dart';
 
 /// Returns [name] as the local profile's `name` on every lookup — enough
-/// for [UniunCloudAuth]'s best-effort profile push after a fresh mint.
+/// for [UniunRepositoryImpl]'s best-effort profile push after a fresh mint.
 class _StubProfileRepository implements ProfileRepository {
   _StubProfileRepository({this.name});
   final String? name;
@@ -100,9 +100,11 @@ Uint8List _bigIntToBytes(BigInt value, int length) {
   return bytes;
 }
 
-/// Covers: UniunCloudAuth — silent challenge→sign→login, decrypting
-/// `encrypted_api_key`, key persistence in secure storage, expired-challenge
-/// retry, the zero-active-keys recovery mint, and 401 refresh.
+/// Covers: UniunRepositoryImpl — the single class composing the raw
+/// [UniunGatewayClient] with identity logic (silent challenge→sign→login,
+/// decrypting `encrypted_api_key`, key persistence in secure storage,
+/// expired-challenge retry, the zero-active-keys recovery mint, 401
+/// refresh, and disconnect's last-active-key gate).
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -135,7 +137,7 @@ void main() {
 
   final identity = Keychain.generate();
 
-  UniunCloudAuth authWith(MockClient mock,
+  UniunRepositoryImpl repoWith(MockClient mock,
       {bool loggedIn = true, String? localName}) {
     final gateway =
         UniunGatewayClient(httpClient: mock, baseUrl: 'https://gw.test');
@@ -145,7 +147,7 @@ void main() {
           : null;
     final getOwnProfile =
         GetOwnProfileUseCase(_StubProfileRepository(name: localName));
-    return UniunCloudAuth(
+    return UniunRepositoryImpl(
         gateway, LlmCredentialsDataSource(), users, getOwnProfile);
   }
 
@@ -175,14 +177,14 @@ void main() {
 
   test('first connect: challenge → sign → login decrypts and PERSISTS the '
       'key', () async {
-    final auth = authWith(
+    final repo = repoWith(
         happyGateway(challenge: '1720.abc', rawApiKey: 'uk_fresh'));
 
-    expect(await auth.ensureApiKey(), 'uk_fresh');
+    expect(await repo.ensureApiKey(), 'uk_fresh');
     expect(vault.values, contains('uk_fresh'));
     // key_id is persisted too — disconnect needs it to revoke server-side.
     expect(vault['uniun_llm_gateway_key_id'], 'kid-1');
-    expect(await auth.hasStoredKey(), isTrue);
+    expect(await repo.isConnected(), isTrue);
   });
 
   test(
@@ -190,7 +192,7 @@ void main() {
       'as the username', () async {
     String? putBody;
     String? putAuth;
-    final auth = authWith(
+    final repo = repoWith(
       MockClient((req) async {
         if (req.url.path.endsWith('/auth/challenge')) {
           return ok({'challenge': '1720.push'});
@@ -211,7 +213,7 @@ void main() {
       localName: 'Sam Test',
     );
 
-    await auth.ensureApiKey();
+    await repo.ensureApiKey();
 
     expect(putAuth, 'Bearer uk_fresh');
     expect(jsonDecode(putBody!), {'username': 'sam_test'});
@@ -221,7 +223,7 @@ void main() {
       'fresh mint SKIPS the push when the gateway already has a username',
       () async {
     var putCalled = false;
-    final auth = authWith(
+    final repo = repoWith(
       MockClient((req) async {
         if (req.url.path.endsWith('/auth/challenge')) {
           return ok({'challenge': '1720.skip'});
@@ -241,7 +243,7 @@ void main() {
       localName: 'Sam Test',
     );
 
-    await auth.ensureApiKey();
+    await repo.ensureApiKey();
 
     expect(putCalled, isFalse);
   });
@@ -250,7 +252,7 @@ void main() {
       'with the identity pubkey', () async {
     String? sentSig;
     const challenge = '1720999.deadbeef';
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       if (req.url.path.endsWith('/auth/challenge')) {
         return ok({'challenge': challenge});
       }
@@ -262,7 +264,7 @@ void main() {
       });
     }));
 
-    await auth.ensureApiKey();
+    await repo.ensureApiKey();
     // Same check the gateway runs: BIP-340 verify of sha256(challenge)
     // under the x-only pubkey.
     final digestHex = sha256.convert(utf8.encode(challenge)).toString();
@@ -272,30 +274,30 @@ void main() {
   test('stored key short-circuits — no network call on later uses', () async {
     vault['uniun_llm_gateway_key'] = 'uk_existing';
     var hits = 0;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       hits++;
       return ok({});
     }));
 
-    expect(await auth.ensureApiKey(), 'uk_existing');
+    expect(await repo.ensureApiKey(), 'uk_existing');
     expect(hits, 0);
   });
 
   test('no app identity → null (nothing to sign with), no network', () async {
     var hits = 0;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       hits++;
       return ok({});
     }), loggedIn: false);
 
-    expect(await auth.ensureApiKey(), isNull);
+    expect(await repo.ensureApiKey(), isNull);
     expect(hits, 0);
   });
 
   test('expired challenge on first attempt retries once with a fresh one',
       () async {
     var logins = 0;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       if (req.url.path.endsWith('/auth/challenge')) {
         return ok({'challenge': 'c-${logins + 1}'});
       }
@@ -316,7 +318,7 @@ void main() {
       });
     }));
 
-    expect(await auth.ensureApiKey(), 'uk_retry');
+    expect(await repo.ensureApiKey(), 'uk_retry');
     expect(logins, 2);
   });
 
@@ -324,7 +326,7 @@ void main() {
       'zero active keys (no encrypted_api_key) → recovers via '
       'POST /uniun/v1/keys, raw key persisted directly', () async {
     var challenges = 0;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       if (req.url.path.endsWith('/auth/challenge')) {
         challenges++;
         return ok({'challenge': 'c-$challenges'});
@@ -339,7 +341,7 @@ void main() {
       return ok({'api_key': 'uk_recovered', 'key_id': 'kid-rec'});
     }));
 
-    expect(await auth.ensureApiKey(), 'uk_recovered');
+    expect(await repo.ensureApiKey(), 'uk_recovered');
     expect(vault.values, contains('uk_recovered'));
     expect(vault['uniun_llm_gateway_key_id'], 'kid-rec');
     // One challenge for login, one for the recovery mint.
@@ -351,7 +353,7 @@ void main() {
     vault['uniun_llm_gateway_key'] = 'uk_stale';
     vault['uniun_llm_gateway_key_id'] = 'kid-stale';
     var logins = 0;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       if (req.url.path.endsWith('/auth/challenge')) {
         return ok({'challenge': 'c-refresh'});
       }
@@ -365,10 +367,20 @@ void main() {
       });
     }));
 
-    expect(await auth.refreshApiKey(), 'uk_refreshed');
+    expect(await repo.refreshApiKey(), 'uk_refreshed');
     expect(logins, 1);
     expect(vault['uniun_llm_gateway_key'], 'uk_refreshed');
     expect(vault['uniun_llm_gateway_key_id'], 'kid-fresh');
+  });
+
+  test('connect() wraps ensureApiKey in Either for the Settings UI',
+      () async {
+    final repo = repoWith(
+        happyGateway(challenge: '1720.connect', rawApiKey: 'uk_connect'));
+
+    final result = await repo.connect();
+    expect(result, const Right<Failure, Unit>(unit));
+    expect(vault.values, contains('uk_connect'));
   });
 
   test('disconnect REVOKES the key on the gateway, then wipes local state — '
@@ -377,31 +389,33 @@ void main() {
     vault['uniun_llm_gateway_key'] = 'uk_gone';
     vault['uniun_llm_gateway_key_id'] = 'kid-9';
     http.Request? revokeReq;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       revokeReq = req;
       return ok({'revoked': true});
     }));
 
-    await auth.disconnect();
+    final result = await repo.disconnect();
+    expect(result, const Right<Failure, Unit>(unit));
     expect(revokeReq!.method, 'DELETE');
     expect(revokeReq!.url.path, '/uniun/v1/keys/kid-9');
     expect(revokeReq!.headers['Authorization'], 'Bearer uk_gone');
     expect(vault, isEmpty);
-    expect(await auth.hasStoredKey(), isFalse);
+    expect(await repo.isConnected(), isFalse);
   });
 
-  test('disconnect on the account\'s last active key 409s and does NOT '
-      'clear local state — the caller must retry with confirm', () async {
+  test('disconnect on the account\'s last active key 409s as a '
+      '"last_active_key" sentinel Failure and does NOT clear local state',
+      () async {
     vault['uniun_llm_gateway_key'] = 'uk_last';
     vault['uniun_llm_gateway_key_id'] = 'kid-last';
-    final auth = authWith(MockClient((req) async => http.Response(
+    final repo = repoWith(MockClient((req) async => http.Response(
         jsonEncode({
           'error': {'message': 'last active key', 'type': 'last_active_key'}
         }),
         409)));
 
-    await expectLater(
-        auth.disconnect(), throwsA(isA<UniunGatewayException>()));
+    final result = await repo.disconnect();
+    expect(result.fold((f) => f.toMessage(), (_) => null), 'last_active_key');
     expect(vault.values, contains('uk_last'));
   });
 
@@ -410,12 +424,13 @@ void main() {
     vault['uniun_llm_gateway_key'] = 'uk_last';
     vault['uniun_llm_gateway_key_id'] = 'kid-last';
     Uri? sentUri;
-    final auth = authWith(MockClient((req) async {
+    final repo = repoWith(MockClient((req) async {
       sentUri = req.url;
       return ok({'revoked': true});
     }));
 
-    await auth.disconnect(confirm: true);
+    final result = await repo.disconnect(confirm: true);
+    expect(result, const Right<Failure, Unit>(unit));
     expect(sentUri!.queryParameters, {'confirm': 'true'});
     expect(vault, isEmpty);
   });
@@ -424,9 +439,10 @@ void main() {
       () async {
     vault['uniun_llm_gateway_key'] = 'uk_gone';
     vault['uniun_llm_gateway_key_id'] = 'kid-9';
-    final auth = authWith(MockClient((req) async => throw Exception('down')));
+    final repo = repoWith(MockClient((req) async => throw Exception('down')));
 
-    await auth.disconnect();
+    final result = await repo.disconnect();
+    expect(result, const Right<Failure, Unit>(unit));
     expect(vault, isEmpty);
   });
 }

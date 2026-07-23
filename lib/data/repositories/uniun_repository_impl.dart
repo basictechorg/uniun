@@ -1,26 +1,32 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:nostr_core_dart/nostr.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/cloud/uniun_key_recovery_cipher.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
 
-/// Turns the user's Nostr identity into a UNIUN gateway API key, silently.
+/// Turns the user's Nostr identity into a UNIUN gateway API key, silently,
+/// and is the only place that composes [UniunGatewayClient] (raw HTTP) with
+/// signing/decryption/secure-storage — everyone else (Settings UI, other
+/// datasources needing a Bearer key) goes through this repository instead.
 ///
 /// There is no signup: the first challenge→sign→login upserts the account on
-/// the gateway (plan `free`). The `uk_` key is returned ONLY when minted
-/// (first login, or recovery when the account had no active key) — it goes
-/// straight into secure storage and every later call reuses it.
+/// the gateway (plan `free`). The `uk_` key is decrypted from
+/// `encrypted_api_key` (or minted fresh via recovery when the account has
+/// zero active keys) and goes straight into secure storage.
 ///
 /// Signing is the exact BIP-340 Schnorr the app already uses for Nostr
 /// events, over `sha256(challenge)` — so `Keychain.sign` does all the work.
-@lazySingleton
-class UniunCloudAuth {
-  UniunCloudAuth(
+@Injectable(as: UniunRepository)
+class UniunRepositoryImpl implements UniunRepository {
+  UniunRepositoryImpl(
       this._gateway, this._credentials, this._users, this._getOwnProfile);
 
   final UniunGatewayClient _gateway;
@@ -28,19 +34,63 @@ class UniunCloudAuth {
   final UserRepository _users;
   final GetOwnProfileUseCase _getOwnProfile;
 
-  /// The stored key, or a fresh one from a silent login. Returns null when
-  /// no identity is logged into the app (nothing to sign with).
-  ///
-  /// Throws [UniunGatewayException] when the gateway rejects the login or
-  /// the recovery mint.
+  @override
+  Future<Either<Failure, Unit>> connect() async {
+    try {
+      final key = await ensureApiKey();
+      if (key == null) {
+        return const Left(
+            Failure.errorFailure('No active identity to sign in with'));
+      }
+      return const Right(unit);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> disconnect({bool confirm = false}) async {
+    try {
+      await _disconnect(confirm: confirm);
+      return const Right(unit);
+    } on UniunGatewayException catch (e) {
+      if (e.statusCode == 409) {
+        return const Left(Failure.errorFailure('last_active_key'));
+      }
+      return Left(Failure.errorFailure(e.toString()));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<bool> isConnected() => _credentials.hasUniunApiKey();
+
+  @override
+  Future<Either<Failure, ({String plan, num balance})>> accountStatus() async {
+    try {
+      final key = await ensureApiKey();
+      if (key == null) {
+        return const Left(Failure.errorFailure('Not connected'));
+      }
+      final credits = await _gateway.getCredits(key);
+      return Right((
+        plan: (credits['plan'] as String?) ?? 'free',
+        balance: (credits['balance'] as num?) ?? 0,
+      ));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<String?> ensureApiKey() async {
     final stored = await _credentials.getUniunApiKey();
     if (stored != null && stored.isNotEmpty) return stored;
     return _loginAndPersist();
   }
 
-  /// Forces a fresh login even if a key is already stored — used to recover
-  /// from a 401 on a stored key (revoked elsewhere, or simply stale).
+  @override
   Future<String?> refreshApiKey() async {
     final keys = await _users.getActiveKeysHex();
     if (keys == null) return null;
@@ -119,9 +169,6 @@ class UniunCloudAuth {
     return trimmed.length >= 3 ? trimmed : null;
   }
 
-  /// True when a key is already in secure storage (no network touched).
-  Future<bool> hasStoredKey() => _credentials.hasUniunApiKey();
-
   /// Revokes this device's key on the gateway, then forgets it locally. The
   /// revoke matters: the server only mints a key for an account with none,
   /// so a disconnect that left the key active would make every reconnect
@@ -132,7 +179,7 @@ class UniunCloudAuth {
   /// rethrows [UniunGatewayException] (statusCode 409) with local state
   /// left untouched, so the caller can warn the user and retry with
   /// [confirm]: true.
-  Future<void> disconnect({bool confirm = false}) async {
+  Future<void> _disconnect({bool confirm = false}) async {
     final key = await _credentials.getUniunApiKey();
     final keyId = await _credentials.getUniunKeyId();
     if (key != null && key.isNotEmpty && keyId != null && keyId.isNotEmpty) {
@@ -155,8 +202,7 @@ class UniunCloudAuth {
     // once on an expiry race (slow network / background suspension).
     for (var attempt = 0; ; attempt++) {
       final challenge = await _gateway.fetchChallenge(pubkeyHex);
-      final digestHex =
-          sha256.convert(utf8.encode(challenge)).toString();
+      final digestHex = sha256.convert(utf8.encode(challenge)).toString();
       final signature = Keychain(privkeyHex).sign(digestHex);
       try {
         return await _gateway.login(

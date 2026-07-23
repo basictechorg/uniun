@@ -108,8 +108,9 @@ class UniunLoginResult {
 /// Thin HTTP client for the UNIUN inference gateway (`api.uniun.in`).
 ///
 /// Protocol only — no key storage, no signing, no backend selection. Auth
-/// orchestration lives in [UniunCloudAuth]; the [LlmDataSource] impl composes
-/// both. `/uniun/v1/*` returns `{data}` / `{error:{message,type}}`;
+/// orchestration (signing, decryption, key storage) lives in
+/// `UniunRepositoryImpl`, the only class that composes this client with
+/// identity logic. `/uniun/v1/*` returns `{data}` / `{error:{message,type}}`;
 /// `/v1/chat/completions` is OpenAI-compatible with SSE streaming.
 @lazySingleton
 class UniunGatewayClient {
