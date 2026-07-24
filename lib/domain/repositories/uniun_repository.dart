@@ -31,6 +31,14 @@ abstract class UniunRepository {
   /// True when a gateway key is already in secure storage.
   Future<bool> isConnected();
 
+  /// Approves a browser's QR-login session (`docs/frontend/QR-LOGIN.md` on
+  /// the gateway) by signing [sessionId] with this device's own Nostr key
+  /// and handing the browser this account's `uk_` key. Callers MUST check
+  /// [isConnected] first and route to Settings when false — this method
+  /// does not silently connect, since approving on behalf of an account the
+  /// user hasn't consciously signed into on this device would be wrong.
+  Future<Either<Failure, Unit>> approveQrLogin(String sessionId);
+
   /// Plan name and credit balance of the connected account, straight from
   /// the gateway. Fails when not connected.
   Future<Either<Failure, ({String plan, num balance})>> accountStatus();

@@ -113,6 +113,78 @@ void main() {
       expect(sentUri!.path, '/uniun/v1/keys/kid-1');
       expect(sentUri!.queryParameters, {'confirm': 'true'});
     });
+
+    test('approveQrSession posts pubkey/signature/raw_key to the session '
+        'path', () async {
+      late Map<String, dynamic> sentBody;
+      final client = clientWith(MockClient((req) async {
+        expect(req.url.path, '/uniun/v1/auth/qr/session/sess-1/approve');
+        sentBody = jsonDecode(req.body) as Map<String, dynamic>;
+        return ok({'approved': true});
+      }));
+
+      await client.approveQrSession(
+        sessionId: 'sess-1',
+        pubkeyHex: 'a' * 64,
+        signatureHex: 'f' * 128,
+        rawKey: 'uk_mine',
+      );
+      expect(sentBody, {
+        'pubkey': 'a' * 64,
+        'signature': 'f' * 128,
+        'raw_key': 'uk_mine',
+      });
+    });
+
+    test('approveQrSession omits raw_key when null (zero active keys case)',
+        () async {
+      late Map<String, dynamic> sentBody;
+      final client = clientWith(MockClient((req) async {
+        sentBody = jsonDecode(req.body) as Map<String, dynamic>;
+        return ok({'approved': true});
+      }));
+
+      await client.approveQrSession(
+        sessionId: 'sess-2',
+        pubkeyHex: 'a' * 64,
+        signatureHex: 'f' * 128,
+      );
+      expect(sentBody.containsKey('raw_key'), isFalse);
+    });
+
+    test('approveQrSession maps an expired/used session (410) to '
+        'invalidRequest', () async {
+      final client = clientWith(MockClient((req) async => err(
+          410, 'qr_session_invalid', 'session gone')));
+
+      try {
+        await client.approveQrSession(
+          sessionId: 'sess-3',
+          pubkeyHex: 'a' * 64,
+          signatureHex: 'f' * 128,
+        );
+        fail('expected throw');
+      } on UniunGatewayException catch (e) {
+        expect(e.type, UniunGatewayErrorType.invalidRequest);
+      }
+    });
+
+    test('approveQrSession maps a bad signature (401) to unauthorized',
+        () async {
+      final client = clientWith(MockClient((req) async =>
+          err(401, 'bad_signature', 'signature verification failed')));
+
+      try {
+        await client.approveQrSession(
+          sessionId: 'sess-4',
+          pubkeyHex: 'a' * 64,
+          signatureHex: 'f' * 128,
+        );
+        fail('expected throw');
+      } on UniunGatewayException catch (e) {
+        expect(e.type, UniunGatewayErrorType.unauthorized);
+      }
+    });
   });
 
   group('account + catalog', () {

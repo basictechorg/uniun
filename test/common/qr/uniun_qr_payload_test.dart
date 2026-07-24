@@ -61,6 +61,45 @@ void main() {
     });
   });
 
+  group('decode — QR-login URI', () {
+    test('uniun://qr-login?s=<id> becomes loginSession', () {
+      final p =
+          UniunQrPayload.decode('uniun://qr-login?s=abc123session');
+      expect(p.kind, UniunQrKind.loginSession);
+      expect(p.id, 'abc123session');
+    });
+
+    test('is case-insensitive on the scheme', () {
+      final p =
+          UniunQrPayload.decode('UNIUN://QR-login?s=abc123session');
+      expect(p.kind, UniunQrKind.loginSession);
+    });
+
+    test('whitespace around the URI is trimmed', () {
+      final p =
+          UniunQrPayload.decode('  uniun://qr-login?s=sess1  ');
+      expect(p.id, 'sess1');
+    });
+
+    test('missing `s` query param throws', () {
+      expect(() => UniunQrPayload.decode('uniun://qr-login'),
+          throwsA(isA<FormatException>()));
+    });
+
+    test('empty `s` query param throws', () {
+      expect(() => UniunQrPayload.decode('uniun://qr-login?s='),
+          throwsA(isA<FormatException>()));
+    });
+
+    test('round-trips through JSON kind "login"', () {
+      const original =
+          UniunQrPayload(kind: UniunQrKind.loginSession, id: 'sess-x');
+      final round = UniunQrPayload.decode(original.encode());
+      expect(round.kind, UniunQrKind.loginSession);
+      expect(round.id, 'sess-x');
+    });
+  });
+
   group('decode — JSON object', () {
     test('round-trips a publicGroup', () {
       const original = UniunQrPayload(

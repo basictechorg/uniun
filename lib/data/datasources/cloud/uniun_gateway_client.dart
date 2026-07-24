@@ -20,7 +20,10 @@ enum UniunGatewayErrorType {
       case 'unauthorized':
       case 'invalid_api_key':
       case 'challenge_invalid':
+      case 'bad_signature':
         return UniunGatewayErrorType.unauthorized;
+      case 'qr_session_invalid':
+        return UniunGatewayErrorType.invalidRequest;
       case 'insufficient_credit':
         return UniunGatewayErrorType.insufficientCredit;
       case 'model_not_allowed':
@@ -216,6 +219,29 @@ class UniunGatewayClient {
           UniunGatewayErrorType.network, 'Network error: $e');
     }
     _dataFrom(res);
+  }
+
+  /// Approves a browser's QR-login session, per `docs/frontend/QR-LOGIN.md`
+  /// on the gateway: signs and hands over this device's own key so the
+  /// browser can sign in as the same account. [rawKey] is the phone's own
+  /// already-decrypted `uk_...` key — omit only when this device's account
+  /// currently has zero active keys, in which case the server mints a fresh
+  /// one for the browser instead.
+  ///
+  /// Throws [UniunGatewayException] `invalidRequest` (410, wire type
+  /// `qr_session_invalid`) when the session is unknown, expired, or already
+  /// used, and `unauthorized` (401, wire type `bad_signature`) on a bad sig.
+  Future<void> approveQrSession({
+    required String sessionId,
+    required String pubkeyHex,
+    required String signatureHex,
+    String? rawKey,
+  }) async {
+    await _postJson('/uniun/v1/auth/qr/session/$sessionId/approve', {
+      'pubkey': pubkeyHex,
+      'signature': signatureHex,
+      if (rawKey != null) 'raw_key': rawKey,
+    });
   }
 
   // ── Account ───────────────────────────────────────────────────────────
@@ -442,7 +468,7 @@ class UniunGatewayClient {
         402 => UniunGatewayErrorType.insufficientCredit,
         403 => UniunGatewayErrorType.modelNotAllowed,
         429 => UniunGatewayErrorType.rateLimited,
-        400 => UniunGatewayErrorType.invalidRequest,
+        400 || 410 => UniunGatewayErrorType.invalidRequest,
         502 || 503 => UniunGatewayErrorType.upstreamError,
         _ => UniunGatewayErrorType.unknown,
       };

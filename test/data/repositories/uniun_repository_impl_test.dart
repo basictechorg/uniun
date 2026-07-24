@@ -656,4 +656,65 @@ void main() {
       expect(vault['uniun_llm_gateway_key'], 'uk_fresh');
     });
   });
+
+  group('approveQrLogin (web QR-login handoff)', () {
+    test('signs sha256(sessionId) and hands the browser this device\'s own '
+        'raw key', () async {
+      vault['uniun_llm_gateway_key'] = 'uk_mine';
+      http.Request? sentReq;
+      final repo = repoWith(MockClient((req) async {
+        sentReq = req;
+        return ok({'approved': true});
+      }));
+
+      final result = await repo.approveQrLogin('session-123');
+      expect(result, const Right<Failure, Unit>(unit));
+      expect(sentReq!.url.path,
+          '/uniun/v1/auth/qr/session/session-123/approve');
+      final body = jsonDecode(sentReq!.body) as Map<String, dynamic>;
+      expect(body['pubkey'], identity.public);
+      expect(body['raw_key'], 'uk_mine');
+      final digestHex =
+          sha256.convert(utf8.encode('session-123')).toString();
+      expect(bip340.verify(identity.public, digestHex, body['signature'] as String),
+          isTrue);
+    });
+
+    test('not connected → Failure, no network call', () async {
+      var hits = 0;
+      final repo = repoWith(MockClient((req) async {
+        hits++;
+        return ok({});
+      }));
+
+      final result = await repo.approveQrLogin('session-456');
+      expect(result.isLeft(), isTrue);
+      expect(hits, 0);
+    });
+
+    test('no app identity → Failure, no network call', () async {
+      vault['uniun_llm_gateway_key'] = 'uk_mine';
+      var hits = 0;
+      final repo = repoWith(MockClient((req) async {
+        hits++;
+        return ok({});
+      }), loggedIn: false);
+
+      final result = await repo.approveQrLogin('session-789');
+      expect(result.isLeft(), isTrue);
+      expect(hits, 0);
+    });
+
+    test('an expired/unknown session (410) surfaces as a Failure', () async {
+      vault['uniun_llm_gateway_key'] = 'uk_mine';
+      final repo = repoWith(MockClient((req) async => http.Response(
+          jsonEncode({
+            'error': {'message': 'session gone', 'type': 'qr_session_invalid'}
+          }),
+          410)));
+
+      final result = await repo.approveQrLogin('session-dead');
+      expect(result.isLeft(), isTrue);
+    });
+  });
 }

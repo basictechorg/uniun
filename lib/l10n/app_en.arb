@@ -1619,6 +1619,19 @@
 
   "cloudProviderConnectFailed": "Could not sign in to UNIUN Cloud. Check your connection and try again.",
   "@cloudProviderConnectFailed": { "description": "Error shown when the silent keypair login fails" },
+
+  "qrLoginNotConnected": "Sign in to UNIUN Cloud in Settings first, then scan this code again.",
+  "@qrLoginNotConnected": { "description": "Snackbar shown when scanning a web QR-login code while not connected to UNIUN Cloud" },
+
+  "qrLoginApproved": "This device is now signed in on the web.",
+  "@qrLoginApproved": { "description": "Snackbar shown after successfully approving a web QR-login session" },
+
+  "qrLoginFailed": "Couldn't approve sign-in: {error}",
+  "@qrLoginFailed": {
+    "description": "Snackbar shown when approving a web QR-login session fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+
   "cloudProviderModelsHeader": "CLOUD MODELS",
   "@cloudProviderModelsHeader": { "description": "Section header above the cloud model rows in the manage sheet" },
 

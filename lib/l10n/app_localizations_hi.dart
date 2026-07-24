@@ -1816,6 +1816,18 @@ class AppLocalizationsHi extends AppLocalizations {
       'UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।';
 
   @override
+  String get qrLoginNotConnected =>
+      'पहले सेटिंग्स में UNIUN Cloud में साइन इन करें, फिर इस कोड को फिर से स्कैन करें।';
+
+  @override
+  String get qrLoginApproved => 'यह डिवाइस अब वेब पर साइन इन है।';
+
+  @override
+  String qrLoginFailed(String error) {
+    return 'साइन-इन स्वीकृत नहीं हो सका: $error';
+  }
+
+  @override
   String get cloudProviderModelsHeader => 'क्लाउड मॉडल';
 
   @override

@@ -1074,6 +1074,13 @@
   "cloudProviderConnecting": "साइन इन हो रहा है…",
 
   "cloudProviderConnectFailed": "UNIUN Cloud में साइन इन नहीं हो सका। कनेक्शन जांचें और फिर से प्रयास करें।",
+
+  "qrLoginNotConnected": "पहले सेटिंग्स में UNIUN Cloud में साइन इन करें, फिर इस कोड को फिर से स्कैन करें।",
+
+  "qrLoginApproved": "यह डिवाइस अब वेब पर साइन इन है।",
+
+  "qrLoginFailed": "साइन-इन स्वीकृत नहीं हो सका: {error}",
+
   "cloudProviderModelsHeader": "\u0915\u094d\u0932\u093e\u0909\u0921 \u092e\u0949\u0921\u0932",
 
   "cloudProviderOnDevice": "\u0911\u0928-\u0921\u093f\u0935\u093e\u0907\u0938",

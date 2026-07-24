@@ -8,6 +8,7 @@ import 'package:uniun/common/qr/uniun_qr_payload.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/core/router/deep_link.dart';
 import 'package:uniun/core/utils/pubkey_normalizer.dart';
+import 'package:uniun/domain/repositories/uniun_repository.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
 import 'package:uniun/features/profile/pages/user_profile_page.dart';
 import 'package:uniun/l10n/app_localizations.dart';
@@ -16,6 +17,9 @@ import 'package:uniun/l10n/app_localizations.dart';
 ///   - user           → see [UniunQrScanIntent] (profile / auto-follow / auto-dm)
 ///   - publicGroup  → JoinGroupPage (UniunQrPayload argument)
 ///   - privateGroup → JoinPrivateGroupPage (UniunQrPayload argument)
+///   - loginSession → approves the browser's UNIUN Cloud QR-login session
+///                       directly (no destination page) — requires this
+///                       device to already be connected to UNIUN Cloud.
 ///
 /// Intent is read from the route argument and only affects user QRs:
 ///   - [generic]: open the user's profile page.
@@ -69,12 +73,49 @@ class _UniunQrScannerPageState extends State<UniunQrScannerPage> {
       return;
     }
 
+    if (payload.kind == UniunQrKind.loginSession) {
+      await _approveQrLogin(payload);
+      return;
+    }
+
     final route = switch (payload.kind) {
       UniunQrKind.user => AppRoutes.userProfile, // unreachable, handled above
+      UniunQrKind.loginSession =>
+        AppRoutes.userProfile, // unreachable, handled above
       UniunQrKind.publicGroup => AppRoutes.joinGroup,
       UniunQrKind.privateGroup => AppRoutes.joinPrivateGroup,
     };
     context.pushReplacementNamed(route, extra: payload);
+  }
+
+  /// Approves a browser's UNIUN Cloud QR-login session. The device must
+  /// already be connected — this never signs in silently on the user's
+  /// behalf, since approving would hand the browser this account's key.
+  Future<void> _approveQrLogin(UniunQrPayload payload) async {
+    final l10n = AppLocalizations.of(context)!;
+    final uniun = getIt<UniunRepository>();
+
+    final connected = await uniun.isConnected();
+    if (!mounted) return;
+    if (!connected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.qrLoginNotConnected)),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final result = await uniun.approveQrLogin(payload.id);
+    if (!mounted) return;
+    result.fold(
+      (f) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.qrLoginFailed(f.toString()))),
+      ),
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.qrLoginApproved)),
+      ),
+    );
+    Navigator.of(context).pop();
   }
 
   Future<void> _dispatchUser(

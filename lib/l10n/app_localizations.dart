@@ -3320,6 +3320,24 @@ abstract class AppLocalizations {
   /// **'Could not sign in to UNIUN Cloud. Check your connection and try again.'**
   String get cloudProviderConnectFailed;
 
+  /// Snackbar shown when scanning a web QR-login code while not connected to UNIUN Cloud
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to UNIUN Cloud in Settings first, then scan this code again.'**
+  String get qrLoginNotConnected;
+
+  /// Snackbar shown after successfully approving a web QR-login session
+  ///
+  /// In en, this message translates to:
+  /// **'This device is now signed in on the web.'**
+  String get qrLoginApproved;
+
+  /// Snackbar shown when approving a web QR-login session fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t approve sign-in: {error}'**
+  String qrLoginFailed(String error);
+
   /// Section header above the cloud model rows in the manage sheet
   ///
   /// In en, this message translates to:
