@@ -1799,6 +1799,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not sign in to UNIUN Cloud. Check your connection and try again.';
 
   @override
+  String get qrLoginNotConnected =>
+      'Sign in to UNIUN Cloud in Settings first, then scan this code again.';
+
+  @override
+  String get qrLoginApproved => 'This device is now signed in on the web.';
+
+  @override
+  String qrLoginFailed(String error) {
+    return 'Couldn\'t approve sign-in: $error';
+  }
+
+  @override
   String get cloudProviderModelsHeader => 'CLOUD MODELS';
 
   @override

@@ -383,6 +383,11 @@ class _UniunQrCardState extends State<UniunQrCard> {
       name: p.name,
       relays: p.relays,
     ),
+    // The app only ever decodes a loginSession QR (rendered by the web
+    // login page) — it never generates one to share, so this card is
+    // never built for that kind.
+    UniunQrKind.loginSession =>
+      throw UnsupportedError('loginSession QR codes are not shareable'),
   };
 }
 

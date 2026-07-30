@@ -73,6 +73,30 @@ class UniunRepositoryImpl implements UniunRepository {
   Future<bool> isConnected() => _credentials.hasUniunApiKey();
 
   @override
+  Future<Either<Failure, Unit>> approveQrLogin(String sessionId) async {
+    try {
+      final keys = await _users.getActiveKeysHex();
+      final apiKey = await _credentials.getUniunApiKey();
+      if (keys == null || apiKey == null || apiKey.isEmpty) {
+        return const Left(Failure.errorFailure('Not connected'));
+      }
+      final digestHex = sha256.convert(utf8.encode(sessionId)).toString();
+      final signature = Keychain(keys.privkeyHex).sign(digestHex);
+      await _gateway.approveQrSession(
+        sessionId: sessionId,
+        pubkeyHex: keys.pubkeyHex,
+        signatureHex: signature,
+        rawKey: apiKey,
+      );
+      return const Right(unit);
+    } on UniunGatewayException catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, ({String plan, num balance})>> accountStatus() async {
     try {
       final key = await _ensureApiKey();
