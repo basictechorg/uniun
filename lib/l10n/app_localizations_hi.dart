@@ -2957,6 +2957,13 @@ class AppLocalizationsHi extends AppLocalizations {
       'सभी को फ़ॉलो नहीं कर सके — कृपया फिर से प्रयास करें।';
 
   @override
+  String get interestsLoadFailed =>
+      'रुचियां लोड नहीं हो सकीं। अपना कनेक्शन जांचें।';
+
+  @override
+  String get interestsRetry => 'पुनः प्रयास करें';
+
+  @override
   String get welcomeMoreLanguages => 'और भाषाएँ';
 
   @override

@@ -5354,6 +5354,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t follow everyone — please try again.'**
   String get interestsFollowFailed;
 
+  /// Shown when fetching the onboarding interest roster from the gateway fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load interests. Check your connection.'**
+  String get interestsLoadFailed;
+
+  /// Button to retry loading the onboarding interest roster
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get interestsRetry;
+
   /// Link on the welcome screen that opens the full language picker
   ///
   /// In en, this message translates to:

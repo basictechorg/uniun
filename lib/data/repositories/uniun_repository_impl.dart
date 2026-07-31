@@ -10,6 +10,7 @@ import 'package:uniun/data/datasources/cloud/uniun_key_recovery_cipher.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/onboarding/onboarding_interest_entity.dart';
 import 'package:uniun/domain/repositories/uniun_repository.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/profile_usecases.dart';
@@ -206,6 +207,24 @@ class UniunRepositoryImpl implements UniunRepository {
       )) {
         yield token;
       }
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<OnboardingInterestEntity>>>
+      getOnboardingInterests() async {
+    try {
+      final rows = await _gateway.listOnboardingInterests();
+      return Right([
+        for (final r in rows)
+          OnboardingInterestEntity(
+            id: r['id'] as int,
+            name: r['name'] as String,
+            pubkeyHex: r['pubkey_hex'] as String,
+          ),
+      ]);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
     }
   }
 

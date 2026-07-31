@@ -15,6 +15,7 @@ import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/data/repositories/uniun_repository_impl.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/onboarding/onboarding_interest_entity.dart';
 import 'package:uniun/domain/entities/profile/profile_entity.dart';
 import 'package:uniun/domain/repositories/profile_repository.dart';
 import 'package:uniun/domain/repositories/uniun_repository.dart';
@@ -714,6 +715,40 @@ void main() {
           410)));
 
       final result = await repo.approveQrLogin('session-dead');
+      expect(result.isLeft(), isTrue);
+    });
+  });
+
+  group('getOnboardingInterests (public roster, no auth, no identity '
+      'needed)', () {
+    test('maps id/name/pubkey_hex onto the entity, no network auth header',
+        () async {
+      String? authHeader;
+      final repo = repoWith(MockClient((req) async {
+        authHeader = req.headers['Authorization'];
+        return ok([
+          {'id': 1, 'name': 'Daily', 'pubkey_hex': 'a' * 64},
+          {'id': 2, 'name': 'Tech', 'pubkey_hex': 'b' * 64},
+        ]);
+      }), loggedIn: false);
+
+      final result = await repo.getOnboardingInterests();
+      final list = result.fold((_) => <OnboardingInterestEntity>[], (l) => l);
+      // `List` has no structural `==`, so compare entities individually —
+      // freezed gives each [OnboardingInterestEntity] real value equality.
+      expect(list, hasLength(2));
+      expect(
+          list[0], OnboardingInterestEntity(id: 1, name: 'Daily', pubkeyHex: 'a' * 64));
+      expect(
+          list[1], OnboardingInterestEntity(id: 2, name: 'Tech', pubkeyHex: 'b' * 64));
+      expect(authHeader, isNull);
+    });
+
+    test('network failure surfaces as a Failure', () async {
+      final repo =
+          repoWith(MockClient((req) async => throw Exception('down')));
+
+      final result = await repo.getOnboardingInterests();
       expect(result.isLeft(), isTrue);
     });
   });

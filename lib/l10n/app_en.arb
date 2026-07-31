@@ -2685,6 +2685,12 @@
   "interestsFollowFailed": "Couldn't follow everyone — please try again.",
   "@interestsFollowFailed": { "description": "Snackbar when following the chosen interests fails" },
 
+  "interestsLoadFailed": "Couldn't load interests. Check your connection.",
+  "@interestsLoadFailed": { "description": "Shown when fetching the onboarding interest roster from the gateway fails" },
+
+  "interestsRetry": "Retry",
+  "@interestsRetry": { "description": "Button to retry loading the onboarding interest roster" },
+
   "welcomeMoreLanguages": "More languages",
   "@welcomeMoreLanguages": { "description": "Link on the welcome screen that opens the full language picker" },
 

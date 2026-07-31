@@ -225,6 +225,24 @@ void main() {
       expect(sent!.headers['Authorization'], 'Bearer uk_k');
     });
 
+    test('listOnboardingInterests returns the raw interest maps, no auth '
+        'header sent', () async {
+      String? authHeader;
+      final client = clientWith(MockClient((req) async {
+        authHeader = req.headers['Authorization'];
+        expect(req.url.path, '/uniun/v1/onboarding/interests');
+        return ok([
+          {'id': 1, 'name': 'Daily', 'pubkey_hex': 'a' * 64},
+        ]);
+      }));
+
+      final rows = await client.listOnboardingInterests();
+      expect(rows.single['id'], 1);
+      expect(rows.single['name'], 'Daily');
+      expect(rows.single['pubkey_hex'], 'a' * 64);
+      expect(authHeader, isNull);
+    });
+
     test('listPlans returns the raw plan maps', () async {
       final client = clientWith(MockClient((req) async => ok([
             {'name': 'free', 'price_paise': 0, 'models': ['gemma4:e4b']},

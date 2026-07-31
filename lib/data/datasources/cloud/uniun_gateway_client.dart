@@ -289,6 +289,13 @@ class UniunGatewayClient {
     return data.cast<Map<String, dynamic>>();
   }
 
+  /// Onboarding interest-picker roster (public, no auth): `[{id, name,
+  /// pubkey_hex}, ...]`. See `docs/frontend/ONBOARDING-INTERESTS.md`.
+  Future<List<Map<String, dynamic>>> listOnboardingInterests() async {
+    final data = await _getList('/uniun/v1/onboarding/interests');
+    return data.cast<Map<String, dynamic>>();
+  }
+
   /// Public model catalog.
   Future<List<UniunModel>> listModels() async {
     final data = await _getList('/uniun/v1/models');

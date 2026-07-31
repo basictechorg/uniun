@@ -2938,6 +2938,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t follow everyone — please try again.';
 
   @override
+  String get interestsLoadFailed =>
+      'Couldn\'t load interests. Check your connection.';
+
+  @override
+  String get interestsRetry => 'Retry';
+
+  @override
   String get welcomeMoreLanguages => 'More languages';
 
   @override

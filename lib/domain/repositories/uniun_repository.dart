@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
+import 'package:uniun/domain/entities/onboarding/onboarding_interest_entity.dart';
 
 /// The ONLY thing anyone imports to talk to the UNIUN inference gateway.
 /// Wraps the raw gateway HTTP client (`UniunGatewayClient`, data-layer only,
@@ -58,6 +59,13 @@ abstract class UniunRepository {
     required List<Map<String, String>> messages,
     int? maxTokens,
   });
+
+  /// The onboarding interest-picker roster — public, no auth, no local
+  /// identity required. Backend-owned so new house accounts can be added
+  /// without an app release; see `docs/frontend/ONBOARDING-INTERESTS.md` on
+  /// the gateway.
+  Future<Either<Failure, List<OnboardingInterestEntity>>>
+      getOnboardingInterests();
 }
 
 /// Thrown by [UniunRepository.streamChat] when there is no Nostr identity
