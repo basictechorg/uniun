@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/common/widgets/user_avatar.dart';
 import 'package:uniun/core/router/app_routes.dart';
+import 'package:uniun/domain/entities/onboarding/onboarding_interest_entity.dart';
 import 'package:uniun/domain/usecases/followed_user_usecases.dart';
-import 'package:uniun/features/onboarding/interests/onboarding_interest.dart';
+import 'package:uniun/domain/usecases/onboarding_usecases.dart';
 import 'package:uniun/features/onboarding/widgets/onboarding_app_bar.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 import 'package:uniun/core/theme/app_custom_colors.dart';
@@ -23,9 +24,11 @@ const double _kChipHeight = _kChipAvatar + _kChipVPad * 2;
 
 /// Onboarding step shown right after the user's keys are saved.
 ///
-/// The user taps a few interests; each one follows a house account (see
-/// [kOnboardingInterests]) so the Vishnu feed isn't empty on first launch.
-/// At least [_minSelection] picks are required before continuing.
+/// The user taps a few interests; each one follows a house account (the
+/// roster is backend-owned — fetched via [GetOnboardingInterestsUseCase],
+/// see `docs/frontend/ONBOARDING-INTERESTS.md`) so the Vishnu feed isn't
+/// empty on first launch. At least [_minSelection] picks are required
+/// before continuing.
 ///
 /// The chips sit on a canvas wider than the screen — the user drags freely in
 /// any direction (via [InteractiveViewer]) and chips gently grow toward the
@@ -56,6 +59,16 @@ class _InterestsPageState extends State<InterestsPage> {
   bool _saving = false;
   String _centerSig = '';
 
+  List<OnboardingInterestEntity> _interests = const [];
+  bool _loading = true;
+  bool _loadFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInterests();
+  }
+
   @override
   void dispose() {
     _tc.dispose();
@@ -63,10 +76,29 @@ class _InterestsPageState extends State<InterestsPage> {
     super.dispose();
   }
 
-  List<OnboardingInterest> get _filtered {
-    if (_query.isEmpty) return kOnboardingInterests;
+  Future<void> _loadInterests() async {
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+    });
+    final result = await getIt<GetOnboardingInterestsUseCase>().call();
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() {
+        _loading = false;
+        _loadFailed = true;
+      }),
+      (interests) => setState(() {
+        _loading = false;
+        _interests = interests;
+      }),
+    );
+  }
+
+  List<OnboardingInterestEntity> get _filtered {
+    if (_query.isEmpty) return _interests;
     final q = _query.toLowerCase();
-    return kOnboardingInterests
+    return _interests
         .where((i) => i.name.toLowerCase().contains(q))
         .toList();
   }
@@ -116,7 +148,8 @@ class _InterestsPageState extends State<InterestsPage> {
   }
 
   // ── staggered placement: rows of 4 / 3 (odd offset), packed by chip width ──
-  List<_Placed> _place(List<OnboardingInterest> items, BuildContext context) {
+  List<_Placed> _place(
+      List<OnboardingInterestEntity> items, BuildContext context) {
     final out = <_Placed>[];
     int i = 0, row = 0;
     while (i < items.length) {
@@ -297,6 +330,32 @@ class _InterestsPageState extends State<InterestsPage> {
   }
 
   Widget _buildField(AppLocalizations l10n) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadFailed) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.interestsLoadFailed,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _loadInterests,
+              child: Text(l10n.interestsRetry),
+            ),
+          ],
+        ),
+      );
+    }
+
     final items = _filtered;
     if (items.isEmpty) {
       return Center(
@@ -398,7 +457,7 @@ class _InterestsPageState extends State<InterestsPage> {
 
 class _Placed {
   const _Placed(this.item, this.dx, this.dy, this.w);
-  final OnboardingInterest item;
+  final OnboardingInterestEntity item;
   final double dx; // centre x
   final double dy; // centre y
   final double w; // measured chip width

@@ -182,6 +182,7 @@ import 'package:uniun/domain/usecases/manas_usecases.dart' as _i977;
 import 'package:uniun/domain/usecases/media_usecases.dart' as _i629;
 import 'package:uniun/domain/usecases/nataraj_usecases.dart' as _i812;
 import 'package:uniun/domain/usecases/note_usecases.dart' as _i475;
+import 'package:uniun/domain/usecases/onboarding_usecases.dart' as _i747;
 import 'package:uniun/domain/usecases/post_reply_usecase.dart' as _i924;
 import 'package:uniun/domain/usecases/private_group_usecases.dart' as _i1055;
 import 'package:uniun/domain/usecases/profile_usecases.dart' as _i391;
@@ -775,6 +776,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i918.GetUniunCloudStatusUseCase>(
       () => _i918.GetUniunCloudStatusUseCase(gh<_i880.UniunRepository>()),
+    );
+    gh.lazySingleton<_i747.GetOnboardingInterestsUseCase>(
+      () => _i747.GetOnboardingInterestsUseCase(gh<_i880.UniunRepository>()),
     );
     gh.lazySingleton<_i219.UpsertGanaUseCase>(
       () => _i219.UpsertGanaUseCase(gh<_i160.GanaRepository>()),

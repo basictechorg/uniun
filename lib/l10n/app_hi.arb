@@ -1752,6 +1752,10 @@
 
   "interestsFollowFailed": "सभी को फ़ॉलो नहीं कर सके — कृपया फिर से प्रयास करें।",
 
+  "interestsLoadFailed": "रुचियां लोड नहीं हो सकीं। अपना कनेक्शन जांचें।",
+
+  "interestsRetry": "पुनः प्रयास करें",
+
   "welcomeMoreLanguages": "और भाषाएँ",
 
   "languageSelectTitle": "भाषा चुनें",
