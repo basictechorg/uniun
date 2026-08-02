@@ -12,6 +12,27 @@ See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure.
 
 ---
 
+## [2.2.0] — 2026-08-02
+
+This release expands UNIUN's inference, identity, and offline networking capabilities.
+
+### Added
+- **UNIUN cloud inference.** Use hosted AI models from Shiv with built-in model selection,
+  credit usage, and mobile payment support alongside on-device inference.
+- **QR identity recovery.** Sign in on another device by scanning a secure QR code instead of
+  manually transferring identity credentials.
+- **Offline mesh sync.** Nearby devices can discover each other over local transports and securely
+  synchronize notes, follows, groups, Manas collections, Ganas, and other user-owned data.
+- **Surrounding notes.** Discover notes shared by nearby mesh peers in a dedicated feed.
+
+### Changed
+- Onboarding interest recommendations are now loaded from UNIUN's service so suggested accounts
+  can be updated without an app release.
+- Expanded repository, gateway, mesh, and integration test coverage.
+
+### Fixed
+- Improved cloud-model selection, credit accounting, inference UI, login, and sync reliability.
+
 ## [2.1.0] — 2026-07-03
 
 A follow-up release focused on **theming**, **reliability of the followed-notes badge**, and a
