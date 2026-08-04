@@ -739,6 +739,24 @@
   "aiModelDownloadInfoText": "Switching models requires a one-time download. Connect to Wi-Fi to avoid data charges. Your chat history is preserved.",
   "@aiModelDownloadInfoText": { "description": "Info banner text on model selection screen" },
 
+  "aiModelOrphanedFilesText": "{size} of leftover model files can be cleaned up.",
+  "@aiModelOrphanedFilesText": {
+    "description": "Banner shown when flutter_gemma reports leftover/orphaned model files on disk",
+    "placeholders": { "size": { "type": "String" } }
+  },
+
+  "aiModelCleanUpAction": "Clean up",
+  "@aiModelCleanUpAction": { "description": "Button to delete leftover/orphaned model files" },
+
+  "aiModelCleanUpSuccess": "Cleaned up {count, plural, =1{1 file} other{{count} files}}.",
+  "@aiModelCleanUpSuccess": {
+    "description": "Snackbar shown after successfully cleaning up leftover model files",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "aiModelCleanUpFailed": "Couldn't clean up leftover files.",
+  "@aiModelCleanUpFailed": { "description": "Snackbar shown when cleaning up leftover model files fails" },
+
   "aiModelOptimizedCpu": "Optimized for CPU",
   "@aiModelOptimizedCpu": { "description": "Capability chip — CPU optimized model" },
 

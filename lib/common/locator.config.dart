@@ -1004,6 +1004,15 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i894.DeleteAIModelUseCase>(
       () => _i894.DeleteAIModelUseCase(gh<_i646.AIModelRepository>()),
     );
+    gh.lazySingleton<_i894.GetOrphanedModelFilesSizeBytesUseCase>(
+      () => _i894.GetOrphanedModelFilesSizeBytesUseCase(
+        gh<_i646.AIModelRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i894.CleanupOrphanedModelFilesUseCase>(
+      () =>
+          _i894.CleanupOrphanedModelFilesUseCase(gh<_i646.AIModelRepository>()),
+    );
     gh.lazySingleton<_i890.CreateGroupUseCase>(
       () => _i890.CreateGroupUseCase(
         gh<_i582.GroupRepository>(),
@@ -1354,6 +1363,15 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.HasActiveLlmModelUseCase>(),
       ),
     );
+    gh.factory<_i1019.ShareRepository>(
+      () => _i593.ShareRepositoryImpl(
+        gh<_i799.GetActiveUserKeysUseCase>(),
+        gh<_i629.PublishMediaNoteUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+      ),
+    );
     gh.factory<_i687.SelectAIModelCubit>(
       () => _i687.SelectAIModelCubit(
         gh<_i894.GetAvailableAIModelsUseCase>(),
@@ -1369,15 +1387,8 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i918.SetActiveLlmModelUseCase>(),
         gh<_i918.GetActiveLlmModelUseCase>(),
         gh<_i918.GetActiveLlmBackendUseCase>(),
-      ),
-    );
-    gh.factory<_i1019.ShareRepository>(
-      () => _i593.ShareRepositoryImpl(
-        gh<_i799.GetActiveUserKeysUseCase>(),
-        gh<_i629.PublishMediaNoteUseCase>(),
-        gh<_i815.CreateGroupMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i894.GetOrphanedModelFilesSizeBytesUseCase>(),
+        gh<_i894.CleanupOrphanedModelFilesUseCase>(),
       ),
     );
     gh.lazySingleton<_i1.ShareNoteUseCase>(

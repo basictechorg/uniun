@@ -66,10 +66,10 @@ dependencies:
   # packages. We ship both .task models (MediaPipe) and .litertlm models
   # (LiteRT-LM), plus the embedder used by Shiv RAG. Vector store stays
   # tostore (we keep our own RAG path; no qdrant sub-package).
-  flutter_gemma: ^1.2.0
-  flutter_gemma_litertlm: ^1.0.2
-  flutter_gemma_mediapipe: ^1.0.3
-  flutter_gemma_embeddings: ^1.0.1
+  flutter_gemma: ^1.5.1
+  flutter_gemma_litertlm: ^1.3.1
+  flutter_gemma_mediapipe: ^1.0.4
+  flutter_gemma_embeddings: ^1.0.4
   # Background execution. Used by GanaBootstrap to schedule one-shot Gana
   # ticks when the app is backgrounded. Foreground engine uses the
   # long-lived isolate; WorkManager only runs when the app is paused.
@@ -168,25 +168,17 @@ flutter_launcher_icons:
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/images/uniun-logo.png"
 
-# nostr_core_dart ^1.0.1 declares http ^0.13.3, but flutter_gemma ^0.13.1 needs
-# http ^1.4.0 via grpc. nostr_core_dart only calls http.get(Uri.parse(...)) so
-# it is fully compatible with http 1.x at runtime — safe to override.
-# flutter_gemma 1.1.x requires hooks ^2.0.0; openmls 1.3.0 pins hooks ^1.0.0.
-# openmls's pin is conservative — it uses no APIs broken by hooks 2.x, so forcing
-# 2.x lets both packages coexist. Verified: pub get + analyze + debug APK build
-# all clean. Drop this override once openmls relaxes its constraint upstream.
+# nostr_core_dart pins http ^0.13.3; flutter_gemma needs ^1.4.0. Safe — nostr_core_dart only calls http.get().
+# hooks: flutter_gemma needs ^2.0.0, openmls pins ^1.0.0. Safe — openmls uses no 2.x-broken APIs.
 dependency_overrides:
   http: ^1.4.0
   hooks: ^2.0.0
-  # path_provider_foundation 2.6+ switched to package:objective_c (FFI), which is
-  # unstable on iOS/macOS in this app — it crashes with EXC_BAD_ACCESS (a retain on
-  # a freed objc object) when used off the main isolate OR across concurrent
-  # main-isolate callers (Isar, ToStore, Marmot MLS, storage, mesh). Pin to the last
-  # Pigeon-based release (no objective_c) until that's resolved upstream.
+  # path_provider_foundation 2.6+ (objective_c/FFI) crashes off-main-isolate on iOS/macOS. Pin to last Pigeon-based release.
   path_provider_foundation: 2.5.1
-  # 0.1.0 (nostr_core_dart's pin) emits unpadded sigs — ~1/128 fail their own
-  # verification. Fixed in 0.2.0; drop once nostr_core_dart bumps upstream.
+  # bip340 0.1.0 (nostr_core_dart's pin) emits unpadded sigs, ~1/128 fail verification. Fixed in 0.2.0.
   bip340: ^0.2.0
+  # background_downloader 9.5.7 (flutter_gemma's download engine) breaks the Android Kotlin build here. Pin to 9.5.6.
+  background_downloader: 9.5.6
 
 flutter:
   generate: true

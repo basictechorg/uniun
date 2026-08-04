@@ -34,5 +34,9 @@ abstract class SelectAIModelState with _$SelectAIModelState {
     String? activatingCloudModelId,
     /// The cloud model in use when [activeBackend] is uniunCloud.
     String? activeCloudModelId,
+    /// Bytes of leftover model files (partial downloads, files a previous
+    /// delete couldn't locate). 0 = nothing to clean up / not checked yet.
+    @Default(0) int orphanedFilesSizeBytes,
+    @Default(false) bool isCleaningUpFiles,
   }) = _SelectAIModelState;
 }

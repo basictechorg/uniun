@@ -783,6 +783,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Switching models requires a one-time download. Connect to Wi-Fi to avoid data charges. Your chat history is preserved.';
 
   @override
+  String aiModelOrphanedFilesText(String size) {
+    return '$size of leftover model files can be cleaned up.';
+  }
+
+  @override
+  String get aiModelCleanUpAction => 'Clean up';
+
+  @override
+  String aiModelCleanUpSuccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return 'Cleaned up $_temp0.';
+  }
+
+  @override
+  String get aiModelCleanUpFailed => 'Couldn\'t clean up leftover files.';
+
+  @override
   String get aiModelOptimizedCpu => 'Optimized for CPU';
 
   @override

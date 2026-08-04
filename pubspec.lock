@@ -58,13 +58,13 @@ packages:
     source: hosted
     version: "0.0.5"
   background_downloader:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: background_downloader
-      sha256: "4cb23d9ad4f5060944f38164e7b90d4bf99b57b2472a3bd4676e59b2db4afd06"
+      sha256: d27fcaf94f738032f1e6db098230799bf31ae7bf184f173fc9a752fcdae75c0e
       url: "https://pub.dev"
     source: hosted
-    version: "9.5.4"
+    version: "9.5.6"
   base58check:
     dependency: transitive
     description:
@@ -433,6 +433,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.14"
+  decimal:
+    dependency: transitive
+    description:
+      name: decimal
+      sha256: "2c3c8b74f2948066d3f42585477aec9cfc48fefd7a723a4d4274a6c71a5c0df7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.6"
   diff_match_patch:
     dependency: transitive
     description:
@@ -457,6 +465,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.12"
+  email_validator:
+    dependency: transitive
+    description:
+      name: email_validator
+      sha256: b19aa5d92fdd76fbc65112060c94d45ba855105a28bb6e462de7ff03b12fa1fb
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -575,34 +591,34 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: "211656c2dce34fc8f9a3f414a5ea556ed2357b5908602e8c6220b176cdd4140b"
+      sha256: "8b234d5eb881cd34c50e84f0bc5971d58fa9c9da8bbf2dfde04d629f35dca1e0"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "1.5.1"
   flutter_gemma_embeddings:
     dependency: "direct main"
     description:
       name: flutter_gemma_embeddings
-      sha256: "54a9862dd2980ff9f96ac355a797adcd634e6a0bde54eda16b3867ce408643ca"
+      sha256: "0970977b86cfe6de87fbfd8728ce4a123d784df13fcb5af10e2b3ae3d3bf3b92"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.1"
+    version: "1.0.4"
   flutter_gemma_litertlm:
     dependency: "direct main"
     description:
       name: flutter_gemma_litertlm
-      sha256: "2a8fff6c6a278e702caae1628af7b0eddfb0f45c76a9cd1a344771082b3ff053"
+      sha256: "34f5d0e83d9aaa9077f43d41a0d4f2c2f92a7c93e7b44db3967a5342640f812b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.3.1"
   flutter_gemma_mediapipe:
     dependency: "direct main"
     description:
       name: flutter_gemma_mediapipe
-      sha256: "2ceceda0f41495fa50065c32737fcda65a435ba786e6a7f1b863539948a8eedc"
+      sha256: "6265e7b315a1497dad86a0e38edb6907d3e8b5be130c3637ec7d8847382cb4af"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.3"
+    version: "1.0.4"
   flutter_image_compress:
     dependency: "direct main"
     description:
@@ -847,6 +863,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  genai_primitives:
+    dependency: transitive
+    description:
+      name: genai_primitives
+      sha256: "5a1e8c7ae9caf01aa609f59c54de47b73f51bf1ae95e0f679b7c7ab6948c4d9d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.4"
   get_it:
     dependency: "direct main"
     description:
@@ -1100,6 +1124,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.11.0"
+  json_schema_builder:
+    dependency: transitive
+    description:
+      name: json_schema_builder
+      sha256: e46b1a2957590d2c811f47b22079710a273ebf9c8240a9e1440b759efb8ded5f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.6"
   json_serializable:
     dependency: "direct dev"
     description:
@@ -1501,6 +1533,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
+  rational:
+    dependency: transitive
+    description:
+      name: rational
+      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.3"
   recase:
     dependency: transitive
     description:
