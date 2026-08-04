@@ -10,12 +10,14 @@ import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/enum/gana_trigger_preset.dart';
 import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/entities/group/group_entity.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
 import 'package:uniun/domain/usecases/scheduler_usecases.dart';
 import 'package:uniun/features/shiv/gana/form/bloc/gana_form_bloc.dart';
+import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 part '../widgets/gana_form_sections.dart';
