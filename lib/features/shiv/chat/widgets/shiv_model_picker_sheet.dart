@@ -277,7 +277,6 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           for (final m in cloud)
             _ModelRow(
               label: m.displayName,
-              sublabel: m.id != m.displayName ? m.id : null,
               isActive: _activeBackend == LlmBackendType.uniunCloud &&
                   m.id == _activeCloudModelId,
               onTap: () => _selectCloud(m),
@@ -291,7 +290,6 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           for (final m in _localModels)
             _ModelRow(
               label: m.modelId.displayName(l10n),
-              sublabel: null,
               isActive: _activeBackend == LlmBackendType.localGemma &&
                   m.modelId == _activeLocalModelId,
               onTap: () => _selectLocal(m),
@@ -334,13 +332,11 @@ class _SectionHeader extends StatelessWidget {
 class _ModelRow extends StatelessWidget {
   const _ModelRow({
     required this.label,
-    required this.sublabel,
     required this.isActive,
     required this.onTap,
   });
 
   final String label;
-  final String? sublabel;
   final bool isActive;
   final VoidCallback onTap;
 
@@ -373,16 +369,6 @@ class _ModelRow extends StatelessWidget {
                           : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  if (sublabel != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      sublabel!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

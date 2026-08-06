@@ -568,13 +568,25 @@ class _ModelDropdown extends StatelessWidget {
   const _ModelDropdown({required this.state});
   final GanaFormState state;
 
+  /// [rawId] is the stored [AIModelId.name] — never shown to the user
+  /// directly. Falls back to the raw id only if it no longer matches a
+  /// known [AIModelId] (a model retired after this Gana was created).
+  static String _label(String rawId, AppLocalizations l10n) {
+    for (final id in AIModelId.values) {
+      if (id.name == rawId) return id.displayName(l10n);
+    }
+    return rawId;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return _SelectorTile(
       icon: Icons.psychology_alt_outlined,
       title: l10n.ganaFormModelSectionTitle,
-      subtitle: state.desiredModelId ?? l10n.ganaFormModelUseActive,
+      subtitle: state.desiredModelId != null
+          ? _label(state.desiredModelId!, l10n)
+          : l10n.ganaFormModelUseActive,
       onTap: () => _openSheet<String?>(
         context: context,
         title: l10n.ganaFormModelSectionTitle,
@@ -585,7 +597,7 @@ class _ModelDropdown extends StatelessWidget {
         ),
         options: [
           for (final m in state.availableModels)
-            _PickOption(value: m, label: m),
+            _PickOption(value: m, label: _label(m, l10n)),
         ],
         onPicked: (v) =>
             context.read<GanaFormBloc>().add(GanaFormModelChangedEvent(v)),
