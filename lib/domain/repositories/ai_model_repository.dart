@@ -26,8 +26,19 @@ abstract class AIModelRepository {
   /// Returns IDs of all models whose files are present on disk.
   Future<Set<AIModelId>> getDownloadedModelIds();
 
-  /// Returns total bytes used by all downloaded model files (from catalog sizeBytes).
+  /// Returns total on-disk bytes actually used by flutter_gemma's installed
+  /// model files (real size, not the catalog's static estimate).
   Future<int> getDownloadedModelsSizeBytes();
+
+  /// Total bytes of files flutter_gemma no longer considers part of any
+  /// installed model — partial downloads, or files a previous [deleteModel]
+  /// couldn't locate by its guessed path. Not counted in
+  /// [getDownloadedModelsSizeBytes].
+  Future<int> getOrphanedModelFilesSizeBytes();
+
+  /// Deletes every file flutter_gemma reports as orphaned. Returns the
+  /// number of files removed.
+  Future<Either<Failure, int>> cleanupOrphanedModelFiles();
 
   /// Deletes the model file from disk and removes it from Isar.
   /// If it was the active model, clears the active selection too.

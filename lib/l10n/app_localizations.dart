@@ -1472,6 +1472,30 @@ abstract class AppLocalizations {
   /// **'Switching models requires a one-time download. Connect to Wi-Fi to avoid data charges. Your chat history is preserved.'**
   String get aiModelDownloadInfoText;
 
+  /// Banner shown when flutter_gemma reports leftover/orphaned model files on disk
+  ///
+  /// In en, this message translates to:
+  /// **'{size} of leftover model files can be cleaned up.'**
+  String aiModelOrphanedFilesText(String size);
+
+  /// Button to delete leftover/orphaned model files
+  ///
+  /// In en, this message translates to:
+  /// **'Clean up'**
+  String get aiModelCleanUpAction;
+
+  /// Snackbar shown after successfully cleaning up leftover model files
+  ///
+  /// In en, this message translates to:
+  /// **'Cleaned up {count, plural, =1{1 file} other{{count} files}}.'**
+  String aiModelCleanUpSuccess(int count);
+
+  /// Snackbar shown when cleaning up leftover model files fails
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clean up leftover files.'**
+  String get aiModelCleanUpFailed;
+
   /// Capability chip — CPU optimized model
   ///
   /// In en, this message translates to:

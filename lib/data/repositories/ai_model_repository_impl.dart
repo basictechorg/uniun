@@ -290,14 +290,24 @@ class AIModelRepositoryImpl implements AIModelRepository {
 
   @override
   Future<int> getDownloadedModelsSizeBytes() async {
-    int total = 0;
-    for (final model in _catalog) {
-      final filename = _filename(model.modelId);
-      if (await FlutterGemma.isModelInstalled(filename)) {
-        total += model.sizeBytes;
-      }
+    final info = await FlutterGemma.getStorageInfo();
+    return info.totalSizeBytes;
+  }
+
+  @override
+  Future<int> getOrphanedModelFilesSizeBytes() async {
+    final files = await FlutterGemma.getOrphanedFiles();
+    return files.fold<int>(0, (sum, f) => sum + f.sizeBytes);
+  }
+
+  @override
+  Future<Either<Failure, int>> cleanupOrphanedModelFiles() async {
+    try {
+      final removed = await FlutterGemma.cleanupStorage();
+      return Right(removed);
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
     }
-    return total;
   }
 
   @override
