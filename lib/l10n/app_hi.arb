@@ -459,6 +459,14 @@
 
   "aiModelDownloadInfoText": "मॉडल बदलने के लिए एक बार डाउनलोड करना होगा। डेटा शुल्क से बचने के लिए Wi-Fi से कनेक्ट करें। आपका चैट इतिहास सुरक्षित रहता है।",
 
+  "aiModelOrphanedFilesText": "{size} बची हुई मॉडल फ़ाइलें साफ़ की जा सकती हैं।",
+
+  "aiModelCleanUpAction": "साफ़ करें",
+
+  "aiModelCleanUpSuccess": "{count, plural, =1{1 फ़ाइल} other{{count} फ़ाइलें}} साफ़ की गईं।",
+
+  "aiModelCleanUpFailed": "बची हुई फ़ाइलें साफ़ नहीं की जा सकीं।",
+
   "aiModelOptimizedCpu": "CPU के लिए अनुकूलित",
 
   "aiModelOptimizedGpuCpu": "GPU / CPU के लिए अनुकूलित",

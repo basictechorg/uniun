@@ -29,6 +29,8 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
   final SetActiveLlmModelUseCase _setLlmModel;
   final GetActiveLlmModelUseCase _getLlmModel;
   final GetActiveLlmBackendUseCase _getBackend;
+  final GetOrphanedModelFilesSizeBytesUseCase _getOrphanedSize;
+  final CleanupOrphanedModelFilesUseCase _cleanupOrphaned;
 
   StreamSubscription<AIModelDownloadEvent>? _downloadSub;
   DownloadCancellation? _cancellation;
@@ -47,6 +49,8 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
     this._setLlmModel,
     this._getLlmModel,
     this._getBackend,
+    this._getOrphanedSize,
+    this._cleanupOrphaned,
   ) : super(const SelectAIModelState()) {
     _init();
   }
@@ -75,6 +79,8 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
       );
     }
 
+    final orphanedSize = await _getOrphanedSize.call();
+
     emit(state.copyWith(
       models: models,
       activeModelId: activeId,
@@ -85,6 +91,7 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
       selectedModelId: activeId ??
           models.where((m) => m.isRecommended).firstOrNull?.modelId ??
           models.firstOrNull?.modelId,
+      orphanedFilesSizeBytes: orphanedSize,
     ));
 
     // If a model is already active (app restart with existing model),
@@ -287,6 +294,30 @@ class SelectAIModelCubit extends Cubit<SelectAIModelState> {
               ? (state.models.firstOrNull?.modelId)
               : state.selectedModelId,
         ));
+      },
+    );
+  }
+
+  /// Deletes every leftover model file flutter_gemma no longer tracks
+  /// (partial downloads, files a previous delete couldn't locate). Returns
+  /// the number of files removed, or null on failure — the caller decides
+  /// how to surface either outcome (this cubit has no toast/snackbar state).
+  Future<int?> cleanupOrphanedFiles() async {
+    if (state.isCleaningUpFiles) return null;
+    emit(state.copyWith(isCleaningUpFiles: true));
+    final result = await _cleanupOrphaned.call();
+    if (isClosed) return null;
+    return result.fold(
+      (f) {
+        emit(state.copyWith(isCleaningUpFiles: false));
+        return null;
+      },
+      (removedCount) {
+        emit(state.copyWith(
+          isCleaningUpFiles: false,
+          orphanedFilesSizeBytes: 0,
+        ));
+        return removedCount;
       },
     );
   }

@@ -8,6 +8,7 @@ import 'package:uniun/features/shiv/model_select/widgets/model_card.dart';
 import 'package:uniun/features/shiv/model_select/widgets/model_selection_footer.dart';
 import 'package:uniun/features/shiv/model_select/widgets/uniun_cloud_card.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
+import 'package:uniun/features/settings/widgets/storage_card.dart' show formatStorageBytes;
 
 class AIModelSelectionPage extends StatelessWidget {
   const AIModelSelectionPage({super.key});
@@ -183,6 +184,10 @@ class _AIModelSelectionView extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (state.orphanedFilesSizeBytes > 0) ...[
+                      const SizedBox(height: 12),
+                      _OrphanedFilesBanner(state: state),
+                    ],
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -192,6 +197,80 @@ class _AIModelSelectionView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Shown only when flutter_gemma reports leftover model files on disk
+/// (partial downloads, or files a previous delete couldn't locate by its
+/// guessed path) — a capability [AIModelRepositoryImpl.deleteModel] can't
+/// catch on its own since it only knows the path of the model it was asked
+/// to delete.
+class _OrphanedFilesBanner extends StatelessWidget {
+  const _OrphanedFilesBanner({required this.state});
+  final SelectAIModelState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.05),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.cleaning_services_outlined, size: 18, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.aiModelOrphanedFilesText(
+                  formatStorageBytes(state.orphanedFilesSizeBytes)),
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          state.isCleaningUpFiles
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: scheme.primary),
+                )
+              : TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: scheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: () async {
+                    final cubit = context.read<SelectAIModelCubit>();
+                    final messenger = ScaffoldMessenger.of(context);
+                    final removed = await cubit.cleanupOrphanedFiles();
+                    if (!context.mounted) return;
+                    messenger.showSnackBar(SnackBar(
+                      content: Text(removed != null
+                          ? l10n.aiModelCleanUpSuccess(removed)
+                          : l10n.aiModelCleanUpFailed),
+                    ));
+                  },
+                  child: Text(
+                    l10n.aiModelCleanUpAction,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
+        ],
+      ),
     );
   }
 }

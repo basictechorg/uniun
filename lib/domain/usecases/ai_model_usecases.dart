@@ -78,3 +78,24 @@ class DeleteAIModelUseCase
       _repository.deleteModel(modelId);
 }
 
+// ── Orphaned model file cleanup ───────────────────────────────────────────────
+
+@lazySingleton
+class GetOrphanedModelFilesSizeBytesUseCase extends NoParamsUseCase<int> {
+  final AIModelRepository _repository;
+  const GetOrphanedModelFilesSizeBytesUseCase(this._repository);
+
+  @override
+  Future<int> call() => _repository.getOrphanedModelFilesSizeBytes();
+}
+
+@lazySingleton
+class CleanupOrphanedModelFilesUseCase
+    extends NoParamsUseCase<Either<Failure, int>> {
+  final AIModelRepository _repository;
+  const CleanupOrphanedModelFilesUseCase(this._repository);
+
+  @override
+  Future<Either<Failure, int>> call() => _repository.cleanupOrphanedModelFiles();
+}
+

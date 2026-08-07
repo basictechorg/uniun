@@ -786,6 +786,28 @@ class AppLocalizationsHi extends AppLocalizations {
       'मॉडल बदलने के लिए एक बार डाउनलोड करना होगा। डेटा शुल्क से बचने के लिए Wi-Fi से कनेक्ट करें। आपका चैट इतिहास सुरक्षित रहता है।';
 
   @override
+  String aiModelOrphanedFilesText(String size) {
+    return '$size बची हुई मॉडल फ़ाइलें साफ़ की जा सकती हैं।';
+  }
+
+  @override
+  String get aiModelCleanUpAction => 'साफ़ करें';
+
+  @override
+  String aiModelCleanUpSuccess(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count फ़ाइलें',
+      one: '1 फ़ाइल',
+    );
+    return '$_temp0 साफ़ की गईं।';
+  }
+
+  @override
+  String get aiModelCleanUpFailed => 'बची हुई फ़ाइलें साफ़ नहीं की जा सकीं।';
+
+  @override
   String get aiModelOptimizedCpu => 'CPU के लिए अनुकूलित';
 
   @override
