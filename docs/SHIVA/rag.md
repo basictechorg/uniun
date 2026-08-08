@@ -1,3 +1,5 @@
+ > ⚠️ **Historical "basics" primer.** This explains the core RAG idea in the simplest possible terms and predates the actual build — some details below (embeddings stored directly on `NoteModel`, "future: migrate to sqlite-vec") don't match what shipped. For the real, current implementation (ToStore vector DB, GraphRAG expansion, per-model prompt budgets), read `docs/SHIVA/graphrag.md` and `docs/SHIVA/SHIV_AI.md`'s RAG Pipeline section instead. Keep reading below only for the plain-English mental model.
+
  What is RAG?
                                                                                 
   RAG = Retrieval Augmented Generation                      
@@ -91,7 +93,7 @@
   │ model          │ to vector       │ always available, no download needed      │
   ├────────────────┼─────────────────┼──────────────────────────────────────────┤
   │ LLM (user-     │ Generates the   │ 586MB–4.3GB depending on model chosen     │
-  │ selected, via  │ answer          │ flutter_gemma ^0.13.1                     │
+  │ selected, via  │ answer          │ flutter_gemma ^1.5.1                      │
   │ flutter_gemma) │                 │ GPU-accelerated on Android + iOS          │
   │                │                 │ Downloaded once on first Shiv open        │
   └────────────────┴─────────────────┴──────────────────────────────────────────┘

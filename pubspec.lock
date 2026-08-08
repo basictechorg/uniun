@@ -591,10 +591,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_gemma
-      sha256: "8b234d5eb881cd34c50e84f0bc5971d58fa9c9da8bbf2dfde04d629f35dca1e0"
+      sha256: "00093a86d841581f588b96b46994d33eb64213d47e9aa19489b72e4dde92692d"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.1"
+    version: "1.5.2"
   flutter_gemma_embeddings:
     dependency: "direct main"
     description:

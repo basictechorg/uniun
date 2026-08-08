@@ -22,10 +22,10 @@ Data that is **not on any relay** is lost on reinstall:
 - Memory nodes (`MemoryNodeModel`)
 - Reports the user filed (`ReportModel`)
 - Blocked users list (`BlockedUserModel`)
-- Channel / DM read cursors (`ChannelReadStateModel`, `DMReadStateModel`, `FeedReadStateModel`)
+- Unread cursors (`UnreadNoteModel` — unified across feed/group/DM, not per-surface models)
 - App settings + selected AI model name
 - Custom relay list overrides
-- Private channel MLS ratchet state (security-critical, see "Relay safety" below)
+- Private group MLS ratchet state (security-critical, see "Relay safety" below)
 
 The backup feature captures all of this, encrypts it under a passphrase the user controls, and lets them restore it on any device that has the app installed.
 
@@ -62,15 +62,15 @@ Every Isar collection that holds user-meaningful state. A single top-level JSON 
 |---|---|---|
 | `identity` | `UserKeyModel` + flutter_secure_storage | nsec + npub |
 | `profile` | `ProfileModel` (own row) | Kind-0 cache so name/avatar load instantly |
-| `notes` | `NoteModel` — all kinds (1, 14, 15, 42, 9023) where pubkey == self **OR** referenced by something owned | Own notes, replies, DM plaintext, channel messages, private-channel messages |
+| `notes` | `NoteModel` — all kinds (1, 14, 15, 42, 9023) where pubkey == self **OR** referenced by something owned | Own notes, replies, DM plaintext, group messages, private-group messages |
 | `drafts` | `NoteModel` draft rows (Kind 31234) | Local-only drafts that were never published |
 | `saved_notes` | `SavedNoteModel` | Bookmark pointers |
 | `followed_users` | `FollowedUserModel` | Drives Vishnu `authors` filter on restore |
 | `followed_notes` | `FollowedNoteModel` | Per-note graph subscriptions |
-| `public_channels` | `ChannelModel` + `ChannelReadStateModel` | Channel list + lastReadEventId so unread counts survive |
-| `private_channels` | `PrivateChannelModel` + `PrivateChannelJoinRequestModel` + MLS group export | Membership + ratchet (caveat below) |
-| `dms` | `DmConversationModel` + `DMReadStateModel` | Conversation list + unread cursors. Actual messages already covered by `notes` (Kind 14) |
-| `feed_read_state` | `FeedReadStateModel` | Feed resume position |
+| `public_groups` | `GroupModel` | Group list — unread state lives in `unread_state` below, not per-model |
+| `private_groups` | `PrivateGroupModel` + `PrivateGroupJoinRequestModel` + MLS group export | Membership + ratchet (caveat below) |
+| `dms` | `DmConversationModel` | Conversation list. Actual messages already covered by `notes` (Kind 14) |
+| `unread_state` | `UnreadNoteModel` (unified across feed/group/DM) | Read-position resume on restore |
 | `shiv` | `ShivConversationModel` + `ShivMessageModel` | Full AI chat history with branching tree |
 | `memory` | `MemoryNodeModel` | GraphRAG memory summaries |
 | `media_refs` | `MediaCacheModel` (sha + url only, no blobs) | Lets restore know what was on disk; blobs re-fetch from Blossom by SHA on first view |

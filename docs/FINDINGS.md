@@ -1,5 +1,7 @@
 # UNIUN — Architecture Findings
 
+> ⚠️ **Historical.** Each entry below reflects the state of the app and its dependencies *at the time that finding was written* — package versions, class names, and designs mentioned inside individual findings may be stale (e.g. an old `flutter_gemma` version, an early flat-RAG design later replaced by GraphRAG). This is a decision log explaining *why* choices were made, not a current-state reference — for that, see `CLAUDE.md`, `docs/UNIUN.md`, and the per-feature docs under `docs/`.
+
 ---
 
 ## Finding 001 — Unread Message Tracking (Read-State Index)

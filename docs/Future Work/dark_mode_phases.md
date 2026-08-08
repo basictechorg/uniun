@@ -1,5 +1,7 @@
 # Dark Mode — Approach Decision
 
+> ✅ **Shipped in 2.1.0** (see `CHANGELOG.md`). This document is kept as the historical implementation record of *how* it was migrated, not a proposal for future work — dark mode is live today. (Note: there's a separate, later discussion about possibly *removing* dark mode again in the future — that would be a new decision, not a reason to treat this phased-migration record as stale.)
+
 > **Read this section before touching anything else.** It compares the two approaches we considered and explains why the phased migration is the only one that actually works.
 
 ## TL;DR
