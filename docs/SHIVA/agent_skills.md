@@ -72,6 +72,18 @@ configuration. The upstream fix
 (google-ai-edge/LiteRT-LM#2699) is the maintainer's problem, not our
 blocker.
 
+**Status update (2026-08-08):** the upstream leak is confirmed **fixed
+in LiteRT-LM v0.15.0** (maintainer's paired before/after measurement on
+the same device: +1731 MB steady-state growth on v0.14.0 vs ~0 MB on
+v0.15.0, engine-teardown accumulation also resolved). Not yet actionable
+for us either way: `flutter_gemma`'s own native releases only go up to
+`native-v0.14.0` as of this check — the fix hasn't been packaged
+downstream yet — and even once it is, our Android GPU is still gated
+off by the separate, untracked SIGSEGV crash issue documented in
+`lib/core/utils/llm_backend.dart` (a different bug from the same
+OpenCL delegate, no upstream issue filed for it yet). Re-enabling
+Android GPU needs both resolved, not just this one.
+
 ---
 
 ## 2. Mental model
