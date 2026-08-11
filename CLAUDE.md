@@ -19,7 +19,7 @@ This file is the single source of truth for any AI assistant working on this cod
 
 UNIUN is a **decentralized, offline-first social and knowledge network** built entirely on the Nostr protocol, implemented as a Flutter mobile application. Users create, share, and connect **Notes** — Nostr Kind 1 events — that form both a social feed and a personal knowledge graph. Data is stored locally in an Isar database on the device and synced to the Nostr relay via WebSocket, managed by the Gateway sync isolate (lib/gateway/).
 
-The app combines four systems into one: a social feed (Vishnu), a note creation workspace (Brahma), an AI assistant that reasons over the user's saved notes using on-device LLM inference (Shiv), and a public/private messaging layer (Channels + DMs). On-device AI runs via `flutter_gemma ^1.1.0` (user-selected model: Qwen3 0.6B / DeepSeek R1 / Gemma 4 E2B / Gemma 4 E4B) with no cloud API calls. The knowledge graph is not a separate construction — it emerges naturally from the Nostr event graph: every `e` tag is a graph edge, every `t` tag is a topic node, every reply thread is a directed conversation subgraph.
+The app combines four systems into one: a social feed (Vishnu), a note creation workspace (Brahma), an AI assistant that reasons over the user's saved notes using on-device LLM inference (Shiv), and a public/private messaging layer (Channels + DMs). On-device AI runs via `flutter_gemma ^1.5.1` (user-selected model: Qwen3 0.6B / DeepSeek R1 / Gemma 4 E2B / Gemma 4 E4B) with no cloud API calls by default (an opt-in UNIUN Cloud backend exists — see `docs/SHIVA/SHIV_AI.md`). The knowledge graph is not a separate construction — it emerges naturally from the Nostr event graph: every `e` tag is a graph edge, every `t` tag is a topic node, every reply thread is a directed conversation subgraph.
 
 **The relay (`uniun-backend/`)** is a Go service built on Khatru (github.com/fiatjaf/khatru). It stores events in BadgerDB (primary) with optional MySQL mirror. Media blobs (Blossom protocol) are stored on Azure Blob Storage. The Flutter app's Gateway sync isolate connects to this relay via WebSocket.
 
@@ -84,7 +84,7 @@ Nostr Relay Network
 
 ### Key Technical Decisions
 
-- **Unread tracking via `lastReadEventId`.** `ChannelReadStateModel` / `DMReadStateModel` / `FeedReadStateModel` store the last visible event id; unread count = messages with `created > lastReadEventId`. Scroll resume + "jump to first unread" come for free.
+- **Unread tracking is unified, not per-surface.** A single `UnreadNoteModel` collection holds one row per unread message across every surface (feed/group/DM/private group), discriminated by `kind`; presence = unread, deletion = read. There is no separate `ChannelReadStateModel`/`DMReadStateModel`/`FeedReadStateModel`.
 - **On-device LLM via `flutter_gemma`.** Single backend, no Strategy pattern. `FlutterGemma.installModel().fromNetwork().withProgress().withCancelToken().install()` for downloads; `InferenceChat` manages history — never rebuild it in our prompt. System instruction is prepended to the first user turn (Qwen ignores `systemInstruction` in `createChat()`).
 - **Same scroll model for feed and chat.** Chronological only in v1. Pagination via `createdLessThan(before)`. No separate ranking.
 - **GraphRAG = the Nostr event graph.** Every `e` tag is a note→note edge (`eTagRefs`), every `t` tag a note→topic edge (`tTags`), every reply a directed subgraph. No LLM entity extraction — these are user-asserted edges. v1 retrieval: vector-seed → 1-hop BFS expand. See `docs/graphrag.md`.
@@ -167,9 +167,10 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 | NIP-02 | Contact list (Kind 3) — drives Vishnu feed `authors` filter |
 | NIP-05 | Human-readable identifiers (`user@domain.com`) in profiles |
 | NIP-10 | Reply threading via e-tag markers (root/reply/mention)   |
-| NIP-17 | Private DMs (Kind 14 rumor format)                       |
+| NIP-17 | Private DMs — full 3-layer wrap (Kind 14 rumor → 13 seal → 1059 gift wrap), shipped |
 | NIP-28 | Public channels (Kind 40 create / Kind 41 meta / Kind 42 msg) |
 | NIP-44 | Encryption for DM payloads (ChaCha20-Poly1305)           |
+| NIP-59 | Gift wrap (Kind 1059) — the outer envelope of the NIP-17 chain above, shipped |
 
 ### Explicitly NOT Used
 
@@ -178,7 +179,6 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 | NIP-09 | Event deletion — **permanently excluded**. Feed freedom is a core principle. Never implement. |
 | NIP-04 | Legacy DM encryption (AES-CBC) — superseded by NIP-44.            |
 | NIP-11 | Relay capability info — handled automatically by Khatru on relay; Flutter client does not implement. |
-| NIP-59 | Gift wrap — future scope only (full 3-layer DM wrapping not yet built). |
 | NIP-65 | Relay list metadata (Kind 10002) — relays managed locally in `RelayModel` (Isar), not via Nostr events. |
 
 ---
@@ -187,16 +187,18 @@ Note roles are inferred at query time. Never add a `role`, `isReply`, `isRoot`, 
 
 ### Unified `Note` collection (everything is a note)
 
-There is exactly **one** Isar collection for user-visible messages: `NoteModel` (`@Name('Note')`, accessor `isar.noteModels`). Feed notes, public-channel messages, DMs, and private-channel messages all live in it, discriminated by the Nostr **`kind`** field plus nullable container fields:
+There is exactly **one** Isar collection for user-visible messages: `NoteModel` (`@Name('Note')`, accessor `isar.noteModels`). Feed notes, public-group messages, DMs, and private-group messages all live in it, discriminated by the Nostr **`kind`** field plus nullable container fields:
 
 | `kind` | Surface | Container field set | Constant |
 |--------|---------|---------------------|----------|
 | 1      | Vishnu feed note          | (none)           | `kNoteKind` |
-| 42     | Public channel (NIP-28)   | `channelId`      | `kChannelMessageKind` |
+| 42     | Public group (NIP-28)     | `groupId`        | `kGroupMessageKind` |
 | 14 / 15| Direct message (NIP-17)   | `conversationId` | `kDmTextKind` / `kDmFileKind` |
-| 9023   | Private channel (NIP-29)  | `groupId`        | `kPrivateChannelKind` |
+| 9023   | Private group (NIP-29)    | `privateGroupId` | `kPrivateGroupKind` |
 
-Constants live in `lib/core/notes/note_kinds.dart`. `kind` IS stored; note **roles** (reply/root/reference) are still *derived* from `rootEventId`/`replyToEventId`, never stored. `NoteEntity` is the single domain entity for every surface — there are NO `DmMessageEntity`, `ChannelMessageEntity`, or `PrivateChannelMessageEntity` types. `NoteModel.toDomain()` maps `channelId → sourceChannelId`, `groupId → sourcePrivateGroupId`, and carries `kind`/`conversationId`.
+> `NoteModel.groupId` carries `@Name('channelId')` and `NoteModel.privateGroupId` carries `@Name('groupId')` — both preserve the on-disk Isar schema name from before the app-wide channel→group rename. The Dart field names above (`groupId`/`privateGroupId`) are what the code actually uses today.
+
+Constants live in `lib/core/notes/note_kinds.dart`. `kind` IS stored; note **roles** (reply/root/reference) are still *derived* from `rootEventId`/`replyToEventId`, never stored. `NoteEntity` is the single domain entity for every surface — there are NO `DmMessageEntity`, `GroupMessageEntity`, or `PrivateGroupMessageEntity` types. `NoteModel.toDomain()` maps `groupId → sourceGroupId`, `privateGroupId → sourcePrivateGroupId`, and carries `kind`/`conversationId`.
 
 Because every message is in one collection keyed by a globally-unique `eventId`, cross-surface references resolve in a single indexed lookup: `NoteResolverRepository.resolveById` is one query (it derives the reply transport `NoteSource` from `kind`/container fields), and `FeedRepository` is one `(isSeen, created)`-indexed query (feed-eligible kinds 1/42/9023 only — DMs are excluded). `FollowedNoteModel` and `SavedNoteModel` remain **separate** tables (a follow-pointer and a forever-retained bookmark copy — metadata about notes, not note content). The `NoteRelationModel` edge table is kind-agnostic and unchanged.
 
@@ -210,9 +212,9 @@ Key files — read these directly rather than relying on this doc:
 - `lib/core/usecases/usecase.dart` — `UseCase<T,P>` and `NoParamsUseCase<T>` base classes
 
 **Critical field notes (NoteModel):**
-- `kind` is the unified discriminator; `channelId`/`groupId`/`conversationId` are non-null only for their respective kinds (all indexed).
+- `kind` is the unified discriminator; `groupId`/`privateGroupId`/`conversationId` are non-null only for their respective kinds (all indexed).
 - `rootEventId` and `replyToEventId` are NIP-10 threading fields. Both null = top-level feed note.
-- `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately. For `kind == 42`, `toDomain()` strips `channelId`/`replyToEventId` from `eTagRefs` so NoteCard counts only genuine mentions.
+- `eTagRefs` stores ALL e-tag event IDs including root/reply/mention. `rootEventId`/`replyToEventId` are extracted separately. For `kind == 42`, `toDomain()` strips `groupId`/`replyToEventId` from `eTagRefs` so NoteCard counts only genuine mentions.
 - `embeddedNoteJson` — nullable; the embed-by-value snapshot of the quoted original (the `embeddedNoteJson` tag / MLS envelope key). Source of truth for `quotedNote`, which `toDomain()` decodes directly (no Isar lookup, retention-immune). A blanked `sig` inside it means the embed failed signature verification (renders an "unverified" badge). The cards gate the embed on `quotedNote != null` — there is no separate `quoteEventId` render marker.
 - `attachments` is a `List<MediaAttachment>` embedded directly on the note (one entry per NIP-92 `imeta` tag). `hasMedia` is derived from `attachments.isNotEmpty` in the constructor — never set it manually.
 - `NoteType` enum (`text|image|link|reference`) stored as `EnumType.name` in Isar.
@@ -242,7 +244,7 @@ Build order: `freezed` runs before `isar_generator` (enforced via `pubspec.yaml`
 | `dartz`                        | `^0.10.1`   | Functional Either/Option types                                 |
 | `flutter_bloc`                 | `^8.1.3`    | BLoC state management                                          |
 | `bloc_concurrency`             | `^0.2.4`    | Event transformers (droppable, sequential, restartable)        |
-| `flutter_gemma`                | `^1.1.0`    | 1.1.x asks for `hooks ^2.0.0`; openmls 1.3 still pins `hooks ^1.0.0`, but its pin is conservative — `dependency_overrides: hooks: ^2.0.0` in `pubspec.yaml` lets both coexist (verified: clean build). Drop the override once openmls relaxes upstream. |
+| `flutter_gemma`                | `^1.5.1`    | Needs `hooks ^2.0.0`; openmls 1.3 still pins `hooks ^1.0.0`, but its pin is conservative — `dependency_overrides: hooks: ^2.0.0` in `pubspec.yaml` lets both coexist (verified: clean build). Drop the override once openmls relaxes upstream. `background_downloader` (flutter_gemma's transitive download engine) is separately pinned to `9.5.6` — `9.5.7` fails the Android Kotlin build on this project's legacy Gradle setup. |
 | Dart SDK                       | `>=3.2.4 <4.0.0` | Minimum Dart 3.2.4                                        |
 
 **Isar import**: Always use `package:isar_community/isar.dart`. Never `package:isar/isar.dart`.
@@ -300,7 +302,7 @@ On-device AI assistant using GraphRAG over the user's saved notes.
 - **Nataraj** (`lib/features/shiv/nataraj/`): a swipe deck that synthesizes 2–3 of the user's own notes into one new note, reusing the generation substrate. Cards are a local cache (not Nostr events). Read `lib/features/shiv/nataraj/` directly — single feature folder with engine + bloc + pages + widgets.
 - **Composer-chat** (`lib/features/shiv/composer_chat/`): the shared `UniunComposer`/`ComposerHost` turns into an inline AI chat — tap the avatar → pick a Manas (or "All notes" → "Ask Brahma") → ask. `ComposerChatCubit` streams the answer via `SendChatStreamUseCase`, grounded in the surface's recent messages (`entityContextLines`) + the Manas (`merge`/`searchAll`), with its OWN distinct system instruction. Works in every surface using the composer (thread/channel/DM/private). The Shiv-tab input (`ShivInputComposer`) has the same Manas picker, which scopes `RagPipeline.buildMessage(manasIds:)`.
 - **On-device runner**: `AIModelRunner` lives at `lib/data/datasources/llm/local_llm_runner.dart` (NOT `shiv/services/`). flutter_gemma 1.0; prefers **GPU** with a CPU fallback (foreground + bg Gana + embedder); opens a throwaway `openChat` per turn and re-feeds system + trimmed history + RAG (stateless per turn — see the RAG bullet).
-- **LLM repository abstraction** (`lib/domain/repositories/llm_repository.dart`): unified contract every consumer (`ShivAIBloc`, `NatarajGenerator`, `ComposerChatCubit`, `ExtractKnowledgeUseCase`) goes through — `sendChat` (stream), `generateOneShot`, `openConversation`/`closeConversation`, `preempt`/`resumeBackgroundWork`, `getActive`/`setActiveBackend`, `listAvailableModels`, `setActiveModel`. `LlmRepositoryImpl` dispatches by active `LlmBackendType` (`localGemma` | `openRouter`) read from `LlmPreferencesDataSource`. Two data sources implement `LlmDataSource`: `LocalLlmDataSource` (wraps `AIModelRunner` + `InferenceScheduler` + `AIModelRepository` catalog) and `RemoteLlmDataSource` (OpenRouter via `openrouter_api`, single in-flight extraction cancel-port, no local queue). `InferenceScheduler` (`lib/data/datasources/llm/inference_scheduler.dart`) is the **UNIUN Scheduling Algorithm**: 5 tiers — T0 chat, T1 foreground-of-current-page, T2 extract, T3 deadline (Gana cron past fire time), T4 fair pool (nataraj + gana, CFS-style `vruntime`) — with model-affinity batching to amortize the ~10 s `flutter_gemma` model swap. Embedding lives on a separate `EmbeddingQueue` (`Semaphore(2)`, parallel chip path). Full spec in [`docs/SHIVA/scheduling.md`](docs/SHIVA/scheduling.md). API keys live in `LlmCredentialsDataSource` (FlutterSecureStorage — Android Keystore / iOS Keychain, **never** Isar/SharedPreferences). The background `gana_workmanager.dart` isolate keeps the simpler direct-`FlutterGemma` path — the repository abstraction is for the main isolate (no `getIt` in bg).
+- **LLM repository abstraction** (`lib/domain/repositories/llm_repository.dart`): unified contract every consumer (`ShivAIBloc`, `NatarajGenerator`, `ComposerChatCubit`, `ExtractKnowledgeUseCase`) goes through — `sendChat` (stream), `generateOneShot`, `openConversation`/`closeConversation`, `preempt`/`resumeBackgroundWork`, `getActive`/`setActiveBackend`, `listAvailableModels`, `setActiveModel`. `LlmRepositoryImpl` dispatches by active `LlmBackendType` (`localGemma` | `uniunCloud`) read from `LlmPreferencesDataSource`. Two data sources implement `LlmDataSource`: `LocalLlmDataSource` (wraps `AIModelRunner` + `InferenceScheduler` + `AIModelRepository` catalog) and `RemoteLlmDataSource` (a thin delegate to `UniunRepository.streamChat`/`listAvailableModels` — no HTTP/auth logic of its own; single in-flight extraction cancel-port, no local queue). `UniunRepository`/`UniunRepositoryImpl` is the sole wrapper around the raw `UniunGatewayClient` HTTP client for UNIUN's own inference gateway (`api.uniun.in`) — sign-in is a silent Nostr-keypair challenge/sign, never a pasted API key; it also handles QR-login approval and the gateway-backed onboarding interest roster. `InferenceScheduler` (`lib/data/datasources/llm/inference_scheduler.dart`) is the **UNIUN Scheduling Algorithm**: 5 tiers — T0 chat, T1 foreground-of-current-page, T2 extract, T3 deadline (Gana cron past fire time), T4 fair pool (nataraj + gana, CFS-style `vruntime`) — with model-affinity batching to amortize the ~10 s `flutter_gemma` model swap. Embedding lives on a separate `EmbeddingQueue` (`Semaphore(2)`, parallel chip path). Full spec in [`docs/SHIVA/scheduling.md`](docs/SHIVA/scheduling.md). API keys live in `LlmCredentialsDataSource` (FlutterSecureStorage — Android Keystore / iOS Keychain, **never** Isar/SharedPreferences). The background `gana_workmanager.dart` isolate keeps the simpler direct-`FlutterGemma` path — the repository abstraction is for the main isolate (no `getIt` in bg).
 - **App settings repository** (`lib/domain/repositories/app_settings_repository.dart`): wraps the existing `AppSettingsStore` (SharedPreferences) behind a domain interface. Use cases: `getNatarajCoachSeen`/`set…`, `getAutoDeleteOldNotesDays`/`set…`, `getRecentSyncWindowDays`/`set…`. BLoCs/Cubits read settings via use cases; only `AppSettingsRepositoryImpl` touches the store.
 
 Read these files for the full picture rather than expanding this section:
@@ -313,36 +315,37 @@ Read these files for the full picture rather than expanding this section:
 - `lib/features/shiv/composer_chat/cubit/composer_chat_cubit.dart`
 - `lib/domain/usecases/shiv_usecases.dart`
 
-### Channels — Public Chat (NIP-28)
+### Public Groups — Chat (NIP-28)
 
-- Kind 40 = channel creation. The `event.id` of the Kind 40 event **is** the channel ID forever. Never generate a separate channel ID.
-- Kind 42 = channel message. Tagged with `["e", kind40_id, relay_url, "root"]`.
-- Channel metadata updates via Kind 41 (creator only).
-- Unread tracking via `ChannelReadStateModel` (same `lastReadEventId` pattern as feed).
-- `DrawerBloc` manages channel list and DM list for the app drawer.
-- Join public channel: `JoinChannelPage` + `JoinChannelQrScanPage` — user pastes a channel ID or scans a QR code. QR payload format: `{name, channel_id, relays}` (parsed by `JoinChannelQrParser`).
-- Channel QR card: `UniunChannelQrCard.channel()` — shows channel header (name, about) + QR code using shared `UniunQrView`. Triggered from channel feed app bar.
-- User profile QR card: `UniunQrCard.user()` — minimal dialog with `UniunQrView`. Triggered from drawer.
-- QR scanner: `QrScannerPage` at `AppRoutes.scanQr` — scans any UNIUN QR and routes based on decoded payload kind.
+> Renamed from "Channels" to "Groups" across code, routes, and UI — `GroupModel`/`PrivateGroupModel` carry `@Name('Channel')`/`@Name('PrivateChannel')` only to preserve the on-disk Isar schema name across the rename. If you see "Channel" naming anywhere outside those two `@Name(...)` annotations, it's stale — the live terminology is Group. Full detail: `docs/Messaging/`.
 
-### Private Channels (NIP-28 extension)
+- Kind 40 = group creation. The `event.id` of the Kind 40 event **is** the group id forever (stored as `GroupModel.groupId`). Never generate a separate id.
+- Kind 42 = group message, tagged `["e", groupId, "", "root"]`. Built by `CreateGroupMessageUseCase`.
+- Kind 41 = metadata update (creator only) — handled gateway-side by `Kind41Handler` (`lib/gateway/inbound/handlers/kind41_handler.dart`), which checks `event.pubkey == group.creatorPubKey` before applying.
+- `lib/features/groups/{create,join,feed,thread}/bloc/` — `CreateGroupBloc`, `JoinGroupBloc`, `GroupFeedBloc`.
+- Unread tracking is unified, not per-surface: a single `UnreadNoteModel` row per unread message across every surface (feed/group/DM/private group), discriminated by `kind`. There is no separate `ChannelReadStateModel`.
+- Join by QR or manual ID both feed the same `JoinGroupBloc` text field — QR/deep-link just pre-fills it, there's no QR-only code path.
+- QR payload: `UniunQrPayload` with `UniunQrKind.publicGroup` (`lib/common/qr/uniun_qr_payload.dart`). Generation: `UniunQrCard.publicGroup()`. See `docs/General/QR_AND_DEEP_LINKS.md`.
 
-- Private channels use encrypted group messaging on top of Nostr Kind 42.
-- Group ID is the channel identifier. Admin controls membership.
-- Create: `CreatePrivateChannelPage` + `CreatePrivateChannelBloc`
-- Join: `JoinPrivateChannelPage` + `JoinPrivateChannelBloc` — user pastes a group ID shared by admin.
-- Chat: `PrivateChannelDetailPage` + `PrivateChannelDetailBloc` — message list, send, join request management for admin.
-- Pending join requests shown in admin's app bar with badge count.
-- `PrivateChannelModel`, `PrivateChannelMessageModel`, `PrivateChannelJoinRequestModel` — Isar collections.
-- TODO: Add QR share button to private channel detail page (currently only "Copy Group ID" is in the popup menu). Needs `UniunChannelQrCard` wired to the group ID.
+### Private Groups (NIP-29 + MLS)
+
+> See `docs/Messaging/` for the full Marmot/MLS design — group creation, key packages, Welcome/Commit events, admin approval flow.
+
+- Encrypted group messaging (Kind 9023 application messages) using MLS (`openmls` Dart package) via `MarmotMlsService` (MLS engine, SQLCipher `mls_data.db`) + `MarmotTransportService` (the Nostr-facing orchestrator: create/join/leave/send/approve).
+- Wire kinds: 9021 = join key-package request, 9023 = application message, 9024 = Welcome, 9025 = Commit, 9002 = group metadata.
+- `lib/features/private_groups/{create,join,detail}/bloc/` — `CreatePrivateGroupBloc`, `JoinPrivateGroupBloc`, `PrivateGroupDetailBloc`.
+- `PrivateGroupModel` (`groupId`, `mlsGroupId`, `adminPubkey`, ...) and `PrivateGroupJoinRequestModel` (`eventId`, `senderPubkey`, `keyPackageB64`, `handled: bool` — rows are never deleted, so a re-synced join request can't be double-processed) — Isar collections.
+- Admin approval (`MarmotTransportService.approveJoinRequest`) calls `MarmotMlsService.addMembers`, publishes a Kind 9024 Welcome + Kind 9025 Commit, then marks the request row `handled`.
 
 ### DMs — Direct Messages (NIP-17)
 
+> Encryption/decryption both live in one class: `Nip17EncryptionService` (`lib/domain/services/nip17_encryption_service.dart`). Full detail: `docs/Messaging/`.
+
 - Kind 14 = the actual message content (called a "rumor" — it is UNSIGNED).
-- Three-layer encryption: Kind 14 → NIP-44 encrypt → Kind 13 (seal) → NIP-44 encrypt with ephemeral key → Kind 1059 (gift wrap, published to relay).
-- Only `["p", recipient_pubkey]` is visible on the relay.
-- Subscription filter: `{"kinds": [1059], "#p": ["my_pubkey"]}`.
-- Unread tracking via `DMReadStateModel` (same `lastReadEventId` pattern).
+- Three-layer encryption: Kind 14 → NIP-44 encrypt → Kind 13 (seal, signed) → NIP-44 encrypt with an ephemeral key → Kind 1059 (gift wrap, the only thing published to relay).
+- Inbound Kind 1059 rows land first in `EncryptedDmModel` (a temporary queue), get decrypted by `Nip17EncryptionService.processInboundQueue`, and are written straight into the unified `NoteModel` table (`sig: ''` — deniable, no valid NIP-01 signature) before the queue row is deleted in the same transaction.
+- Only `["p", recipient_pubkey]` is visible on the relay. Subscription filter: `{"kinds": [1059], "#p": ["my_pubkey"]}`.
+- Unread tracking uses the same unified `UnreadNoteModel` as groups/feed — there is no separate `DMReadStateModel`.
 
 ### Followed Notes
 
@@ -367,7 +370,7 @@ UNIUN ships **Kind 1984** reporting (NIP-56) — the App Store / Play Store user
 
 ### Sharing (embed-by-value)
 
-The share button on any NoteCard opens `ShareSheetPage` (modal bottom sheet) with destinations: Feed / Public channel / Private channel / DM, plus "Share via…" external link via `share_plus`. The sheet has an **inline composer** above the destination tiles: the user authors a full note — text + references (NIP-10 `e` mentions, via `ReferencePickerPage`) + images (NIP-92 `imeta`, via `showMediaPickSheet` → `UploadMediaUseCase`) — published alongside the embed. `ShareRepositoryImpl` dispatches each destination to the existing publish use case (`PublishMediaNoteUseCase` / `CreateChannelMessageUseCase` / `SendDmUseCase` / `SendPrivateChannelMessageUsecase`) — no new publish path. The shared original is carried **by value** as an `embeddedNoteJson` snapshot tag (see the bullet under "Note Model"), NOT a `q` pointer. If the shared note is itself a share, the genuine inner original is snapshotted (`quotedNote.quotedNote` stays null). External URL: `https://www.uniun.in/note/<hex>` (App Links + Universal Links, see `lib/core/router/deep_link.dart`).
+The share button on any NoteCard opens `ShareSheetPage` (modal bottom sheet) with destinations: Feed / Public group / Private group / DM, plus "Share via…" external link via `share_plus`. The sheet has an **inline composer** above the destination tiles: the user authors a full note — text + references (NIP-10 `e` mentions, via `ReferencePickerPage`) + images (NIP-92 `imeta`, via `showMediaPickSheet` → `UploadMediaUseCase`) — published alongside the embed. `ShareRepositoryImpl` dispatches each destination to the existing publish use case (`PublishMediaNoteUseCase` / `CreateGroupMessageUseCase` / `SendDmUseCase` / `SendPrivateGroupMessageUsecase`) — no new publish path. The shared original is carried **by value** as an `embeddedNoteJson` snapshot tag (see the bullet under "Note Model"), NOT a `q` pointer. If the shared note is itself a share, the genuine inner original is snapshotted (`quotedNote.quotedNote` stays null). External URL: `https://www.uniun.in/note/<hex>` (App Links + Universal Links, see `lib/core/router/deep_link.dart`).
 
 **Tag-order discipline** (re-read this before reordering tags anywhere): publishers must emit tags in the same order `EventQueueModel.toSerializedRelayMessage` rebuilds, or the broadcast event re-serializes to a different hash and the relay rejects the signature. Canonical order: `e root → e reply → e mention… → p… → t… → h → d → k → embeddedNoteJson → expiration → server… → imeta…` (the old NIP-18 `q` slot is now `embeddedNoteJson`; `k` survives for NIP-37 drafts only). **NIP-56 (Kind 1984)** is the one exception that re-shapes the `e`/`p` rows: when `EventQueueModel.reportType` is set, the e tag becomes `["e", id, "", reportType]` and the p tag becomes `["p", pubkey, reportType]`, with NIP-10 markers suppressed. There is **no** raw-passthrough escape hatch — every kind serializes through the shaped path, including private channels (Kinds 9002–9025, via `h`), drafts (Kind 31234, via `d`/`expiration`), Blossom server lists (Kind 10063, via `server`), and notes with media (Kinds 1 / 42, via `imeta`). Inline docs in `event_queue_model.dart` are authoritative.
 
@@ -379,25 +382,30 @@ The Gateway runs in a separate Dart isolate (`lib/gateway/`). It owns all relay 
 
 ```
 lib/gateway/
-  ├── gateway.dart             — GatewayBootstrap.start() spawns the isolate
+  ├── gateway.dart              — entry point, spawns the isolate
   ├── gateway_init_message.dart — carries isarDirectory path to the isolate
-  ├── central_relay_manager.dart — orchestrates all relay services
-  └── websocket_service.dart   — one WebSocket connection per relay URL
+  ├── orchestrator/             — GatewayOrchestrator + RelayRegistry: coordinates
+  │                               relay connections and drives resubscribes
+  ├── transport/                — the actual per-relay WebSocket connections
+  ├── session/                  — per-relay session state
+  ├── inbound/                  — InboundBus + incoming-event handlers → write to Isar
+  ├── outbound/                 — OutboundPump: the publish queue
+  ├── watchers/                 — IsarWatcherHub: consolidates every watchLazy() subscription
+  └── cleanup/                  — CleanupManager: retention policy enforcement
 ```
 
 **How it works:**
-- `GatewayBootstrap.start()` calls `Isolate.spawn(gatewayEntryPoint, GatewayInitMessage(isarDirectory))`.
 - The isolate opens its own `Isar` instance at the same path — no `SendPort` needed. Isar is the interface.
-- `CentralRelayManager` holds Isar `watchLazy()` subscriptions:
-  - `EventQueueModel` watcher → new queue rows trigger immediate send on all write `WebSocketService`s.
-  - `RelayModel` watcher → syncs `_services` map when relays are added/removed at runtime.
+- `IsarWatcherHub` (`lib/gateway/watchers/isar_watcher_hub.dart`) holds every `watchLazy()` subscription the Gateway needs, replacing what used to be five separate ad-hoc subscriptions on one class:
+  - `EventQueueModel` watcher → new queue rows trigger immediate send via `outbound/`.
+  - `RelayModel` watcher → syncs live relay connections when relays are added/removed at runtime.
   - `FollowedNoteModel` watcher → refreshes `#e` REQ subscriptions.
-  - `_dequeueTimer` (5 min) → purges queue entries older than 30 minutes.
+  - `CleanupManager` (`cleanup/`) purges queue entries and expired notes per the retention table below.
 
-**`WebSocketService` (one per relay):**
+**The per-relay transport (`transport/`):**
 - Persistent connection, exponential backoff reconnect (max 60s).
 - Outbound: cursor-based (`_lastSentQueueId`); one event in-flight, waits for `["OK"]` ACK.
-- Channel events (Kind 40–44) routed to channel-specific relays via `ChannelModel.relays`; temporary services created for channel relays (5 min TTL).
+- Group events (Kind 40–44) routed to group-specific relays via `GroupModel.relays`; temporary services created for those relays (5 min TTL).
 - Inbound: stores received Kind 1 events to `NoteModel` (idempotent). Bumps `FollowedNoteModel.newReferenceCount` when e-tags match a followed note.
 
 **Relay subscriptions the Gateway opens:**
@@ -409,10 +417,15 @@ lib/gateway/
 // Followed note references — refreshed when FollowedNoteModel changes
 {"kinds": [1], "#e": ["followedNoteId1", "followedNoteId2", ...]}
 
-// Channel messages (per SubscriptionRecordEntity)
-{"kinds": [41, 42], "#e": ["channelId"], "limit": 100}
+// Public group messages — see lib/gateway/subscriptions/providers/groups_subscription.dart
+{"kinds": [42], "#e": ["...joined groupIds"], "since": ...}
+// companions: {"kinds": [40], "ids": [...groupIds]}  {"kinds": [41], "#e": [...groupIds]}
 
-// DMs (future — gift wraps addressed to this user)
+// Private group traffic — see private_groups_subscription.dart
+{"kinds": [9023], "#h": ["...joined groupIds"], "since": ...}
+// companions: {"kinds": [9002], "ids": [...groupIds]}  {"kinds": [9021, 9022, 9024, 9025], "#h": [...groupIds]}
+
+// DMs — gift wraps addressed to this user (shipped) — see dms_subscription.dart
 {"kinds": [1059], "#p": ["myPubkey"]}
 ```
 
@@ -460,7 +473,7 @@ UI rebuilds via BlocBuilder<SomeBloc, SomeState>
 - `BrahmaCreateBloc` — note creation
 - `ShivAIBloc` — AI assistant
 - `GraphBloc` — knowledge graph view
-- `DrawerBloc` — channels + DMs drawer
+- `DrawerBloc` — groups + DMs drawer
 - `SavedNotesBloc` — saved notes management
 
 **Event transformer usage (bloc_concurrency):**
@@ -524,7 +537,7 @@ uniun-backend Blossom handler
 
 - **Flutter App (this repo)**: Create/sign notes, render UI from Isar, all user interactions
 - **Gateway sync isolate (`lib/gateway/` — owned by this repo)**: Saves relay events to Isar (inbound handlers write the unified `Note` collection), manages WebSocket connections, EventQueue for offline sync.
-- **uniun-backend/ (Go relay — this repo, `uniun-backend/` folder)**: Khatru-based Nostr relay. Accepts/stores events (BadgerDB primary, MySQL optional mirror). Handles Blossom media uploads via Azure Blob Storage. See `otodo.md` for build roadmap.
+- **uniun-backend/ (Go relay — this repo, `uniun-backend/` folder)**: Khatru-based Nostr relay. Accepts/stores events (BadgerDB primary, MySQL optional mirror). Handles Blossom media uploads via Azure Blob Storage. See `docs/Architecture/BACKEND.md` and `uniun-backend/DEPLOY.md`.
 
 **Rule:** Never add direct HTTP calls from Flutter to the relay. Flutter only talks to Isar. The Gateway handles all relay communication.
 
@@ -824,6 +837,10 @@ lib/
 │   ├── locator.dart               # get_it DI setup
 │   ├── locator.config.dart        # Generated injectable config
 │   ├── snackbar.dart              # Global snackbar helpers
+│   ├── qr/                        # QR widgets (not feature-specific) — see docs/General/QR_AND_DEEP_LINKS.md
+│   │   ├── uniun_qr_card.dart      # UniunQrCard.user()/.publicGroup()/.privateGroup() — no separate "ChannelQrCard" class
+│   │   ├── uniun_qr_payload.dart   # UniunQrPayload + UniunQrKind{user,publicGroup,privateGroup,loginSession}
+│   │   └── uniun_qr_scanner_page.dart # UniunQrScannerPage (MobileScanner)
 │   └── widgets/                   # Truly shared widgets (used by 2+ features)
 │       ├── user_avatar.dart
 │       └── floating_nav.dart
@@ -844,10 +861,7 @@ lib/
 │   │   ├── app_router.dart        # GoRouter declaration + deep-link redirects
 │   │   ├── app_routes.dart        # Named route constants
 │   │   └── deep_link.dart         # Universal-link host/segments + DeepLink.note(...) builder
-│   ├── scan/                      # QR widgets (not feature-specific)
-│   │   ├── uniun_qr_card.dart     # UniunQrCard.user() / UniunChannelQrCard.channel()
-│   │   ├── uniun_qr_payload.dart  # UniunQrPayload encode/decode
-│   │   └── qr_scanner_page.dart   # QrScannerPage (MobileScanner)
+│   ├── (QR lives at lib/common/qr/, not core/ — see below)
 │   ├── theme/
 │   │   └── app_theme.dart         # AppColors, AppTextStyles, ThemeData
 │   └── usecases/
@@ -864,9 +878,9 @@ lib/
 │   │   ├── media/media_cache_model.dart # sha → localPath + downloadedAt (only media side table)
 │   │   ├── profile_model.dart
 │   │   ├── user_key_model.dart
-│   │   ├── channel_model.dart          # Channel metadata only (kind 40/41)
-│   │   ├── private_channel_model.dart  # Private channel metadata only
-│   │   ├── private_channel_join_request_model.dart
+│   │   ├── group_model.dart             # Public group metadata only (kind 40/41). @Name('Channel') on disk (pre-rename)
+│   │   ├── private_group_model.dart     # Private group metadata only. @Name('PrivateChannel') on disk (pre-rename)
+│   │   ├── private_group_join_request_model.dart
 │   │   ├── dm/dm_conversation_model.dart
 │   │   ├── dm/encrypted_dm_model.dart  # Inbound gift-wrap queue (decrypts into Note)
 │   │   ├── shiv_conversation_model.dart
@@ -936,16 +950,15 @@ lib/
     │   ├── bloc/                  # ThreadBloc
     │   ├── pages/                 # ThreadPage
     │   └── widgets/
-    ├── channels/                  # Public channels (NIP-28)
-    │   ├── create/                # CreateChannelBloc + CreateChannelPage
-    │   ├── feed/                  # ChannelFeedBloc + ChannelFeedPage + ChannelMessageComposer
-    │   ├── thread/                # ChannelThreadBloc + ChannelThreadPage
-    │   └── join/                  # JoinChannelBloc + JoinChannelPage + JoinChannelQrScanPage
-    │                              #   join_channel_qr_parser.dart — payload: {name, channel_id, relays}
-    ├── private_channels/          # Private channels
-    │   ├── create/                # CreatePrivateChannelBloc + page
-    │   ├── join/                  # JoinPrivateChannelBloc + page
-    │   └── detail/                # PrivateChannelDetailBloc + page
+    ├── groups/                    # Public groups (NIP-28) — renamed from "channels"
+    │   ├── create/                # CreateGroupBloc + page
+    │   ├── feed/                  # GroupFeedBloc + page + composer
+    │   ├── thread/                # thread within a group
+    │   └── join/                  # JoinGroupBloc + page — QR and manual ID share one text field
+    ├── private_groups/            # Private groups (NIP-29 + MLS) — renamed from "private_channels"
+    │   ├── create/                # CreatePrivateGroupBloc + page
+    │   ├── join/                  # JoinPrivateGroupBloc + page
+    │   └── detail/                # PrivateGroupDetailBloc + page
     ├── dm/                        # Direct messages (NIP-17, UI pending)
     │   ├── create/                # CreateDmBloc + CreateDmPage
     │   └── chat/                  # DmChatPage
@@ -964,17 +977,18 @@ splash, welcome, importIdentity, yourIdentityKeys, aboutYou
 home, settings, editProfile, privacyPolicy
 thread, followedNoteDetail, noteDetail
 aiModelSelection, graph, brahmaCreate
-channelEntry, createChannel, joinChannel, channelDetail
-privateChannelEntry, createPrivateChannel, joinPrivateChannel, privateChannelDetail
+groupEntry, createGroup, joinGroup, groupDetail
+privateGroupEntry, createPrivateGroup, joinPrivateGroup, privateGroupDetail
 savedNotes, createDm, chatDm
 scanQr, userProfile
 ```
 
-Deep-linkable (Universal Links / App Links — host `www.uniun.in`):
-- `/channel/<channelId>` → `channelDetail`
-- `/private/<groupId>` → `privateChannelDetail`
+Deep-linkable (Universal Links / App Links — host `www.uniun.in`, `lib/core/router/deep_link.dart`):
+- `/group/<groupId>` → `groupDetail` (legacy `/channel/<groupId>` still 301s to this — kept for old links in circulation)
+- `/private/<groupId>` → `privateGroupDetail`
 - `/user/<npub|hex>` → anonymous route (in-app uses `userProfile`)
 - `/note/<hex>` → `noteDetail` (used by share)
+- Every external deep link carries `?dl=1`; the router's `_deepLinkAuthGate()` checks for an active identity and redirects to `/welcome` if none exists. In-app navigation (no `dl=1`) skips this gate entirely.
 
 External links carry `?dl=1`; redirects gate auth/relay-ensure via `_deepLinkAuthGate()`. In-app navigation skips those checks. Path constants live in `lib/core/router/deep_link.dart` (single source of truth — manifest + AASA + Dart all read the same segments).
 

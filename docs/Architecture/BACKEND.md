@@ -99,8 +99,8 @@ Flutter App (UI isolate)
   └─ Isar (shared on-disk file)
         ↑ written by
 Gateway isolate (lib/gateway/)
-  └─ CentralRelayManager
-        └─ WebSocketService(s)
+  └─ orchestrator/ (coordinates relay connections + resubscribes)
+        └─ transport/ (one WebSocket connection per relay)
               └─ WebSocket connection → ws://localhost:8080 (dev)
                                       → wss://relay.uniun.app (prod)
 ```

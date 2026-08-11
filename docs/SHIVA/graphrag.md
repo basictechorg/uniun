@@ -1,5 +1,7 @@
 # GraphRAG — Graph-based Retrieval Augmented Generation
 
+> ⚠️ **Theory and rationale, not a description of what's built.** Most of this document (Microsoft's research, generic Neo4j/LangChain/LlamaIndex examples, the SQLite schema sketch in §7) is background on GraphRAG as a general technique — it does not describe UNIUN's actual implementation. UNIUN doesn't use SQLite, community detection, or LLM-based entity extraction for its graph; the real implementation is Isar-based (`GraphNodeModel`/`GraphEdgeModel`/`MemoryNodeModel`, vector-seed → 1-hop BFS expansion), documented in `docs/SHIVA/SHIV_AI.md`'s RAG Pipeline section. Read this doc for *why* graph-augmented retrieval is worth doing at all; read `SHIV_AI.md` for what actually runs on-device.
+
 This document covers GraphRAG deeply: what it is, how it works, why it is better than
 standard vector RAG for certain queries, Microsoft's research findings, and how to
 implement a lightweight version on mobile using the knowledge graph that UNIUN already

@@ -2,12 +2,12 @@
 
 Shiv is UNIUN's AI assistant. It reasons over the user's saved notes via vector + graph RAG, and runs against **two interchangeable backends** behind one repository:
 
-- **Local** — `flutter_gemma 0.16.5` on-device inference (default, fully offline).
-- **Cloud** — OpenRouter via `openrouter_api 1.0.2` (one key, every major frontier model).
+- **Local** — `flutter_gemma 1.5.1` on-device inference (default, fully offline).
+- **Cloud (UNIUN Cloud)** — UNIUN's own inference gateway (`api.uniun.in`), authenticated with the user's own Nostr keypair — no separate password/account. See `UniunRepository`/`UniunRepositoryImpl` below; this replaced an earlier direct-OpenRouter integration entirely (`openrouter_api` is no longer a dependency).
 
 The user picks the backend in Settings. The chat code, RAG pipeline, knowledge extractor and BLoC have **no idea which backend is active** — they call the same `LlmRepository` interface.
 
-Resources: <https://pub.dev/packages/flutter_gemma> · <https://pub.dev/documentation/flutter_gemma/latest/> · <https://openrouter.ai/docs>
+Resources: <https://pub.dev/packages/flutter_gemma> · <https://pub.dev/documentation/flutter_gemma/latest/>
 
 ---
 
@@ -53,17 +53,23 @@ LlmRepositoryImpl                              ← Data layer dispatcher
 LocalLlmDataSource                            RemoteLlmDataSource
         │                                              │
         ▼                                              ▼
-AIModelRunner ▶ openChat(modelType…)         OpenRouterInference
-        │  InferenceScheduler (5-tier — see              │  Dio + SSE stream
-        │  docs/SHIVA/scheduling.md)                     │
-        ▼                                              ▼
-flutter_gemma 0.16.5 (LiteRT-LM / MediaPipe)  openrouter.ai REST API
+AIModelRunner ▶ openChat(modelType…)         UniunRepository.streamChat()
+        │  InferenceScheduler (5-tier — see              │
+        │  docs/SHIVA/scheduling.md)                     ▼
+        ▼                                     UniunRepositoryImpl
+flutter_gemma 1.5.1 (LiteRT-LM / MediaPipe)        (the ONLY class that
+                                                 imports UniunGatewayClient)
+                                                        │
+                                                        ▼
+                                              UniunGatewayClient ──HTTP──►
+                                                        api.uniun.in (UNIUN Cloud)
 ```
 
-Two things to notice:
+Three things to notice:
 
 1. **One contract, two paths.** `LocalLlmDataSource` and `RemoteLlmDataSource` both implement `LlmDataSource`. The repository picks based on `LlmPreferencesDataSource.activeBackend`.
 2. **The runner is internal.** `AIModelRunner` is no longer a service — it's an implementation detail of `LocalLlmDataSource`, sitting at `lib/data/datasources/llm/local_llm_runner.dart`. Phase 1 of the v2 refactor moved it out of `lib/features/shiv/services/` so the layer boundary is honest.
+3. **`RemoteLlmDataSource` is a thin delegate, not a raw HTTP client.** All auth (silent Nostr-keypair login, key decryption, 401-refresh-and-retry), catalog filtering, and chat streaming live in `UniunRepositoryImpl` — `RemoteLlmDataSource` just forwards to `UniunRepository.streamChat`/`listAvailableModels`. `UniunGatewayClient` (the raw HTTP client) is never imported anywhere else in the app; `UniunRepository` also handles QR-login approval (`approveQrLogin`, scanning a browser's login QR from an already-signed-in phone) and the onboarding interest-picker roster (`getOnboardingInterests`) — both ride the same gateway, so they live on this same repository rather than a separate one.
 
 ---
 
@@ -90,7 +96,7 @@ Strict downward calls. Presentation never imports `flutter_gemma`. Data never im
 
 ```
 lib/domain/entities/llm/
-├── llm_backend_type.dart    enum { localGemma, openRouter }
+├── llm_backend_type.dart    enum { localGemma, uniunCloud }
 └── llm_model_info.dart      @freezed { id, displayName, backend, contextWindow, prices… }
 ```
 
@@ -98,11 +104,18 @@ lib/domain/entities/llm/
 
 ```
 lib/domain/repositories/
-├── llm_repository.dart              session lifecycle + sendChat + generateOneShot
-│                                    + preempt/resume + backend & model selection
-├── llm_credentials_repository.dart  save/clear/get OpenRouter key
-└── ai_model_repository.dart         (existing) local model catalog + download
-                                     ←— kept as-is; manages files on disk, not inference
+├── llm_repository.dart      session lifecycle + sendChat + generateOneShot
+│                            + preempt/resume + backend & model selection
+├── uniun_repository.dart    the ONLY interface for talking to UNIUN Cloud —
+│                            connect/disconnect/isConnected/accountStatus/
+│                            listAvailableModels/streamChat/approveQrLogin/
+│                            getOnboardingInterests. No pasted API key —
+│                            connect() silently signs in with the user's
+│                            own Nostr keypair.
+└── ai_model_repository.dart local model catalog + download + orphaned-file
+                             cleanup (getOrphanedModelFilesSizeBytes/
+                             cleanupOrphanedModelFiles) — manages files on
+                             disk, not inference.
 ```
 
 ### Domain — use cases (grouped — `llm_usecases.dart`)
@@ -117,9 +130,9 @@ lib/domain/repositories/
 | `PreemptBackgroundWorkUseCase` | pauses low-priority lane (chat is incoming) |
 | `ResumeBackgroundWorkUseCase` | resumes low-priority lane |
 | `GetActiveLlmBackendUseCase` / `SetActiveLlmBackendUseCase` | local ↔ cloud switch |
-| `ListAvailableLlmModelsUseCase` | local: downloaded models · cloud: OpenRouter catalogue |
+| `ListAvailableLlmModelsUseCase` | local: downloaded models · cloud: UNIUN Cloud catalogue, filtered to what the account's plan/credit balance can use |
 | `GetActiveLlmModelUseCase` / `SetActiveLlmModelUseCase` | which model is active on the active backend |
-| `SaveOpenRouterKeyUseCase` / `ClearOpenRouterKeyUseCase` / `HasOpenRouterKeyUseCase` | credential mgmt |
+| `ConnectUniunCloudUseCase` / `DisconnectUniunCloudUseCase` / `IsUniunCloudConnectedUseCase` / `GetUniunCloudStatusUseCase` | UNIUN Cloud connection lifecycle — no key to paste, `connect()` signs in silently |
 
 ### Core primitives
 
@@ -132,8 +145,10 @@ lib/core/llm/
 
 ```
 lib/data/repositories/
-├── llm_repository_impl.dart            dispatches per active backend
-└── llm_credentials_repository_impl.dart  thin wrapper over secure storage
+├── llm_repository_impl.dart      dispatches per active backend
+└── uniun_repository_impl.dart    the ONLY class that imports UniunGatewayClient —
+                                  composes signing/decryption/secure-storage with
+                                  catalog filtering + chat streaming + 401-retry
 ```
 
 ### Data — data sources (the heart of the engine routing)
@@ -145,7 +160,7 @@ lib/data/datasources/llm/
 ├── local_llm_data_source.dart       wraps AIModelRunner + InferenceScheduler
 │                                    listAvailableModels → local catalog (downloaded only)
 │
-├── local_llm_runner.dart            opens InferenceChat via flutter_gemma 0.16
+├── local_llm_runner.dart            opens InferenceChat via flutter_gemma 1.5.1
 │                                    passes modelType + isThinking per active model
 │                                    holds _activeExtraction → safe preemption
 │
@@ -159,12 +174,13 @@ lib/data/datasources/llm/
 ├── local_model_params.dart          AIModelId → (ModelType, isThinking) lookup
 │                                    keeps chat template aligned to the model file
 │
-├── remote_llm_data_source.dart      OpenRouterInference wrapper
-│                                    Stream<String> from streamCompletion()
-│                                    preempts active extraction sub on chat send
+├── remote_llm_data_source.dart      thin delegate to UniunRepository.streamChat/
+│                                    listAvailableModels — no HTTP/auth logic of
+│                                    its own; preempts active extraction on chat send
 │
-├── llm_credentials_data_source.dart flutter_secure_storage for the OpenRouter key
-│                                    (same Keystore/Keychain pattern as nsec)
+├── llm_credentials_data_source.dart flutter_secure_storage for the UNIUN Cloud
+│                                    `uk_` key (same Keystore/Keychain pattern as
+│                                    nsec) — read/written only by UniunRepositoryImpl
 │
 └── llm_preferences_data_source.dart SharedPreferences: activeBackend + activeCloudModelId
 ```
@@ -201,7 +217,8 @@ lib/features/settings/
 ├── pages/settings_page.dart                Account · Identity · AI · Cloud AI · Storage · …
 └── widgets/
     ├── ai_card.dart                        opens local model picker (AIModelSelectionPage)
-    └── cloud_provider_card.dart            paste OpenRouter key, switch backend, disconnect
+    └── cloud_provider_card.dart            connect/disconnect UNIUN Cloud (silent
+                                             keypair sign-in, no pasted key), switch backend
 ```
 
 ---
@@ -236,17 +253,20 @@ LlmRepositoryImpl._active  ← reads prefs.activeBackend
    │                     │
    │                     ▼  AIModelRunner.sendAndStream
    │                     │     • _activeExtraction?.stopGeneration()   safe per-session preempt
-   │                     │     • _queue.runHigh<void>(…)
+   │                     │     • InferenceScheduler.run(kind: LlmTaskKind.chat, …)  ← T0, always preempts
    │                     │     • model.openChat(modelType, isThinking) ← from LocalModelParams
    │                     │     • chat.addQueryChunk(Message.text(prompt))
    │                     │     • generateChatResponseAsync() → yields TextResponse tokens
    │                     ▼  Stream<String>
    │
-   └─ openRouter  ─►  RemoteLlmDataSource.sendChat
+   └─ uniunCloud  ─►  RemoteLlmDataSource.sendChat
                          │
                          │  cancel any in-flight _extractionSub
-                         │  OpenRouterInference.streamCompletion(modelId, messages)
-                         ▼  map(r → r.choices.first.content) → Stream<String>
+                         │  UniunRepository.streamChat(modelId, messages)
+                         │     → UniunRepositoryImpl resolves/refreshes the uk_ key,
+                         │       calls UniunGatewayClient.streamChatCompletion (SSE),
+                         │       retries once on a stale-key 401
+                         ▼  Stream<String>
 ```
 
 The stream returns to `_onTokenReceived` (strips leading whitespace, appends to `streamingContent`). `_onStreamDone` persists the final asst message and strips any `<think>…</think>` blocks.
@@ -302,7 +322,7 @@ userQuestion: "what did i write about the saga pattern?"
    RagMessage { userMessage, contextCount = #notes + #edges + #memories }
 ```
 
-The exact same `RagMessage` is sent to whichever LLM is active — local Gemma or cloud OpenRouter. RAG is backend-agnostic. The embedding always runs on-device, so even cloud chat doesn't leak the note bodies it didn't pull into context.
+The exact same `RagMessage` is sent to whichever LLM is active — local Gemma or UNIUN Cloud. RAG is backend-agnostic. The embedding always runs on-device, so even cloud chat doesn't leak the note bodies it didn't pull into context.
 
 Pipeline source: `lib/features/shiv/rag/pipeline/rag_pipeline.dart` — `buildMessage` (per turn) + `buildSystemInstruction` (once at conversation open).
 
@@ -324,19 +344,19 @@ EmbedAndStoreNoteUseCase  ─►  ExtractKnowledgeUseCase
 GenerateOneShotUseCase  →  LlmRepository.generateOneShot
    │
    ├─ local  ─►  AIModelRunner.generateOneShot
-   │                _queue.runLow<>(…)         ← yields to chat
+   │                InferenceScheduler.run(kind: LlmTaskKind.extract, …)  ← T2, yields to chat
    │                model.openChat(temp=0.2)
    │                _activeExtraction = oneShot  ← held so chat can stopGeneration()
    │                → buffer concatenated tokens → String?
    │
    └─ cloud  ─►  RemoteLlmDataSource.generateOneShot
-                    streamCompletion → buffer → String?
+                    UniunRepository.streamChat → buffer → String?
                     _extractionSub held for preemption
 
 Parsed JSON → graph nodes + edges + memory upserted in Isar.
 ```
 
-If chat preempts during local extraction: `stopGeneration()` cancels the extraction session (safe in 0.16 — `openChat` gives independent native sessions). Extraction returns `null`. The pending row in `PendingExtractionRepository` survives, and `DrainPendingExtractionsUseCase` retries it when the user leaves the Shiv tab.
+If chat preempts during local extraction: `stopGeneration()` cancels the extraction session (`openChat` gives independent native sessions). Extraction returns `null`. The pending row in `PendingExtractionRepository` survives, and `DrainPendingExtractionsUseCase` retries it when the user leaves the Shiv tab.
 
 ### Enter / leave Shiv tab
 
@@ -354,28 +374,29 @@ PreemptBackgroundWorkUseCase  →  LlmRepository.preemptBackgroundWork
 
 Leaving the tab does the inverse plus `DrainPendingExtractionsUseCase.call()` to replay any preempted extractions.
 
-### Connect cloud provider
+### Connect UNIUN Cloud — no key to paste
 
 ```
-SettingsPage → CloudProviderCard → "Connect API key"
-   │  user pastes sk-or-…
+SettingsPage → CloudProviderCard → "Connect"
    ▼
-SaveOpenRouterKeyUseCase  →  UniunRepositoryImpl
-   │  writes secure storage; invalidates cached OpenRouterInference
+ConnectUniunCloudUseCase  →  UniunRepositoryImpl.connect()
+   │  challenge → sign with the user's own Nostr privkey → login
+   │  decrypts (or mints, if this account has zero active keys) a `uk_` gateway key
+   │  stores it in flutter_secure_storage
    ▼
-ListAvailableLlmModelsUseCase  ←  validates the key by calling listModels()
-   │
-   ├─ ok   → card flips to Connected
-   └─ fail → ClearOpenRouterKeyUseCase + snackbar
+   ├─ ok   → card flips to Connected, ListAvailableLlmModelsUseCase loads the catalog
+   └─ fail → snackbar (e.g. no network) — nothing persisted
 ```
+
+QR-login (approving a browser sign-in from an already-connected phone) is the same underlying identity, via `UniunRepository.approveQrLogin(sessionId)` — see `lib/common/qr/uniun_qr_scanner_page.dart`.
 
 ### Switch backend
 
 ```
-CloudProviderCard toggle (or model picker sheet — not yet wired there)
+CloudProviderCard toggle (or model picker sheet)
    ▼
-SetActiveLlmBackendUseCase  →  LlmRepository.setActiveBackend(openRouter)
-   │  refuses if no API key configured → returns Failure
+SetActiveLlmBackendUseCase  →  LlmRepository.setActiveBackend(uniunCloud)
+   │  calls UniunRepository.connect() first if not already connected
    ▼
 LlmPreferencesDataSource.setActiveBackend
    │  (next call to LlmRepositoryImpl._active resolves to RemoteLlmDataSource)
@@ -386,7 +407,8 @@ LlmPreferencesDataSource.setActiveBackend
 ```
 ShivInputComposer + icon → ShivModelPickerSheet
    ▼
-ListAvailableLlmModelsUseCase   (local: downloaded · cloud: OpenRouter catalogue)
+ListAvailableLlmModelsUseCase   (local: downloaded · cloud: UNIUN Cloud catalogue,
+                                 filtered to what the account's plan/credit covers)
    │
    ▼ user taps a row
 SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
@@ -394,20 +416,22 @@ SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
    └─ cloud → LlmPreferencesDataSource.setActiveCloudModelId(id)
 ```
 
+Model picker rows show `displayName` only — the raw catalog `id` (the gateway's internal routing string) is never rendered to the user.
+
 ---
 
 ## Backend Switching — Local ↔ Cloud
 
-| Concern | Local Gemma | Cloud OpenRouter |
+| Concern | Local Gemma | UNIUN Cloud |
 |---|---|---|
-| Trigger | Default; user has a model downloaded | User pastes API key + flips toggle |
-| Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | OpenRouter REST `streamCompletion` (SSE) |
+| Trigger | Default; user has a model downloaded | User taps Connect — silent Nostr-keypair sign-in, no password/key paste |
+| Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | `UniunGatewayClient.streamChatCompletion` — OpenAI-compatible SSE |
 | Session model | Per-turn `openChat` with `modelType` from `LocalModelParams` | Stateless — full prompt every call |
-| Cancellation | per-session `stopGeneration()` (safe since 0.16; KV-cache bleed between sequential `openChat`s fixed in 0.16.5) | cancel the Dio `StreamSubscription` |
+| Cancellation | per-session `stopGeneration()` | cancel the underlying stream subscription |
 | Concurrency | accelerator-mutexed → `InferenceScheduler` (5 tiers, CFS fair pool, EDF deadline, model affinity — see [`scheduling.md`](scheduling.md)) | network-concurrent — no queue |
 | Preemption of extraction | `_activeExtraction.stopGeneration()` driven by the scheduler when a higher-tier job arrives | cancel `_extractionSub` |
-| Models exposed | downloaded local files (via `AIModelRepository`) | live `OpenRouter.listModels()` |
-| Credentials | none | `flutter_secure_storage` (Android Keystore / iOS Keychain) |
+| Models exposed | downloaded local files (via `AIModelRepository`) | UNIUN Cloud catalog, filtered by plan/credit balance |
+| Credentials | none | `flutter_secure_storage` (Android Keystore / iOS Keychain) holds the gateway-minted `uk_` key — never a user-supplied API key |
 
 ### Chat template safety (a v2 fix worth highlighting)
 
@@ -426,7 +450,7 @@ The same mapping exists in `AIModelRepositoryImpl._gemmaParams` for the *install
 
 ### Logging in release (privacy)
 
-`flutter_gemma` 0.16.5 gates every internal log on `kDebugMode`. Release builds are silent regardless of level — no prompt, output, or conversation history can reach `logcat` / `syslog` even if a user (or attacker) tries to enable verbose mode.
+`flutter_gemma` gates every internal log on `kDebugMode`. Release builds are silent regardless of level — no prompt, output, or conversation history can reach `logcat` / `syslog` even if a user (or attacker) tries to enable verbose mode.
 
 `lib/main.dart` still sets the level explicitly so the *intent* is on the page:
 
@@ -499,12 +523,12 @@ See the [RAG per turn](#rag-per-turn--what-happens-inside-ragpipelinebuildmessag
 | DeepSeek R1 1.5B | 1,024 | 3 | 1 | 1,280 |
 | Gemma 4 E2B | 4,096 | 5 | 2 | 4,096 |
 | Gemma 4 E4B | 8,192 | 10 | 2 | 8,192 |
-| **Cloud (OpenRouter)** | **16,384** | **15** | **2** | — |
+| **Cloud (UNIUN Cloud)** | **16,384** | **15** | **2** | — |
 | no active model | 2,048 | 3 | 1 | — |
 
 Engine `maxTokens` is the hard KV-cache size baked into the local model file (e.g. `deepseek_q8_ekv1280.task` = 1,280-token cache; opening larger aborts at `CalculatorGraph::Run`). RAG budget for DeepSeek therefore reserves ~256 tokens for the generated response.
 
-Cloud's 16k cap is intentional — most cloud models expose 32k–1M context but pulling too much makes answers noisier *and* costs more. `openrouter_api 1.0.2` doesn't expose `LlmModel.contextWindow` yet; when it does, `_cloud()` will read it and adapt per-model.
+Cloud's 16k cap is intentional — most cloud models expose 32k–1M context but pulling too much makes answers noisier *and* costs more. The gateway's `LlmModelInfo.contextWindow` isn't populated per-model yet; when it is, `_cloud()` will read it and adapt per-model.
 
 Section split inside any budget: query 10%, top notes 35%, graph relations 20%, summaries 15%. Trimming order (drops lowest first): summaries → extra seed notes → graph relations.
 
@@ -578,7 +602,7 @@ class AIModelSelectionModel {
 // lib/data/models/graph_edge_model.dart     (extracted relation, subject → verb → object)
 ```
 
-The active backend (`localGemma` / `openRouter`) and the active cloud model id live in `SharedPreferences` (via `LlmPreferencesDataSource`), not in Isar.
+The active backend (`localGemma` / `uniunCloud`) and the active cloud model id live in `SharedPreferences` (via `LlmPreferencesDataSource`), not in Isar.
 
 API keys live **only** in `flutter_secure_storage` (via `LlmCredentialsDataSource`), never in Isar or SharedPreferences.
 
@@ -604,7 +628,7 @@ Ganas are user-defined AI agents that share the **same inference path** as Shiv 
 ### Integration in three diagrams
 
 **1. Sharing the model — no second load.**
-flutter_gemma's `model.openChat()` lets one loaded model serve multiple independent sessions. Chat opens its session per turn; Gana opens its session per run. Both flow through the same `LocalInferenceQueue` with chat on `runHigh` (preempts) and Gana on `runLow` (yields).
+flutter_gemma's `model.openChat()` lets one loaded model serve multiple independent sessions. Chat opens its session per turn; Gana opens its session per run. Both flow through the same `InferenceScheduler` — chat submits as `LlmTaskKind.chat` (T0, always preempts), Gana submits as `LlmTaskKind.gana` (T4 fair pool, CFS-style `vruntime` shared with Nataraj). Full tier detail: `docs/SHIVA/scheduling.md`.
 
 ```
                   AIModelRunner (existing)
@@ -612,7 +636,7 @@ flutter_gemma's `model.openChat()` lets one loaded model serve multiple independ
               ┌──────────┴──────────┐
               ▼                     ▼
        chat.openChat            Gana.openChat
-       (per turn, runHigh)      (per run, runLow)
+       (per turn, T0 chat)      (per run, T4 fair pool)
               │                     │
               └─────────┬───────────┘
                         ▼
@@ -676,10 +700,10 @@ See `docs/SHIVA/Ganas.md` §7 for the UI-blocking analysis ("does the bridge slo
 
 | Feature | Status | Why |
 |---|---|---|
-| Direct provider keys (Anthropic, OpenAI native) | Future | OpenRouter covers them all with one key; we'd add `llm_dart` as a second remote data source if/when requested. |
-| Image / vision input on cloud | Future | OpenRouter supports it; UI not wired. |
-| Function calling / tool use | Future | Gemma 4 + Qwen3 + most OpenRouter models support it. |
-| Cost / usage display in chat | Future | OpenRouter returns usage per response. |
+| Direct provider keys (Anthropic, OpenAI native) | Not applicable | UNIUN Cloud is the only remote backend — model choice is a gateway-side catalog decision, not a per-provider key the app manages. |
+| Image / vision input on cloud | Future | Depends on the gateway's model catalog exposing vision-capable models; UI not wired either way. |
+| Function calling / tool use | Future | Gemma 4 + Qwen3 support it locally; not yet wired end-to-end. |
+| Cost / usage display in chat | Future | `UniunRepository.accountStatus()` already exposes plan + credit balance; not yet surfaced inline in the chat UI. |
 | Persistent on-device chat sessions | Future | Today we open a fresh `openChat` per turn for clean history. Long-lived sessions would save the per-turn prefill cost (84s on slow devices) but complicate branch switching. Phase 2 of v2 enabled it structurally; not yet enabled in code. |
 | Hybrid keyword + vector search (BM25) | Future | Vector only today via ToStore. |
 | Re-ranking with cross-encoder | Future | Top-K cosine only today. |

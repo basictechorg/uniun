@@ -131,9 +131,9 @@ it looks at the Brahman you already have and helps you forge connections latent 
   in the recent messages plus a Manas, and turn the answer into a note.
 
 **On-device models you can choose:** Qwen3 0.6B, DeepSeek R1 1.5B, Gemma 4 E2B, Gemma 4 E4B —
-auto-recommended to your phone's RAM. An optional OpenRouter cloud backend exists for those who want
-it, but the default and the philosophy are local: your thoughts never have to leave your device to
-be reasoned over.
+auto-recommended to your phone's RAM. An optional UNIUN Cloud backend exists for those who want
+it (sign in with your own Nostr key, no separate account), but the default and the philosophy are
+local: your thoughts never have to leave your device to be reasoned over.
 
 ## Under the hood
 
@@ -291,7 +291,7 @@ coverage.
 | **Android** | ✅ Supported | Min SDK 21. GPU inference via OpenCL. QR scan, image / video / file picker, on-device AI all work. |
 | **iOS** | ✅ Supported | iOS 13+. Metal-backed inference. Universal Links wired to `www.uniun.in`. |
 | **macOS** | ✅ Supported | Tested locally. Isar, Gateway sync, and on-device AI all work. |
-| **Windows** | ✅ Supported | Tested locally. NPU dispatch available on Intel Lunar/Panther Lake via `flutter_gemma` 0.16.x. |
+| **Windows** | ✅ Supported | Tested locally. NPU dispatch available on Intel Lunar/Panther Lake via `flutter_gemma`. Note: discrete-GPU support on Windows is currently broken upstream in the `flutter_gemma_litertlm` engine (1.2.0+) — CPU/NPU are the working fallback there. |
 
 All four platforms compile from the same `lib/` codebase; there is no platform fork.
 

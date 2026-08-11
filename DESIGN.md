@@ -19,7 +19,7 @@ cd UNIUNDesignSystem && python3 -m http.server 8765
 
 ## 0. Product context (one paragraph)
 
-UNIUN is a decentralized, offline-first social **and** knowledge network on Nostr (Flutter, iOS + Android, light theme only). One primitive — the **Note** (a Nostr Kind 1 event) — powers a feed (**Vishnu**), a knowledge-graph composer (**Brahma**), an on-device AI (**Shiv**), plus public **Channels**, MLS-encrypted **private channels**, and **DMs**. A **Manas** is a user-named subset of notes used to scope Shiv. Brand voice: calm, technical, sovereign (closer to Signal / Linear / Obsidian than to Twitter). **Notes are forever — there is no delete anywhere.**
+UNIUN is a decentralized, offline-first social **and** knowledge network on Nostr (Flutter, iOS + Android, light + dark theme). One primitive — the **Note** (a Nostr Kind 1 event) — powers a feed (**Vishnu**), a knowledge-graph composer (**Brahma**), an on-device AI (**Shiv**), plus public **Channels**, MLS-encrypted **private channels**, and **DMs**. A **Manas** is a user-named subset of notes used to scope Shiv. Brand voice: calm, technical, sovereign (closer to Signal / Linear / Obsidian than to Twitter). **Notes are forever — there is no delete anywhere.**
 
 ---
 

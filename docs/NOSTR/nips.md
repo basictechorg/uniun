@@ -10,8 +10,19 @@ UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented o
 
 **How UNIUN uses it:**
 - Every note, profile, channel, and message is a `NostrEvent` (id, pubkey, kind, tags, content, created_at, sig).
-- `WebSocketService` speaks raw NIP-01: sends `["REQ", subId, filter]` to subscribe and `["EVENT", {...}]` to publish.
-- Gateway isolate handles `["OK"]` ACK responses to advance the outbound queue cursor.
+- The Gateway isolate (`lib/gateway/`) speaks raw NIP-01 over each relay's WebSocket: sends `["REQ", subId, filter]` to subscribe and `["EVENT", {...}]` to publish.
+- `["OK"]` ACK responses advance the outbound queue cursor (`lib/gateway/outbound/outbound_pump.dart`).
+
+**The relay conversation, concretely:**
+```
+Client → Relay: ["REQ", "sub_id", {filter}]     ← subscribe
+Relay  → Client: ["EVENT", "sub_id", {event}]   ← events matching filter
+Relay  → Client: ["EOSE", "sub_id"]             ← end of stored events, live updates start
+Client → Relay: ["EVENT", {event}]              ← publish an event
+Relay  → Client: ["OK", "event_id", true, ""]   ← publish confirmed
+Client → Relay: ["CLOSE", "sub_id"]             ← unsubscribe
+```
+Multiple filters in one `REQ` are ORed together; fields within one filter are ANDed.
 
 **Event format:**
 ```json
@@ -50,46 +61,57 @@ UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented o
 
 ---
 
-## NIP-28 — Public Channels
+## NIP-28 — Public Groups
 
-**What it is:** Defines public group chat via three event kinds: Kind 40 (channel creation), Kind 41 (channel metadata update), Kind 42 (channel message).
+**What it is:** Defines public group chat via three event kinds: Kind 40 (creation), Kind 41 (metadata update), Kind 42 (message). The NIP itself calls this "public chat channels" — UNIUN's own code, routes, and UI all say "Group."
+
+**How UNIUN uses it — the app calls this feature "Groups," not "Channels":**
+- `CreateGroupUseCase` builds and signs a Kind 40 event. The Kind 40 event's `id` **is** the group id — permanently. Never generate a separate id.
+- Group metadata (name, about, picture) is JSON-encoded in the Kind 40 `content` field.
+- Kind 41 = metadata update, applied gateway-side by `Kind41Handler` only if `event.pubkey == group.creatorPubKey` and the event is newer than the stored `updatedAt`.
+- Kind 42 messages tag `["e", groupId, "", "root"]`.
+- Each joined group is a `GroupModel` row in Isar (`@Name('Channel')` on disk — a preserved pre-rename schema name, not a live class name). The Gateway routes Kind 40-42 events to group-specific relays stored in `GroupModel.relays` (temporary `WebSocketService` instances, 5 min TTL).
+- Private groups exist too, via NIP-29 (Kind 9021-9025 family) + MLS encryption — not covered in this file since it's a different NIP; see `docs/Messaging/GROUPS.md`.
+
+**Relay subscriptions for groups** (`lib/gateway/subscriptions/providers/groups_subscription.dart`):
+```json
+{"kinds": [42], "#e": ["...joined groupIds"], "since": "..."}
+```
+plus uncapped companion filters `{"kinds":[40],"ids":[...groupIds]}` and `{"kinds":[41],"#e":[...groupIds]}`. Full depth: `docs/Messaging/GROUPS.md`.
+
+---
+
+## NIP-29 — Private Groups (MLS-encrypted)
+
+**What it is:** Relay-based group membership/routing via `["h", groupId]` tags; UNIUN layers MLS (`openmls`) end-to-end encryption on top for the actual message content.
 
 **How UNIUN uses it:**
-- `CreateChannelUseCase` builds and signs a Kind 40 event. The Kind 40 event's `id` **is** the channel ID — permanently. Never generate a separate channel ID.
-- Channel metadata (name, about, picture) is JSON-encoded in the Kind 40 `content` field.
-- Kind 41 = metadata update (creator only).
-- Kind 42 messages tag `["e", channelId, relayUrl, "root"]` per spec.
-- `CentralRelayManager` routes Kind 40–44 events to channel-specific relays stored in `ChannelModel.relays`.
-- Each joined channel is a `ChannelModel` row in Isar; the Gateway builds REQ filters from all channel ids (presence = subscribed).
-- No private channels in MVP — NIP-28 is public-only.
-
-**Relay subscriptions for channels:**
-```json
-{"kinds": [41, 42], "#e": ["<channelId>"], "limit": 100}
-```
+- Kind 9021 = join request (carries an MLS key package), 9023 = application message (MLS-encrypted, `kPrivateGroupKind`), 9024 = Welcome, 9025 = Commit, 9002 = group metadata.
+- Membership changes (adding a member) go through `MarmotMlsService.addMembers` before the Welcome/Commit pair is published — the relay never sees plaintext membership or message content, only the `h`-tagged routing.
+- Full depth, including the admin-approval flow: `docs/Messaging/GROUPS.md`.
 
 ---
 
 ## NIP-17 — Private Direct Messages
 
-**What it is:** Defines Kind 14 as the rumor (actual DM content) and the three-layer encryption structure for private 1:1 messaging.
+**What it is:** Defines Kind 14 as the rumor (actual DM content, unsigned) and the three-layer encryption structure for private 1:1 messaging.
 
-**How UNIUN uses it:**
-- Kind 14 = actual message content (unsigned rumor).
-- MVP uses Kind 14 with basic structure; full 3-layer wrapping (Kind 13 seal → Kind 1059 gift wrap) is future scope.
+**How UNIUN uses it — fully shipped, not MVP-only:**
+- Kind 14 = actual message content (unsigned rumor) → NIP-44 encrypt → Kind 13 (seal, signed) → NIP-44 encrypt with an ephemeral key → Kind 1059 (gift wrap, the only thing that ever touches a relay).
+- Only `["p", recipientPubkey]` is visible on the relay — the seal and rumor never are.
 - Subscription: `{"kinds": [1059], "#p": ["myPubkey"]}` for receiving DMs.
-- `DMReadStateModel` tracks unread position via `lastReadEventId`.
+- Unread tracking uses the same unified `UnreadNoteModel` every surface uses — there is no separate `DMReadStateModel`.
+- DM content lives in the unified `Note` Isar collection (kind 14/15, discriminated by `conversationId`) — not a separate `DmMessageModel`. Full depth: `docs/Messaging/DMS.md`.
 
 ---
 
 ## NIP-44 — Encryption
 
-**What it is:** The encryption standard used for private message payloads — ChaCha20-Poly1305 + HMAC-SHA256.
+**What it is:** The encryption standard used for private message payloads — ChaCha20-Poly1305 + HMAC-SHA256, keyed via secp256k1 ECDH + HKDF.
 
 **How UNIUN uses it:**
-- Used to encrypt Kind 14 DM content in the full 3-layer wrapping flow.
+- Encrypts every layer of the Kind 14 → 13 → 1059 gift-wrap chain (see NIP-17 above) — this is live, not a future plan.
 - Replaces legacy NIP-04 (AES-CBC) — NIP-04 is explicitly NOT used.
-- MVP layer: Kind 14 → NIP-44 encrypt → Kind 13 (seal) → NIP-44 encrypt with ephemeral key → Kind 1059 (gift wrap).
 
 ---
 
@@ -105,6 +127,14 @@ UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented o
 
 ---
 
+## NIP-59 — Gift Wrap
+
+**What it is:** The outer envelope (Kind 1059) that hides who a DM's rumor/seal actually belongs to on the relay.
+
+**How UNIUN uses it:** The outermost layer of the NIP-17 DM chain described above — shipped, not future scope. Only `["p", recipient]` is visible; the wrapped content is opaque to the relay and to anyone but the recipient.
+
+---
+
 ## NIPs Explicitly NOT Used
 
 | NIP | Why excluded |
@@ -112,7 +142,6 @@ UNIUN keeps the NIP surface minimal. Only the NIPs listed here are implemented o
 | NIP-09 | Event deletion — **permanently excluded**. Feed freedom is a core UNIUN principle. Notes are forever. Never implement. |
 | NIP-04 | Legacy DM encryption (AES-CBC) — superseded by NIP-44. |
 | NIP-11 | Relay info advertisement — handled automatically by Khatru on the relay side; Flutter client does not implement it. |
-| NIP-18 | Reposts — not in scope for v1. |
+| NIP-18 | Reposts — not a standalone NIP-18 repost flow; sharing/quoting is UNIUN's own embed-by-value `embeddedNoteJson` design (see CLAUDE.md's "Sharing" section), not this NIP. |
 | NIP-51 | Lists (saved notes, mute lists) — saved notes are local-only in Isar, not published as Nostr events. |
-| NIP-59 | Gift wrap — future scope only (full 3-layer DM encryption). |
 | NIP-65 | Relay list metadata (Kind 10002) — relay list is managed locally in `RelayModel` (Isar), not via Nostr events. |
