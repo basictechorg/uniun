@@ -70,12 +70,21 @@ class LlmRepositoryImpl implements LlmRepository {
     required String prompt,
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract,
-  }) =>
-      _active.generateOneShot(
-        prompt: prompt,
-        maxTokens: maxTokens,
-        kind: kind,
-      );
+    LlmBackendType? backendOverride,
+    String? modelIdOverride,
+  }) {
+    final target = switch (backendOverride) {
+      null => _active,
+      LlmBackendType.localGemma => _local,
+      LlmBackendType.uniunCloud => _remote,
+    };
+    return target.generateOneShot(
+      prompt: prompt,
+      maxTokens: maxTokens,
+      kind: kind,
+      modelIdOverride: modelIdOverride,
+    );
+  }
 
   @override
   Future<Either<Failure, Unit>> preemptBackgroundWork() =>

@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 
 part 'gana_entity.freezed.dart';
 
@@ -25,6 +26,10 @@ abstract class GanaEntity with _$GanaEntity {
 
     // Model preference
     String? desiredModelId,
+
+    /// Which backend [desiredModelId] belongs to. Null on legacy rows and on
+    /// rows that predate cloud support — treated as local for compatibility.
+    LlmBackendType? desiredBackend,
 
     // Triggers
     @Default(false) bool triggerReactive,

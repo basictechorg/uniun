@@ -36,6 +36,7 @@ class GanaRepositoryImpl extends GanaRepository {
         ..outputPrivateGroupId = g.outputPrivateGroupId
         ..outputDmConversationId = g.outputDmConversationId
         ..desiredModelId = g.desiredModelId
+        ..desiredBackend = g.desiredBackend
         ..triggerReactive = g.triggerReactive
         ..triggerIntervalMinutes = g.triggerIntervalMinutes
         ..triggerMode = g.triggerMode

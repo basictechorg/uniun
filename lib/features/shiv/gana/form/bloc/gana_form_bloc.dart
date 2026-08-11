@@ -11,9 +11,9 @@ import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
 import 'package:uniun/domain/entities/followed_note/followed_note_entity.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/private_group/private_group_entity.dart';
-import 'package:uniun/domain/usecases/ai_model_usecases.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
 import 'package:uniun/domain/usecases/followed_note_usecases.dart';
 import 'package:uniun/domain/usecases/gana_usecases.dart';
@@ -36,7 +36,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
   final GetPrivateGroupsUsecase _getPrivateGroups;
   final GetDmConversationsUseCase _getDms;
   final GetAllFollowedNotesUseCase _getFollowed;
-  final GetDownloadedModelIdsUseCase _getModels;
   final GetProfileUseCase _getProfile;
   final RequestProfileFetchUseCase _requestProfileFetch;
 
@@ -49,7 +48,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     this._getPrivateGroups,
     this._getDms,
     this._getFollowed,
-    this._getModels,
     this._getProfile,
     this._requestProfileFetch,
   ) : super(const GanaFormState()) {
@@ -64,8 +62,11 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         (e, em) => em(state.copyWith(inputRefId: e.value)));
     on<GanaFormOutputTypeChangedEvent>(_onOutputType);
     on<GanaFormOutputRefChangedEvent>(_onOutputRef);
-    on<GanaFormModelChangedEvent>(
-        (e, em) => em(state.copyWith(desiredModelId: e.value, clearModel: e.value == null)));
+    on<GanaFormModelChangedEvent>((e, em) => em(state.copyWith(
+          desiredModelId: e.value,
+          desiredBackend: e.backend,
+          clearModel: e.value == null,
+        )));
     on<GanaFormReactiveToggleEvent>(
         (e, em) => em(state.copyWith(triggerReactive: e.value)));
     on<GanaFormIntervalChangedEvent>(
@@ -104,7 +105,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
     final groupsFuture = _getGroups.call();
     final dmsFuture = _getDms.call();
     final followedFuture = _getFollowed.call();
-    final modelsFuture = _getModels.call();
     // Private groups are a stream; take first emission.
     final privateGroups =
         await _getPrivateGroups.execute().first.catchError((_) =>
@@ -118,7 +118,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         .fold<List<DmConversationEntity>>((_) => const [], (l) => l);
     final followed = (await followedFuture)
         .fold<List<FollowedNoteEntity>>((_) => const [], (l) => l);
-    final models = await modelsFuture;
 
     // Resolve peer display names for the DM picker so it shows the same
     // username the User Profile page shows. Missing profiles are nudged
@@ -152,7 +151,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
         dmConversations: dms,
         dmDisplayNames: dmDisplayNames,
         followedNotes: followed,
-        availableModels: models.map((m) => m.name).toList(),
       ));
       return;
     }
@@ -181,6 +179,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       outputPrivateGroupId: gana.outputPrivateGroupId,
       outputDmConversationId: gana.outputDmConversationId,
       desiredModelId: gana.desiredModelId,
+      desiredBackend: gana.desiredBackend,
       triggerReactive: gana.triggerReactive,
       triggerIntervalMinutes: gana.triggerIntervalMinutes,
       triggerMode: gana.triggerMode,
@@ -193,7 +192,6 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       dmConversations: dms,
       dmDisplayNames: dmDisplayNames,
       followedNotes: followed,
-      availableModels: models.map((m) => m.name).toList(),
     ));
   }
 
@@ -325,6 +323,7 @@ class GanaFormBloc extends Bloc<GanaFormEvent, GanaFormState> {
       outputPrivateGroupId: state.outputPrivateGroupId,
       outputDmConversationId: state.outputDmConversationId,
       desiredModelId: state.desiredModelId,
+      desiredBackend: state.desiredBackend,
       triggerReactive: state.triggerReactive,
       triggerIntervalMinutes: state.triggerIntervalMinutes,
       triggerMode: state.triggerMode,

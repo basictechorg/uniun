@@ -77,12 +77,19 @@ class GenerateOneShotInput {
     required this.prompt,
     this.maxTokens = 1024,
     this.kind = LlmTaskKind.extract,
+    this.backendOverride,
+    this.modelIdOverride,
   });
   final String prompt;
   final int maxTokens;
 
   /// Scheduler tier hint — see `docs/SHIVA/scheduling.md` §3 for the table.
   final LlmTaskKind kind;
+
+  /// Run this call against a specific backend/model instead of whatever's
+  /// globally active — see [LlmRepository.generateOneShot].
+  final LlmBackendType? backendOverride;
+  final String? modelIdOverride;
 }
 
 @lazySingleton
@@ -100,6 +107,8 @@ class GenerateOneShotUseCase
         prompt: input.prompt,
         maxTokens: input.maxTokens,
         kind: input.kind,
+        backendOverride: input.backendOverride,
+        modelIdOverride: input.modelIdOverride,
       );
 }
 

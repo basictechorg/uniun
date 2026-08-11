@@ -3,6 +3,7 @@ import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 
 part 'gana_model.g.dart';
 
@@ -66,6 +67,12 @@ class GanaModel {
   /// When set and the active model id doesn't match, the run is logged as
   /// `skipped: modelMismatch` and the cursor is NOT advanced.
   String? desiredModelId;
+
+  /// Backend [desiredModelId] belongs to. Null on legacy rows (treated as
+  /// local). `uniunCloud` routes the run through [LlmRepository]'s
+  /// per-call override instead of the on-device gate.
+  @Enumerated(EnumType.name)
+  LlmBackendType? desiredBackend;
 
   // ── Triggers ─────────────────────────────────────────────────────────────
 
@@ -140,6 +147,7 @@ extension GanaModelExtension on GanaModel {
         outputPrivateGroupId: outputPrivateGroupId,
         outputDmConversationId: outputDmConversationId,
         desiredModelId: desiredModelId,
+        desiredBackend: desiredBackend,
         triggerReactive: triggerReactive,
         triggerIntervalMinutes: triggerIntervalMinutes,
         triggerMode: triggerMode,

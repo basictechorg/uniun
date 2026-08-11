@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:uniun/common/locator.dart';
+import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_workmanager.dart';
 import 'package:workmanager/workmanager.dart';
@@ -35,10 +36,14 @@ class GanaWorkmanagerBootstrap {
   /// Schedule a single bg tick. Call on `AppLifecycleState.paused`.
   static Future<void> scheduleBackground() async {
     try {
-      // Resolve the active user's keys here in the main isolate —
-      // FlutterSecureStorage isn't available in the workmanager dispatcher
-      // isolate, so we hand them off via `inputData`.
+      // Resolve the active user's keys + cached UNIUN Cloud API key here in
+      // the main isolate — FlutterSecureStorage isn't available in the
+      // workmanager dispatcher isolate, so we hand them off via `inputData`.
+      // The API key is already minted (foreground connect flow); the bg
+      // isolate never re-authenticates, it just uses this copy.
       final keys = await getIt<UserRepository>().getActiveKeysHex();
+      final uniunApiKey =
+          await getIt<LlmCredentialsDataSource>().getUniunApiKey();
       await Workmanager().registerOneOffTask(
         _tickUniqueName,
         kGanaBackgroundTickTask,
@@ -51,6 +56,7 @@ class GanaWorkmanagerBootstrap {
         inputData: {
           if (keys?.pubkeyHex != null) 'selfPubkeyHex': keys!.pubkeyHex,
           if (keys?.privkeyHex != null) 'privkeyHex': keys!.privkeyHex,
+          if (uniunApiKey != null) 'uniunApiKey': uniunApiKey,
         },
       );
     } catch (e) {

@@ -8,7 +8,47 @@ The `+build` suffix on each version (e.g. `1.1.0+2`) is the Android `versionCode
 iOS build number — it increases by **1 on every store upload**, even if the user-facing
 version is unchanged.
 
-See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure.
+See [docs/RELEASING.md](docs/RELEASING.md) for the full release procedure, and
+[docs/AUDIT.md](docs/AUDIT.md) for the technical engineering detail behind each release —
+what was actually verified, what broke, and what's still open — that doesn't belong in a
+user-facing changelog.
+
+---
+
+## [Unreleased] — targeting 2.3.0
+
+Work in progress, not yet released. This section grows as more lands and gets a real
+date only when the version actually ships — see [docs/AUDIT.md](docs/AUDIT.md) for the
+full technical detail behind every item below.
+
+### Added
+- **QR sign-in for the web.** Approve a browser login by scanning a QR code from a phone
+  that's already signed in — no password, no key to paste.
+- **Leftover model file cleanup.** The model picker can now detect and remove stray or
+  partial model files left behind by an interrupted download or an earlier app version,
+  reclaiming storage that was previously invisible to the app.
+- **Ganas can now run on a UNIUN Cloud model**, pinned per-agent independently of
+  whichever model the rest of the app is using — in both the foreground and while the
+  app is closed in the background.
+
+### Changed
+- **Onboarding interest picker now loads its list from UNIUN's backend**, so new
+  suggested accounts can be added without an app update. Shows a proper loading/retry
+  state instead of a fixed in-app list.
+- Updated the on-device AI engine (`flutter_gemma`) to the latest version for improved
+  reliability under sustained use.
+- **Full documentation audit and rewrite.** Every doc under `docs/` was checked against
+  the actual current code (not assumed) — stale/fictional content was rewritten or
+  removed, a previously-undocumented app-wide "Channels → Groups" rename was found and
+  corrected throughout, and docs are now organized by topic (`docs/Mesh/`,
+  `docs/Messaging/`) with simple explanations and diagrams alongside the technical depth.
+
+### Fixed
+- **Model pickers (Shiv chat, Gana) were showing a model's internal routing id to
+  users** — now only ever show the friendly display name.
+- Android build failure caused by an incompatible transitive dependency pulled in by
+  the AI engine update.
+- CI no longer runs the full test/build pipeline for documentation-only changes.
 
 ---
 

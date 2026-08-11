@@ -56,10 +56,18 @@ abstract class LlmRepository {
   /// `docs/SHIVA/scheduling.md` §3. Default is [LlmTaskKind.extract] which
   /// matches the original semantics of `generateOneShot` before the
   /// scheduler landed.
+  ///
+  /// [backendOverride]/[modelIdOverride]: run this one call against a
+  /// specific backend/model instead of whatever's globally active, without
+  /// touching the global preference (used by Gana's per-agent model pin).
+  /// Only meaningful for [LlmBackendType.uniunCloud] — the local backend has
+  /// one loaded model at a time and can't cheaply swap per call.
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract,
+    LlmBackendType? backendOverride,
+    String? modelIdOverride,
   });
 
   // ── Priority coordination ───────────────────────────────────────────────

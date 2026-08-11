@@ -46,7 +46,7 @@ Ganas are **purely local config** — they never broadcast as Nostr events. Two 
 | `taskPrompt` | user-authored instructions injected into every prompt |
 | `inputType` + `inputRefId` | input surface — `channel`, `privateChannel`, `dm`, `user`, `followedNote`, or `null` (standalone) |
 | `outputType` + ref | destination — `feed`, `channel`, `privateChannel`, `dm` (exactly one is published per run) |
-| `desiredModelId` | `null` ⇒ "use whichever model is active"; otherwise skip-on-mismatch |
+| `desiredModelId` + `desiredBackend` | `desiredBackend == null` ⇒ local, skip-on-mismatch against the active on-device model (unchanged legacy behavior). `desiredBackend == uniunCloud` ⇒ this Gana always runs on `desiredModelId` via the UNIUN Cloud gateway, independent of whatever backend/model the rest of the app has active — see §1.3. |
 | `triggerMode` | `recurring` (cron-style, fires forever until disabled) OR `oneShot` (fires once, auto-disables) |
 | `triggerReactive` | fires within ~3s of a new note on the input surface |
 | `triggerIntervalMinutes` | `Timer.periodic` clamped ≥5 min (≥30 min in background) |
@@ -94,6 +94,35 @@ Run trace (post-refactor):
      outputEventId.
  13. Bob sees the reply in #daily-thoughts within ~10s.
 ```
+
+### 1.3 Cloud pin (`desiredBackend == uniunCloud`)
+
+A Gana pinned to a UNIUN Cloud model bypasses the on-device gate entirely,
+in both isolates:
+
+- **Foreground (`GanaEngine`)**: skips `FlutterGemma.hasActiveModel()` and
+  calls `GenerateOneShotUseCase` (`lib/domain/usecases/llm_usecases.dart`)
+  with `backendOverride: uniunCloud, modelIdOverride: desiredModelId`.
+  `LlmRepositoryImpl` routes straight to `RemoteLlmDataSource` for that one
+  call — it never reads or changes the app's globally active backend
+  (`LlmPreferencesDataSource.activeBackend`), so a cloud-pinned Gana and a
+  local Shiv chat session coexist without either stepping on the other.
+  Not connected to UNIUN Cloud, or no `desiredModelId` set ⇒
+  `GanaSkipReason.cloudUnavailable`, retried next trigger — no fallback to
+  local.
+- **Background (`gana_workmanager.dart`)**: same skip-on-unavailable
+  contract, but reached differently since the isolate has no DI. The main
+  isolate reads the already-minted UNIUN Cloud API key from
+  `LlmCredentialsDataSource` once, at `GanaWorkmanagerBootstrap.scheduleBackground()`
+  time, and hands a copy to the bg isolate via `inputData` — same pattern as
+  `privkeyHex`. The bg tick then calls `UniunGatewayClient().chatCompletion(...)`
+  directly (no DI, no re-auth handshake); a rejected/expired key just fails
+  the run like any other inference error. `FlutterGemma.initialize()` is
+  skipped for a tick whose one due Gana is cloud-pinned.
+- Local pins can't cheaply switch which on-device model is loaded mid-run
+  (that's a ~9s swap of the app's actual active model) — that's why local
+  keeps the original skip-on-mismatch gate instead of an override. Cloud
+  model selection is just an HTTP parameter, so there's no such cost.
 
 ---
 

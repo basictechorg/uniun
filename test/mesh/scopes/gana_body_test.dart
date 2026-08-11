@@ -5,6 +5,7 @@ import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/data/models/gana_model.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/features/mesh/sync/bodies/gana_body.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 
@@ -21,6 +22,7 @@ void main() {
     ..outputPrivateGroupId = null
     ..outputDmConversationId = null
     ..desiredModelId = 'qwen3-0.6b'
+    ..desiredBackend = LlmBackendType.localGemma
     ..triggerReactive = true
     ..triggerIntervalMinutes = 60
     ..triggerMode = GanaTriggerMode.recurring
@@ -42,6 +44,7 @@ void main() {
     expect(body['inputRefId'], 'ffee00');
     expect(body['outputType'], 'feed');
     expect(body['desiredModelId'], 'qwen3-0.6b');
+    expect(body['desiredBackend'], 'localGemma');
     expect(body['triggerReactive'], true);
     expect(body['triggerIntervalMinutes'], 60);
     expect(body['triggerMode'], 'recurring');
@@ -77,6 +80,7 @@ void main() {
     expect(row.inputRefId, 'ffee00');
     expect(row.outputType, GanaOutputType.feed);
     expect(row.desiredModelId, 'qwen3-0.6b');
+    expect(row.desiredBackend, LlmBackendType.localGemma);
     expect(row.triggerReactive, isTrue);
     expect(row.triggerIntervalMinutes, 60);
     expect(row.triggerMode, GanaTriggerMode.recurring);
@@ -167,5 +171,43 @@ void main() {
     expect(row.triggerIntervalMinutes, isNull);
     expect(row.maxOutputs, isNull);
     expect(row.outputDmConversationId, isNull);
+  });
+
+  // ── Edge cases: desiredBackend (cloud pin) ────────────────────────────
+
+  test('a cloud-pinned Gana round-trips desiredBackend=uniunCloud', () {
+    final body = GanaBody.forActive(
+      makeRow()
+        ..desiredModelId = 'claude-cloud-mini'
+        ..desiredBackend = LlmBackendType.uniunCloud,
+    );
+    expect(body['desiredBackend'], 'uniunCloud');
+    final row = GanaBody.applyBody(body, ganaId: 'gana-1');
+    expect(row.desiredModelId, 'claude-cloud-mini');
+    expect(row.desiredBackend, LlmBackendType.uniunCloud);
+  });
+
+  test('a legacy row with no desiredBackend serializes/deserializes to null',
+      () {
+    final body = GanaBody.forActive(makeRow()..desiredBackend = null);
+    expect(body['desiredBackend'], isNull);
+    final row = GanaBody.applyBody(body, ganaId: 'gana-1');
+    expect(row.desiredBackend, isNull);
+  });
+
+  test('applyBody drops an unrecognized desiredBackend wire value to null',
+      () {
+    final row = GanaBody.applyBody(
+      <String, dynamic>{
+        'state': 'active',
+        'outputType': 'feed',
+        'triggerMode': 'recurring',
+        'createdAt': 1,
+        'updatedAt': 1,
+        'desiredBackend': 'openRouter', // pre-UNIUN backend, no longer valid
+      },
+      ganaId: 'gana-legacy',
+    );
+    expect(row.desiredBackend, isNull);
   });
 }

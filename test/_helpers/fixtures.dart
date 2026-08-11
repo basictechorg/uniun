@@ -11,10 +11,14 @@
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/enum/relay_status.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/core/enum/gana_output_type.dart';
+import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/domain/entities/dm/dm_conversation_entity.dart';
+import 'package:uniun/domain/entities/gana/gana_entity.dart';
 import 'package:uniun/domain/entities/graph_edge/graph_edge_entity.dart';
 import 'package:uniun/domain/entities/group/group_entity.dart';
 import 'package:uniun/domain/entities/graph_node/graph_node_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/manas/manas_entity.dart';
 import 'package:uniun/domain/entities/media/media_blob_entity.dart';
 import 'package:uniun/domain/entities/media/media_dim.dart';
@@ -447,6 +451,48 @@ ManasEntity aManas({
 List<ManasEntity> manyManas(int n) => [
       for (var i = 0; i < n; i++) aManas(manasId: 'm-$i', name: 'Manas $i'),
     ];
+
+// ── GanaEntity ───────────────────────────────────────────────────────────────
+
+GanaEntity aGana({
+  String ganaId = 'gana-1',
+  String name = 'Test Gana',
+  List<String> manasIds = const [],
+  String taskPrompt = 'Say something useful',
+  GanaOutputType outputType = GanaOutputType.feed,
+  String? outputGroupId,
+  String? outputPrivateGroupId,
+  int? outputDmConversationId,
+  String? desiredModelId,
+  LlmBackendType? desiredBackend,
+  bool triggerReactive = false,
+  int? triggerIntervalMinutes,
+  GanaTriggerMode triggerMode = GanaTriggerMode.recurring,
+  int? maxOutputs,
+  bool enabled = false,
+  DateTime? createdAt,
+  DateTime? updatedAt,
+}) {
+  return GanaEntity(
+    ganaId: ganaId,
+    name: name,
+    manasIds: manasIds,
+    taskPrompt: taskPrompt,
+    outputType: outputType,
+    outputGroupId: outputGroupId,
+    outputPrivateGroupId: outputPrivateGroupId,
+    outputDmConversationId: outputDmConversationId,
+    desiredModelId: desiredModelId,
+    desiredBackend: desiredBackend,
+    triggerReactive: triggerReactive,
+    triggerIntervalMinutes: triggerIntervalMinutes,
+    triggerMode: triggerMode,
+    maxOutputs: maxOutputs,
+    enabled: enabled,
+    createdAt: createdAt ?? tT0,
+    updatedAt: updatedAt ?? tNow,
+  );
+}
 
 // ── Graph entities ───────────────────────────────────────────────────────────
 

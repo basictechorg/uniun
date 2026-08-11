@@ -7,17 +7,23 @@ import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 import 'package:isar_community/isar.dart';
 import 'package:nostr/nostr.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uniun/core/utils/llm_backend.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/note_type.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/data/repositories/ai_model_repository_impl.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/features/mesh/sync/mesh_event_codec.dart';
 import 'package:uniun/features/shiv/gana/engine/gana_prompt_builder.dart';
 import 'package:uniun/features/shiv/generation/context/manas_context_loader.dart';
@@ -68,12 +74,20 @@ const int kBackgroundMaxGanasPerTick = 1;
 /// 1. Boots BackgroundIsolateBinaryMessenger so plugin groups work.
 /// 2. Opens its own Isar handle at the shared DB path.
 /// 3. Initializes flutter_gemma 1.0.0 with the same engine list as
-///    `main.dart`. Verified PASS by
-///    `integration_test/flutter_gemma_bg_isolate_test.dart` (Qwen3 0.6B
-///    fresh-load on Android arm64 in 9.2s).
-/// 4. Picks ONE due interval Gana (battery-clamped to ≥30 min).
+///    `main.dart` — skipped when the one due Gana is cloud-pinned (see 4).
+///    Verified PASS by `integration_test/flutter_gemma_bg_isolate_test.dart`
+///    (Qwen3 0.6B fresh-load on Android arm64 in 9.2s).
+/// 4. Picks ONE due interval Gana (battery-clamped to ≥30 min). A Gana
+///    resolves to cloud (see `ganaResolvesToCloud`) when either explicitly
+///    pinned (`desiredBackend == uniunCloud`) or fully unset and the
+///    globally active backend is cloud — that Gana runs a single
+///    `UniunGatewayClient` HTTP call instead of on-device inference, using
+///    the API key handed over via `inputData` (minted at foreground connect
+///    time, cached in `LlmCredentialsDataSource` — no re-auth here; a
+///    rejected/expired key just fails the run like any other inference
+///    error).
 /// 5. Runs the full engine flow: input filter → reply ancestry →
-///    Manas context pack → prompt build → openChat → inference →
+///    Manas context pack → prompt build → inference (openChat or cloud) →
 ///    publish (feed/group in-isolate; DM/private skipped — see below) →
 ///    log GanaRunModel → advance cursor.
 /// 6. Closes Isar, returns.
@@ -137,17 +151,22 @@ void ganaWorkManagerDispatcher() {
       // 2. Resolve self keys from inputData (passed by
       //    GanaWorkmanagerBootstrap.scheduleBackground). Without pubkey we can't
       //    apply the self-loop guard; without privkey we can't sign
-      //    kind-1 / kind-42 outputs — bail.
-      _log('step 2: reading inputData (selfPubkeyHex + privkeyHex)');
+      //    kind-1 / kind-42 outputs — bail. `uniunApiKey` is the cached
+      //    UNIUN Cloud key (already minted at foreground connect time) —
+      //    only present when the user has connected cloud; absent for
+      //    local-only accounts, in which case cloud-pinned Ganas just skip.
+      _log('step 2: reading inputData (selfPubkeyHex + privkeyHex + uniunApiKey)');
       final selfPubkeyHex = inputData?['selfPubkeyHex'] as String?;
       final privkeyHex = inputData?['privkeyHex'] as String?;
+      final uniunApiKey = inputData?['uniunApiKey'] as String?;
       if (selfPubkeyHex == null || selfPubkeyHex.isEmpty) {
         _log('step 2: ABORT — no selfPubkeyHex in inputData');
         await isar.close();
         return true;
       }
       _log('step 2: selfPubkey=${_shortHex(selfPubkeyHex)} '
-          'privkey=${privkeyHex == null ? "missing" : "present"}');
+          'privkey=${privkeyHex == null ? "missing" : "present"} '
+          'uniunApiKey=${uniunApiKey == null ? "missing" : "present"}');
 
       // 3. Pick the next due Gana. We sort by lastRunAt ascending so the
       //    Gana that's been waiting longest runs first.
@@ -195,36 +214,73 @@ void ganaWorkManagerDispatcher() {
         return true;
       }
 
-      // 4. Initialize flutter_gemma (same engine list as main.dart).
-      _log('step 4: FlutterGemma.initialize '
-          '(LiteRtLm + MediaPipe + LiteRtEmbedder)');
-      final initStart = DateTime.now();
-      try {
-        await FlutterGemma.initialize(
-          inferenceEngines: const [
-            LiteRtLmEngine(),
-            MediaPipeEngine(),
-          ],
-          embeddingBackends: const [
-            LiteRtEmbeddingBackend(),
-          ],
-        );
-      } catch (e, st) {
-        _log('step 4: ABORT — FlutterGemma.initialize threw: $e');
-        debugPrint('$_logTag stack: $st');
-        await isar.close();
-        return false;
-      }
-      _log('step 4: initialized in '
-          '${DateTime.now().difference(initStart).inMilliseconds}ms');
+      // 3b. Resolve the globally active backend/model (plain
+      // SharedPreferences read, no DI) — a Gana with no pin at all
+      // (`desiredBackend` and `desiredModelId` both null) follows this
+      // instead of always assuming local, same as the foreground engine.
+      final llmPrefs =
+          LlmPreferencesDataSource(await SharedPreferences.getInstance());
+      final globalBackend = llmPrefs.activeBackend;
+      final globalCloudModelId = llmPrefs.activeCloudModelId;
+      _log('step 3b: globalBackend=${globalBackend.name} '
+          'globalCloudModelId=$globalCloudModelId');
 
-      _log('step 4b: checking hasActiveModel()');
-      if (!FlutterGemma.hasActiveModel()) {
-        _log('step 4b: ABORT — no active model installed');
-        await isar.close();
-        return true;
+      // 4. Initialize flutter_gemma (same engine list as main.dart) — only
+      //    when at least one due Gana actually needs on-device inference.
+      //    A cloud-pinned due Gana skips this entirely (irrelevant ~9s cost).
+      final needsLocalModel = due.any(
+          (g) => !ganaResolvesToCloud(g, globalBackend: globalBackend));
+      if (needsLocalModel) {
+        _log('step 4: FlutterGemma.initialize '
+            '(LiteRtLm + MediaPipe + LiteRtEmbedder)');
+        final initStart = DateTime.now();
+        try {
+          await FlutterGemma.initialize(
+            inferenceEngines: const [
+              LiteRtLmEngine(),
+              MediaPipeEngine(),
+            ],
+            embeddingBackends: const [
+              LiteRtEmbeddingBackend(),
+            ],
+          );
+        } catch (e, st) {
+          _log('step 4: ABORT — FlutterGemma.initialize threw: $e');
+          debugPrint('$_logTag stack: $st');
+          await isar.close();
+          return false;
+        }
+        _log('step 4: initialized in '
+            '${DateTime.now().difference(initStart).inMilliseconds}ms');
+
+        // 4b. `FlutterGemma.initialize()` only registers engines — it does NOT
+        // restore which model is active. In the foreground app that happens
+        // lazily the first time a Shiv screen calls
+        // `AIModelRepository.getActiveModel()`. This isolate never opens a
+        // Shiv screen, so without doing this ourselves `hasActiveModel()`
+        // always reads false here, even when the user has a model properly
+        // selected and downloaded. Constructed directly (no DI, matching
+        // this isolate's existing no-DI pattern) since it only needs `Isar`
+        // + `AppSettingsStore`, both plain plugin calls.
+        _log('step 4b: rehydrating active-model registration');
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await AIModelRepositoryImpl(isar, AppSettingsStore(prefs))
+              .getActiveModel();
+        } catch (e) {
+          _log('step 4b: rehydration failed (non-fatal): $e');
+        }
+
+        _log('step 4c: checking hasActiveModel()');
+        if (!FlutterGemma.hasActiveModel()) {
+          _log('step 4c: ABORT — no active model installed');
+          await isar.close();
+          return true;
+        }
+        _log('step 4c: active model present');
+      } else {
+        _log('step 4: skipped — due Gana(s) are all cloud-pinned');
       }
-      _log('step 4b: active model present');
 
       // 5. Run the chosen Gana.
       _log('step 5: running ${due.length} Gana(s)');
@@ -238,7 +294,10 @@ void ganaWorkManagerDispatcher() {
           ganaRow: ganaRow,
           selfPubkeyHex: selfPubkeyHex,
           privkeyHex: privkeyHex,
+          uniunApiKey: uniunApiKey,
           budgetEnd: budgetEnd,
+          globalBackend: globalBackend,
+          globalCloudModelId: globalCloudModelId,
         );
       }
 
@@ -258,12 +317,23 @@ void ganaWorkManagerDispatcher() {
   });
 }
 
+/// True when [g] should run on UNIUN Cloud: either explicitly pinned, or
+/// fully unset (no pin at all) and the global active backend is cloud.
+bool ganaResolvesToCloud(GanaModel g, {required LlmBackendType globalBackend}) =>
+    g.desiredBackend == LlmBackendType.uniunCloud ||
+    (g.desiredBackend == null &&
+        g.desiredModelId == null &&
+        globalBackend == LlmBackendType.uniunCloud);
+
 Future<void> _runOneGana({
   required Isar isar,
   required GanaModel ganaRow,
   required String selfPubkeyHex,
   required String? privkeyHex,
+  required String? uniunApiKey,
   required DateTime budgetEnd,
+  required LlmBackendType globalBackend,
+  required String? globalCloudModelId,
 }) async {
   final gana = ganaRow.toDomain();
   final runId = const Uuid().v4();
@@ -316,111 +386,160 @@ Future<void> _runOneGana({
     return;
   }
 
-  // Inference. Throwaway chat — matches the foreground generateOneShot
-  // pattern in AIModelRunner.
-  _log('  generation START (maxTokens=$kBackgroundMaxTokens)');
+  // Inference — cloud-pinned (or unpinned-but-globally-cloud) Ganas skip
+  // on-device entirely.
+  final isCloud = ganaResolvesToCloud(ganaRow, globalBackend: globalBackend);
+  final cloudModelId = gana.desiredBackend == LlmBackendType.uniunCloud
+      ? gana.desiredModelId
+      : globalCloudModelId;
   String? body;
   final infStart = DateTime.now();
-  var tokenCount = 0;
-  DateTime? firstTokenAt;
-  try {
-    _log('  opening model handle (${preferredLlmBackend.name} preferred)');
-    // Prefer GPU (iOS), fall back to CPU on engine-creation failure — mirrors
-    // the foreground AIModelRunner. Android starts on CPU via
-    // [preferredLlmBackend] because its GPU delegate can hard-crash the
-    // process, so the bg tick still runs instead of taking the app down.
-    final backend = preferredLlmBackend;
-    InferenceModel model;
-    try {
-      model = await FlutterGemma.getActiveModel(
-        maxTokens: kBackgroundMaxTokens,
-        preferredBackend: backend,
+  if (isCloud) {
+    if (uniunApiKey == null || uniunApiKey.isEmpty || cloudModelId == null) {
+      _log('  SKIPPED: cloudUnavailable '
+          '(apiKey=${uniunApiKey == null ? "missing" : "present"} '
+          'desiredModelId=$cloudModelId)');
+      await _writeRun(
+        isar: isar,
+        runId: runId,
+        ganaId: gana.ganaId,
+        startedAt: startedAt,
+        status: GanaRunStatus.skipped,
+        skipReason: GanaSkipReason.cloudUnavailable,
       );
-    } catch (e) {
-      if (backend == PreferredBackend.cpu) rethrow;
-      _log('  GPU open failed ($e) — retrying on CPU');
-      model = await FlutterGemma.getActiveModel(
-        maxTokens: kBackgroundMaxTokens,
-        preferredBackend: PreferredBackend.cpu,
-      );
+      return;
     }
-    _log('  opening chat session');
-    final chat = await model.openChat(
-      temperature: 0.6,
-      topK: 20,
-      tokenBuffer: 128,
-    );
-    _log('  feeding prompt');
+    _log('  generation START (cloud, model=$cloudModelId)');
     try {
-      await chat.addQueryChunk(gemma_msg.Message.text(text: prompt));
-      _log('  streaming tokens...');
-      final buf = StringBuffer();
-      await for (final response in chat.generateChatResponseAsync()) {
-        if (response is TextResponse && response.token.isNotEmpty) {
-          firstTokenAt ??= DateTime.now();
-          if (tokenCount == 0) {
-            _log('  first token in '
-                '${firstTokenAt.difference(infStart).inMilliseconds}ms '
-                '(prefill done)');
-          }
-          buf.write(response.token);
-          tokenCount += 1;
-          // Periodic heartbeat so a runaway generation is visible in logs.
-          if (tokenCount % 32 == 0) {
-            _log('  ... $tokenCount tokens so far');
-          }
-        }
-        if (DateTime.now().isAfter(budgetEnd)) {
-          _log('  BUDGET EXHAUSTED mid-stream after $tokenCount tokens; '
-              'stopGeneration()');
-          try {
-            await chat.stopGeneration();
-          } catch (_) {
-            // best effort; engine teardown handles partial state
-          }
-          break;
-        }
-      }
-      body = buf.toString();
-      _log('  stream END: $tokenCount tokens, ${body.length} chars');
-    } finally {
+      body = await UniunGatewayClient().chatCompletion(
+        apiKey: uniunApiKey,
+        modelId: cloudModelId,
+        messages: [
+          {'role': 'user', 'content': prompt},
+        ],
+        maxTokens: kBackgroundMaxTokens,
+      );
+    } catch (e, st) {
+      _log('  FAILED (cloud): $e');
+      debugPrint('$_logTag stack: $st');
+      await _writeRun(
+        isar: isar,
+        runId: runId,
+        ganaId: gana.ganaId,
+        startedAt: startedAt,
+        status: GanaRunStatus.failed,
+        error: e.toString(),
+      );
+      return;
+    }
+    _log('  generation END (cloud): total='
+        '${DateTime.now().difference(infStart).inMilliseconds}ms '
+        '${body?.length ?? 0} chars');
+  } else {
+    // Throwaway chat — matches the foreground generateOneShot pattern in
+    // AIModelRunner.
+    _log('  generation START (maxTokens=$kBackgroundMaxTokens)');
+    var tokenCount = 0;
+    DateTime? firstTokenAt;
+    try {
+      _log('  opening model handle (${preferredLlmBackend.name} preferred)');
+      // Prefer GPU (iOS), fall back to CPU on engine-creation failure — mirrors
+      // the foreground AIModelRunner. Android starts on CPU via
+      // [preferredLlmBackend] because its GPU delegate can hard-crash the
+      // process, so the bg tick still runs instead of taking the app down.
+      final backend = preferredLlmBackend;
+      InferenceModel model;
       try {
-        await chat.close();
-      } catch (_) {
-        // session may be already closing — ignore
+        model = await FlutterGemma.getActiveModel(
+          maxTokens: kBackgroundMaxTokens,
+          preferredBackend: backend,
+        );
+      } catch (e) {
+        if (backend == PreferredBackend.cpu) rethrow;
+        _log('  GPU open failed ($e) — retrying on CPU');
+        model = await FlutterGemma.getActiveModel(
+          maxTokens: kBackgroundMaxTokens,
+          preferredBackend: PreferredBackend.cpu,
+        );
       }
+      _log('  opening chat session');
+      final chat = await model.openChat(
+        temperature: 0.6,
+        topK: 20,
+        tokenBuffer: 128,
+      );
+      _log('  feeding prompt');
+      try {
+        await chat.addQueryChunk(gemma_msg.Message.text(text: prompt));
+        _log('  streaming tokens...');
+        final buf = StringBuffer();
+        await for (final response in chat.generateChatResponseAsync()) {
+          if (response is TextResponse && response.token.isNotEmpty) {
+            firstTokenAt ??= DateTime.now();
+            if (tokenCount == 0) {
+              _log('  first token in '
+                  '${firstTokenAt.difference(infStart).inMilliseconds}ms '
+                  '(prefill done)');
+            }
+            buf.write(response.token);
+            tokenCount += 1;
+            // Periodic heartbeat so a runaway generation is visible in logs.
+            if (tokenCount % 32 == 0) {
+              _log('  ... $tokenCount tokens so far');
+            }
+          }
+          if (DateTime.now().isAfter(budgetEnd)) {
+            _log('  BUDGET EXHAUSTED mid-stream after $tokenCount tokens; '
+                'stopGeneration()');
+            try {
+              await chat.stopGeneration();
+            } catch (_) {
+              // best effort; engine teardown handles partial state
+            }
+            break;
+          }
+        }
+        body = buf.toString();
+        _log('  stream END: $tokenCount tokens, ${body.length} chars');
+      } finally {
+        try {
+          await chat.close();
+        } catch (_) {
+          // session may be already closing — ignore
+        }
+      }
+    } catch (e, st) {
+      _log('  FAILED: $e');
+      debugPrint('$_logTag stack: $st');
+      await _writeRun(
+        isar: isar,
+        runId: runId,
+        ganaId: gana.ganaId,
+        startedAt: startedAt,
+        status: GanaRunStatus.failed,
+        error: e.toString(),
+      );
+      return;
     }
-  } catch (e, st) {
-    _log('  FAILED: $e');
-    debugPrint('$_logTag stack: $st');
-    await _writeRun(
-      isar: isar,
-      runId: runId,
-      ganaId: gana.ganaId,
-      startedAt: startedAt,
-      status: GanaRunStatus.failed,
-      error: e.toString(),
-    );
-    return;
+    final totalMs = DateTime.now().difference(infStart).inMilliseconds;
+    final prefillMs =
+        firstTokenAt?.difference(infStart).inMilliseconds ?? totalMs;
+    final decodeMs = totalMs - prefillMs;
+    final tps = tokenCount > 0 && decodeMs > 0
+        ? (tokenCount * 1000 / decodeMs).toStringAsFixed(1)
+        : '-';
+    _log('  generation END: total=${totalMs}ms '
+        'prefill=${prefillMs}ms decode=${decodeMs}ms '
+        'tokens=$tokenCount ($tps tok/s)');
   }
-  final totalMs = DateTime.now().difference(infStart).inMilliseconds;
-  final prefillMs =
-      firstTokenAt?.difference(infStart).inMilliseconds ?? totalMs;
-  final decodeMs = totalMs - prefillMs;
-  final tps = tokenCount > 0 && decodeMs > 0
-      ? (tokenCount * 1000 / decodeMs).toStringAsFixed(1)
-      : '-';
-  _log('  generation END: total=${totalMs}ms '
-      'prefill=${prefillMs}ms decode=${decodeMs}ms '
-      'tokens=$tokenCount ($tps tok/s)');
 
-  // Same chokepoint discipline as the foreground engine: every on-device
-  // LLM output runs through LlmTextSanitizer.clean before being persisted
-  // or published. Strips <think>...</think> reasoning blocks, tool-call
-  // envelopes, and decodes GPT-2 byte-mojibake (emoji).
-  // If the model was cut off mid-thought (open <think> with no close),
-  // the sanitizer returns '' and we treat it as a NOOP skip.
-  final trimmed = LlmTextSanitizer.clean(body);
+  // Same chokepoint discipline as the foreground engine: every LLM output
+  // (local or cloud) runs through LlmTextSanitizer.clean before being
+  // persisted or published. Strips <think>...</think> reasoning blocks,
+  // tool-call envelopes, and decodes GPT-2 byte-mojibake (emoji). A null
+  // cloud response (empty choices, no error) and a mid-thought cutoff both
+  // clean down to '' and fall through to the NOOP skip below.
+  final trimmed = LlmTextSanitizer.clean(body ?? '');
   if (isGanaNoop(trimmed)) {
     _log('  SKIPPED: noopReturned '
         '(body=${trimmed.isEmpty ? "empty/think-only" : "<NOOP>"})');
