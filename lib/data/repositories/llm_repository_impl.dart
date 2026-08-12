@@ -131,7 +131,13 @@ class LlmRepositoryImpl implements LlmRepository {
             return Left(Failure.errorFailure('Unknown local model: $modelId'));
           }
           await _localSettings.setActiveModelId(id);
-          return const Right(unit);
+          // Re-link flutter_gemma to the newly picked model right away.
+          // Without this, switching between two ALREADY-downloaded local
+          // models leaves flutter_gemma's native engine pointed at the old
+          // one — hasActiveModel() stays true (so model gates don't catch
+          // it), but the next generation runs against the wrong weights/
+          // KV-cache size, which is what surfaced as "model error" (#160).
+          return _localCatalog.activateModel(id);
         case LlmBackendType.uniunCloud:
           await _prefs.setActiveCloudModelId(modelId);
           return const Right(unit);

@@ -103,6 +103,32 @@ class AIModelRunner {
 
   bool get hasActiveModel => FlutterGemma.hasActiveModel();
 
+  /// Runs [action] (activating or deleting the local model) through the
+  /// scheduler so it never races whatever generation is currently in
+  /// flight against the native engine.
+  ///
+  /// [forcePreempt] false (a plain model switch): waits for the current
+  /// job to finish naturally, then runs ahead of anything else queued.
+  /// [forcePreempt] true (deleting the active model — can't wait for the
+  /// file to be safe to remove): cancels whatever's running immediately.
+  /// Nataraj/Gana recover for free via the scheduler's existing re-queue
+  /// policy; a cancelled chat turn finalizes with its partial content,
+  /// same as the Stop button.
+  Future<T> runExclusiveModelOperation<T>({
+    required bool forcePreempt,
+    required Future<T> Function() action,
+  }) {
+    return _scheduler.run<T>(
+      kind: LlmTaskKind.modelSwitch,
+      modelId: '_modelSwitch_',
+      forcePreempt: forcePreempt,
+      work: (_) async {
+        await _resetModel();
+        return action();
+      },
+    );
+  }
+
   /// Validate that a model is active before a conversation opens. The runner
   /// holds NO per-conversation state — the system instruction is passed into
   /// [sendAndStream] per turn so independent chat surfaces (e.g. the Shiv tab
@@ -359,11 +385,11 @@ class AIModelRunner {
 /// these tokens simply never appear there.
 class _StopTokenScrubber {
   static const _stopTokens = <String>[
-    '<|im_end|>',                  // Qwen
-    '<|endoftext|>',               // Qwen / GPT-style alt
-    '<end_of_turn>',               // Gemma (already filtered upstream; harmless)
-    '<｜end▁of▁sentence｜>',      // DeepSeek (full-width pipes + underscores)
-    '<|eot_id|>',                  // Llama 3
+    '<|im_end|>', // Qwen
+    '<|endoftext|>', // Qwen / GPT-style alt
+    '<end_of_turn>', // Gemma (already filtered upstream; harmless)
+    '<｜end▁of▁sentence｜>', // DeepSeek (full-width pipes + underscores)
+    '<|eot_id|>', // Llama 3
   ];
 
   String _buffer = '';
@@ -391,7 +417,9 @@ class _StopTokenScrubber {
     // the next chunk.
     int hold = 0;
     for (final s in _stopTokens) {
-      final maxI = s.length - 1 < _buffer.length ? s.length - 1 : _buffer.length;
+      final maxI = s.length - 1 < _buffer.length
+          ? s.length - 1
+          : _buffer.length;
       for (int i = 1; i <= maxI; i++) {
         if (_buffer.endsWith(s.substring(0, i)) && i > hold) hold = i;
       }

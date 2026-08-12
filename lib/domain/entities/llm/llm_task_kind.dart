@@ -10,6 +10,9 @@
 /// - [gana]    — Gana autonomous agent runs. T1 while GanaFormPage preview
 ///                is open, T3 when a cron tick is past its deadline,
 ///                otherwise T4 fair-pool with [nataraj].
+/// - [modelSwitch] — activating/deactivating the local model itself
+///                (switching or deleting). Always tier -1, above chat.
+///                Never re-queued (nothing preempts it).
 ///
 /// Embedding is intentionally NOT a member — it runs on a separate model
 /// and chip path via `EmbeddingQueue`, not via the LLM scheduler.
@@ -18,4 +21,5 @@ enum LlmTaskKind {
   extract,
   nataraj,
   gana,
+  modelSwitch,
 }
