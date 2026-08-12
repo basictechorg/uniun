@@ -261,7 +261,8 @@ LlmRepositoryImpl._active  ← reads prefs.activeBackend
    │
    └─ uniunCloud  ─►  RemoteLlmDataSource.sendChat
                          │
-                         │  cancel any in-flight _extractionSub
+                         │  cancel every in-flight generateOneShot call
+                         │  (each tracked independently — see below)
                          │  UniunRepository.streamChat(modelId, messages)
                          │     → UniunRepositoryImpl resolves/refreshes the uk_ key,
                          │       calls UniunGatewayClient.streamChatCompletion (SSE),
@@ -351,12 +352,18 @@ GenerateOneShotUseCase  →  LlmRepository.generateOneShot
    │
    └─ cloud  ─►  RemoteLlmDataSource.generateOneShot
                     UniunRepository.streamChat → buffer → String?
-                    _extractionSub held for preemption
+                    tracked as its own entry in _extractions (a Set, not a
+                    single field) — concurrent calls never cancel each
+                    other; only sendChat/preemptBackgroundWork cancel all
+                    of them, and cancelling now resolves the call as
+                    Right(null) instead of leaving it hanging forever
 
 Parsed JSON → graph nodes + edges + memory upserted in Isar.
 ```
 
 If chat preempts during local extraction: `stopGeneration()` cancels the extraction session (`openChat` gives independent native sessions). Extraction returns `null`. The pending row in `PendingExtractionRepository` survives, and `DrainPendingExtractionsUseCase` retries it when the user leaves the Shiv tab.
+
+On cloud, a preempted `generateOneShot` also resolves `Right(null)` (same "no result yet, will retry" meaning) — but a *genuine* stream failure (network error, rate limit, invalid model) now surfaces as `Left(Failure)` instead, so `GanaEngine`'s existing `failed`-vs-`skipped` branching gets the real signal instead of both reading as null.
 
 ### Enter / leave Shiv tab
 
@@ -369,7 +376,7 @@ PreemptBackgroundWorkUseCase  →  LlmRepository.preemptBackgroundWork
    │
    ├─ local: SchedulerCoordinator.setForeground(LlmTaskKind.chat)
    │         (T0 chat preempts; lower tiers freeze until the user leaves)
-   └─ cloud: cancels _extractionSub
+   └─ cloud: cancels every in-flight generateOneShot entry in _extractions
 ```
 
 Leaving the tab does the inverse plus `DrainPendingExtractionsUseCase.call()` to replay any preempted extractions.
@@ -413,8 +420,18 @@ ListAvailableLlmModelsUseCase   (local: downloaded · cloud: UNIUN Cloud catalog
    ▼ user taps a row
 SetActiveLlmModelUseCase  →  LlmRepository.setActiveModel(id)
    │  local  → AppSettingsStore.setActiveModelId(AIModelId.values.byName(id))
+   │           then AIModelRepository.activateModel(id) — re-links
+   │           flutter_gemma's native engine to the new model through
+   │           InferenceScheduler (modelSwitch, tier -1, gentle — waits
+   │           for whatever's running to finish, then applies ahead of
+   │           anything else queued; see scheduling.md §3 "Model switch
+   │           tier"). A plain settings write alone would leave the
+   │           native engine pointed at the previous model even though
+   │           hasActiveModel() still reads true.
    └─ cloud → LlmPreferencesDataSource.setActiveCloudModelId(id)
 ```
+
+Deleting the currently-active local model (Settings → Storage) goes through the same `AIModelRunner.runExclusiveModelOperation`, but forced (`forcePreempt: true`) — the file is being removed, so it can't wait for the current job to finish naturally.
 
 Model picker rows show `displayName` only — the raw catalog `id` (the gateway's internal routing string) is never rendered to the user.
 
@@ -428,8 +445,8 @@ Model picker rows show `displayName` only — the raw catalog `id` (the gateway'
 | Inference path | flutter_gemma `openChat` → `addQueryChunk` → `generateChatResponseAsync` | `UniunGatewayClient.streamChatCompletion` — OpenAI-compatible SSE |
 | Session model | Per-turn `openChat` with `modelType` from `LocalModelParams` | Stateless — full prompt every call |
 | Cancellation | per-session `stopGeneration()` | cancel the underlying stream subscription |
-| Concurrency | accelerator-mutexed → `InferenceScheduler` (5 tiers, CFS fair pool, EDF deadline, model affinity — see [`scheduling.md`](scheduling.md)) | network-concurrent — no queue |
-| Preemption of extraction | `_activeExtraction.stopGeneration()` driven by the scheduler when a higher-tier job arrives | cancel `_extractionSub` |
+| Concurrency | accelerator-mutexed → `InferenceScheduler` (5 tiers, CFS fair pool, EDF deadline, model affinity — see [`scheduling.md`](scheduling.md)) | network-concurrent — every call tracked independently in `_extractions`, no queue |
+| Preemption of extraction | `_activeExtraction.stopGeneration()` driven by the scheduler when a higher-tier job arrives | `sendChat`/`preemptBackgroundWork` cancel all entries in `_extractions`; each resolves `Right(null)` |
 | Models exposed | downloaded local files (via `AIModelRepository`) | UNIUN Cloud catalog, filtered by plan/credit balance |
 | Credentials | none | `flutter_secure_storage` (Android Keystore / iOS Keychain) holds the gateway-minted `uk_` key — never a user-supplied API key |
 

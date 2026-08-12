@@ -16,18 +16,22 @@
 
 import 'package:integration_test/integration_test.dart';
 
+import 'cloud_concurrent_calls_test.dart' as cloud_concurrent_calls_test;
 import 'flutter_gemma_bg_isolate_test.dart' as flutter_gemma_bg_isolate_test;
 import 'gana_cloud_combinations_e2e_test.dart' as gana_cloud_combinations_e2e_test;
 import 'gana_cloud_engine_e2e_test.dart' as gana_cloud_engine_e2e_test;
 import 'gana_cloud_pipeline_test.dart' as gana_cloud_pipeline_test;
 import 'gana_local_engine_e2e_test.dart' as gana_local_engine_e2e_test;
+import 'scheduler_model_switch_test.dart' as scheduler_model_switch_test;
 import 'scheduler_preemption_test.dart' as scheduler_preemption_test;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   flutter_gemma_bg_isolate_test.main();
   scheduler_preemption_test.main();
+  scheduler_model_switch_test.main();
   gana_cloud_pipeline_test.main();
+  cloud_concurrent_calls_test.main();
   gana_cloud_engine_e2e_test.main();
   gana_cloud_combinations_e2e_test.main();
   gana_local_engine_e2e_test.main();

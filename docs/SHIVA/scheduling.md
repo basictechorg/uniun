@@ -52,6 +52,7 @@ The combination of mechanisms in this doc is what we ship.
    │                  (lib/data/datasources/llm/)                 │
    │                                                              │
    │   ┌──────────────────────────────────────────────────────┐   │
+   │   │  T-1 modelSwitch (activating/deleting the local model)│   │
    │   │  T0 chat                                             │   │
    │   │  T1 foreground (whichever page is open)              │   │
    │   │  T2 extract                                          │   │
@@ -86,11 +87,45 @@ it *what* to run next; the runner knows *how*.
 
 | Tier  | Kind admitted                                                         | Reason it's at this rank                                                                                                                |
 | ----- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| T-1   | `modelSwitch` (activating a newly-picked local model, or deleting the active one) | The user's own explicit action. Never affinity-filtered. Two modes via `forcePreempt` — see "Model switch tier" below.       |
 | T0    | `chat`                                                                | User typed. Must respond now. Always preempts.                                                                                          |
 | T1    | the kind whose surface is currently foreground (`_foreground`)        | Whatever the user is staring at deserves priority while they're there. NatarajDeck → nataraj. GanaForm preview → gana. Opened note → extract. |
 | T2    | `extract` (any)                                                       | Knowledge extraction builds the graph that powers RAG and Shiv quality. Infrastructure beats entertainment.                              |
 | T3    | any job whose `deadline != null && now >= deadline`                   | Gana cron ticks: their `triggerIntervalMinutes` defines a fire time; once past, the tick gets a deadline boost. EDF semantics.          |
 | T4    | `nataraj`, `gana` (cron-fired but pre-deadline, or interactive)        | The fair pool. CFS-style vruntime ensures neither producer starves.                                                                     |
+
+### Model switch tier (issue #160 follow-on)
+
+Activating or deleting a local model touches flutter_gemma's native
+engine directly (`FlutterGemma.installModel()`/`.uninstallModel()`).
+Before this tier existed, that call raced whatever generation job was
+currently running against the same engine — nothing in
+`AIModelRepositoryImpl.activateModel()`/`deleteModel()` checked the
+scheduler first. `run()` takes a `forcePreempt` flag for this tier only:
+
+- **`forcePreempt: false`** (a plain switch, via the model picker): never
+  cancels the running job on arrival — it waits for it to finish
+  naturally, then wins the next pick (tier -1 always sorts first). If a
+  higher-priority job arrives while it's queued (e.g. the user starts
+  typing), that job still runs first; the switch keeps waiting.
+- **`forcePreempt: true`** (deleting the currently-active model): cancels
+  the running job immediately, same as any other tier-based preemption.
+  Nataraj/Gana recover for free through the existing re-queue policy
+  below; a cancelled chat turn finalizes with partial content, same as
+  the Stop button.
+
+One guard exists specifically for the gentle case: `setForeground()`'s
+preemption check (`_maybePreempt`) re-evaluates the best queued job on
+every foreground toggle. Without an explicit exception, a queued gentle
+switch — always tier -1, so it always looks "best" — would get pulled
+into running on the next unrelated foreground change, contradicting
+"never interrupts." Both `_onJobArrived` and `_maybePreempt` special-case
+`modelSwitch` jobs with `forcePreempt: false` to skip preemption
+entirely; the tier ordering alone still guarantees it's picked next.
+
+`AIModelRunner.runExclusiveModelOperation()` is the call site both
+`AIModelRepositoryImpl.activateModel()` and `deleteModel()` (when
+deleting the active model) route through.
 
 ### Picker rule
 
@@ -199,6 +234,7 @@ class _Job {
   final String modelId;
   final DateTime? deadline;        // only set for cron-fired Gana
   final bool foregroundHint;       // true for "extract for opened note"
+  final bool forcePreempt;         // modelSwitch only — see §3 "Model switch tier"
   final Future<dynamic> Function(CancelToken) work;
   final Completer<dynamic> completer = Completer();
 }
@@ -208,6 +244,7 @@ class _Job {
 
 ```dart
 int _tier(_Job j) {
+  if (j.kind == LlmTaskKind.modelSwitch) return -1;
   if (j.kind == LlmTaskKind.chat) return 0;
 
   final foregroundMatch =
@@ -246,11 +283,15 @@ void _trimT2Window() {
 _Job? _pickBest() {
   final t2BudgetBlown = _t2BudgetExceeded();
 
-  for (int tier = 0; tier <= 4; tier++) {
+  for (int tier = -1; tier <= 4; tier++) {   // -1 first: modelSwitch
     if (tier == 2 && t2BudgetBlown) continue;
 
     final inTier = _q.where((j) => _tier(j) == tier).toList();
     if (inTier.isEmpty) continue;
+
+    // Tier -1 (modelSwitch) and T0 (chat) both ignore model affinity —
+    // neither is "for" a particular loaded model.
+    if (tier <= 0) return _resolveWithinTier(inTier, tier);
 
     // Same-model first.
     final sameModel = inTier
@@ -283,10 +324,11 @@ Future<T> run<T>({
   required LlmTaskKind kind,
   required String modelId,
   bool foregroundHint = false,
+  bool forcePreempt = false,     // modelSwitch only
   DateTime? deadline,
   required Future<T> Function(CancelToken) work,
 }) {
-  final job = _Job(kind, modelId, deadline, foregroundHint, work);
+  final job = _Job(kind, modelId, deadline, foregroundHint, forcePreempt, work);
   _q.add(job);
   _onJobArrived(job);
   return job.completer.future.then((v) => v as T);
@@ -297,7 +339,10 @@ void _onJobArrived(_Job j) {
     _pump();
     return;
   }
-  if (_tier(j) < _tier(_running!)) {
+  // A gentle modelSwitch never interrupts what's running — tier -1
+  // guarantees it's picked next once the current job finishes on its own.
+  if (j.kind == LlmTaskKind.modelSwitch && !j.forcePreempt) return;
+  if (j.forcePreempt || _tier(j) < _tier(_running!)) {
     _runningCancel?.cancel();    // _finishRunning will re-queue.
   }
 }
@@ -356,11 +401,15 @@ void setForeground(LlmTaskKind? kind) {
   if (_foreground == kind) return;
   _foreground = kind;
   if (_running != null) {
-    final newTierForRunning = _tier(_running!);
-    final pickedTier = _pickBest() == null
-        ? newTierForRunning + 1
-        : _tier(_pickBest()!);
-    if (pickedTier < newTierForRunning) _runningCancel?.cancel();
+    final best = _peekBest();
+    // A gentle modelSwitch sitting in the queue must not get pulled into
+    // running just because a foreground toggle re-evaluated priority —
+    // its tier -1 would otherwise always "win" this check. See §3.
+    if (best?.kind == LlmTaskKind.modelSwitch && !best!.forcePreempt) return;
+    final pickedTier = best == null
+        ? _tier(_running!) + 1
+        : _tier(best);
+    if (pickedTier < _tier(_running!)) _runningCancel?.cancel();
   } else {
     _pump();
   }
@@ -448,7 +497,9 @@ DATA                                                (lib/data/)
 | `ExtractKnowledgeUseCase` — note just opened                                      | `extract`, `foregroundHint:true` | yes (note detail) | active chat model                |
 | `ExtractKnowledgeUseCase` — backfill loop                                         | `extract`           | no               | active chat model                              |
 | `EmbeddingService.embed` (`.../rag/embedding/embedding_service.dart`)            | n/a (separate queue) | n/a             | embedder model — separate chip                 |
-| `gana_workmanager.dart` (background isolate)                                     | n/a (out of scope)  | n/a             | own direct `FlutterGemma` — see §8             |
+| `gana_workmanager.dart` (background isolate)                                     | n/a (out of scope)  | n/a             | own direct `FlutterGemma` — see §9             |
+| `AIModelRepositoryImpl.activateModel` (`.../repositories/ai_model_repository_impl.dart`) | `modelSwitch`, `forcePreempt:false` | no | ignored (tier -1) |
+| `AIModelRepositoryImpl.deleteModel` — deleting the active model                   | `modelSwitch`, `forcePreempt:true` | no | ignored (tier -1) |
 
 ---
 
@@ -489,7 +540,46 @@ semaphore to 3 on flagships.
 
 ---
 
-## 8. `gana_workmanager` asymmetry
+## 8. Cloud one-shot concurrency
+
+`RemoteLlmDataSource` (the `uniunCloud` backend) is not wired into
+`InferenceScheduler` at all — correctly so. There is no shared native
+resource to protect: every call is an independent HTTP request, so
+concurrent `generateOneShot` calls (Nataraj's background buffer top-up
+overlapping a foreground fill; Nataraj and Gana both firing around the
+same time) are meant to just run in parallel, not queue.
+
+```
+generateOneShot(A) ──┐
+                      ├─► both run concurrently, tracked independently
+generateOneShot(B) ──┘     in _extractions (Set<_InFlightExtraction>)
+
+sendChat(...) / preemptBackgroundWork()
+   └─► cancels every entry in _extractions
+        (chat still gets priority over background cloud generation —
+         same intent as the scheduler's T0, just enforced differently
+         since there's no scheduler here to enforce it)
+```
+
+Each entry pairs one subscription with its own completer. `generateOneShot`
+never cancels a sibling entry on arrival — only `sendChat`/
+`preemptBackgroundWork` cancel all of them, and doing so now resolves
+each cancelled entry (`Right(null)`) instead of leaving it hanging.
+Before this, a single shared subscription field meant a second call
+arriving mid-generation would cancel the first one's subscription without
+ever resolving its `Completer` — the first caller hung forever.
+
+A genuine stream error (network/API failure) resolves as `Left(Failure)`,
+distinct from a cooperative cancel (`Right(null)`) — this lets
+`GanaEngine`'s existing `failed`-vs-`skipped(modelSwapped)` branching
+read an accurate signal instead of both cases looking identical.
+
+Source: `lib/data/datasources/llm/remote_llm_data_source.dart`. Tests:
+`test/data/datasources/llm/remote_llm_data_source_test.dart`.
+
+---
+
+## 9. `gana_workmanager` asymmetry
 
 `lib/features/shiv/gana/engine/gana_workmanager.dart` is a top-level
 `@pragma('vm:entry-point')` function the OS calls when the app is
@@ -510,7 +600,7 @@ contributor doesn't try to "fix" it by smuggling DI across isolates.
 
 ---
 
-## 9. Edge cases
+## 10. Edge cases
 
 ### Mid-stream model swap
 
@@ -551,12 +641,22 @@ Chat jobs are never re-queued on cancel — if a chat send is preempted,
 something is very wrong (T0 only loses to itself), so the cancel
 propagates as an error to the BLoC.
 
+`modelSwitch` jobs are also absent from this list, for the opposite
+reason: tier -1 is never preempted by anything, so re-queueability never
+comes up. A gentle switch simply waits for its turn; a forced switch is
+itself the thing doing the cancelling.
+
 ---
 
-## 10. Verification scenarios
+## 11. Verification scenarios
 
-These eight scenarios are the test plan; each maps to a `test(...)` in
-`test/data/datasources/llm/inference_scheduler_test.dart`.
+Scenarios 1–8 map to `test(...)` in
+`test/data/datasources/llm/inference_scheduler_test.dart`. Scenarios
+9–12 (added for the model-switch tier, issue #160 follow-on) map to the
+same file's `Scenario 9`–`12` groups; the negative/edge cases below them
+map to that file's `Negative — ...` groups. Scenarios 13–14 (cloud
+concurrency) map to `test/data/datasources/llm/
+remote_llm_data_source_test.dart`'s `concurrency` group.
 
 | # | Scenario                                                                                              | Expected behavior                                                                                                                  |
 | - | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -568,10 +668,20 @@ These eight scenarios are the test plan; each maps to a `test(...)` in
 | 6 | Chat on model X. Two Gana jobs queued: one on X, one on Y.                                              | Picker prefers the X Gana (same model). Y Gana waits for a foreground signal or a chat idle gap before triggering a swap.            |
 | 7 | User opens a note → extract triggered with `foregroundHint:true`. Nataraj running.                     | Extract promoted to T1, preempts Nataraj.                                                                                           |
 | 8 | App backgrounded → `gana_workmanager` ticks.                                                           | Scheduler is dormant (no foreground); workmanager runs unaffected with its own direct `FlutterGemma` path.                          |
+| 9 | Nataraj running. User picks a different, already-downloaded local model.                               | Nataraj runs to completion untouched. The switch runs immediately after, ahead of any job that arrived while it waited.             |
+| 10 | User picks a different model while nothing is running.                                                | Switch runs immediately.                                                                                                            |
+| 11 | Chat running. User deletes the currently-active model.                                                | Chat is cancelled immediately (not re-queued); the delete proceeds right away.                                                      |
+| 12 | Nataraj/Gana running. User deletes the currently-active model.                                        | The job is cancelled and re-queued via the existing policy; it completes normally after the delete, against whatever model ends up active. |
+| — | Negative: a gentle switch is queued; `setForeground()` toggles while it waits.                          | The running job is NOT preempted by the toggle — the switch keeps waiting for its own turn.                                         |
+| — | Negative: two gentle switches queued back to back.                                                     | Both run, in submission order — no starvation.                                                                                      |
+| — | Negative: a switch's action throws.                                                                    | Propagates as a normal `Future` error to the caller; the scheduler recovers and keeps dispatching.                                  |
+| — | Negative: model affinity at tier -1.                                                                   | Ignored — a switch runs regardless of `_loadedModelId`, same as chat at T0.                                                          |
+| 13 | Two `generateOneShot` calls overlap on the cloud backend (e.g. Nataraj background + foreground fill).  | Both complete independently; neither blocks or cancels the other.                                                                   |
+| 14 | Chat starts while one or more cloud `generateOneShot` calls are in flight.                             | Every pending call is cancelled and resolves `Right(null)` (not left hanging); chat proceeds normally.                              |
 
 ---
 
-## 11. Literature and "novelty" callout
+## 12. Literature and "novelty" callout
 
 The recipe is built on four classical schedulers (a) plus four
 contemporary cloud-LLM-serving systems (b) that already publish very
@@ -670,7 +780,7 @@ at is the *mobile adaptation* in (1)–(3) above.
 
 ---
 
-## 12. Future work
+## 13. Future work
 
 - **Agent-round scheduling.** Agentic Ganas / Shiv "deep answer" mode
   ([`agent_skills.md`](agent_skills.md) §9) submit each agent-loop
@@ -706,3 +816,6 @@ at is the *mobile adaptation* in (1)–(3) above.
   outside this scheduler.
 - Issue [#118](https://github.com/basictech01/uniun/issues/118) — the
   bug this work resolves.
+- Issue [#160](https://github.com/basictech01/uniun/issues/160) — the
+  model-switch tier (§3) and cloud one-shot concurrency (§8) both
+  originate from this issue's follow-on investigation.

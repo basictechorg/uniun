@@ -109,7 +109,11 @@ in both isolates:
   local Shiv chat session coexist without either stepping on the other.
   Not connected to UNIUN Cloud, or no `desiredModelId` set ⇒
   `GanaSkipReason.cloudUnavailable`, retried next trigger — no fallback to
-  local.
+  local. A cloud-pinned Gana running at the same time as a cloud-backed
+  Nataraj fill (or another cloud Gana) no longer races it — see
+  `scheduling.md` §8, "Cloud one-shot concurrency": each `generateOneShot`
+  call is tracked independently, so concurrent cloud calls complete on
+  their own instead of one silently hanging when another arrives.
 - **Background (`gana_workmanager.dart`)**: same skip-on-unavailable
   contract, but reached differently since the isolate has no DI. The main
   isolate reads the already-minted UNIUN Cloud API key from

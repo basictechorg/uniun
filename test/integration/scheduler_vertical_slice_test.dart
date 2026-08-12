@@ -1,6 +1,9 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
+import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/repositories/scheduler_coordinator_impl.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/scheduler_coordinator.dart';
@@ -14,6 +17,8 @@ import 'package:uniun/domain/usecases/scheduler_usecases.dart';
 /// signature in the data layer but the use case still compiles" classes
 /// of bug that isolated unit tests can miss.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late InferenceScheduler scheduler;
   late SchedulerCoordinator coordinator;
   late SetForegroundKindUseCase setForegroundUseCase;
@@ -194,6 +199,133 @@ void main() {
       expect(completed, contains('extract'));
       expect(completed, contains('gana'));
       expect(completed.first, equals('chat'));
+    });
+  });
+
+  group('Model switch — AIModelRunner → InferenceScheduler vertical slice '
+      '(issue #160 follow-on)', () {
+    late AIModelRunner runner;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = AppSettingsStore(await SharedPreferences.getInstance());
+      runner = AIModelRunner(scheduler, settings);
+    });
+
+    test('gentle switch waits for a running nataraj job to finish, then '
+        'runs ahead of a gana that arrived while it waited', () async {
+      final order = <String>[];
+      final nataraj = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 10; i++) {
+            if (cancel.isCancelled) return;
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+          order.add('nataraj');
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      final switchFuture = runner.runExclusiveModelOperation<void>(
+        forcePreempt: false,
+        action: () async => order.add('switch'),
+      );
+      final gana = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (_) async => order.add('gana'),
+      );
+
+      await Future.wait([nataraj, switchFuture, gana]);
+
+      expect(order, ['nataraj', 'switch', 'gana']);
+    });
+
+    test('forced switch preempts a running chat immediately', () async {
+      final order = <String>[];
+      final chat = scheduler.run<void>(
+        kind: LlmTaskKind.chat,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 20; i++) {
+            if (cancel.isCancelled) {
+              order.add('chat-cancelled');
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+          order.add('chat-finished');
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      await runner.runExclusiveModelOperation<void>(
+        forcePreempt: true,
+        action: () async => order.add('switch'),
+      );
+      await chat;
+
+      expect(order, ['chat-cancelled', 'switch']);
+    });
+
+    test('forced switch preempts a running gana, which re-queues and '
+        'completes after the switch — no work lost', () async {
+      final order = <String>[];
+      final gana = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 10; i++) {
+            if (cancel.isCancelled) return;
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+          order.add('gana');
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      final switchFuture = runner.runExclusiveModelOperation<void>(
+        forcePreempt: true,
+        action: () async => order.add('switch'),
+      );
+
+      await switchFuture;
+      await gana; // re-queued run completes after the switch
+
+      expect(order, ['switch', 'gana']);
+    });
+
+    test('a queued gentle switch is not disturbed by an unrelated '
+        'foreground toggle', () async {
+      final order = <String>[];
+      final nataraj = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 10; i++) {
+            if (cancel.isCancelled) {
+              order.add('nataraj-cancelled');
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+          order.add('nataraj');
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      final switchFuture = runner.runExclusiveModelOperation<void>(
+        forcePreempt: false,
+        action: () async => order.add('switch'),
+      );
+
+      coordinator.setForeground(LlmTaskKind.gana);
+
+      await Future.wait([nataraj, switchFuture]);
+
+      expect(order, ['nataraj', 'switch']);
     });
   });
 }
