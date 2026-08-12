@@ -576,6 +576,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i72.AIModelRepositoryImpl(
         gh<_i214.Isar>(),
         gh<_i107.AppSettingsStore>(),
+        gh<_i937.AIModelRunner>(),
       ),
     );
     gh.factory<_i756.BlockedUserRepository>(

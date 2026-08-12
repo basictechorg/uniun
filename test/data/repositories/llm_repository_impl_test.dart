@@ -1,11 +1,13 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/datasources/llm/local_llm_data_source.dart';
 import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart';
 import 'package:uniun/data/repositories/llm_repository_impl.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
@@ -30,24 +32,29 @@ class _MockLocalCatalog extends Mock implements AIModelRepository {}
 void main() {
   setUpAll(() {
     registerFallbackValue(LlmTaskKind.extract);
+    registerFallbackValue(AIModelId.qwen25_05b);
   });
 
   late _MockLocal local;
   late _MockRemote remote;
   late _MockPrefs prefs;
+  late _MockLocalSettings localSettings;
+  late _MockLocalCatalog localCatalog;
   late LlmRepositoryImpl repo;
 
   setUp(() {
     local = _MockLocal();
     remote = _MockRemote();
     prefs = _MockPrefs();
+    localSettings = _MockLocalSettings();
+    localCatalog = _MockLocalCatalog();
     repo = LlmRepositoryImpl(
       local,
       remote,
       prefs,
       _MockCloudAuth(),
-      _MockLocalSettings(),
-      _MockLocalCatalog(),
+      localSettings,
+      localCatalog,
     );
 
     when(() => local.generateOneShot(
@@ -151,6 +158,63 @@ void main() {
             kind: LlmTaskKind.extract,
             modelIdOverride: null,
           )).called(1);
+    });
+  });
+
+  group('setActiveModel — local (issue #160 regression: switching between '
+      'two already-downloaded models must re-link flutter_gemma, not just '
+      'write settings)', () {
+    setUp(() {
+      when(() => prefs.activeBackend).thenReturn(LlmBackendType.localGemma);
+      when(() => localSettings.setActiveModelId(any()))
+          .thenAnswer((_) async {});
+    });
+
+    test('writes the settings id AND calls activateModel — a plain settings '
+        'write alone leaves flutter_gemma pointed at the previous model',
+        () async {
+      when(() => localCatalog.activateModel(AIModelId.gemma4E2b))
+          .thenAnswer((_) async => const Right(unit));
+
+      final result = await repo.setActiveModel('gemma4E2b');
+
+      expect(result.isRight(), isTrue);
+      verify(() => localSettings.setActiveModelId(AIModelId.gemma4E2b))
+          .called(1);
+      verify(() => localCatalog.activateModel(AIModelId.gemma4E2b)).called(1);
+    });
+
+    test('an unknown model id fails before touching settings or the catalog',
+        () async {
+      final result = await repo.setActiveModel('not-a-real-model');
+
+      expect(result.isLeft(), isTrue);
+      verifyNever(() => localSettings.setActiveModelId(any()));
+      verifyNever(() => localCatalog.activateModel(any()));
+    });
+
+    test('activateModel failure (e.g. the picked model was never actually '
+        'downloaded) surfaces as a Left, even though settings already wrote',
+        () async {
+      when(() => localCatalog.activateModel(AIModelId.deepseekR1)).thenAnswer(
+          (_) async => const Left(Failure.errorFailure('not downloaded')));
+
+      final result = await repo.setActiveModel('deepseekR1');
+
+      expect(result.isLeft(), isTrue);
+      verify(() => localSettings.setActiveModelId(AIModelId.deepseekR1))
+          .called(1);
+    });
+
+    test('cloud backend never touches the local catalog at all', () async {
+      when(() => prefs.activeBackend).thenReturn(LlmBackendType.uniunCloud);
+      when(() => prefs.setActiveCloudModelId(any())).thenAnswer((_) async {});
+
+      final result = await repo.setActiveModel('claude-sonnet-5');
+
+      expect(result.isRight(), isTrue);
+      verifyNever(() => localCatalog.activateModel(any()));
+      verifyNever(() => localSettings.setActiveModelId(any()));
     });
   });
 }

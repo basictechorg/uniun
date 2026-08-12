@@ -10,6 +10,15 @@ abstract class AIModelRepository {
   /// Returns the model the user has downloaded and activated, or null if none.
   Future<Either<Failure, AIModelEntity?>> getActiveModel();
 
+  /// Forces flutter_gemma's in-memory active-model registration onto
+  /// [modelId], regardless of what is currently active. Unlike
+  /// [getActiveModel] (which only rehydrates when NOTHING is active — a
+  /// cheap cold-start check), this always re-links the engine, which is
+  /// required after the user explicitly switches between two already-
+  /// downloaded local models (a plain settings write leaves flutter_gemma
+  /// pointed at the old one). [modelId]'s file must already be installed.
+  Future<Either<Failure, Unit>> activateModel(AIModelId modelId);
+
   /// Downloads the model identified by [modelId] and marks it as active.
   /// Emits [AIModelDownloadEvent]s until complete or failed.
   ///

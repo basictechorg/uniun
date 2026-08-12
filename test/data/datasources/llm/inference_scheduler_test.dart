@@ -804,4 +804,260 @@ void main() {
       expect(scheduler.queueLength, 0);
     });
   });
+
+  // ── modelSwitch (issue #160 follow-on) ─────────────────────────────────
+
+  group('Scenario 9 — gentle model switch waits for the running job, then '
+      'jumps ahead of anything queued after it', () {
+    test('nataraj runs to completion untouched; switch then wins over a '
+        'gana job that arrived while it was waiting', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      // Nataraj and gana share T4 — gana arriving does NOT preempt nataraj,
+      // isolating this test to the modelSwitch behavior only (a real chat
+      // job legitimately preempts nataraj on its own, which would confound
+      // the "untouched" assertion below).
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'nataraj', tokens: 20),
+      );
+      await Future.delayed(const Duration(milliseconds: 30));
+      expect(trace.first, 'start:nataraj');
+
+      final switchFuture = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch', tokens: 2),
+      );
+      final ganaFuture = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'gana', tokens: 2),
+      );
+
+      await natarajFuture;
+      await switchFuture;
+      await ganaFuture;
+
+      // Nataraj was never interrupted.
+      expect(cancelledAtAnyTokenFor(trace, 'nataraj'), isFalse);
+      expect(trace, contains('finish:nataraj'));
+
+      final natarajFinishIdx = trace.indexOf('finish:nataraj');
+      final switchStartIdx = trace.indexOf('start:switch');
+      final switchFinishIdx = trace.indexOf('finish:switch');
+      final ganaStartIdx = trace.indexOf('start:gana');
+
+      // Switch only starts after nataraj is done...
+      expect(switchStartIdx, greaterThan(natarajFinishIdx));
+      // ...and finishes before gana gets its turn, even though gana arrived
+      // before the current job (nataraj) had finished.
+      expect(switchFinishIdx, lessThan(ganaStartIdx));
+    });
+  });
+
+  group('Scenario 10 — gentle model switch on an idle scheduler', () {
+    test('runs immediately with nothing to wait for', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      await scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch', tokens: 1),
+      );
+
+      expect(trace, ['start:switch', 'finish:switch']);
+      expect(scheduler.queueLength, 0);
+      expect(scheduler.runningKind, isNull);
+    });
+  });
+
+  group('Scenario 11 — forced model switch preempts a running chat', () {
+    test('chat is cancelled immediately and is NOT re-queued', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      final chatFuture = scheduler.run<void>(
+        kind: LlmTaskKind.chat,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'chat', tokens: 20),
+      );
+      await Future.delayed(const Duration(milliseconds: 30));
+      expect(trace.first, 'start:chat');
+
+      final switchFuture = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch', tokens: 1),
+        forcePreempt: true,
+      );
+
+      await chatFuture;
+      await switchFuture;
+
+      expect(cancelledAtAnyTokenFor(trace, 'chat'), isTrue);
+      // Chat is never re-queued — only one start, never a second attempt.
+      expect(trace.where((s) => s == 'start:chat').length, 1);
+      expect(trace, contains('finish:switch'));
+      expect(scheduler.queueLength, 0);
+    });
+  });
+
+  group('Scenario 12 — forced model switch preempts a running nataraj/gana, '
+      'which auto-recovers via the existing re-queue policy', () {
+    test('nataraj is cancelled, then re-queued and completes AFTER the '
+        'switch — no work is permanently lost', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'nataraj', tokens: 20),
+      );
+      await Future.delayed(const Duration(milliseconds: 30));
+      expect(trace.first, 'start:nataraj');
+
+      final switchFuture = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch', tokens: 1),
+        forcePreempt: true,
+      );
+
+      await switchFuture;
+      // Nataraj was cancelled but re-queued — awaiting it drains the
+      // eventual, successful re-run.
+      await natarajFuture;
+
+      expect(cancelledAtAnyTokenFor(trace, 'nataraj'), isTrue);
+      // Re-queued: the SAME job runs its work closure a second time.
+      expect(trace.where((s) => s == 'start:nataraj').length, 2);
+      expect(trace, contains('finish:nataraj'));
+
+      final switchFinishIdx = trace.indexOf('finish:switch');
+      final natarajFinishIdx = trace.lastIndexOf('finish:nataraj');
+      expect(switchFinishIdx, lessThan(natarajFinishIdx));
+    });
+  });
+
+  // ── Negative / edge cases ───────────────────────────────────────────────
+
+  group('Negative — a queued gentle switch is never pulled forward by a '
+      'foreground toggle', () {
+    test('setForeground() while a gentle switch is queued does not cancel '
+        'the running nataraj job', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'nataraj', tokens: 20),
+      );
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      final switchFuture = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch', tokens: 1),
+      );
+
+      // Without the _maybePreempt guard, this would wrongly force-preempt
+      // nataraj — the queued switch's tier (-1) always looks "best".
+      scheduler.setForeground(LlmTaskKind.gana);
+
+      await natarajFuture;
+      await switchFuture;
+
+      expect(cancelledAtAnyTokenFor(trace, 'nataraj'), isFalse);
+      expect(trace, contains('finish:nataraj'));
+      expect(trace, contains('finish:switch'));
+    });
+  });
+
+  group('Negative — two queued gentle switches run in submission order, no '
+      'starvation', () {
+    test('switch1 finishes before switch2 starts', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      final f1 = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'A',
+        work: recordingWork(trace: trace, label: 'switch1', tokens: 10),
+      );
+      // Arrives while switch1 is already running.
+      await Future.delayed(const Duration(milliseconds: 20));
+      final f2 = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch2', tokens: 1),
+      );
+
+      await f1;
+      await f2;
+
+      expect(trace.indexOf('finish:switch1'),
+          lessThan(trace.indexOf('start:switch2')));
+      expect(scheduler.queueLength, 0);
+      expect(scheduler.runningKind, isNull);
+    });
+  });
+
+  group('Negative — a model-switch action that throws propagates as a '
+      'normal Future error', () {
+    test('caller sees the exception, scheduler recovers cleanly', () async {
+      final scheduler = InferenceScheduler();
+
+      final future = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: (_) async => throw Exception('activation failed'),
+      );
+
+      await expectLater(future, throwsA(isA<Exception>()));
+      expect(scheduler.queueLength, 0);
+      expect(scheduler.runningKind, isNull);
+    });
+  });
+
+  group('Negative — model-switch tier ignores model affinity', () {
+    test('two queued switches run in submission order even when the loaded '
+        'model matches the SECOND one, not the first', () async {
+      final scheduler = InferenceScheduler();
+      final trace = <String>[];
+
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: recordingWork(trace: trace, label: 'nataraj', tokens: 20),
+      );
+      await Future.delayed(const Duration(milliseconds: 30));
+
+      final f1 = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'A',
+        work: recordingWork(trace: trace, label: 'switch1', tokens: 1),
+      );
+      final f2 = scheduler.run<void>(
+        kind: LlmTaskKind.modelSwitch,
+        modelId: 'B',
+        work: recordingWork(trace: trace, label: 'switch2', tokens: 1),
+      );
+      // If affinity applied at tier -1, this would make switch2 (model B)
+      // jump ahead of switch1 (model A), submitted first.
+      scheduler.notifyLoadedModel('B');
+
+      await natarajFuture;
+      await f1;
+      await f2;
+
+      expect(trace.indexOf('start:switch1'),
+          lessThan(trace.indexOf('start:switch2')));
+    });
+  });
 }

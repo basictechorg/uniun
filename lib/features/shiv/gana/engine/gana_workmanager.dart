@@ -17,7 +17,9 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
+import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/event_queue_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
@@ -261,12 +263,20 @@ void ganaWorkManagerDispatcher() {
         // always reads false here, even when the user has a model properly
         // selected and downloaded. Constructed directly (no DI, matching
         // this isolate's existing no-DI pattern) since it only needs `Isar`
-        // + `AppSettingsStore`, both plain plugin calls.
+        // + `AppSettingsStore`, both plain plugin calls. `AIModelRunner`
+        // (needed by `AIModelRepositoryImpl`'s constructor for the
+        // scheduler-coordinated activate/delete paths) is a throwaway here —
+        // `getActiveModel()` never calls it, only `activateModel`/
+        // `deleteModel` do, neither of which this bg isolate uses.
         _log('step 4b: rehydrating active-model registration');
         try {
           final prefs = await SharedPreferences.getInstance();
-          await AIModelRepositoryImpl(isar, AppSettingsStore(prefs))
-              .getActiveModel();
+          final settings = AppSettingsStore(prefs);
+          await AIModelRepositoryImpl(
+            isar,
+            settings,
+            AIModelRunner(InferenceScheduler(), settings),
+          ).getActiveModel();
         } catch (e) {
           _log('step 4b: rehydration failed (non-fatal): $e');
         }

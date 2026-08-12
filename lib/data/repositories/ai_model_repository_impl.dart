@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:system_info_plus/system_info_plus.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/repositories/ai_model_repository.dart';
@@ -19,8 +20,9 @@ import 'package:path/path.dart' as p;
 class AIModelRepositoryImpl implements AIModelRepository {
   final Isar _isar;
   final AppSettingsStore _settings;
+  final AIModelRunner _runner;
 
-  AIModelRepositoryImpl(this._isar, this._settings);
+  AIModelRepositoryImpl(this._isar, this._settings, this._runner);
 
   // ── Model catalog ────────────────────────────────────────────────────────────
   // All URLs are real HuggingFace releases compatible with flutter_gemma 0.13.x
@@ -141,7 +143,6 @@ class AIModelRepositoryImpl implements AIModelRepository {
       final entry = _catalog.where((m) => m.modelId == activeId).firstOrNull;
       if (entry == null) return const Right(null);
 
-      final params = _gemmaParams[activeId]!;
       final filename = p.basename(Uri.parse(entry.downloadUrl).path);
       final isInstalled = await FlutterGemma.isModelInstalled(filename);
 
@@ -151,18 +152,61 @@ class AIModelRepositoryImpl implements AIModelRepository {
         return const Right(null);
       }
 
-      // Restore flutter_gemma's in-memory active model state.
+      // Cheap cold-start rehydration: only re-links when NOTHING is active
+      // yet. Does NOT catch "a DIFFERENT model is active" — that case is
+      // [activateModel]'s job, called explicitly on every model switch.
       if (!FlutterGemma.hasActiveModel()) {
-        await FlutterGemma.installModel(
-          modelType: params.modelType,
-          fileType: params.fileType,
-        ).fromNetwork(entry.downloadUrl).install();
+        await _installAndActivate(entry);
       }
 
       return Right(entry.copyWith(isDownloaded: true));
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
     }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> activateModel(AIModelId modelId) async {
+    try {
+      final entry = _catalog.where((m) => m.modelId == modelId).firstOrNull;
+      if (entry == null) {
+        return Left(Failure.errorFailure('Unknown local model: $modelId'));
+      }
+
+      final filename = p.basename(Uri.parse(entry.downloadUrl).path);
+      final isInstalled = await FlutterGemma.isModelInstalled(filename);
+      if (!isInstalled) {
+        return Left(Failure.errorFailure(
+            'Model ${modelId.name} is not downloaded yet.'));
+      }
+
+      // Unconditional — this is the explicit-switch path, so re-link
+      // flutter_gemma to [modelId] even if a DIFFERENT model is currently
+      // active (settings alone was already updated by the caller). Routed
+      // through the scheduler (gentle — waits for whatever's running to
+      // finish naturally, then jumps the queue) so the swap never races an
+      // in-flight generation against the native engine.
+      return await _runner.runExclusiveModelOperation<Either<Failure, Unit>>(
+        forcePreempt: false,
+        action: () async {
+          await _installAndActivate(entry);
+          return const Right(unit);
+        },
+      );
+    } catch (e) {
+      return Left(Failure.errorFailure(e.toString()));
+    }
+  }
+
+  /// Re-links flutter_gemma's in-memory active model to [entry]. The file is
+  /// already confirmed installed by the caller, so `.install()` here is a
+  /// fast local re-link, not a re-download.
+  Future<void> _installAndActivate(AIModelEntity entry) async {
+    final params = _gemmaParams[entry.modelId]!;
+    await FlutterGemma.installModel(
+      modelType: params.modelType,
+      fileType: params.fileType,
+    ).fromNetwork(entry.downloadUrl).install();
   }
 
   @override
@@ -314,15 +358,34 @@ class AIModelRepositoryImpl implements AIModelRepository {
   Future<Either<Failure, Unit>> deleteModel(AIModelId modelId) async {
     try {
       final filename = _filename(modelId);
+      final isActive = _settings.activeModelId == modelId;
+
       // Use flutter_gemma's uninstall to clear both the file and internal
       // metadata so isModelInstalled() returns false afterwards.
-      try {
-        await FlutterGemma.uninstallModel(filename);
-      } catch (_) {
-        // Fallback: manual file delete in case metadata was already gone.
-        final dir = await getApplicationDocumentsDirectory();
-        final file = File(p.join(dir.path, filename));
-        if (file.existsSync()) await file.delete();
+      Future<void> uninstallNative() async {
+        try {
+          await FlutterGemma.uninstallModel(filename);
+        } catch (_) {
+          // Fallback: manual file delete in case metadata was already gone.
+          final dir = await getApplicationDocumentsDirectory();
+          final file = File(p.join(dir.path, filename));
+          if (file.existsSync()) await file.delete();
+        }
+      }
+
+      if (isActive) {
+        // Forced — the file is being removed, so unlike a plain switch we
+        // can't wait for whatever's running to finish on its own. Nataraj/
+        // Gana recover for free via the scheduler's existing re-queue
+        // policy; a cancelled chat turn finalizes with partial content.
+        await _runner.runExclusiveModelOperation<void>(
+          forcePreempt: true,
+          action: uninstallNative,
+        );
+      } else {
+        // Not the active model — nothing native is at risk, no need to
+        // coordinate with the scheduler.
+        await uninstallNative();
       }
 
       await _isar.writeTxn(() async {
@@ -334,8 +397,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
           await _isar.aIModelSelectionModels.delete(record.id);
         }
       });
-      // If this was the active model, clear it.
-      if (_settings.activeModelId == modelId) {
+      if (isActive) {
         await _settings.setActiveModelId(null);
       }
 

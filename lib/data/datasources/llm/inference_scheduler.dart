@@ -16,6 +16,9 @@ import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 /// Full spec — including HLD/LLD diagrams, literature references, and the
 /// eight verification scenarios — lives at `docs/SHIVA/scheduling.md`.
 ///
+///   T-1 modelSwitch        activating/deleting the local model; ignores
+///                          affinity; never re-queued; see `forcePreempt`
+///                          on [run] for the gentle-vs-forced distinction
 ///   T0  chat              user typed; always wins, ignores model affinity
 ///   T1  foreground        kind matches `_foreground`, OR `foregroundHint`
 ///   T2  extract           any extract; soft-capped at 60 % over 5-min window
@@ -55,18 +58,27 @@ class InferenceScheduler {
   /// [work]            — receives a [CancelToken]. The work MUST check it
   ///                     between tokens / loop iterations and stop ASAP
   ///                     when `isCancelled` flips.
+  /// [forcePreempt]    — only meaningful for [LlmTaskKind.modelSwitch].
+  ///                     `false` (default): never interrupts whatever is
+  ///                     running — waits for it to finish naturally, then
+  ///                     is picked next (tier -1 always wins the pick).
+  ///                     `true`: cancels the running job immediately,
+  ///                     regardless of tier — used when the active model
+  ///                     is being deleted and can't wait.
   Future<T> run<T>({
     required LlmTaskKind kind,
     required String modelId,
     required Future<T> Function(CancelToken) work,
     DateTime? deadline,
     bool foregroundHint = false,
+    bool forcePreempt = false,
   }) {
     final job = _Job(
       kind: kind,
       modelId: modelId,
       deadline: deadline,
       foregroundHint: foregroundHint,
+      forcePreempt: forcePreempt,
       work: (t) => work(t),
     );
     _seedNewcomer(kind);
@@ -105,7 +117,11 @@ class InferenceScheduler {
       _pump();
       return;
     }
-    if (_tier(j) < _tier(_running!)) {
+    // A gentle model-switch never interrupts what's running — it only gets
+    // picked once the current job finishes on its own (tier -1 guarantees
+    // it's picked next, ahead of anything else queued in the meantime).
+    if (j.kind == LlmTaskKind.modelSwitch && !j.forcePreempt) return;
+    if (j.forcePreempt || _tier(j) < _tier(_running!)) {
       _signalPreempt();
     } else {
       // Nothing to do — picker will see the job when current finishes.
@@ -127,6 +143,10 @@ class InferenceScheduler {
     }
     final best = _peekBest();
     if (best == null) return;
+    // A gentle model-switch sitting in the queue must not get pulled into
+    // running just because a foreground toggle re-evaluated priority — its
+    // tier -1 would otherwise always "win" this generic check.
+    if (best.kind == LlmTaskKind.modelSwitch && !best.forcePreempt) return;
     if (_tier(best) < _tier(_running!)) _signalPreempt();
   }
 
@@ -140,6 +160,7 @@ class InferenceScheduler {
   // ── Tier classification ────────────────────────────────────────────────
 
   int _tier(_Job j) {
+    if (j.kind == LlmTaskKind.modelSwitch) return -1;
     if (j.kind == LlmTaskKind.chat) return 0;
     if (j.foregroundHint || _foreground == j.kind) return 1;
     if (j.kind == LlmTaskKind.extract) return 2;
@@ -168,15 +189,16 @@ class InferenceScheduler {
     // dispatchable tiers. Resumed when [setForeground] clears.
     final blockBackground = _foreground == LlmTaskKind.chat;
 
-    for (int tier = 0; tier <= 4; tier++) {
+    for (int tier = -1; tier <= 4; tier++) {
       if (tier == 2 && t2BudgetBlown) continue;
       if (tier >= 2 && blockBackground) continue;
 
       final inTier = _q.where((j) => _tier(j) == tier).toList();
       if (inTier.isEmpty) continue;
 
-      // T0 chat ignores affinity — user-facing latency wins.
-      if (tier == 0) {
+      // Tier -1 (model switch) and T0 chat both ignore affinity — neither
+      // is "for" a particular loaded model.
+      if (tier <= 0) {
         final pick = _resolveWithinTier(inTier, tier);
         if (removeFromQueue) _q.remove(pick);
         return pick;
@@ -333,12 +355,14 @@ class _Job {
     required this.work,
     this.deadline,
     this.foregroundHint = false,
+    this.forcePreempt = false,
   });
 
   final LlmTaskKind kind;
   final String modelId;
   final DateTime? deadline;
   final bool foregroundHint;
+  final bool forcePreempt;
   final Future<dynamic> Function(CancelToken) work;
   final Completer<dynamic> completer = Completer<dynamic>();
 }
