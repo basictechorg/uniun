@@ -89,6 +89,86 @@ void main() {
     await pump.dispose();
     await session.disconnect();
   });
+
+  test('an item the router rejects (shouldSendToThisSession=false) is '
+      'skipped without sending, advancing straight to the next item',
+      () async {
+    final skip = _queueRow('evt-skip', 1);
+    final send = _queueRow('evt-send', 2);
+    await isar.writeTxn(() async {
+      await isar.eventQueueModels.putAll([skip, send]);
+    });
+
+    final connection = _CapturingConnection();
+    final session = RelaySession(connection: connection, read: true, write: true);
+    final pump = OutboundPump(
+      isar: isar,
+      session: session,
+      startFromQueueId: 0,
+      shouldSendToThisSession: (event) async => event.eventId != 'evt-skip',
+    );
+
+    pump.onTick();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(connection.sent, hasLength(1));
+    expect(connection.sent.single, contains('evt-send'));
+
+    await pump.dispose();
+    await session.disconnect();
+  });
+
+  test('an accepted OK increments the queue row\'s sentCount', () async {
+    final row = _queueRow('evt-1', 1);
+    await isar.writeTxn(() async {
+      await isar.eventQueueModels.put(row);
+    });
+
+    final connection = _CapturingConnection();
+    final session = RelaySession(connection: connection, read: true, write: true);
+    final pump = OutboundPump(
+      isar: isar,
+      session: session,
+      startFromQueueId: 0,
+      shouldSendToThisSession: (_) async => true,
+    );
+
+    pump.onTick();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    connection.ok('evt-1', true);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final updated = await isar.eventQueueModels
+        .where()
+        .eventIdEqualTo('evt-1')
+        .findFirst();
+    expect(updated!.sentCount, 1);
+
+    await pump.dispose();
+    await session.disconnect();
+  });
+
+  test('an OK for an eventId with no pending slot (not ours) is ignored',
+      () async {
+    final connection = _CapturingConnection();
+    final session = RelaySession(connection: connection, read: true, write: true);
+    final pump = OutboundPump(
+      isar: isar,
+      session: session,
+      startFromQueueId: 0,
+      shouldSendToThisSession: (_) async => true,
+    );
+
+    // No item ever armed — an unsolicited OK must not throw or advance.
+    connection.ok('not-ours', true);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(connection.sent, isEmpty);
+
+    await pump.dispose();
+    await session.disconnect();
+  });
 }
 
 EventQueueModel _queueRow(String eventId, int seconds) {
