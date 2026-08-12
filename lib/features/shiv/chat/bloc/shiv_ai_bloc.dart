@@ -157,31 +157,25 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     // Guard: no model loaded yet — ShivPage._checkModel() will redirect.
     if (!await _hasModel.call()) return;
 
-    final result = await _createConversation.call('New conversation');
-    await result.fold(
-      (f) async => emit(state.copyWith(
-          status: ShivChatStatus.error, errorMessage: f.toString())),
-      (conv) async {
-        await _initChatSession();
-        emit(state.copyWith(
-          status: ShivChatStatus.chatIdle,
-          activeConversation: conv,
-          // Dedupe: the Isar watcher may have already raced a LoadConversations
-          // through (during the _initChatSession await) and prepended this row.
-          // Drop any existing copy before prepending so the drawer never shows
-          // the active conversation twice.
-          conversations: [
-            conv,
-            ...state.conversations
-                .where((c) => c.conversationId != conv.conversationId),
-          ],
-          messages: [],
-          ragContextCount: 0,
-          lastTurnSourceNoteIds: const [],
-          errorMessage: null,
-        ));
-      },
+    await _initChatSession();
+    // Draft only — NOT persisted to Isar and NOT added to state.conversations,
+    // so it never appears in the drawer. It's only written to Isar (via
+    // _onSendMessage's isDraft branch) once the user actually sends a first
+    // message, so opening/abandoning an empty chat leaves no history row.
+    final draft = ShivConversationEntity(
+      conversationId: const Uuid().v4(),
+      title: 'New conversation',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
+    emit(state.copyWith(
+      status: ShivChatStatus.chatIdle,
+      activeConversation: draft,
+      messages: [],
+      ragContextCount: 0,
+      lastTurnSourceNoteIds: const [],
+      errorMessage: null,
+    ));
   }
 
   Future<void> _onCreateConversationSeeded(
@@ -227,6 +221,12 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
   Future<void> _onCloseConversation(
       _CloseConversation event, Emitter<ShivAIState> emit) async {
+    // Leaving mid-generation (back button, navigating away) must not leave
+    // the assistant placeholder permanently blank — finalize whatever
+    // streamed so far, same as the explicit Stop button.
+    if (state.status == ShivChatStatus.streaming) {
+      await _persistInterruptedStream('(interrupted)');
+    }
     _streamSub?.cancel();
     _cancelTokenFlush();
     await _closeConv.call();
@@ -260,22 +260,36 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     final text = event.text.trim();
     if (text.isEmpty) return;
 
-    // 1 — Save user message.
-    final userMsgId = const Uuid().v4();
-    final userMsg = ShivMessageEntity(
-      messageId: userMsgId,
-      conversationId: conv.conversationId,
-      parentId: state.messages.lastOrNull?.messageId,
-      role: MessageRole.user,
-      content: text,
-      createdAt: DateTime.now(),
-    );
-    await _saveMessage.call(userMsg);
-
-    // Auto-title the conversation from the first user message (like ChatGPT).
+    // A conversation created by _onCreateConversation is a draft — not yet
+    // persisted to Isar, so it's absent from state.conversations. This is
+    // the actual moment (first real message) it becomes real history.
     final isFirstMessage = state.messages.isEmpty;
+    final isDraft =
+        !state.conversations.any((c) => c.conversationId == conv.conversationId);
+
     ShivConversationEntity updatedConv = conv;
-    if (isFirstMessage) {
+    if (isDraft) {
+      final title = text.length > 40 ? '${text.substring(0, 40)}…' : text;
+      final result = await _createConversation.call(title);
+      final created = result.fold((f) => null, (c) => c);
+      if (created == null) {
+        emit(state.copyWith(
+            status: ShivChatStatus.error,
+            errorMessage: result.fold((f) => f.toString(), (_) => '')));
+        return;
+      }
+      updatedConv = created;
+      emit(state.copyWith(
+        activeConversation: updatedConv,
+        conversations: [
+          updatedConv,
+          ...state.conversations
+              .where((c) => c.conversationId != updatedConv.conversationId),
+        ],
+      ));
+    } else if (isFirstMessage) {
+      // Existing persisted conversation with no messages yet (e.g. reopened
+      // draft-less edge case) — keep the old auto-title-on-first-message path.
       final title = text.length > 40 ? '${text.substring(0, 40)}…' : text;
       await _updateConversationTitle.call((conv.conversationId, title));
       updatedConv = conv.copyWith(title: title);
@@ -287,6 +301,18 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
         conversations: updatedList,
       ));
     }
+
+    // 1 — Save user message.
+    final userMsgId = const Uuid().v4();
+    final userMsg = ShivMessageEntity(
+      messageId: userMsgId,
+      conversationId: updatedConv.conversationId,
+      parentId: state.messages.lastOrNull?.messageId,
+      role: MessageRole.user,
+      content: text,
+      createdAt: DateTime.now(),
+    );
+    await _saveMessage.call(userMsg);
 
     // 2 — Placeholder assistant message.
     final assistantMsgId = const Uuid().v4();
@@ -373,6 +399,21 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     _pendingTokens.clear();
   }
 
+  /// Persists whatever content streamed so far into the in-flight assistant
+  /// placeholder (or [fallbackText] if nothing arrived yet at all), so a
+  /// stream that gets torn down mid-turn — Stop button, closing the chat,
+  /// leaving the app — never leaves a permanently blank assistant bubble in
+  /// Isar. Returns the content actually written, or null if there was no
+  /// in-flight assistant message to finalize.
+  Future<String?> _persistInterruptedStream(String fallbackText) async {
+    final msgId = state.streamingMessageId;
+    if (msgId == null) return null;
+    final partial = stripThinking(state.streamingContent ?? '').trim();
+    final finalContent = partial.isEmpty ? fallbackText : partial;
+    await _updateMessageContent.call((msgId, finalContent));
+    return finalContent;
+  }
+
   /// User tapped stop during streaming. Cancel the native token stream, keep
   /// whatever's already been generated, and persist it as the final assistant
   /// message so the conversation stays coherent on next open.
@@ -384,11 +425,9 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
     _cancelTokenFlush();
 
     final msgId = state.streamingMessageId;
-    final partial = stripThinking(state.streamingContent ?? '').trim();
-    final finalContent = partial.isEmpty ? '(stopped)' : partial;
+    final finalContent = await _persistInterruptedStream('(stopped)');
 
-    if (msgId != null) {
-      await _updateMessageContent.call((msgId, finalContent));
+    if (msgId != null && finalContent != null) {
       final updatedMessages = state.messages.map((m) {
         if (m.messageId == msgId) return m.copyWith(content: finalContent);
         return m;
@@ -564,6 +603,11 @@ class ShivAIBloc extends Bloc<ShivAIEvent, ShivAIState> {
 
   @override
   Future<void> close() async {
+    // Bloc/app teardown mid-generation (logout, HomePage disposal) — same
+    // finalize-don't-leave-blank rule as _onCloseConversation.
+    if (state.status == ShivChatStatus.streaming) {
+      await _persistInterruptedStream('(interrupted)');
+    }
     _streamSub?.cancel();
     _conversationsSub?.cancel();
     _cancelTokenFlush();
