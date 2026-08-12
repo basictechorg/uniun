@@ -25,11 +25,23 @@ class RemoteLlmDataSource implements LlmDataSource {
   final UniunRepository _uniun;
   final LlmPreferencesDataSource _prefs;
 
-  /// In-flight extraction subscription. Held so [preemptBackgroundWork] and
-  /// [sendChat] can cancel it when the user wants the network for a chat.
-  StreamSubscription<String>? _extractionSub;
+  /// Every in-flight [generateOneShot] call, tracked independently so
+  /// concurrent calls (e.g. Nataraj's background buffer top-up overlapping
+  /// a foreground fill) never stomp each other. [preemptBackgroundWork] and
+  /// [sendChat] can cancel ALL of them when the user wants the network for
+  /// a chat — cancelling now actually resolves each waiting caller
+  /// (`Right(null)`) instead of leaving it hanging forever.
+  final Set<_InFlightExtraction> _extractions = {};
 
   RemoteLlmDataSource(this._uniun, this._prefs);
+
+  Future<void> _cancelAllExtractions() async {
+    final pending = _extractions.toList();
+    _extractions.clear();
+    for (final e in pending) {
+      await e.cancel();
+    }
+  }
 
   @override
   Future<bool> hasActiveModel() async {
@@ -56,11 +68,7 @@ class RemoteLlmDataSource implements LlmDataSource {
   }) async* {
     // Preempt any in-flight extraction so it doesn't race chat for the
     // user's plan quota.
-    final extraction = _extractionSub;
-    if (extraction != null) {
-      await extraction.cancel();
-      _extractionSub = null;
-    }
+    await _cancelAllExtractions();
 
     final modelId = _prefs.activeCloudModelId;
     if (modelId == null) {
@@ -106,9 +114,13 @@ class RemoteLlmDataSource implements LlmDataSource {
 
     final completer = Completer<String?>();
     final buffer = StringBuffer();
+    late final _InFlightExtraction entry;
 
-    _extractionSub?.cancel();
-    _extractionSub = _uniun
+    // Deliberately does NOT cancel any other in-flight extraction here —
+    // this call is itself extraction-tier, not chat, so it must not stomp
+    // a sibling Nataraj/Gana call. Only sendChat/preemptBackgroundWork are
+    // allowed to cancel extraction-tier work.
+    final sub = _uniun
         .streamChat(
           modelId: modelId,
           maxTokens: maxTokens,
@@ -120,15 +132,21 @@ class RemoteLlmDataSource implements LlmDataSource {
           buffer.write,
           onDone: () {
             if (!completer.isCompleted) completer.complete(buffer.toString());
-            _extractionSub = null;
+            _extractions.remove(entry);
           },
           onError: (Object e, StackTrace st) {
             debugPrint('⏭️ RemoteLlmDataSource.generateOneShot error: $e');
-            if (!completer.isCompleted) completer.complete(null);
-            _extractionSub = null;
+            // A genuine stream error, NOT a cooperative cancel — propagate
+            // as a real failure (see _InFlightExtraction.cancel for the
+            // cancel path) so callers like GanaEngine can tell "failed"
+            // apart from "preempted" instead of both reading as null.
+            if (!completer.isCompleted) completer.completeError(e, st);
+            _extractions.remove(entry);
           },
           cancelOnError: true,
         );
+    entry = _InFlightExtraction(sub, completer);
+    _extractions.add(entry);
 
     try {
       final result = await completer.future;
@@ -145,11 +163,7 @@ class RemoteLlmDataSource implements LlmDataSource {
 
   @override
   Future<Either<Failure, Unit>> preemptBackgroundWork() async {
-    final sub = _extractionSub;
-    if (sub != null) {
-      await sub.cancel();
-      _extractionSub = null;
-    }
+    await _cancelAllExtractions();
     return const Right(unit);
   }
 
@@ -169,4 +183,21 @@ class _RemoteLlmException implements Exception {
   const _RemoteLlmException(this.message);
   @override
   String toString() => message;
+}
+
+/// One [generateOneShot] call's independent subscription + completer.
+class _InFlightExtraction {
+  _InFlightExtraction(this.sub, this.completer);
+  final StreamSubscription<String> sub;
+  final Completer<String?> completer;
+
+  /// Cooperative cancel (by us — chat/preempt taking priority). Resolves
+  /// as `Right(null)`, same meaning as "preempted, no result yet" today —
+  /// distinct from a genuine stream error, which completes with an error
+  /// instead (see the `onError` callback in [RemoteLlmDataSource.
+  /// generateOneShot]).
+  Future<void> cancel() async {
+    await sub.cancel();
+    if (!completer.isCompleted) completer.complete(null);
+  }
 }
