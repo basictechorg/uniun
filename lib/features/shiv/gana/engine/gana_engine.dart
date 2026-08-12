@@ -231,6 +231,16 @@ class GanaEngine {
         Timer(_reactiveDebounceDelay, () => _runIfPossible(g.ganaId));
   }
 
+  /// Test-only direct entry into the interval gate, bypassing the need to
+  /// wait for a real `Timer.periodic` tick — `Timer.periodic` only accepts
+  /// whole-minute durations, so driving the "too soon since lastRunAt"
+  /// branch through a real tick would need multiple real minutes and a
+  /// timing race with no slack. The real-timer *dispatch* path itself is
+  /// covered separately by waiting out one real tick.
+  @visibleForTesting
+  Future<void> debugMaybeRunInterval(String ganaId) =>
+      _maybeRunInterval(ganaId);
+
   Future<void> _maybeRunInterval(String ganaId) async {
     final row = await _isar.ganaModels
         .filter()

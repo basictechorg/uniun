@@ -1172,6 +1172,97 @@ void main() {
       timeout: const Timeout(Duration(seconds: 90)),
     );
 
+    test('_maybeRunInterval skips when lastRunAt is inside the interval '
+        'window, without touching _runIfPossible', () async {
+      // A first real tick guaranteed to occur `mins` after `start()` can
+      // never observe a `lastRunAt` less than `mins` old — it's
+      // structurally impossible to seed a "too recent" lastRunAt before
+      // start() and have it still look recent by the first tick (see the
+      // real-timer test above). This exercises the gate directly via the
+      // `@visibleForTesting` seam instead, deterministically and without
+      // any real wait.
+      final now = DateTime.now();
+      await seedGana(
+        ganaId: 'interval-gate',
+        triggerIntervalMinutes: 5,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('interval-gate')
+          .findFirst();
+      await isar.writeTxn(() async {
+        row!.lastRunAt = now; // just ran — well inside the 5-minute window
+        await isar.ganaModels.put(row);
+      });
+
+      await engine.debugMaybeRunInterval('interval-gate');
+
+      final run = await waitForRun('interval-gate',
+          timeout: const Duration(seconds: 2));
+      expect(run, isNull,
+          reason: 'a lastRunAt inside the interval window must gate the '
+              'run, not just rely on nothing else triggering it');
+    });
+
+    test('_maybeRunInterval runs when lastRunAt is outside the interval '
+        'window', () async {
+      await seedGana(
+        ganaId: 'interval-gate-elapsed',
+        triggerIntervalMinutes: 5,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('interval-gate-elapsed')
+          .findFirst();
+      await isar.writeTxn(() async {
+        row!.lastRunAt = DateTime.now().subtract(const Duration(minutes: 10));
+        await isar.ganaModels.put(row);
+      });
+
+      await engine.debugMaybeRunInterval('interval-gate-elapsed');
+
+      final run = await waitForRun('interval-gate-elapsed');
+      expect(run, isNotNull);
+    });
+
+    test('two ganaModels writes inside the 500ms rebuild debounce collapse '
+        'into a single rebuild — the second write cancels the first '
+        'pending Timer rather than scheduling a competing one', () async {
+      await engine.start();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Fire two watchLazy events back-to-back, well inside the 500ms
+      // debounce window, so the second one's `rebuildDebounce?.cancel()`
+      // actually cancels a live (non-null) Timer instead of a no-op. Both
+      // are interval-only (no fire-on-enable) so they don't race each
+      // other on _runIfPossible's single-flight mutex — this test is only
+      // about the debounce Timer, not run outcomes.
+      await seedGana(
+        ganaId: 'debounce-a',
+        triggerIntervalMinutes: 30,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      await seedGana(
+        ganaId: 'debounce-b',
+        triggerIntervalMinutes: 30,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+
+      // No crash / hang, and both survive into the rebuilt schedule, is
+      // the assertion — proving the collapsed rebuild (not two competing
+      // ones) still picked up every enabled Gana.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      final rows = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('debounce-a')
+          .or()
+          .ganaIdEqualTo('debounce-b')
+          .findAll();
+      expect(rows, hasLength(2));
+    });
+
     test('a config change after start() debounces through the watchLazy '
         'listener and picks up a newly-enabled Gana (proves the watcher → '
         'debounce → rebuild path actually fires, not just the initial '

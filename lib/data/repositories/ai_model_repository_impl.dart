@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
@@ -124,14 +125,23 @@ class AIModelRepositoryImpl implements AIModelRepository {
     try {
       // physicalMemory returns MB, or null on unsupported platforms.
       final totalMb = await SystemInfoPlus.physicalMemory;
-      if (totalMb == null || totalMb <= 0) return AIModelId.deepseekR1;
-      if (totalMb < 3000) return AIModelId.qwen25_05b;
-      if (totalMb < 5000) return AIModelId.deepseekR1;
-      if (totalMb < 7000) return AIModelId.gemma4E2b;
-      return AIModelId.gemma4E4b;
+      return modelForRamMb(totalMb);
     } catch (_) {
       return AIModelId.deepseekR1;
     }
+  }
+
+  /// The pure threshold logic, split out from [_recommendedModelId] so it's
+  /// directly unit-testable — `SystemInfoPlus.physicalMemory` is a real
+  /// platform-channel call with no fake in this environment, but the
+  /// decision it feeds has no such ceiling.
+  @visibleForTesting
+  static AIModelId modelForRamMb(int? totalMb) {
+    if (totalMb == null || totalMb <= 0) return AIModelId.deepseekR1;
+    if (totalMb < 3000) return AIModelId.qwen25_05b;
+    if (totalMb < 5000) return AIModelId.deepseekR1;
+    if (totalMb < 7000) return AIModelId.gemma4E2b;
+    return AIModelId.gemma4E4b;
   }
 
   // ── Active model ─────────────────────────────────────────────────────────────

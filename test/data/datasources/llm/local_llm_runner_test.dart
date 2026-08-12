@@ -19,6 +19,8 @@ class _MockInferenceModel extends Mock implements InferenceModel {}
 
 class _MockInferenceChat extends Mock implements InferenceChat {}
 
+class _MockScheduler extends Mock implements InferenceScheduler {}
+
 /// Covers AIModelRunner's real generation logic (retry + backend fallback,
 /// prompt composition/history trimming, stop-token scrubbing, cancellation)
 /// via the FlutterGemmaGateway seam — unreachable before that seam existed
@@ -31,6 +33,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(Message.text(text: ''));
     registerFallbackValue(PreferredBackend.cpu);
+    registerFallbackValue(LlmTaskKind.chat);
   });
 
   late InferenceScheduler scheduler;
@@ -229,6 +232,28 @@ void main() {
 
       expect(result, isNull);
       verify(() => model.close()).called(1);
+    });
+
+    test('an unexpected error surfacing from the scheduler itself (not the '
+        'generation logic, which never rethrows internally) is caught by '
+        'the outer guard and degrades to null', () async {
+      // _attemptOneShot/_doGenerateOneShot catch every generation-side
+      // exception internally and always resolve normally, so the only way
+      // to reach generateOneShot's own outer try/catch is a failure from
+      // the scheduler plumbing itself — simulated here via a mocked
+      // scheduler instead of the real one used everywhere else in this file.
+      when(() => gateway.hasActiveModel()).thenReturn(true);
+      final brokenScheduler = _MockScheduler();
+      when(() => brokenScheduler.run<String?>(
+            kind: any(named: 'kind'),
+            modelId: any(named: 'modelId'),
+            work: any(named: 'work'),
+          )).thenThrow(Exception('scheduler internals corrupted'));
+      final brokenRunner = AIModelRunner(brokenScheduler, settings, gateway);
+
+      final result = await brokenRunner.generateOneShot('prompt');
+
+      expect(result, isNull);
     });
 
     test('preempted mid-stream by a real higher-tier chat job is aborted, '

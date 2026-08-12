@@ -86,6 +86,41 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  // `AIModelRepositoryImpl.activateModel`/`downloadAndActivateModel` both
+  // guard `_catalog.where((m) => m.modelId == modelId).firstOrNull == null`
+  // before proceeding — but `modelId`'s type is the `AIModelId` enum, and
+  // `_catalog` carries exactly one entry per enum value, so that null case
+  // is structurally unreachable through the public API, not just untested.
+  // Left uncovered rather than fabricating an unreachable call.
+  group('modelForRamMb (pure RAM-threshold logic)', () {
+    test('null or non-positive RAM falls back to DeepSeek R1', () {
+      expect(AIModelRepositoryImpl.modelForRamMb(null), AIModelId.deepseekR1);
+      expect(AIModelRepositoryImpl.modelForRamMb(0), AIModelId.deepseekR1);
+      expect(AIModelRepositoryImpl.modelForRamMb(-1), AIModelId.deepseekR1);
+    });
+
+    test('under 3 GB recommends Qwen3 0.6B', () {
+      expect(AIModelRepositoryImpl.modelForRamMb(1), AIModelId.qwen25_05b);
+      expect(AIModelRepositoryImpl.modelForRamMb(2999), AIModelId.qwen25_05b);
+    });
+
+    test('3–5 GB recommends DeepSeek R1', () {
+      expect(AIModelRepositoryImpl.modelForRamMb(3000), AIModelId.deepseekR1);
+      expect(AIModelRepositoryImpl.modelForRamMb(4999), AIModelId.deepseekR1);
+    });
+
+    test('5–7 GB recommends Gemma 4 E2B', () {
+      expect(AIModelRepositoryImpl.modelForRamMb(5000), AIModelId.gemma4E2b);
+      expect(AIModelRepositoryImpl.modelForRamMb(6999), AIModelId.gemma4E2b);
+    });
+
+    test('7 GB and above recommends Gemma 4 E4B', () {
+      expect(AIModelRepositoryImpl.modelForRamMb(7000), AIModelId.gemma4E4b);
+      expect(
+          AIModelRepositoryImpl.modelForRamMb(32000), AIModelId.gemma4E4b);
+    });
+  });
+
   group('activateModel', () {
     test('a model that is not actually downloaded fails before ever '
         'reaching the runner', () async {
