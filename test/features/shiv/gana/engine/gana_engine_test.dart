@@ -1128,6 +1128,50 @@ void main() {
       // No crash / hang reaching here is the assertion.
     });
 
+    test(
+      'a real Timer.periodic(1 minute) firing actually calls '
+      '_maybeRunInterval and runs the Gana — not just the immediate '
+      'fire-on-enable path',
+      () async {
+        // `fake_async` cannot drive this: it does not virtualize real
+        // Isar I/O (confirmed empirically — a real Isar query started
+        // inside a `fakeAsync` zone never resolves once the zone's
+        // synchronous callback returns, hanging `isar.close()`). The
+        // only faithful way to exercise the real `Timer.periodic` this
+        // class installs is to actually wait past its 1-minute period —
+        // `Timer.periodic` takes whole minutes, so 1 is the fastest this
+        // can run.
+        //
+        // `recurring` mode (not `oneShot`) plus `inputType: null` and
+        // `triggerReactive: false` means the fire-on-enable branch in
+        // `_rebuildSchedule` does NOT apply here — the only trigger that
+        // can produce a run is the interval timer itself.
+        await seedGana(
+          ganaId: 'interval-real-fire',
+          triggerIntervalMinutes: 1,
+          triggerMode: GanaTriggerMode.recurring,
+        );
+
+        await engine.start();
+
+        // Nothing should have run yet — no fire-on-enable, no reactive
+        // trigger, and the first periodic tick is a full minute away.
+        final immediate = await waitForRun('interval-real-fire',
+            timeout: const Duration(seconds: 3));
+        expect(immediate, isNull,
+            reason: 'recurring interval Ganas must not fire on enable');
+
+        // Wait past the real 1-minute period for Timer.periodic to fire.
+        final run = await waitForRun('interval-real-fire',
+            timeout: const Duration(seconds: 70));
+
+        expect(run, isNotNull,
+            reason: 'the real Timer.periodic tick must have invoked '
+                '_maybeRunInterval, which found no lastRunAt gate and ran');
+      },
+      timeout: const Timeout(Duration(seconds: 90)),
+    );
+
     test('a config change after start() debounces through the watchLazy '
         'listener and picks up a newly-enabled Gana (proves the watcher → '
         'debounce → rebuild path actually fires, not just the initial '
