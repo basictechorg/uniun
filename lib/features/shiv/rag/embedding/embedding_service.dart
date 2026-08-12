@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/core/utils/llm_backend.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 
 /// On-device text embedding using Gecko 110M (1024-dim), run through
 /// flutter_gemma's LiteRT embedder.
@@ -24,6 +25,10 @@ import 'package:uniun/core/utils/llm_backend.dart';
 /// Output: 1024-dimensional L2-normalised float vector.
 @lazySingleton
 class EmbeddingService {
+  EmbeddingService(this._gateway);
+
+  final FlutterGemmaGateway _gateway;
+
   static const int embeddingDim = 1024;
 
   /// Bundled asset paths — also referenced by [EmbeddingModelDownloader] so the
@@ -49,13 +54,11 @@ class EmbeddingService {
       // the process (see llm_backend.dart), so RAG still works everywhere.
       final backend = preferredLlmBackend;
       try {
-        _model = await FlutterGemma.getActiveEmbedder(
-          preferredBackend: backend,
-        );
+        _model = await _gateway.getActiveEmbedder(preferredBackend: backend);
       } on Object catch (e) {
         if (backend == PreferredBackend.cpu) rethrow;
         debugPrint('🧠 Embedding: GPU load failed ($e) — retrying on CPU');
-        _model = await FlutterGemma.getActiveEmbedder(
+        _model = await _gateway.getActiveEmbedder(
           preferredBackend: PreferredBackend.cpu,
         );
       }
@@ -67,12 +70,12 @@ class EmbeddingService {
 
   /// Registers the bundled Gecko model + tokenizer as flutter_gemma's active
   /// embedder. Idempotent — returns fast once installed.
-  static Future<void> ensureInstalled() async {
-    if (FlutterGemma.hasActiveEmbedder()) return;
-    await FlutterGemma.installEmbedder()
-        .modelFromAsset(modelAsset)
-        .tokenizerFromAsset(tokenizerAsset)
-        .install();
+  Future<void> ensureInstalled() async {
+    if (_gateway.hasActiveEmbedder()) return;
+    await _gateway.installEmbedder(
+      modelAsset: modelAsset,
+      tokenizerAsset: tokenizerAsset,
+    );
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
@@ -9,6 +8,7 @@ import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
@@ -80,6 +80,7 @@ class GanaEngine {
     this._generateOneShot,
     this._isCloudConnected,
     this._getActiveLlmModel,
+    this._gateway,
   );
 
   final Isar _isar;
@@ -96,6 +97,7 @@ class GanaEngine {
   final GenerateOneShotUseCase _generateOneShot;
   final IsUniunCloudConnectedUseCase _isCloudConnected;
   final GetActiveLlmModelUseCase _getActiveLlmModel;
+  final FlutterGemmaGateway _gateway;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -318,7 +320,7 @@ class GanaEngine {
         return;
       }
     } else {
-      if (!FlutterGemma.hasActiveModel()) {
+      if (!_gateway.hasActiveModel()) {
         debugPrint('[gana]   SKIPPED: noActiveModel');
         await _logRun(
           runId: runId,

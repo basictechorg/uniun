@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:system_info_plus/system_info_plus.dart';
 import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/ai_model_selection_model.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
@@ -21,8 +22,9 @@ class AIModelRepositoryImpl implements AIModelRepository {
   final Isar _isar;
   final AppSettingsStore _settings;
   final AIModelRunner _runner;
+  final FlutterGemmaGateway _gateway;
 
-  AIModelRepositoryImpl(this._isar, this._settings, this._runner);
+  AIModelRepositoryImpl(this._isar, this._settings, this._runner, this._gateway);
 
   // ── Model catalog ────────────────────────────────────────────────────────────
   // All URLs are real HuggingFace releases compatible with flutter_gemma 0.13.x
@@ -144,7 +146,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       if (entry == null) return const Right(null);
 
       final filename = p.basename(Uri.parse(entry.downloadUrl).path);
-      final isInstalled = await FlutterGemma.isModelInstalled(filename);
+      final isInstalled = await _gateway.isModelInstalled(filename);
 
       if (!isInstalled) {
         // Files cleared (app reinstall / storage wipe) — reset active model.
@@ -155,7 +157,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       // Cheap cold-start rehydration: only re-links when NOTHING is active
       // yet. Does NOT catch "a DIFFERENT model is active" — that case is
       // [activateModel]'s job, called explicitly on every model switch.
-      if (!FlutterGemma.hasActiveModel()) {
+      if (!_gateway.hasActiveModel()) {
         await _installAndActivate(entry);
       }
 
@@ -174,7 +176,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       }
 
       final filename = p.basename(Uri.parse(entry.downloadUrl).path);
-      final isInstalled = await FlutterGemma.isModelInstalled(filename);
+      final isInstalled = await _gateway.isModelInstalled(filename);
       if (!isInstalled) {
         return Left(Failure.errorFailure(
             'Model ${modelId.name} is not downloaded yet.'));
@@ -203,10 +205,11 @@ class AIModelRepositoryImpl implements AIModelRepository {
   /// fast local re-link, not a re-download.
   Future<void> _installAndActivate(AIModelEntity entry) async {
     final params = _gemmaParams[entry.modelId]!;
-    await FlutterGemma.installModel(
+    await _gateway.installModel(
       modelType: params.modelType,
       fileType: params.fileType,
-    ).fromNetwork(entry.downloadUrl).install();
+      networkUrl: entry.downloadUrl,
+    );
   }
 
   @override
@@ -236,7 +239,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
     final filename = _filename(modelId);
 
     // Already on disk — skip download, just activate.
-    if (await FlutterGemma.isModelInstalled(filename)) {
+    if (await _gateway.isModelInstalled(filename)) {
       try {
         await _settings.setActiveModelId(modelId);
         yield AIModelDownloadEvent.complete(modelId);
@@ -252,30 +255,15 @@ class AIModelRepositoryImpl implements AIModelRepository {
       if (!cancelToken.isCancelled) cancelToken.cancel('User cancelled');
     });
 
-    final progressController = StreamController<int>();
-
-    FlutterGemma.installModel(
+    final progressStream = _gateway.installModelWithProgress(
       modelType: params.modelType,
       fileType: params.fileType,
-    )
-        .fromNetwork(entry.downloadUrl)
-        .withProgress((percent) {
-          if (!progressController.isClosed) progressController.add(percent);
-        })
-        .withCancelToken(cancelToken)
-        .install()
-        .then((_) {
-          if (!progressController.isClosed) progressController.close();
-        })
-        .catchError((Object e) {
-          if (!progressController.isClosed) {
-            progressController.addError(e);
-            progressController.close();
-          }
-        });
+      networkUrl: entry.downloadUrl,
+      cancelToken: cancelToken,
+    );
 
     try {
-      await for (final percent in progressController.stream) {
+      await for (final percent in progressStream) {
         yield AIModelDownloadEvent.progress(percent / 100.0);
       }
     } catch (e) {
@@ -325,7 +313,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
     final downloaded = <AIModelId>{};
     for (final model in _catalog) {
       final filename = _filename(model.modelId);
-      if (await FlutterGemma.isModelInstalled(filename)) {
+      if (await _gateway.isModelInstalled(filename)) {
         downloaded.add(model.modelId);
       }
     }
@@ -334,20 +322,20 @@ class AIModelRepositoryImpl implements AIModelRepository {
 
   @override
   Future<int> getDownloadedModelsSizeBytes() async {
-    final info = await FlutterGemma.getStorageInfo();
+    final info = await _gateway.getStorageInfo();
     return info.totalSizeBytes;
   }
 
   @override
   Future<int> getOrphanedModelFilesSizeBytes() async {
-    final files = await FlutterGemma.getOrphanedFiles();
+    final files = await _gateway.getOrphanedFiles();
     return files.fold<int>(0, (sum, f) => sum + f.sizeBytes);
   }
 
   @override
   Future<Either<Failure, int>> cleanupOrphanedModelFiles() async {
     try {
-      final removed = await FlutterGemma.cleanupStorage();
+      final removed = await _gateway.cleanupStorage();
       return Right(removed);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
@@ -364,7 +352,7 @@ class AIModelRepositoryImpl implements AIModelRepository {
       // metadata so isModelInstalled() returns false afterwards.
       Future<void> uninstallNative() async {
         try {
-          await FlutterGemma.uninstallModel(filename);
+          await _gateway.uninstallModel(filename);
         } catch (_) {
           // Fallback: manual file delete in case metadata was already gone.
           final dir = await getApplicationDocumentsDirectory();

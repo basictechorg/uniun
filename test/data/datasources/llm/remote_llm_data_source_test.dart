@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/datasources/llm/remote_llm_data_source.dart';
+import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/repositories/uniun_repository.dart';
 
 class _MockUniun extends Mock implements UniunRepository {}
@@ -24,6 +26,159 @@ void main() {
     uniun = _MockUniun();
     prefs = _MockPrefs();
     ds = RemoteLlmDataSource(uniun, prefs);
+  });
+
+  group('hasActiveModel', () {
+    test('not connected to UNIUN Cloud — false, never checks the model id',
+        () async {
+      when(() => uniun.isConnected()).thenAnswer((_) async => false);
+
+      expect(await ds.hasActiveModel(), isFalse);
+    });
+
+    test('connected but no active cloud model id — false', () async {
+      when(() => uniun.isConnected()).thenAnswer((_) async => true);
+      when(() => prefs.activeCloudModelId).thenReturn(null);
+
+      expect(await ds.hasActiveModel(), isFalse);
+    });
+
+    test('connected with an active cloud model id — true', () async {
+      when(() => uniun.isConnected()).thenAnswer((_) async => true);
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+
+      expect(await ds.hasActiveModel(), isTrue);
+    });
+  });
+
+  group('openConversation / closeConversation', () {
+    test('both are stateless no-ops that always succeed', () async {
+      expect(await ds.openConversation(), const Right<Object, Unit>(unit));
+      expect(await ds.closeConversation(), const Right<Object, Unit>(unit));
+    });
+  });
+
+  group('listAvailableModels', () {
+    test('delegates straight to UniunRepository', () async {
+      when(() => uniun.listAvailableModels())
+          .thenAnswer((_) async => const Right(<LlmModelInfo>[]));
+
+      final result = await ds.listAvailableModels();
+
+      expect(result, const Right<Object, List<LlmModelInfo>>([]));
+      verify(() => uniun.listAvailableModels()).called(1);
+    });
+  });
+
+  group('resumeBackgroundWork', () {
+    test('is a stateless no-op that always succeeds', () async {
+      expect(await ds.resumeBackgroundWork(), const Right<Object, Unit>(unit));
+    });
+  });
+
+  group('sendChat', () {
+    test('no active cloud model throws a clear exception before ever '
+        'calling the gateway, whose message IS the human-readable text',
+        () async {
+      when(() => prefs.activeCloudModelId).thenReturn(null);
+
+      try {
+        await ds.sendChat(message: 'hi').toList();
+        fail('expected an exception');
+      } catch (e) {
+        expect(
+          e.toString(),
+          'No cloud model selected. Pick one from the chat input picker.',
+        );
+      }
+    });
+
+    test('builds the OpenAI-shaped message list: system + history pairs + '
+        'the current message, in order', () async {
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+      when(() => uniun.streamChat(
+            modelId: any(named: 'modelId'),
+            messages: any(named: 'messages'),
+          )).thenAnswer((_) => Stream.fromIterable(['ok']));
+
+      await ds
+          .sendChat(
+            message: 'current question',
+            systemInstruction: 'persona',
+            cleanHistory: const [('q1', 'a1'), ('q2', 'a2')],
+          )
+          .toList();
+
+      final captured = verify(() => uniun.streamChat(
+            modelId: 'm',
+            messages: captureAny(named: 'messages'),
+          )).captured.single as List<Map<String, String>>;
+      expect(captured, [
+        {'role': 'system', 'content': 'persona'},
+        {'role': 'user', 'content': 'q1'},
+        {'role': 'assistant', 'content': 'a1'},
+        {'role': 'user', 'content': 'q2'},
+        {'role': 'assistant', 'content': 'a2'},
+        {'role': 'user', 'content': 'current question'},
+      ]);
+    });
+
+    test('a null/empty systemInstruction omits the system message entirely',
+        () async {
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+      when(() => uniun.streamChat(
+            modelId: any(named: 'modelId'),
+            messages: any(named: 'messages'),
+          )).thenAnswer((_) => Stream.fromIterable(['ok']));
+
+      await ds.sendChat(message: 'hi').toList();
+
+      final captured = verify(() => uniun.streamChat(
+            modelId: 'm',
+            messages: captureAny(named: 'messages'),
+          )).captured.single as List<Map<String, String>>;
+      expect(captured, [
+        {'role': 'user', 'content': 'hi'},
+      ]);
+    });
+
+    test('streams every token from the gateway through unchanged', () async {
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+      when(() => uniun.streamChat(
+            modelId: any(named: 'modelId'),
+            messages: any(named: 'messages'),
+          )).thenAnswer((_) => Stream.fromIterable(['a', 'b', 'c']));
+
+      final tokens = await ds.sendChat(message: 'hi').toList();
+
+      expect(tokens, ['a', 'b', 'c']);
+    });
+
+    test('a stream error rethrows to the caller after logging', () async {
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+      when(() => uniun.streamChat(
+            modelId: any(named: 'modelId'),
+            messages: any(named: 'messages'),
+          )).thenAnswer((_) => Stream<String>.error(Exception('gateway down')));
+
+      await expectLater(
+        ds.sendChat(message: 'hi'),
+        emitsError(isA<Exception>()),
+      );
+    });
+
+    test('cancels any in-flight extractions before starting, even when '
+        'there are none (no-op)', () async {
+      when(() => prefs.activeCloudModelId).thenReturn('m');
+      when(() => uniun.streamChat(
+            modelId: any(named: 'modelId'),
+            messages: any(named: 'messages'),
+          )).thenAnswer((_) => Stream.fromIterable(['ok']));
+
+      final tokens = await ds.sendChat(message: 'hi').toList();
+
+      expect(tokens, ['ok']);
+    });
   });
 
   group('model resolution', () {

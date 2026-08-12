@@ -1060,4 +1060,84 @@ void main() {
           lessThan(trace.indexOf('start:switch2')));
     });
   });
+
+  group('_maybePreempt', () {
+    test('setForeground(chat) preempts an in-flight background job even '
+        'when no chat job is queued yet', () async {
+      final scheduler = InferenceScheduler();
+      var cancelled = false;
+      final ganaFuture = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 50; i++) {
+            if (cancel.isCancelled) {
+              cancelled = true;
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(scheduler.runningKind, LlmTaskKind.gana);
+
+      scheduler.setForeground(LlmTaskKind.chat);
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      expect(cancelled, isTrue);
+      scheduler.setForeground(null);
+      await ganaFuture; // re-queued gana eventually completes without cancel
+    });
+
+    test('a queued job hoisted to foreground preempts a running job of a '
+        'genuinely lower tier (not the chat-specific branch)', () async {
+      final scheduler = InferenceScheduler();
+      var ganaCancelled = false;
+      final ganaFuture = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 50; i++) {
+            if (cancel.isCancelled) {
+              ganaCancelled = true;
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(scheduler.runningKind, LlmTaskKind.gana);
+
+      // Queue a nataraj job, then hoist nataraj to foreground (T1) —
+      // strictly higher priority than the running gana (T4 fair pool).
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: (_) async {},
+      );
+      scheduler.setForeground(LlmTaskKind.nataraj);
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      expect(ganaCancelled, isTrue);
+      scheduler.setForeground(null);
+      await Future.wait([ganaFuture, natarajFuture]);
+    });
+  });
+
+  // Note: `_decayVruntimeIfDue` and the per-job vruntime/T2 timing both key
+  // off real `Stopwatch` instances, which `package:fake_async` does NOT
+  // fake (confirmed: no `Stopwatch` references in its source) — only
+  // `DateTime.now()`/`Timer` are virtualized. So the 5-minute vruntime
+  // DECAY path is genuinely untestable without waiting 5 real wall-clock
+  // minutes; deliberately not covered here rather than faked.
+  //
+  // The T2 window-trim (`_trimT2Window`) and the 60% budget check mix a
+  // FAKE `DateTime.now()` (for each `_BudgetSample.at` timestamp) with a
+  // REAL `Stopwatch` (for the sample's recorded duration) inside the same
+  // calculation. Under `fakeAsync`, that produces a real-vs-fake time
+  // mismatch that doesn't converge into a deterministic, fast test —
+  // confirmed by direct experimentation, not assumed. Left uncovered
+  // rather than shipping a flaky or misleading test.
 }

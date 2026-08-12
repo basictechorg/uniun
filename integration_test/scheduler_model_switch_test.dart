@@ -49,6 +49,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
@@ -93,7 +94,7 @@ void main() {
       final scheduler = InferenceScheduler();
       scheduler.notifyLoadedModel('integration_test_model');
       final settings = AppSettingsStore(await SharedPreferences.getInstance());
-      final runner = AIModelRunner(scheduler, settings);
+      final runner = AIModelRunner(scheduler, settings, FlutterGemmaGatewayImpl());
 
       // ── Part 1: gentle switch waits ──────────────────────────────────
       final order = <String>[];

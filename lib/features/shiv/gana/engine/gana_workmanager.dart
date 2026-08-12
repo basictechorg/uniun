@@ -17,6 +17,7 @@ import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart';
 import 'package:uniun/data/datasources/isar_schemas.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/llm_preferences_data_source.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
@@ -272,10 +273,12 @@ void ganaWorkManagerDispatcher() {
         try {
           final prefs = await SharedPreferences.getInstance();
           final settings = AppSettingsStore(prefs);
+          final gateway = FlutterGemmaGatewayImpl();
           await AIModelRepositoryImpl(
             isar,
             settings,
-            AIModelRunner(InferenceScheduler(), settings),
+            AIModelRunner(InferenceScheduler(), settings, gateway),
+            gateway,
           ).getActiveModel();
         } catch (e) {
           _log('step 4b: rehydration failed (non-fatal): $e');
