@@ -37,4 +37,8 @@ enum GanaSkipReason {
   /// Gana so subsequent triggers don't keep skipping forever. User can
   /// raise the cap and re-enable.
   maxOutputsReached,
+
+  /// `desiredBackend == uniunCloud` but UNIUN Cloud isn't connected, or no
+  /// cloud model is set. Retry on next trigger.
+  cloudUnavailable,
 }

@@ -2,6 +2,7 @@ import 'package:uniun/core/enum/gana_input_type.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/data/models/gana_model.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 
 import '../mesh_event_codec.dart';
 
@@ -44,6 +45,7 @@ class GanaBody {
       'outputPrivateGroupId': g.outputPrivateGroupId,
       'outputDmConversationId': g.outputDmConversationId,
       'desiredModelId': g.desiredModelId,
+      'desiredBackend': g.desiredBackend?.name,
       'triggerReactive': g.triggerReactive,
       'triggerIntervalMinutes': g.triggerIntervalMinutes,
       'triggerMode': g.triggerMode.name,
@@ -78,6 +80,7 @@ class GanaBody {
     row.outputPrivateGroupId = body['outputPrivateGroupId'] as String?;
     row.outputDmConversationId = _asIntOrNull(body['outputDmConversationId']);
     row.desiredModelId = body['desiredModelId'] as String?;
+    row.desiredBackend = LlmBackendType.fromName(body['desiredBackend'] as String?);
     row.triggerReactive = (body['triggerReactive'] as bool?) ?? false;
     row.triggerIntervalMinutes = _asIntOrNull(body['triggerIntervalMinutes']);
     row.triggerMode = _parseTriggerMode(body['triggerMode']);

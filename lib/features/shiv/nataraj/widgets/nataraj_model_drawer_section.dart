@@ -1,17 +1,16 @@
 import 'package:dartz/dartz.dart' hide State;
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:uniun/common/locator.dart';
 import 'package:uniun/core/error/failures.dart';
-import 'package:uniun/core/router/app_routes.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/usecases/ai_model_usecases.dart';
+import 'package:uniun/features/shiv/chat/widgets/shiv_model_picker_sheet.dart';
 import 'package:uniun/features/shiv/model_select/utils/ai_model_l10n.dart';
 import 'package:uniun/l10n/app_localizations.dart';
 
 /// Drawer section for the Nataraj deck. Shows the active on-device AI model
-/// and opens model selection on tap. Rendered as [ShivHistoryDrawer.topSection]
-/// on the deck, so model selection lives in the same drawer as Gana selection.
+/// and opens the shared model picker (#161 — same sheet as Shiv chat) on
+/// tap, inline, without navigating away from the deck.
 class NatarajModelDrawerSection extends StatefulWidget {
   const NatarajModelDrawerSection({super.key});
 
@@ -21,9 +20,20 @@ class NatarajModelDrawerSection extends StatefulWidget {
 }
 
 class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
-  // Resolved once — a drawer is short-lived, so a single read is enough.
-  late final Future<Either<Failure, AIModelEntity?>> _modelFuture =
-      getIt<GetActiveAIModelUseCase>().call();
+  late Future<Either<Failure, AIModelEntity?>> _modelFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _modelFuture = getIt<GetActiveAIModelUseCase>().call();
+  }
+
+  Future<void> _pickModel() async {
+    await showModelPickerSheet(context);
+    if (!mounted) return;
+    // The picker may have changed the active model — refresh the label.
+    setState(() => _modelFuture = getIt<GetActiveAIModelUseCase>().call());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,10 +54,7 @@ class _NatarajModelDrawerSectionState extends State<NatarajModelDrawerSection> {
           ),
         ),
         InkWell(
-          onTap: () {
-            Navigator.of(context).pop();
-            context.pushNamed(AppRoutes.aiModelSelection);
-          },
+          onTap: _pickModel,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 12, 10),
             child: Row(

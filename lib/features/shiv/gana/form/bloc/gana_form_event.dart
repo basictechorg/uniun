@@ -47,8 +47,9 @@ class GanaFormOutputRefChangedEvent extends GanaFormEvent {
 }
 
 class GanaFormModelChangedEvent extends GanaFormEvent {
-  const GanaFormModelChangedEvent(this.value);
+  const GanaFormModelChangedEvent(this.value, {this.backend});
   final String? value; // null ⇒ "use active"
+  final LlmBackendType? backend;
 }
 
 class GanaFormReactiveToggleEvent extends GanaFormEvent {

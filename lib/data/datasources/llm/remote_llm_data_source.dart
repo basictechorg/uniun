@@ -99,8 +99,9 @@ class RemoteLlmDataSource implements LlmDataSource {
     required String prompt,
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract, // no local queue — kind is ignored for remote
+    String? modelIdOverride,
   }) async {
-    final modelId = _prefs.activeCloudModelId;
+    final modelId = modelIdOverride ?? _prefs.activeCloudModelId;
     if (modelId == null) return const Right(null);
 
     final completer = Completer<String?>();

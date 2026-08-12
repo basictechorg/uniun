@@ -1063,6 +1063,20 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.DeleteKnowledgeForNoteUseCase>(),
       ),
     );
+    gh.factory<_i942.GanaFormBloc>(
+      () => _i942.GanaFormBloc(
+        gh<_i219.UpsertGanaUseCase>(),
+        gh<_i219.GetGanaByIdUseCase>(),
+        gh<_i219.DeleteGanaUseCase>(),
+        gh<_i977.GetManasListUseCase>(),
+        gh<_i879.GetGroupsUseCase>(),
+        gh<_i1055.GetPrivateGroupsUsecase>(),
+        gh<_i1023.GetDmConversationsUseCase>(),
+        gh<_i561.GetAllFollowedNotesUseCase>(),
+        gh<_i391.GetProfileUseCase>(),
+        gh<_i391.RequestProfileFetchUseCase>(),
+      ),
+    );
     gh.factory<_i859.EditProfileCubit>(
       () => _i859.EditProfileCubit(
         gh<_i799.GetActiveUserUseCase>(),
@@ -1114,21 +1128,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i858.ResolveNotesByIdsUseCase(
         gh<_i789.NoteResolverRepository>(),
         gh<_i43.SavedNoteRepository>(),
-      ),
-    );
-    gh.factory<_i942.GanaFormBloc>(
-      () => _i942.GanaFormBloc(
-        gh<_i219.UpsertGanaUseCase>(),
-        gh<_i219.GetGanaByIdUseCase>(),
-        gh<_i219.DeleteGanaUseCase>(),
-        gh<_i977.GetManasListUseCase>(),
-        gh<_i879.GetGroupsUseCase>(),
-        gh<_i1055.GetPrivateGroupsUsecase>(),
-        gh<_i1023.GetDmConversationsUseCase>(),
-        gh<_i561.GetAllFollowedNotesUseCase>(),
-        gh<_i894.GetDownloadedModelIdsUseCase>(),
-        gh<_i391.GetProfileUseCase>(),
-        gh<_i391.RequestProfileFetchUseCase>(),
       ),
     );
     gh.factory<_i734.ReferencePickerCubit>(
@@ -1472,6 +1471,24 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
+    gh.lazySingleton<_i426.GanaEngine>(
+      () => _i426.GanaEngine(
+        gh<_i214.Isar>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i103.UserRepository>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i651.ManasContextLoader>(),
+        gh<_i558.MeshEventSigner>(),
+        gh<_i918.GenerateOneShotUseCase>(),
+        gh<_i918.IsUniunCloudConnectedUseCase>(),
+        gh<_i918.GetActiveLlmModelUseCase>(),
+      ),
+    );
     gh.factory<_i1039.VishnuFeedBloc>(
       () => _i1039.VishnuFeedBloc(
         gh<_i837.GetOrInitFeedLoadedAtUseCase>(),
@@ -1486,21 +1503,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i858.UnsaveNoteUseCase>(),
         gh<_i756.EmbedAndStoreNoteUseCase>(),
         gh<_i63.WatchFollowedUsersUseCase>(),
-      ),
-    );
-    gh.lazySingleton<_i426.GanaEngine>(
-      () => _i426.GanaEngine(
-        gh<_i214.Isar>(),
-        gh<_i937.AIModelRunner>(),
-        gh<_i107.AppSettingsStore>(),
-        gh<_i103.UserRepository>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i815.CreateGroupMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i1055.SendPrivateGroupMessageUsecase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i651.ManasContextLoader>(),
-        gh<_i558.MeshEventSigner>(),
       ),
     );
     gh.factoryParam<_i226.NoteCardCubit, _i697.NoteEntity, dynamic>(

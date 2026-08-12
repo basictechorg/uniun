@@ -7,16 +7,19 @@ import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
+import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
 import 'package:uniun/domain/entities/gana/gana_entity.dart';
+import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 import 'package:uniun/domain/repositories/user_repository.dart';
 import 'package:uniun/domain/usecases/create_group_message_usecase.dart';
 import 'package:uniun/domain/usecases/dm_usecases.dart';
+import 'package:uniun/domain/usecases/llm_usecases.dart';
 import 'package:uniun/domain/usecases/note_usecases.dart';
 import 'package:uniun/domain/usecases/private_group_usecases.dart';
 import 'package:uniun/domain/usecases/vector_usecases.dart';
@@ -41,6 +44,11 @@ import 'package:uuid/uuid.dart';
 ///     [InferenceScheduler] with `kind: gana` — T4 fair pool by default,
 ///     T1 while the GanaForm preview is open, T3 once the cron deadline has
 ///     passed; Shiv chat (T0) preempts via `InferenceChat.stopGeneration`).
+///     A Gana pinned to a cloud model (`desiredBackend == uniunCloud`)
+///     bypasses the scheduler entirely via [GenerateOneShotUseCase]'s
+///     backend override. A Gana with no pin at all follows whatever
+///     backend/model is globally active (via [GetActiveLlmModelUseCase])
+///     instead of assuming local.
 ///   • Direct calls to publish use cases (NIP-17 DM gift-wrap, NIP-29 MLS
 ///     private groups) without going through a pending-table dispatcher.
 ///   • Direct access to `EmbeddingService` for Manas vector retrieval.
@@ -69,6 +77,9 @@ class GanaEngine {
     this._embedAndStore,
     this._manasLoader,
     this._signer,
+    this._generateOneShot,
+    this._isCloudConnected,
+    this._getActiveLlmModel,
   );
 
   final Isar _isar;
@@ -82,6 +93,9 @@ class GanaEngine {
   final EmbedAndStoreNoteUseCase _embedAndStore;
   final ManasContextLoader _manasLoader;
   final MeshEventSigner _signer;
+  final GenerateOneShotUseCase _generateOneShot;
+  final IsUniunCloudConnectedUseCase _isCloudConnected;
+  final GetActiveLlmModelUseCase _getActiveLlmModel;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -266,31 +280,70 @@ class GanaEngine {
         'mode=${g.triggerMode.name}');
 
     // Model gates — done inline now that we're in the main isolate.
-    if (!FlutterGemma.hasActiveModel()) {
-      debugPrint('[gana]   SKIPPED: noActiveModel');
-      await _logRun(
-        runId: runId,
-        ganaId: g.ganaId,
-        startedAt: startedAt,
-        status: GanaRunStatus.skipped,
-        skipReason: GanaSkipReason.noActiveModel,
+    //
+    // Three cases:
+    //   1. desiredBackend == uniunCloud  → explicit per-agent cloud pin.
+    //   2. desiredBackend == null AND
+    //      desiredModelId != null        → legacy explicit LOCAL pin
+    //                                       (skip-on-mismatch, unchanged).
+    //   3. both null                     → fully unset ("use whichever is
+    //      active"). Follow the GLOBAL active backend/model instead of
+    //      assuming local — a Gana with no pin at all should track the same
+    //      switch Shiv chat uses, not silently require local.
+    var isCloud = g.desiredBackend == LlmBackendType.uniunCloud;
+    var cloudModelId = g.desiredModelId;
+    if (!isCloud && g.desiredBackend == null && g.desiredModelId == null) {
+      final activeModel = (await _getActiveLlmModel.call()).fold(
+        (_) => null,
+        (m) => m,
       );
-      return;
+      if (activeModel?.backend == LlmBackendType.uniunCloud) {
+        isCloud = true;
+        cloudModelId = activeModel!.id;
+      }
     }
-    final activeIdName = _settings.activeModelId?.name;
-    if (g.desiredModelId != null &&
-        activeIdName != null &&
-        g.desiredModelId != activeIdName) {
-      debugPrint('[gana]   SKIPPED: modelMismatch '
-          '(desired=${g.desiredModelId} active=$activeIdName)');
-      await _logRun(
-        runId: runId,
-        ganaId: g.ganaId,
-        startedAt: startedAt,
-        status: GanaRunStatus.skipped,
-        skipReason: GanaSkipReason.modelMismatch,
-      );
-      return;
+
+    if (isCloud) {
+      final connected = await _isCloudConnected.call();
+      if (!connected || cloudModelId == null) {
+        debugPrint('[gana]   SKIPPED: cloudUnavailable '
+            '(connected=$connected desiredModelId=$cloudModelId)');
+        await _logRun(
+          runId: runId,
+          ganaId: g.ganaId,
+          startedAt: startedAt,
+          status: GanaRunStatus.skipped,
+          skipReason: GanaSkipReason.cloudUnavailable,
+        );
+        return;
+      }
+    } else {
+      if (!FlutterGemma.hasActiveModel()) {
+        debugPrint('[gana]   SKIPPED: noActiveModel');
+        await _logRun(
+          runId: runId,
+          ganaId: g.ganaId,
+          startedAt: startedAt,
+          status: GanaRunStatus.skipped,
+          skipReason: GanaSkipReason.noActiveModel,
+        );
+        return;
+      }
+      final activeIdName = _settings.activeModelId?.name;
+      if (g.desiredModelId != null &&
+          activeIdName != null &&
+          g.desiredModelId != activeIdName) {
+        debugPrint('[gana]   SKIPPED: modelMismatch '
+            '(desired=${g.desiredModelId} active=$activeIdName)');
+        await _logRun(
+          runId: runId,
+          ganaId: g.ganaId,
+          startedAt: startedAt,
+          status: GanaRunStatus.skipped,
+          skipReason: GanaSkipReason.modelMismatch,
+        );
+        return;
+      }
     }
 
     // Fetch input + self-output history.
@@ -367,10 +420,20 @@ class GanaEngine {
     final infStart = DateTime.now();
     String? text;
     String? error;
-    try {
-      text = await _runner.generateOneShot(prompt, kind: LlmTaskKind.gana);
-    } catch (e) {
-      error = e.toString();
+    if (isCloud) {
+      final result = await _generateOneShot.call(GenerateOneShotInput(
+        prompt: prompt,
+        kind: LlmTaskKind.gana,
+        backendOverride: LlmBackendType.uniunCloud,
+        modelIdOverride: cloudModelId,
+      ));
+      result.fold((f) => error = f.toString(), (t) => text = t);
+    } else {
+      try {
+        text = await _runner.generateOneShot(prompt, kind: LlmTaskKind.gana);
+      } catch (e) {
+        error = e.toString();
+      }
     }
     final infMs = DateTime.now().difference(infStart).inMilliseconds;
 
@@ -401,8 +464,9 @@ class GanaEngine {
       return;
     }
 
-    // Already sanitized at AIModelRunner.generateOneShot (the chokepoint).
-    final body = text.trim();
+    // Local text is already sanitized inside AIModelRunner.generateOneShot;
+    // cloud text isn't, so clean unconditionally (idempotent on local text).
+    final body = LlmTextSanitizer.clean(text!).trim();
     debugPrint('[gana]   inference OK in ${infMs}ms (${body.length} chars)');
     if (isGanaNoop(body)) {
       debugPrint('[gana]   SKIPPED: noopReturned');

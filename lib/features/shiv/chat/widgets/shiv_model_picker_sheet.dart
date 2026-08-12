@@ -15,17 +15,64 @@ import 'package:uniun/l10n/app_localizations.dart';
 /// cloud models (when connected) and the downloaded on-device models.
 /// Picking a row IS the backend switch — a cloud row activates the cloud
 /// backend with that model, a local row activates the on-device backend.
+/// The [showCloud]/[nullableOptionLabel]/[currentOverrideId]/[onLocalSelected]
+/// params let a caller swap that default global-switch behavior for a
+/// local, per-caller selection instead (see Gana's usage).
 ///
 /// Show with [showModelPickerSheet] — handles the standard rounded sheet
 /// chrome so callers don't repeat the boilerplate.
 class ShivModelPickerSheet extends StatefulWidget {
-  const ShivModelPickerSheet({super.key});
+  const ShivModelPickerSheet({
+    super.key,
+    this.showCloud = true,
+    this.nullableOptionLabel,
+    this.onNullSelected,
+    this.currentOverrideId,
+    this.onLocalSelected,
+    this.onCloudSelected,
+  });
+
+  /// Whether to fetch/show the UNIUN Cloud section at all.
+  final bool showCloud;
+
+  /// If set, shows a leading row with this label meaning "no override —
+  /// use whatever's globally active". Used by Gana's "use active model"
+  /// option; Shiv/Nataraj leave this null (there's no "unset" concept for
+  /// the global model).
+  final String? nullableOptionLabel;
+
+  /// Called when [nullableOptionLabel]'s row is tapped. Only meaningful
+  /// when [nullableOptionLabel] is set.
+  final VoidCallback? onNullSelected;
+
+  /// When set, this local model id (`AIModelId.name`) is highlighted as the
+  /// current selection instead of whatever's globally active — for a
+  /// per-agent override (Gana's `desiredModelId`) that may differ from the
+  /// app's active model.
+  final String? currentOverrideId;
+
+  /// When set, picking a local row calls this instead of the default
+  /// "switch the app's active backend/model" behavior — for a synchronous,
+  /// purely-local state update (e.g. Gana's per-agent override) rather than
+  /// the global async switch. The sheet still closes itself after calling it.
+  final void Function(AIModelEntity)? onLocalSelected;
+
+  /// Same as [onLocalSelected] but for a cloud row.
+  final void Function(LlmModelInfo)? onCloudSelected;
 
   @override
   State<ShivModelPickerSheet> createState() => _ShivModelPickerSheetState();
 }
 
-Future<void> showModelPickerSheet(BuildContext context) {
+Future<void> showModelPickerSheet(
+  BuildContext context, {
+  bool showCloud = true,
+  String? nullableOptionLabel,
+  VoidCallback? onNullSelected,
+  String? currentOverrideId,
+  void Function(AIModelEntity)? onLocalSelected,
+  void Function(LlmModelInfo)? onCloudSelected,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: Theme.of(context).colorScheme.surface,
@@ -33,7 +80,14 @@ Future<void> showModelPickerSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => const ShivModelPickerSheet(),
+    builder: (_) => ShivModelPickerSheet(
+      showCloud: showCloud,
+      nullableOptionLabel: nullableOptionLabel,
+      onNullSelected: onNullSelected,
+      currentOverrideId: currentOverrideId,
+      onLocalSelected: onLocalSelected,
+      onCloudSelected: onCloudSelected,
+    ),
   );
 }
 
@@ -62,9 +116,10 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
     );
 
     // Cloud list only when already connected — merely opening the picker
-    // must not trigger the silent gateway login.
+    // must not trigger the silent gateway login. Skipped entirely when the
+    // caller's context can't act on a cloud pick anyway (e.g. Gana).
     var cloud = const <LlmModelInfo>[];
-    if (await getIt<IsUniunCloudConnectedUseCase>().call()) {
+    if (widget.showCloud && await getIt<IsUniunCloudConnectedUseCase>().call()) {
       final cloudResult = await getIt<ListCloudLlmModelsUseCase>().call();
       cloud = cloudResult.fold((_) => const [], (list) => list);
     }
@@ -96,6 +151,14 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
 
   Future<void> _selectCloud(LlmModelInfo m) async {
     if (_switching) return;
+
+    final onCloudSelected = widget.onCloudSelected;
+    if (onCloudSelected != null) {
+      onCloudSelected(m);
+      Navigator.of(context).pop();
+      return;
+    }
+
     setState(() => _switching = true);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -121,6 +184,16 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
 
   Future<void> _selectLocal(AIModelEntity m) async {
     if (_switching) return;
+
+    // A per-agent override (Gana) is a synchronous local state update, not a
+    // global backend switch — no failure path, no spinner needed.
+    final onLocalSelected = widget.onLocalSelected;
+    if (onLocalSelected != null) {
+      onLocalSelected(m);
+      Navigator.of(context).pop();
+      return;
+    }
+
     setState(() => _switching = true);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -251,7 +324,8 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
     }
 
     final cloud = _filteredCloud;
-    if (cloud.isEmpty && _localModels.isEmpty) {
+    final nullableLabel = widget.nullableOptionLabel;
+    if (cloud.isEmpty && _localModels.isEmpty && nullableLabel == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -266,9 +340,20 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
       );
     }
 
+    final overrideId = widget.currentOverrideId;
+
     return ListView(
       shrinkWrap: true,
       children: [
+        if (nullableLabel != null)
+          _ModelRow(
+            label: nullableLabel,
+            isActive: overrideId == null,
+            onTap: () {
+              widget.onNullSelected?.call();
+              Navigator.of(context).pop();
+            },
+          ),
         if (cloud.isNotEmpty) ...[
           _SectionHeader(
             icon: Icons.cloud_outlined,
@@ -277,8 +362,10 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           for (final m in cloud)
             _ModelRow(
               label: m.displayName,
-              isActive: _activeBackend == LlmBackendType.uniunCloud &&
-                  m.id == _activeCloudModelId,
+              isActive: overrideId != null
+                  ? m.id == overrideId
+                  : _activeBackend == LlmBackendType.uniunCloud &&
+                      m.id == _activeCloudModelId,
               onTap: () => _selectCloud(m),
             ),
         ],
@@ -290,8 +377,10 @@ class _ShivModelPickerSheetState extends State<ShivModelPickerSheet> {
           for (final m in _localModels)
             _ModelRow(
               label: m.modelId.displayName(l10n),
-              isActive: _activeBackend == LlmBackendType.localGemma &&
-                  m.modelId == _activeLocalModelId,
+              isActive: overrideId != null
+                  ? m.modelId.name == overrideId
+                  : _activeBackend == LlmBackendType.localGemma &&
+                      m.modelId == _activeLocalModelId,
               onTap: () => _selectLocal(m),
             ),
         ],

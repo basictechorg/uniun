@@ -568,10 +568,12 @@ class _ModelDropdown extends StatelessWidget {
   const _ModelDropdown({required this.state});
   final GanaFormState state;
 
-  /// [rawId] is the stored [AIModelId.name] — never shown to the user
-  /// directly. Falls back to the raw id only if it no longer matches a
-  /// known [AIModelId] (a model retired after this Gana was created).
-  static String _label(String rawId, AppLocalizations l10n) {
+  /// [rawId] is the stored [AIModelId.name] for a local pin — never shown to
+  /// the user directly. Falls back to the raw id for a cloud pin, or if a
+  /// local id no longer matches a known [AIModelId] (a model retired after
+  /// this Gana was created).
+  static String _label(String rawId, LlmBackendType? backend, AppLocalizations l10n) {
+    if (backend == LlmBackendType.uniunCloud) return rawId;
     for (final id in AIModelId.values) {
       if (id.name == rawId) return id.displayName(l10n);
     }
@@ -585,23 +587,26 @@ class _ModelDropdown extends StatelessWidget {
       icon: Icons.psychology_alt_outlined,
       title: l10n.ganaFormModelSectionTitle,
       subtitle: state.desiredModelId != null
-          ? _label(state.desiredModelId!, l10n)
+          ? _label(state.desiredModelId!, state.desiredBackend, l10n)
           : l10n.ganaFormModelUseActive,
-      onTap: () => _openSheet<String?>(
-        context: context,
-        title: l10n.ganaFormModelSectionTitle,
-        current: state.desiredModelId,
-        nullableOption: _PickOption(
-          value: null,
-          label: l10n.ganaFormModelUseActive,
-        ),
-        options: [
-          for (final m in state.availableModels)
-            _PickOption(value: m, label: _label(m, l10n)),
-        ],
-        onPicked: (v) =>
-            context.read<GanaFormBloc>().add(GanaFormModelChangedEvent(v)),
-      ),
+      onTap: () {
+        final bloc = context.read<GanaFormBloc>();
+        showModelPickerSheet(
+          context,
+          nullableOptionLabel: l10n.ganaFormModelUseActive,
+          currentOverrideId: state.desiredModelId,
+          onNullSelected: () =>
+              bloc.add(const GanaFormModelChangedEvent(null)),
+          onLocalSelected: (m) => bloc.add(GanaFormModelChangedEvent(
+            m.modelId.name,
+            backend: LlmBackendType.localGemma,
+          )),
+          onCloudSelected: (m) => bloc.add(GanaFormModelChangedEvent(
+            m.id,
+            backend: LlmBackendType.uniunCloud,
+          )),
+        );
+      },
     );
   }
 }

@@ -30,11 +30,13 @@ abstract class LlmDataSource {
 
   /// One-shot completion. [kind] drives scheduler tier on the local backend
   /// (see `docs/SHIVA/scheduling.md`); ignored by the cloud backend which
-  /// is network-concurrent.
+  /// is network-concurrent. [modelIdOverride] picks a specific model for
+  /// just this call; the local data source ignores it (no per-call swap).
   Future<Either<Failure, String?>> generateOneShot({
     required String prompt,
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract,
+    String? modelIdOverride,
   });
 
   /// Backend-specific coordination — local pauses its low-priority queue;

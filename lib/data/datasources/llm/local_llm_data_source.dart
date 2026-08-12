@@ -78,6 +78,7 @@ class LocalLlmDataSource implements LlmDataSource {
     required String prompt,
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract,
+    String? modelIdOverride,
   }) async {
     try {
       final result = await _runner.generateOneShot(

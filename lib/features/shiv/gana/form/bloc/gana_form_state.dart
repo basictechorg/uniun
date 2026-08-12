@@ -17,6 +17,7 @@ class GanaFormState {
     this.outputPrivateGroupId,
     this.outputDmConversationId,
     this.desiredModelId,
+    this.desiredBackend,
     this.triggerReactive = false,
     this.triggerIntervalMinutes,
     this.triggerMode = GanaTriggerMode.recurring,
@@ -29,7 +30,6 @@ class GanaFormState {
     this.dmConversations = const [],
     this.dmDisplayNames = const {},
     this.followedNotes = const [],
-    this.availableModels = const [],
     this.errorMessage,
   });
 
@@ -53,6 +53,7 @@ class GanaFormState {
   final int? outputDmConversationId;
 
   final String? desiredModelId;
+  final LlmBackendType? desiredBackend;
 
   final bool triggerReactive;
   final int? triggerIntervalMinutes;
@@ -77,7 +78,6 @@ class GanaFormState {
   /// short hex label until the profile arrives and _onLoad re-fires.
   final Map<String, String> dmDisplayNames;
   final List<FollowedNoteEntity> followedNotes;
-  final List<String> availableModels;
 
   final String? errorMessage;
 
@@ -210,6 +210,7 @@ class GanaFormState {
     bool clearOutputDmConversationId = false,
     String? desiredModelId,
     bool clearModel = false,
+    LlmBackendType? desiredBackend,
     bool? triggerReactive,
     int? triggerIntervalMinutes,
     bool clearInterval = false,
@@ -224,7 +225,6 @@ class GanaFormState {
     List<DmConversationEntity>? dmConversations,
     Map<String, String>? dmDisplayNames,
     List<FollowedNoteEntity>? followedNotes,
-    List<String>? availableModels,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -250,6 +250,8 @@ class GanaFormState {
           : (outputDmConversationId ?? this.outputDmConversationId),
       desiredModelId:
           clearModel ? null : (desiredModelId ?? this.desiredModelId),
+      desiredBackend:
+          clearModel ? null : (desiredBackend ?? this.desiredBackend),
       triggerReactive: triggerReactive ?? this.triggerReactive,
       triggerIntervalMinutes: clearInterval
           ? null
@@ -265,7 +267,6 @@ class GanaFormState {
       dmConversations: dmConversations ?? this.dmConversations,
       dmDisplayNames: dmDisplayNames ?? this.dmDisplayNames,
       followedNotes: followedNotes ?? this.followedNotes,
-      availableModels: availableModels ?? this.availableModels,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
