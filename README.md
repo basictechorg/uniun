@@ -4,6 +4,9 @@
 
 # UNIUN
 
+[![Tests](https://github.com/basictech01/uniun/actions/workflows/tests.yml/badge.svg)](https://github.com/basictech01/uniun/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/basictech01/uniun/graph/badge.svg)](https://codecov.io/gh/basictech01/uniun)
+
 > *Your notes, your network, your identity.*
 >
 > A decentralized, offline-first social and knowledge network on the Nostr protocol —

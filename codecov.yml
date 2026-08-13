@@ -1,0 +1,20 @@
+coverage:
+  status:
+    # Report-only: never blocks a PR or fails a check, just surfaces the
+    # numbers. Flip `informational: false` (or add `target:`/`threshold:`)
+    # later once there's a stable baseline worth enforcing against.
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "condensed_header, diff, flags, files"
+  require_changes: false
+
+ignore:
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
+  - "lib/l10n/**"
