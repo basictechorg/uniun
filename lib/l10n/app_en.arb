@@ -2622,6 +2622,12 @@
   "natarajModelErrorBody": "The AI model couldn't run on this device. Try a different (smaller) model, or tap retry.",
   "@natarajModelErrorBody": { "description": "Nataraj error state body when the AI model fails to run" },
 
+  "natarajNoIdeaTitle": "No idea this time",
+  "@natarajNoIdeaTitle": { "description": "Nataraj state title when generation succeeded but produced nothing usable (not a model/device failure)" },
+
+  "natarajNoIdeaBody": "That combination of notes didn't spark anything. Nothing's wrong — just try again.",
+  "@natarajNoIdeaBody": { "description": "Nataraj state body when generation succeeded but produced nothing usable (not a model/device failure)" },
+
   "natarajPublishedSnack": "Published as a note",
   "@natarajPublishedSnack": { "description": "Snackbar after publishing a nataraj idea" },
 

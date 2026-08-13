@@ -209,8 +209,10 @@ class NatarajBloc extends Bloc<NatarajEvent, NatarajState> {
         NatarajFillState.needsMoreNotes => NatarajStatus.needsMoreNotes,
         NatarajFillState.exhausted => NatarajStatus.exhausted,
         NatarajFillState.error => NatarajStatus.error,
-        NatarajFillState.ok => NatarajStatus.error,
-        NatarajFillState.resurfacing => NatarajStatus.error,
+        // Generation itself succeeded — it just didn't land a usable card
+        // this round (e.g. a noop response). Not a model/device failure.
+        NatarajFillState.ok => NatarajStatus.noIdea,
+        NatarajFillState.resurfacing => NatarajStatus.noIdea,
       },
       currentCard: null,
     ));

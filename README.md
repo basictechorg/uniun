@@ -12,6 +12,12 @@
 > A decentralized, offline-first social and knowledge network on the Nostr protocol —
 > with an on-device AI that reasons over your own mind.
 
+**UNIUN is live today.** Get it on the
+[App Store](https://apps.apple.com/in/app/uniun/id6778077321) or
+[Google Play](https://play.google.com/store/apps/details?id=in.uniun.app), or learn more at
+[uniun.in](https://www.uniun.in/). No account needed — your identity is a keypair you generate
+on first launch.
+
 ## We are nothing but the sum of our thoughts
 
 Give every one of your thoughts to another person — every belief, every connection between
@@ -99,8 +105,8 @@ thoughts worth keeping, and you offer your own.
   deciding what you think about; time only.
 - **Threads** — follow any conversation as a tree of replies, and *ask a question of the thread
   itself* (via the inline AI) when you need its context explained.
-- **Channels** — public rooms for many-to-many conversation.
-- **Private Channels** — invite-only group spaces with admin-controlled membership.
+- **Groups** — public rooms for many-to-many conversation.
+- **Private Groups** — invite-only, MLS-encrypted group spaces with admin-controlled membership.
 - **Direct Messages** — end-to-end encrypted one-to-one conversations (NIP-17 gift-wrapped; only
   the recipient is visible on the relay).
 - **Saved & Followed notes** — bookmark a thought to keep forever (and feed it to your AI), or
@@ -160,16 +166,18 @@ with a native knowledge graph and on-device AI.
   LLM (**flutter_gemma**) — GPU-accelerated on Android (OpenCL/WebGPU) and iOS (Metal). Prompts
   never leave the device.
 - **Encrypted where it matters.** Direct messages are **NIP-17** rumors sealed and gift-wrapped with
-  **NIP-44** (ChaCha20-Poly1305) — only the recipient is visible on the relay. Private channels carry
-  encrypted group messages.
+  **NIP-44** (ChaCha20-Poly1305) — only the recipient is visible on the relay. Private groups carry
+  MLS-encrypted group messages.
 - **Content-addressed media.** Images, video, and files live on **Blossom** servers keyed by
   **SHA-256** — the same file is the same URL on any server — referenced inline via **NIP-92**
   `imeta` tags.
 - **Clean, layered Flutter.** Flutter + **BLoC**, three strict layers (data / domain / presentation)
   with unidirectional dependencies. See `CLAUDE.md` for the rules.
-- **Self-hostable relay.** The companion relay (`uniun-backend/`) is a **Go** service on **Khatru** +
-  **BadgerDB**, with a **Blossom** media handler backed by **Azure Blob Storage** and an optional
-  **MySQL** mirror. Run your own and you own the entire stack.
+- **Self-hostable relay, already deployed.** The companion relay (`uniun-backend/`) is a **Go**
+  service on **Khatru** + **BadgerDB**, with a **Blossom** media handler backed by **Azure Blob
+  Storage** and an optional **MySQL** mirror. UNIUN runs its own instance that every install
+  connects to by default — see `RELAY_URL` in [`docs/Architecture/BACKEND.md`](docs/Architecture/BACKEND.md)
+  for the deployment config. You don't have to trust ours: run your own and you own the entire stack.
 
 ### NIP stack
 
@@ -180,10 +188,14 @@ with a native knowledge graph and on-device AI.
 | NIP-05 | Human-readable `name@domain` identifiers |
 | NIP-10 | Reply threading (the graph's edges) |
 | NIP-17 | Private direct messages |
-| NIP-28 | Public channels |
+| NIP-28 | Public groups |
+| NIP-29 | Private, relay-managed groups (paired with MLS for message encryption) |
 | NIP-44 | Payload encryption (ChaCha20-Poly1305) |
+| NIP-56 | Reports & content moderation |
+| NIP-77 | Negentropy-based relay reconciliation (efficient re-sync) |
 | NIP-92 | Inline media metadata (`imeta`) |
 | Blossom (NIP-B7) | Content-addressed media blobs |
+| MLS (Marmot) | End-to-end encryption for private-group messages |
 
 For the deeper architecture and conventions, see [`docs`](docs) and `CLAUDE.md`.
 
@@ -202,7 +214,9 @@ For the deeper architecture and conventions, see [`docs`](docs) and `CLAUDE.md`.
 
 Requirements:
 
-- Flutter SDK **>= 3.11.0** (channel: stable). Verify with `flutter --version`.
+- Flutter SDK **>= 3.24** (channel: stable) — CI is pinned to a specific version in
+  [`.github/workflows/tests.yml`](.github/workflows/tests.yml) (`FLUTTER_VERSION`); match that if in doubt.
+  Verify your local version with `flutter --version`.
 - Dart SDK is bundled with Flutter — no separate install.
 - Platform toolchain for whichever target you're building (Android Studio + JDK for Android, Xcode
   for iOS/macOS, Visual Studio with C++ workload for Windows).
@@ -308,7 +322,7 @@ lib/                  Flutter app (see CLAUDE.md for the layer rules)
   ├── data/           Isar models + repository implementations
   ├── domain/         Freezed entities, abstract repos, use cases
   ├── gateway/        Relay sync isolate (WebSocket + inbound handlers)
-  ├── features/       Feature modules (vishnu, brahma, shiv, channels, dm, …)
+  ├── features/       Feature modules (vishnu, brahma, shiv, groups, private_groups, dm, mesh, …)
   └── common/         Cross-feature widgets and helpers
 uniun-backend/        Go Nostr relay (Khatru + BadgerDB + Blossom + Azure)
 docs/                 Architecture notes (media subsystem, GraphRAG, …)
@@ -320,20 +334,41 @@ docs/                 Architecture notes (media subsystem, GraphRAG, …)
 
 UNIUN is shipping and growing. On the near-term roadmap:
 
+- **Creator monetization.** A way for users to earn from what they publish — the same
+  ownership principle as your notes and keys, extended to your income. In line with UNIUN's
+  Nostr-native philosophy, this leans on the protocol's own payment rails (zaps) rather than a
+  walled-garden payment system.
 - **Richer DMs** — file and media transfer inside encrypted conversations.
-- **Private-channel sharing** — QR-code invites for private groups.
+- **Private-group sharing** — QR-code invites for private groups.
 - **Editable memory nodes** — surface and edit the wiki-style summaries Shiv builds over your graph.
 - **Gana activity view** — a timeline of what each autonomous agent has done on your behalf.
 - **Deeper graph reasoning** — multi-hop retrieval and stronger synthesis as on-device models improve.
+- **Relay discovery** — find and adopt new relays (including community/topic relays) from inside
+  the app, instead of pasting a URL you found elsewhere.
+
+Have an idea or a use case we haven't thought of? Open an issue — the roadmap changes based on
+what people actually ask for.
 
 ---
 
 ## Contributing
 
-Read `docs` end-to-end before touching code. The behavioural guardrails there (no NIP-09, no
-Reddit-style models, `isar_community` only, Freezed 3.x `abstract class`, all UI strings via
-`AppLocalizations`) are enforced — they are not stylistic preferences.
+UNIUN is open source and welcomes contributions. Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md) — it covers project setup, the architecture rules that are
+enforced (not stylistic preferences: no NIP-09, no Reddit-style models, `isar_community` only,
+Freezed 3.x `abstract class`, all UI strings via `AppLocalizations`), testing, commit/branch
+conventions, and how to submit a pull request. For the deeper technical detail behind each
+subsystem, see [`docs`](docs) and `CLAUDE.md`.
 
-Bug reports and feature requests go through the issue tracker. Don't commit generated files
-(`*.g.dart`, `*.freezed.dart`, `lib/l10n/app_localizations*.dart`); they are reproduced by
-`build_runner` / `flutter gen-l10n`.
+Bug reports and feature requests go through the [issue tracker](../../issues). Don't commit
+generated files (`*.g.dart`, `*.freezed.dart`, `lib/l10n/app_localizations*.dart`); they're
+reproduced by `build_runner` / `flutter gen-l10n`.
+
+Everyone participating in the project — issues, PRs, discussions — is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## License
+
+UNIUN is licensed under the [GNU General Public License v3.0 or later](LICENSE).

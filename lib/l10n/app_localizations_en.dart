@@ -2879,6 +2879,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.';
 
   @override
+  String get natarajNoIdeaTitle => 'No idea this time';
+
+  @override
+  String get natarajNoIdeaBody =>
+      'That combination of notes didn\'t spark anything. Nothing\'s wrong — just try again.';
+
+  @override
   String get natarajPublishedSnack => 'Published as a note';
 
   @override

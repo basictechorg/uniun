@@ -1,6 +1,15 @@
 part of 'nataraj_bloc.dart';
 
-enum NatarajStatus { loading, ready, needsMoreNotes, exhausted, error }
+enum NatarajStatus {
+  loading,
+  ready,
+  needsMoreNotes,
+  exhausted,
+  error,
+  // Generation succeeded but produced no usable card this round (e.g. a
+  // noop response) — distinct from [error], which is a real failure.
+  noIdea,
+}
 
 @freezed
 abstract class NatarajState with _$NatarajState {

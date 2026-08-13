@@ -142,21 +142,28 @@ isn't obvious from the diff. Squash fixup commits before requesting review.
 
 ```mermaid
 flowchart LR
-    A[Fork & branch] --> B["flutter analyze\n&& flutter test"]
-    B -->|clean| C[Open PR]
+    Z{Issue exists?} -->|no| I[Open an issue]
+    Z -->|yes| A
+    I --> A[Fork & branch]
+    A --> B["flutter analyze\n&& flutter test"]
+    B -->|clean| C[Open PR, link the issue]
     B -->|failing| A
     C --> D{Review}
     D -->|changes requested| A
     D -->|approved| E[Squash & merge]
 ```
 
-1. Branch off `main`.
-2. Keep the PR focused — one bug or feature per PR. Large changes are easier
+1. **An issue must exist before the PR does.** If your PR fixes a bug or adds a feature that
+   isn't already tracked in the [issue tracker](../../issues), open that issue first —
+   even a short one. Then reference it in the PR (`Fixes #123` / `Related to #123`). This
+   keeps a single source of truth for *why* a change was made, separate from the PR's *how*.
+2. Branch off `main`.
+3. Keep the PR focused — one bug or feature per PR. Large changes are easier
    to review (and land) split into smaller, sequential PRs.
-3. Fill in what changed and why; link the issue it closes if there is one.
-4. Make sure CI (analyze + full test suite) is green before requesting
+4. Fill in what changed and why; link the issue from step 1.
+5. Make sure CI (analyze + full test suite) is green before requesting
    review.
-5. Respond to review comments with new commits, not force-pushes, until the
+6. Respond to review comments with new commits, not force-pushes, until the
    PR is approved — it keeps the review thread readable.
 
 ## Reporting bugs

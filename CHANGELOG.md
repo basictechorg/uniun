@@ -15,11 +15,10 @@ user-facing changelog.
 
 ---
 
-## [Unreleased] — targeting 2.3.0
+## [2.3.0] — 2026-08-13
 
-Work in progress, not yet released. This section grows as more lands and gets a real
-date only when the version actually ships — see [docs/AUDIT.md](docs/AUDIT.md) for the
-full technical detail behind every item below.
+A reliability-focused release for Shiv, Nataraj, and Ganas — plus QR sign-in for the
+web and automatic on-device storage cleanup.
 
 ### Added
 - **QR sign-in for the web.** Approve a browser login by scanning a QR code from a phone
@@ -29,26 +28,42 @@ full technical detail behind every item below.
   reclaiming storage that was previously invisible to the app.
 - **Ganas can now run on a UNIUN Cloud model**, pinned per-agent independently of
   whichever model the rest of the app is using — in both the foreground and while the
-  app is closed in the background.
+  app is closed in the background (#162).
 
 ### Changed
 - **Onboarding interest picker now loads its list from UNIUN's backend**, so new
   suggested accounts can be added without an app update. Shows a proper loading/retry
   state instead of a fixed in-app list.
+- **Model selection is now one consistent picker used everywhere** — Shiv chat,
+  Nataraj, and Gana previously each had their own different, inconsistent model
+  picker; there's now a single shared sheet across all three (#158, #161).
 - Updated the on-device AI engine (`flutter_gemma`) to the latest version for improved
-  reliability under sustained use.
-- **Full documentation audit and rewrite.** Every doc under `docs/` was checked against
-  the actual current code (not assumed) — stale/fictional content was rewritten or
-  removed, a previously-undocumented app-wide "Channels → Groups" rename was found and
-  corrected throughout, and docs are now organized by topic (`docs/Mesh/`,
-  `docs/Messaging/`) with simple explanations and diagrams alongside the technical depth.
+  reliability under sustained use (#149).
 
 ### Fixed
 - **Model pickers (Shiv chat, Gana) were showing a model's internal routing id to
   users** — now only ever show the friendly display name.
-- Android build failure caused by an incompatible transitive dependency pulled in by
-  the AI engine update.
-- CI no longer runs the full test/build pipeline for documentation-only changes.
+- **Nataraj could show a misleading "AI model couldn't run on this device" error**
+  even when the model was working fine and simply didn't come up with a usable idea
+  for one note combination — now shows an honest "no idea this time, try again"
+  message instead.
+- **Switching your on-device AI model didn't always take effect immediately** —
+  the app could keep quietly generating with the old model until restarted (#160).
+- **Switching or deleting an AI model while a chat or idea generation was still in
+  progress could cause errors.** Model changes now wait for or safely interrupt
+  in-progress generation instead of racing it (#167).
+- **Ganas with no specific model pinned now correctly follow whichever AI backend
+  (on-device or cloud) is currently active** — previously they always assumed
+  on-device and would silently do nothing if cloud was selected.
+- **Cloud-based idea and agent generation could occasionally hang indefinitely, or
+  fail without a clear error, when two requests overlapped** — fixed (#166).
+- **Empty, abandoned Shiv conversations no longer clutter your chat history** (#159).
+- **Leaving a Shiv chat while the AI was still replying no longer leaves a
+  permanently blank response** — whatever had been generated (or a note that it was
+  interrupted) is saved when you come back.
+- A small accuracy improvement to Shiv's on-device knowledge-graph search: it could
+  occasionally count the same connection twice, using up a slot that could have
+  surfaced a genuinely new one (#144).
 
 ---
 

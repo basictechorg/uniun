@@ -277,6 +277,11 @@ class _NatarajDeckViewState extends State<_NatarajDeckView> {
                           onChangeModel: () =>
                               context.pushNamed(AppRoutes.aiModelSelection),
                         ),
+                      NatarajStatus.noIdea => _NoIdeaBody(
+                          onRetry: () => context
+                              .read<NatarajBloc>()
+                              .add(NatarajEvent.loadDeck(state.manasIds)),
+                        ),
                     };
                   },
                 ),
@@ -721,6 +726,74 @@ class _ErrorBody extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
               label: Text(l10n.natarajRetry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── No-idea body ─────────────────────────────────────────────────────────────
+
+/// Generation succeeded but produced nothing usable this round (e.g. the
+/// model's response for that note combination was a noop). Deliberately
+/// separate from [_ErrorBody] — nothing failed here, so there is no
+/// "change model" CTA, only retry.
+class _NoIdeaBody extends StatelessWidget {
+  const _NoIdeaBody({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '✦',
+              style: TextStyle(fontSize: 40, color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.natarajNoIdeaTitle,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.natarajNoIdeaBody,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              ),
+              child: Text(
+                l10n.natarajRetry,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
             ),
           ],
         ),
