@@ -28,14 +28,17 @@ web and automatic on-device storage cleanup.
   reclaiming storage that was previously invisible to the app.
 - **Ganas can now run on a UNIUN Cloud model**, pinned per-agent independently of
   whichever model the rest of the app is using — in both the foreground and while the
-  app is closed in the background.
+  app is closed in the background (#162).
 
 ### Changed
 - **Onboarding interest picker now loads its list from UNIUN's backend**, so new
   suggested accounts can be added without an app update. Shows a proper loading/retry
   state instead of a fixed in-app list.
+- **Model selection is now one consistent picker used everywhere** — Shiv chat,
+  Nataraj, and Gana previously each had their own different, inconsistent model
+  picker; there's now a single shared sheet across all three (#158, #161).
 - Updated the on-device AI engine (`flutter_gemma`) to the latest version for improved
-  reliability under sustained use.
+  reliability under sustained use (#149).
 
 ### Fixed
 - **Model pickers (Shiv chat, Gana) were showing a model's internal routing id to
@@ -45,22 +48,22 @@ web and automatic on-device storage cleanup.
   for one note combination — now shows an honest "no idea this time, try again"
   message instead.
 - **Switching your on-device AI model didn't always take effect immediately** —
-  the app could keep quietly generating with the old model until restarted.
+  the app could keep quietly generating with the old model until restarted (#160).
 - **Switching or deleting an AI model while a chat or idea generation was still in
   progress could cause errors.** Model changes now wait for or safely interrupt
-  in-progress generation instead of racing it.
+  in-progress generation instead of racing it (#167).
 - **Ganas with no specific model pinned now correctly follow whichever AI backend
   (on-device or cloud) is currently active** — previously they always assumed
   on-device and would silently do nothing if cloud was selected.
 - **Cloud-based idea and agent generation could occasionally hang indefinitely, or
-  fail without a clear error, when two requests overlapped** — fixed.
-- **Empty, abandoned Shiv conversations no longer clutter your chat history.**
+  fail without a clear error, when two requests overlapped** — fixed (#166).
+- **Empty, abandoned Shiv conversations no longer clutter your chat history** (#159).
 - **Leaving a Shiv chat while the AI was still replying no longer leaves a
   permanently blank response** — whatever had been generated (or a note that it was
   interrupted) is saved when you come back.
 - A small accuracy improvement to Shiv's on-device knowledge-graph search: it could
   occasionally count the same connection twice, using up a slot that could have
-  surfaced a genuinely new one.
+  surfaced a genuinely new one (#144).
 
 ---
 
