@@ -332,6 +332,29 @@ void main() {
     );
 
     blocTest<ShivAIBloc, ShivAIState>(
+      'a second token appends onto the already-non-empty raw buffer (the '
+      'non-trimLeft branch)',
+      build: build,
+      act: (b) async {
+        b.add(const ShivAIEvent.createConversation());
+        await Future<void>.delayed(Duration.zero);
+        b.add(const ShivAIEvent.sendMessage('question'));
+        await Future<void>.delayed(Duration.zero);
+        tokenController.add('one ');
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        tokenController.add('two');
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        b.add(const ShivAIEvent.stopStreaming());
+      },
+      verify: (b) {
+        final captured =
+            verify(() => updateMessageContent.call(captureAny())).captured;
+        final lastCall = captured.last as (String, String);
+        expect(lastCall.$2, 'one two');
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
       'tapping Stop before any token has arrived persists the "(stopped)" '
       'fallback, not an empty string',
       build: build,
@@ -429,4 +452,409 @@ void main() {
       },
     );
   });
+
+  group('sendMessage on an already-persisted, message-less conversation', () {
+    blocTest<ShivAIBloc, ShivAIState>(
+      'reopened-draft-less edge case: auto-titles via updateConversationTitle '
+      'instead of createConversation',
+      build: build,
+      seed: () => ShivAIState(
+        activeConversation: persistedConv,
+        conversations: [persistedConv],
+        messages: const [],
+      ),
+      setUp: () {
+        when(() => updateConversationTitle.call(any()))
+            .thenAnswer((_) async => const Right(unit));
+        when(() => saveMessage.call(any()))
+            .thenAnswer((i) async => Right(i.positionalArguments.first));
+        when(() => rag.buildMessage(
+              userQuestion: any(named: 'userQuestion'),
+              manasIds: any(named: 'manasIds'),
+            )).thenAnswer((_) async => const RagMessage(userMessage: 'q', contextCount: 0));
+        when(() => sendChatStream.call(any())).thenAnswer((_) => const Stream.empty());
+      },
+      act: (b) => b.add(const ShivAIEvent.sendMessage('a brand new question')),
+      wait: const Duration(milliseconds: 20),
+      verify: (b) {
+        verifyNever(() => createConversation.call(any()));
+        verify(() => updateConversationTitle.call(('persisted-1', 'a brand new question')))
+            .called(1);
+        expect(b.state.activeConversation?.title, 'a brand new question');
+      },
+    );
+  });
+
+  group('defensive branches (streaming status with no in-flight message id)',
+      () {
+    // Not reachable via normal user flow — status==streaming is always set
+    // together with streamingMessageId in _onSendMessage — but both handlers
+    // guard the null case defensively; exercised here by seeding directly.
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onStopStreaming with no streamingMessageId clears status without '
+      'calling updateMessageContent',
+      build: build,
+      seed: () => const ShivAIState(status: ShivChatStatus.streaming),
+      act: (b) => b.add(const ShivAIEvent.stopStreaming()),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.chatIdle);
+        verifyNever(() => updateMessageContent.call(any()));
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onStreamDone with no streamingMessageId clears status without '
+      'calling updateMessageContent',
+      build: build,
+      seed: () => const ShivAIState(status: ShivChatStatus.streaming),
+      act: (b) => b.add(const ShivAIEvent.streamDone()),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.chatIdle);
+        verifyNever(() => updateMessageContent.call(any()));
+      },
+    );
+  });
+
+  group('_onLoadConversations', () {
+    setUp(() {
+      when(() => rag.init()).thenAnswer((_) async {});
+    });
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'success: inits RAG, loads the list, clears any error',
+      build: build,
+      setUp: () {
+        when(() => getConversations.call())
+            .thenAnswer((_) async => Right([persistedConv]));
+      },
+      act: (b) => b.add(const ShivAIEvent.loadConversations()),
+      expect: () => [
+        isA<ShivAIState>().having((s) => s.isRagInitializing, 'ragInit', true),
+        isA<ShivAIState>().having((s) => s.isRagInitializing, 'ragInit', false),
+        isA<ShivAIState>()
+            .having((s) => s.conversations, 'conversations', [persistedConv])
+            .having((s) => s.errorMessage, 'errorMessage', isNull),
+      ],
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'a repository failure surfaces as an error status',
+      build: build,
+      setUp: () {
+        when(() => getConversations.call())
+            .thenAnswer((_) async => const Left(Failure.errorFailure('db down')));
+      },
+      act: (b) => b.add(const ShivAIEvent.loadConversations()),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.error);
+        expect(b.state.errorMessage, contains('db down'));
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'the active conversation being wiped (bulk delete) drops the '
+      'selection and clears messages',
+      build: build,
+      seed: () => ShivAIState(
+        activeConversation: persistedConv,
+        messages: const [],
+        status: ShivChatStatus.chatIdle,
+      ),
+      setUp: () {
+        when(() => getConversations.call())
+            .thenAnswer((_) async => const Right([])); // persistedConv gone
+      },
+      act: (b) => b.add(const ShivAIEvent.loadConversations()),
+      verify: (b) {
+        expect(b.state.activeConversation, isNull);
+        expect(b.state.messages, isEmpty);
+        expect(b.state.status, ShivChatStatus.idle);
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'a live in-flight stream survives a background list refresh — the '
+      'chat page must not swap to an empty bubble mid-generation',
+      build: build,
+      seed: () => ShivAIState(
+        activeConversation: persistedConv,
+        status: ShivChatStatus.streaming,
+      ),
+      setUp: () {
+        when(() => getConversations.call())
+            .thenAnswer((_) async => Right([persistedConv]));
+      },
+      act: (b) => b.add(const ShivAIEvent.loadConversations()),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.streaming);
+        expect(b.state.activeConversation, persistedConv);
+      },
+    );
+
+    test('the constructor subscribes to the conversations watcher and '
+        'reloads on every mutation', () async {
+      final controller = StreamController<void>();
+      when(() => watchConversations.call()).thenAnswer((_) => controller.stream);
+      when(() => getConversations.call())
+          .thenAnswer((_) async => Right([persistedConv]));
+      final bloc = build();
+
+      controller.add(null);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(bloc.state.conversations, [persistedConv]);
+      await controller.close();
+      await bloc.close();
+    });
+  });
+
+  group('_onOpenConversation', () {
+    blocTest<ShivAIBloc, ShivAIState>(
+      'no active model — no-op',
+      build: build,
+      setUp: () => when(() => hasModel.call()).thenAnswer((_) async => false),
+      act: (b) => b.add(const ShivAIEvent.openConversation('persisted-1')),
+      verify: (b) {
+        verifyNever(() => getMessages.call(any()));
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'a conversationId not present in state.conversations is a no-op',
+      build: build,
+      act: (b) => b.add(const ShivAIEvent.openConversation('unknown-id')),
+      verify: (b) {
+        verifyNever(() => getMessages.call(any()));
+        expect(b.state.activeConversation, isNull);
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'a getMessages failure surfaces an error status',
+      build: build,
+      seed: () => ShivAIState(conversations: [persistedConv]),
+      setUp: () {
+        when(() => getMessages.call('persisted-1'))
+            .thenAnswer((_) async => const Left(Failure.errorFailure('x')));
+      },
+      act: (b) => b.add(const ShivAIEvent.openConversation('persisted-1')),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.error);
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      'success opens a fresh chat session and loads the conversation\'s '
+      'messages',
+      build: () {
+        when(() => getMessages.call('persisted-1')).thenAnswer((_) async =>
+            Right([_msg('u1', 'persisted-1', MessageRole.user, 'hi')]));
+        return build();
+      },
+      seed: () => ShivAIState(conversations: [persistedConv]),
+      act: (b) => b.add(const ShivAIEvent.openConversation('persisted-1')),
+      verify: (b) {
+        expect(b.state.status, ShivChatStatus.chatIdle);
+        expect(b.state.activeConversation, persistedConv);
+        expect(b.state.messages, hasLength(1));
+        verify(() => openConv.call()).called(1);
+      },
+    );
+  });
+
+  group('_onDeleteConversation', () {
+    blocTest<ShivAIBloc, ShivAIState>(
+      'removes the deleted conversation from the list',
+      build: build,
+      seed: () => ShivAIState(conversations: [persistedConv]),
+      setUp: () {
+        when(() => deleteConversation.call('persisted-1'))
+            .thenAnswer((_) async => const Right(unit));
+      },
+      act: (b) => b.add(const ShivAIEvent.deleteConversation('persisted-1')),
+      expect: () => [
+        isA<ShivAIState>().having((s) => s.conversations, 'conversations', isEmpty),
+      ],
+    );
+  });
+
+  group('branch navigation', () {
+    setUp(() {
+      when(() => updateActiveLeaf.call(any()))
+          .thenAnswer((_) async => const Right(unit));
+      when(() => rag.buildBranchContextSummary(any())).thenReturn('summary');
+    });
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onSwitchBranch with no active conversation is a no-op',
+      build: build,
+      act: (b) => b.add(const ShivAIEvent.switchBranch('leaf1')),
+      verify: (_) {
+        verifyNever(() => updateActiveLeaf.call(any()));
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onSwitchBranch rebuilds the branch, re-inits the chat session with '
+      'branch context, and updates activeLeafMessageId',
+      build: build,
+      seed: () => ShivAIState(
+        activeConversation: persistedConv,
+        allMessages: [
+          _msg('root', 'persisted-1', MessageRole.user, 'root'),
+          _msg('leaf1', 'persisted-1', MessageRole.assistant, 'leaf',
+              parentId: 'root'),
+        ],
+      ),
+      act: (b) => b.add(const ShivAIEvent.switchBranch('leaf1')),
+      verify: (b) {
+        verify(() => updateActiveLeaf.call(('persisted-1', 'leaf1'))).called(1);
+        expect(b.state.messages, hasLength(2));
+        expect(b.state.activeConversation?.activeLeafMessageId, 'leaf1');
+        expect(b.state.selectedNodeMessageId, isNull);
+        verify(() => openConv.call()).called(1);
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onCreateBranchFrom with no active conversation is a no-op',
+      build: build,
+      act: (b) => b.add(const ShivAIEvent.createBranchFrom('root')),
+      verify: (_) {
+        verifyNever(() => updateActiveLeaf.call(any()));
+      },
+    );
+
+    blocTest<ShivAIBloc, ShivAIState>(
+      '_onCreateBranchFrom rebuilds the branch up to parentMessageId and '
+      'updates activeLeafMessageId to it',
+      build: build,
+      seed: () => ShivAIState(
+        activeConversation: persistedConv,
+        allMessages: [
+          _msg('root', 'persisted-1', MessageRole.user, 'root'),
+        ],
+      ),
+      act: (b) => b.add(const ShivAIEvent.createBranchFrom('root')),
+      verify: (b) {
+        verify(() => updateActiveLeaf.call(('persisted-1', 'root'))).called(1);
+        expect(b.state.activeConversation?.activeLeafMessageId, 'root');
+      },
+    );
+  });
+
+  group('_onSelectGraphNode', () {
+    blocTest<ShivAIBloc, ShivAIState>(
+      'sets selectedNodeMessageId',
+      build: build,
+      act: (b) => b.add(const ShivAIEvent.selectGraphNode('n1')),
+      expect: () => [
+        isA<ShivAIState>()
+            .having((s) => s.selectedNodeMessageId, 'selectedNodeMessageId', 'n1'),
+      ],
+    );
+  });
+
+  group('tab enter/leave hooks', () {
+    test('onEnterShivTab preempts background work', () {
+      final bloc = build();
+
+      bloc.onEnterShivTab();
+
+      verify(() => preempt.call()).called(1);
+    });
+
+    test('onLeaveShivTab resumes background work and drains pending '
+        'extractions', () {
+      final bloc = build();
+
+      bloc.onLeaveShivTab();
+
+      verify(() => resume.call()).called(1);
+      verify(() => drainPending.call()).called(1);
+    });
+  });
+
+  group('close()', () {
+    test('idle close: skips interrupted-stream persistence, still tears '
+        'down conv/resume/drain', () async {
+      final bloc = build();
+
+      await bloc.close();
+
+      verifyNever(() => updateMessageContent.call(any()));
+      verify(() => closeConv.call()).called(1);
+      verify(() => resume.call()).called(1);
+      verify(() => drainPending.call()).called(1);
+    });
+
+    test('closing mid-stream finalizes the interrupted turn before tearing '
+        'down', () async {
+      final tokenController = StreamController<String>();
+      when(() => createConversation.call(any()))
+          .thenAnswer((_) async => Right(persistedConv));
+      when(() => saveMessage.call(any()))
+          .thenAnswer((i) async => Right(i.positionalArguments.first));
+      when(() => rag.buildMessage(
+            userQuestion: any(named: 'userQuestion'),
+            manasIds: any(named: 'manasIds'),
+          )).thenAnswer((_) async => const RagMessage(userMessage: 'q', contextCount: 0));
+      when(() => sendChatStream.call(any())).thenAnswer((_) => tokenController.stream);
+      final bloc = build();
+      bloc.add(const ShivAIEvent.createConversation());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const ShivAIEvent.sendMessage('question'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      // Stream never completes on its own — only close() should finalize it.
+      expect(bloc.state.status, ShivChatStatus.streaming);
+
+      await bloc.close();
+      unawaited(tokenController.close());
+
+      final captured =
+          verify(() => updateMessageContent.call(captureAny())).captured;
+      expect((captured.last as (String, String)).$2, '(interrupted)');
+    });
+  });
+
+  group('refreshStatus (static helper)', () {
+    test('a live stream survives when the active conversation is still '
+        'present', () {
+      expect(
+        ShivAIBloc.refreshStatus(ShivChatStatus.streaming, activeGone: false),
+        ShivChatStatus.streaming,
+      );
+    });
+
+    test('a live stream is downgraded to idle when the active conversation '
+        'was wiped', () {
+      expect(
+        ShivAIBloc.refreshStatus(ShivChatStatus.streaming, activeGone: true),
+        ShivChatStatus.idle,
+      );
+    });
+
+    test('any non-streaming status always settles to idle', () {
+      expect(ShivAIBloc.refreshStatus(ShivChatStatus.error, activeGone: false),
+          ShivChatStatus.idle);
+      expect(ShivAIBloc.refreshStatus(ShivChatStatus.chatIdle, activeGone: false),
+          ShivChatStatus.idle);
+    });
+  });
 }
+
+ShivMessageEntity _msg(
+  String id,
+  String conversationId,
+  MessageRole role,
+  String content, {
+  String? parentId,
+}) =>
+    ShivMessageEntity(
+      messageId: id,
+      conversationId: conversationId,
+      parentId: parentId,
+      role: role,
+      content: content,
+      createdAt: DateTime(2026, 1, 1),
+    );

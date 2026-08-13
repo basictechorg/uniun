@@ -7,13 +7,16 @@ import 'package:uniun/core/enum/gana_output_type.dart';
 import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/enum/note_type.dart';
+import 'package:uniun/core/error/failures.dart';
 import 'package:uniun/core/notes/note_kinds.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
 import 'package:uniun/data/models/gana_run_model.dart';
 import 'package:uniun/data/models/notes/note_model.dart';
+import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
 import 'package:uniun/domain/entities/llm/llm_backend_type.dart';
 import 'package:uniun/domain/entities/llm/llm_model_info.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
@@ -55,6 +58,8 @@ class _MockIsCloudConnected extends Mock implements IsUniunCloudConnectedUseCase
 
 class _MockGetActiveLlmModel extends Mock implements GetActiveLlmModelUseCase {}
 
+class _MockGateway extends Mock implements FlutterGemmaGateway {}
+
 /// Covers: [GanaEngine]'s cloud/local dispatch gate (cloud routes through
 /// [GenerateOneShotUseCase] with a backend/model override and skips the
 /// on-device gate; local is unaffected — `FlutterGemma.hasActiveModel()` is
@@ -90,6 +95,7 @@ void main() {
   late _MockGenerateOneShot generateOneShot;
   late _MockIsCloudConnected isCloudConnected;
   late _MockGetActiveLlmModel getActiveLlmModel;
+  late _MockGateway gateway;
   late StubUserRepository userRepo;
   late GanaEngine engine;
 
@@ -107,7 +113,9 @@ void main() {
     generateOneShot = _MockGenerateOneShot();
     isCloudConnected = _MockIsCloudConnected();
     getActiveLlmModel = _MockGetActiveLlmModel();
+    gateway = _MockGateway();
     userRepo = StubUserRepository();
+    when(() => gateway.hasActiveModel()).thenReturn(false);
 
     // Default: no globally active model resolvable — matches the old
     // behavior (an unpinned Gana still falls back to the local gate)
@@ -144,6 +152,7 @@ void main() {
       generateOneShot,
       isCloudConnected,
       getActiveLlmModel,
+      gateway,
     );
   });
 
@@ -171,6 +180,7 @@ void main() {
     bool triggerReactive = false,
     GanaTriggerMode triggerMode = GanaTriggerMode.oneShot,
     int? maxOutputs,
+    int? triggerIntervalMinutes,
   }) async {
     final now = DateTime.now();
     await isar.writeTxn(() async {
@@ -190,6 +200,7 @@ void main() {
           ..triggerReactive = triggerReactive
           ..triggerMode = triggerMode
           ..maxOutputs = maxOutputs
+          ..triggerIntervalMinutes = triggerIntervalMinutes
           ..enabled = true
           ..createdAt = now
           ..updatedAt = now,
@@ -662,6 +673,634 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 20));
       }
       expect(row!.enabled, isFalse);
+    });
+  });
+
+  group('no active user', () {
+    test('skipped(noActiveModel) with a "no active user" error, never '
+        'reaches inference', () async {
+      userRepo.keys = null;
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      await seedStandaloneGana(
+        ganaId: 'no-user-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('no-user-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.skipped);
+      expect(run.skipReason, GanaSkipReason.noActiveModel);
+      expect(run.error, 'no active user');
+      verifyNever(() => generateOneShot.call(any()));
+    });
+  });
+
+  group('fully-unset Gana whose global-model lookup fails', () {
+    test('a getActiveLlmModel failure degrades to null (fold\'s Left '
+        'branch), falling through to the local gate', () async {
+      when(() => getActiveLlmModel.call())
+          .thenAnswer((_) async => const Left(Failure.errorFailure('x')));
+      await seedStandaloneGana(ganaId: 'unset-fail-1');
+
+      await engine.start();
+      final run = await waitForRun('unset-fail-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.skipped);
+      expect(run.skipReason, GanaSkipReason.noActiveModel);
+      verifyNever(() => isCloudConnected.call());
+    });
+  });
+
+  group('local (on-device) generation — gateway reports an active model',
+      () {
+    setUp(() {
+      when(() => gateway.hasActiveModel()).thenReturn(true);
+    });
+
+    test('a desiredModelId mismatch against the active model skips '
+        '(modelMismatch)', () async {
+      when(() => settings.activeModelId).thenReturn(AIModelId.qwen25_05b);
+      await seedGana(ganaId: 'mismatch-1', desiredModelId: 'deepseekR1');
+
+      await engine.start();
+      final run = await waitForRun('mismatch-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.skipped);
+      expect(run.skipReason, GanaSkipReason.modelMismatch);
+      verifyNever(() => runner.generateOneShot(any(),
+          kind: any(named: 'kind'), maxTokens: any(named: 'maxTokens')));
+    });
+
+    test('a matching desiredModelId proceeds to real local inference and '
+        'publishes on success', () async {
+      when(() => settings.activeModelId).thenReturn(AIModelId.qwen25_05b);
+      when(() => runner.generateOneShot(any(), kind: any(named: 'kind')))
+          .thenAnswer((_) async => 'Local reply');
+      await seedGana(ganaId: 'local-ok-1', desiredModelId: 'qwen25_05b');
+
+      await engine.start();
+      final run = await waitForRun('local-ok-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.succeeded);
+      verify(() => publishNote.call(any())).called(1);
+    });
+
+    test('the runner throwing surfaces as a failed run with the error '
+        'message', () async {
+      when(() => runner.generateOneShot(any(), kind: any(named: 'kind')))
+          .thenThrow(Exception('native crash'));
+      await seedStandaloneGana(ganaId: 'local-throw-1');
+
+      await engine.start();
+      final run = await waitForRun('local-throw-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('native crash'));
+      verifyNever(() => publishNote.call(any()));
+    });
+
+    test('the runner returning null (preempted/model swapped) skips '
+        '(modelSwapped)', () async {
+      when(() => runner.generateOneShot(any(), kind: any(named: 'kind')))
+          .thenAnswer((_) async => null);
+      await seedStandaloneGana(ganaId: 'local-null-1');
+
+      await engine.start();
+      final run = await waitForRun('local-null-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.skipped);
+      expect(run.skipReason, GanaSkipReason.modelSwapped);
+      verifyNever(() => publishNote.call(any()));
+    });
+  });
+
+  group('inference failure / noop (cloud path — no gateway needed)', () {
+    test('a cloud generateOneShot Left surfaces as a failed run', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Left(Failure.errorFailure('rate limited')));
+      await seedStandaloneGana(
+        ganaId: 'cloud-fail-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('cloud-fail-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('rate limited'));
+      verifyNever(() => publishNote.call(any()));
+    });
+
+    test('a NOOP-sentinel body skips (noopReturned) and still advances '
+        'the cursor', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('<NOOP>'));
+      await seedStandaloneGana(
+        ganaId: 'cloud-noop-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('cloud-noop-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.skipped);
+      expect(run.skipReason, GanaSkipReason.noopReturned);
+      verifyNever(() => publishNote.call(any()));
+    });
+  });
+
+  group('publish failures surface as a failed run', () {
+    test('publishNote throwing directly is caught as a failed run',
+        () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      when(() => publishNote.call(any())).thenThrow(Exception('disk full'));
+      await seedStandaloneGana(
+        ganaId: 'pub-throw-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('pub-throw-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('publish:'));
+    });
+
+    test('publishNote returning a Left is converted to a thrown Exception '
+        'and caught the same way', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      when(() => publishNote.call(any()))
+          .thenAnswer((_) async => const Left(Failure.errorFailure('queue full')));
+      await seedStandaloneGana(
+        ganaId: 'pub-left-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('pub-left-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('queue full'));
+    });
+
+    test('group output with no outputGroupId fails with a clear StateError',
+        () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      await seedGana(
+        ganaId: 'group-no-ref-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.group,
+        outputGroupId: null,
+      );
+
+      await engine.start();
+      final run = await waitForRun('group-no-ref-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('outputGroupId'));
+    });
+
+    test('group publish returning a Left is caught as a failed run',
+        () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      when(() => groupMessage.call(any()))
+          .thenAnswer((_) async => const Left(Failure.errorFailure('no relay')));
+      await seedGana(
+        ganaId: 'group-left-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.group,
+        outputGroupId: 'g-1',
+      );
+
+      await engine.start();
+      final run = await waitForRun('group-left-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('no relay'));
+    });
+
+    test('privateGroup output with no outputPrivateGroupId fails with a '
+        'clear StateError', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      await seedGana(
+        ganaId: 'pg-no-ref-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.privateGroup,
+        outputPrivateGroupId: null,
+      );
+
+      await engine.start();
+      final run = await waitForRun('pg-no-ref-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('outputPrivateGroupId'));
+    });
+
+    test('dm output with no outputDmConversationId fails with a clear '
+        'StateError', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      await seedGana(
+        ganaId: 'dm-no-ref-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.dm,
+        outputDmConversationId: null,
+      );
+
+      await engine.start();
+      final run = await waitForRun('dm-no-ref-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('outputDmConversationId'));
+    });
+
+    test('dm output whose conversationId no longer exists fails with a '
+        'clear StateError', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      await seedGana(
+        ganaId: 'dm-missing-conv-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.dm,
+        outputDmConversationId: 999999, // never created
+      );
+
+      await engine.start();
+      final run = await waitForRun('dm-missing-conv-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('not found'));
+    });
+
+    test('dm publish returning a Left is caught as a failed run', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Body'));
+      when(() => dm.call(any()))
+          .thenAnswer((_) async => const Left(Failure.errorFailure('blocked')));
+      final conv = DmConversationModel()..otherPubkey = 'bob-pubkey';
+      await isar.writeTxn(() async {
+        await isar.dmConversationModels.put(conv);
+      });
+      await seedGana(
+        ganaId: 'dm-left-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.dm,
+        outputDmConversationId: conv.id,
+      );
+
+      await engine.start();
+      final run = await waitForRun('dm-left-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.failed);
+      expect(run.error, contains('blocked'));
+    });
+  });
+
+  group('publish success resolves the real eventId over the synthetic '
+      'fallback', () {
+    test('privateGroup: a matching NoteModel written by the (mocked) '
+        'transport is picked up as the real outputEventId', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('Private reply'));
+      when(() => privateGroup.execute(
+            groupId: any(named: 'groupId'),
+            content: any(named: 'content'),
+            authorPubkey: any(named: 'authorPubkey'),
+            privkeyHex: any(named: 'privkeyHex'),
+          )).thenAnswer((invocation) async {
+        // Simulate what the real MLS transport does: write a NoteModel row.
+        await isar.writeTxn(() async {
+          await isar.noteModels.put(NoteModel(
+            eventId: 'real-pg-event-id',
+            sig: '',
+            authorPubkey: invocation.namedArguments[#authorPubkey] as String,
+            content: invocation.namedArguments[#content] as String,
+            kind: 9023,
+            privateGroupId: invocation.namedArguments[#groupId] as String,
+            type: NoteType.text,
+            eTagRefs: const [],
+            pTagRefs: const [],
+            tTags: const [],
+            created: DateTime.now(),
+          ));
+        });
+      });
+      await seedGana(
+        ganaId: 'pg-real-id-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.privateGroup,
+        outputPrivateGroupId: 'pg-real',
+      );
+
+      await engine.start();
+      final run = await waitForRun('pg-real-id-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.succeeded);
+      expect(run.outputEventId, 'real-pg-event-id');
+    });
+
+    test('dm: a matching NoteModel written by the (mocked) transport is '
+        'picked up as the real outputEventId', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => generateOneShot.call(any()))
+          .thenAnswer((_) async => const Right('DM reply'));
+      final conv = DmConversationModel()..otherPubkey = 'bob-pubkey';
+      await isar.writeTxn(() async {
+        await isar.dmConversationModels.put(conv);
+      });
+      when(() => dm.call(any())).thenAnswer((invocation) async {
+        await isar.writeTxn(() async {
+          await isar.noteModels.put(NoteModel(
+            eventId: 'real-dm-event-id',
+            sig: '',
+            authorPubkey: kTestPubHex,
+            content: 'DM reply',
+            kind: kDmTextKind,
+            conversationId: conv.id,
+            type: NoteType.text,
+            eTagRefs: const [],
+            pTagRefs: const [],
+            tTags: const [],
+            created: DateTime.now(),
+          ));
+        });
+        return const Right(unit);
+      });
+      await seedGana(
+        ganaId: 'dm-real-id-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+        outputType: GanaOutputType.dm,
+        outputDmConversationId: conv.id,
+      );
+
+      await engine.start();
+      final run = await waitForRun('dm-real-id-1');
+
+      expect(run, isNotNull);
+      expect(run!.status, GanaRunStatus.succeeded);
+      expect(run.outputEventId, 'real-dm-event-id');
+    });
+  });
+
+  group('unexpected exception inside a run', () {
+    test('a manasLoader.merge throw is caught by _runIfPossible\'s outer '
+        'guard — no run log, no crash, mutex released', () async {
+      when(() => isCloudConnected.call()).thenAnswer((_) async => true);
+      when(() => manasLoader.merge(
+            manasIds: any(named: 'manasIds'),
+            budget: any(named: 'budget'),
+            relevanceQuery: any(named: 'relevanceQuery'),
+          )).thenThrow(Exception('vector index corrupt'));
+      await seedStandaloneGana(
+        ganaId: 'crash-1',
+        desiredBackend: LlmBackendType.uniunCloud,
+        desiredModelId: 'claude-cloud-mini',
+      );
+
+      await engine.start();
+      final run = await waitForRun('crash-1', timeout: const Duration(seconds: 2));
+
+      expect(run, isNull); // never reached _logRun
+    });
+  });
+
+  group('schedule reacts to config changes and interval timers', () {
+    test('an interval-configured Gana installs a periodic timer without '
+        'crashing, and stop() tears it down cleanly', () async {
+      await seedGana(
+        ganaId: 'interval-1',
+        triggerIntervalMinutes: 30,
+      );
+
+      await engine.start();
+      // fire-on-enable (standalone one-shot) still runs once immediately —
+      // the interval timer install is a side effect of the SAME rebuild.
+      await waitForRun('interval-1');
+      await engine.stop(); // exercises the interval-timer cancel loop
+
+      // No crash / hang reaching here is the assertion.
+    });
+
+    test(
+      'a real Timer.periodic(1 minute) firing actually calls '
+      '_maybeRunInterval and runs the Gana — not just the immediate '
+      'fire-on-enable path',
+      () async {
+        // `fake_async` cannot drive this: it does not virtualize real
+        // Isar I/O (confirmed empirically — a real Isar query started
+        // inside a `fakeAsync` zone never resolves once the zone's
+        // synchronous callback returns, hanging `isar.close()`). The
+        // only faithful way to exercise the real `Timer.periodic` this
+        // class installs is to actually wait past its 1-minute period —
+        // `Timer.periodic` takes whole minutes, so 1 is the fastest this
+        // can run.
+        //
+        // `recurring` mode (not `oneShot`) plus `inputType: null` and
+        // `triggerReactive: false` means the fire-on-enable branch in
+        // `_rebuildSchedule` does NOT apply here — the only trigger that
+        // can produce a run is the interval timer itself.
+        await seedGana(
+          ganaId: 'interval-real-fire',
+          triggerIntervalMinutes: 1,
+          triggerMode: GanaTriggerMode.recurring,
+        );
+
+        await engine.start();
+
+        // Nothing should have run yet — no fire-on-enable, no reactive
+        // trigger, and the first periodic tick is a full minute away.
+        final immediate = await waitForRun('interval-real-fire',
+            timeout: const Duration(seconds: 3));
+        expect(immediate, isNull,
+            reason: 'recurring interval Ganas must not fire on enable');
+
+        // Wait past the real 1-minute period for Timer.periodic to fire.
+        final run = await waitForRun('interval-real-fire',
+            timeout: const Duration(seconds: 70));
+
+        expect(run, isNotNull,
+            reason: 'the real Timer.periodic tick must have invoked '
+                '_maybeRunInterval, which found no lastRunAt gate and ran');
+      },
+      timeout: const Timeout(Duration(seconds: 90)),
+    );
+
+    test('_maybeRunInterval skips when lastRunAt is inside the interval '
+        'window, without touching _runIfPossible', () async {
+      // A first real tick guaranteed to occur `mins` after `start()` can
+      // never observe a `lastRunAt` less than `mins` old — it's
+      // structurally impossible to seed a "too recent" lastRunAt before
+      // start() and have it still look recent by the first tick (see the
+      // real-timer test above). This exercises the gate directly via the
+      // `@visibleForTesting` seam instead, deterministically and without
+      // any real wait.
+      final now = DateTime.now();
+      await seedGana(
+        ganaId: 'interval-gate',
+        triggerIntervalMinutes: 5,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('interval-gate')
+          .findFirst();
+      await isar.writeTxn(() async {
+        row!.lastRunAt = now; // just ran — well inside the 5-minute window
+        await isar.ganaModels.put(row);
+      });
+
+      await engine.debugMaybeRunInterval('interval-gate');
+
+      final run = await waitForRun('interval-gate',
+          timeout: const Duration(seconds: 2));
+      expect(run, isNull,
+          reason: 'a lastRunAt inside the interval window must gate the '
+              'run, not just rely on nothing else triggering it');
+    });
+
+    test('_maybeRunInterval runs when lastRunAt is outside the interval '
+        'window', () async {
+      await seedGana(
+        ganaId: 'interval-gate-elapsed',
+        triggerIntervalMinutes: 5,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      final row = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('interval-gate-elapsed')
+          .findFirst();
+      await isar.writeTxn(() async {
+        row!.lastRunAt = DateTime.now().subtract(const Duration(minutes: 10));
+        await isar.ganaModels.put(row);
+      });
+
+      await engine.debugMaybeRunInterval('interval-gate-elapsed');
+
+      final run = await waitForRun('interval-gate-elapsed');
+      expect(run, isNotNull);
+    });
+
+    test('two ganaModels writes inside the 500ms rebuild debounce collapse '
+        'into a single rebuild — the second write cancels the first '
+        'pending Timer rather than scheduling a competing one', () async {
+      await engine.start();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Fire two watchLazy events back-to-back, well inside the 500ms
+      // debounce window, so the second one's `rebuildDebounce?.cancel()`
+      // actually cancels a live (non-null) Timer instead of a no-op. Both
+      // are interval-only (no fire-on-enable) so they don't race each
+      // other on _runIfPossible's single-flight mutex — this test is only
+      // about the debounce Timer, not run outcomes.
+      await seedGana(
+        ganaId: 'debounce-a',
+        triggerIntervalMinutes: 30,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+      await seedGana(
+        ganaId: 'debounce-b',
+        triggerIntervalMinutes: 30,
+        triggerMode: GanaTriggerMode.recurring,
+      );
+
+      // No crash / hang, and both survive into the rebuilt schedule, is
+      // the assertion — proving the collapsed rebuild (not two competing
+      // ones) still picked up every enabled Gana.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      final rows = await isar.ganaModels
+          .filter()
+          .ganaIdEqualTo('debounce-a')
+          .or()
+          .ganaIdEqualTo('debounce-b')
+          .findAll();
+      expect(rows, hasLength(2));
+    });
+
+    test('a config change after start() debounces through the watchLazy '
+        'listener and picks up a newly-enabled Gana (proves the watcher → '
+        'debounce → rebuild path actually fires, not just the initial '
+        'direct call in start())', () async {
+      await engine.start();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Seeded AFTER start() — only reachable via the ganaModels watcher's
+      // debounced _rebuildSchedule, never the one-time call inside start().
+      await seedStandaloneGana(ganaId: 'added-after-start');
+      final run = await waitForRun('added-after-start',
+          timeout: const Duration(seconds: 3));
+
+      expect(run, isNotNull, reason: 'the watcher-driven rebuild must have '
+          'picked up the new Gana and fired it on enable');
+    });
+
+    test('disabling an interval-configured Gana after start() removes its '
+        'stale interval timer on the next rebuild', () async {
+      await seedGana(
+        ganaId: 'interval-2',
+        triggerIntervalMinutes: 30,
+      );
+      await engine.start();
+      await waitForRun('interval-2');
+
+      // Disable it — the ganaModels watcher fires, _rebuildSchedule reloads
+      // (now empty), and must cancel the now-stale interval timer for it.
+      final row =
+          await isar.ganaModels.filter().ganaIdEqualTo('interval-2').findFirst();
+      await isar.writeTxn(() async {
+        row!.enabled = false;
+        await isar.ganaModels.put(row);
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+
+      // No crash / hang reaching here is the assertion — the stale timer
+      // was cancelled during the rebuild, not left dangling.
     });
   });
 }

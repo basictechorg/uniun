@@ -107,7 +107,11 @@ class PublishProfileMetadataUseCase
   }) async {
     try {
       final keysResult = await _getActiveUserKeys.call();
-      return keysResult.fold((failure) => Left(failure), (keys) async {
+      // `await` here is load-bearing: without it, an exception thrown inside
+      // the async Right branch below (e.g. a malformed privkey in
+      // Event.from) completes this function's Future with an error AFTER
+      // this try block has already returned, bypassing the catch entirely.
+      return await keysResult.fold((failure) => Left(failure), (keys) async {
         final metadata = <String, dynamic>{
           if (profile.name != null) 'display_name': profile.name,
           if (profile.username != null) 'name': profile.username,

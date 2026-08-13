@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
 
 /// Installs the bundled Gecko embedding model into flutter_gemma's managed
@@ -15,8 +15,13 @@ import 'package:uniun/features/shiv/rag/embedding/embedding_service.dart';
 /// hits the network.
 @lazySingleton
 class EmbeddingModelDownloader {
+  EmbeddingModelDownloader(this._gateway, this._embeddingService);
+
+  final FlutterGemmaGateway _gateway;
+  final EmbeddingService _embeddingService;
+
   /// True once the bundled embedder is installed and active.
-  Future<bool> isDownloaded() async => FlutterGemma.hasActiveEmbedder();
+  Future<bool> isDownloaded() async => _gateway.hasActiveEmbedder();
 
   /// Install the bundled embedder if not already active.
   /// Fire-and-forget safe — errors are logged but not rethrown.
@@ -27,7 +32,7 @@ class EmbeddingModelDownloader {
     }
     debugPrint('📦 Embedding: installing bundled model…');
     try {
-      await EmbeddingService.ensureInstalled();
+      await _embeddingService.ensureInstalled();
       debugPrint('📦 Embedding: install complete ✅');
     } catch (e) {
       debugPrint('📦 Embedding: install failed ❌ $e');

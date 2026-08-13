@@ -49,7 +49,8 @@ InboundMessage? decodeFrame(String raw) {
     return null;
   }
   if (data.isEmpty) return null;
-  final type = data[0] as String?;
+  final rawType = data[0];
+  final type = rawType is String ? rawType : null;
   switch (type) {
     case 'EVENT':
       if (data.length < 3) return null;

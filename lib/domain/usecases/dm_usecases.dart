@@ -116,7 +116,11 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
 
       final keysResult = await _getKeys();
       print("keys fetched:" + keysResult.toString());
-      return keysResult.fold((failure) => Left(failure), (keys) async {
+      // `await` is load-bearing here and on the nested fold below: without
+      // it, an exception thrown inside an async Right branch completes this
+      // function's Future with an error AFTER the enclosing try has already
+      // returned, bypassing the catch entirely.
+      return await keysResult.fold((failure) => Left(failure), (keys) async {
         // Ensure privkeyHex is raw 32-byte hex (64 chars), never an nsec bech32.
         // GetActiveUserKeysUseCase already calls Nip19.decodePrivkey, so this
         // should already be hex. Guard defensively anyway.
@@ -148,7 +152,7 @@ class SendDmUseCase extends UseCase<Either<Failure, Unit>, SendDmParams> {
           );
         }
 
-        return convResult.fold((failure) => Left(failure), (conv) async {
+        return await convResult.fold((failure) => Left(failure), (conv) async {
           // Generate a deterministic local ID for outgoing messages.
           // Real eventId will differ from the NIP-01 hash since the
           // Kind-14 payload is unsigned. This avoids Isar unique index
@@ -223,7 +227,8 @@ class GetDmUseCase extends NoParamsUseCase<Either<Failure, Unit>> {
     try {
       print("get dm usecase called");
       final keysResult = await _getKeys();
-      return keysResult.fold((f) => Left(f), (keys) async {
+      // See SendDmUseCase.call for why `await` here is load-bearing.
+      return await keysResult.fold((f) => Left(f), (keys) async {
         final service = Nip17EncryptionService(
           _isar,
           NoteRelationRepositoryImpl(isar: _isar),
@@ -257,7 +262,7 @@ class FetchDmUseCase
       final convResult = await _convRepo.getConversationByOtherPubkey(
         normalizedOtherPubkey,
       );
-      return convResult.fold(
+      return await convResult.fold(
         (_) => const Right([]), // Not yet chatting
         (conv) async {
           final messagesResult = await _msgRepo.getMessages(conv.id, limit: 100);

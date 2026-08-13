@@ -1,3 +1,4 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
@@ -1058,6 +1059,204 @@ void main() {
 
       expect(trace.indexOf('start:switch1'),
           lessThan(trace.indexOf('start:switch2')));
+    });
+  });
+
+  group('_maybePreempt', () {
+    test('setForeground(chat) preempts an in-flight background job even '
+        'when no chat job is queued yet', () async {
+      final scheduler = InferenceScheduler();
+      var cancelled = false;
+      final ganaFuture = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 50; i++) {
+            if (cancel.isCancelled) {
+              cancelled = true;
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(scheduler.runningKind, LlmTaskKind.gana);
+
+      scheduler.setForeground(LlmTaskKind.chat);
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      expect(cancelled, isTrue);
+      scheduler.setForeground(null);
+      await ganaFuture; // re-queued gana eventually completes without cancel
+    });
+
+    test('a queued job hoisted to foreground preempts a running job of a '
+        'genuinely lower tier (not the chat-specific branch)', () async {
+      final scheduler = InferenceScheduler();
+      var ganaCancelled = false;
+      final ganaFuture = scheduler.run<void>(
+        kind: LlmTaskKind.gana,
+        modelId: 'm',
+        work: (cancel) async {
+          for (var i = 0; i < 50; i++) {
+            if (cancel.isCancelled) {
+              ganaCancelled = true;
+              return;
+            }
+            await Future.delayed(const Duration(milliseconds: 5));
+          }
+        },
+      );
+      await Future.delayed(const Duration(milliseconds: 20));
+      expect(scheduler.runningKind, LlmTaskKind.gana);
+
+      // Queue a nataraj job, then hoist nataraj to foreground (T1) —
+      // strictly higher priority than the running gana (T4 fair pool).
+      final natarajFuture = scheduler.run<void>(
+        kind: LlmTaskKind.nataraj,
+        modelId: 'm',
+        work: (_) async {},
+      );
+      scheduler.setForeground(LlmTaskKind.nataraj);
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      expect(ganaCancelled, isTrue);
+      scheduler.setForeground(null);
+      await Future.wait([ganaFuture, natarajFuture]);
+    });
+  });
+
+  // `InferenceScheduler` times itself via `package:clock`'s zone-scoped
+  // `clock.now()` rather than a raw `Stopwatch` specifically so these two
+  // groups below can drive it through `fakeAsync` — a real `Stopwatch`
+  // reads VM/wall-clock ticks and cannot be faked, which is why this
+  // 5-minute-scale logic used to be untestable without a real wait.
+  group('vruntime decay (5-minute window)', () {
+    test('halves accumulated vruntime once 5 minutes elapse', () {
+      fakeAsync((async) {
+        final scheduler = InferenceScheduler();
+
+        // Run two same-tier jobs so both kinds seed a vruntime entry, then
+        // let the fake clock elapse past the 5-minute decay threshold via
+        // a third job's dispatch (decay is only checked inside `_pump`).
+        scheduler.run<void>(
+          kind: LlmTaskKind.nataraj,
+          modelId: 'm',
+          work: (_) => Future.delayed(const Duration(seconds: 10)),
+        );
+        async.elapse(const Duration(seconds: 10));
+
+        scheduler.run<void>(
+          kind: LlmTaskKind.gana,
+          modelId: 'm',
+          work: (_) => Future.delayed(const Duration(seconds: 20)),
+        );
+        async.elapse(const Duration(seconds: 20));
+
+        final before = scheduler.vruntimeSnapshot;
+        expect(before[LlmTaskKind.nataraj], closeTo(10.0, 0.01));
+        // `_seedNewcomer` seeds a first-seen kind to the current minimum
+        // vruntime (10.0, nataraj's), not zero, so gana starts at 10 and
+        // accrues its own 20s run on top: 10 + 20 = 30.
+        expect(before[LlmTaskKind.gana], closeTo(30.0, 0.01));
+
+        // Elapse past the 5-minute decay window (measured from scheduler
+        // construction, t=0), then dispatch one more job —
+        // `_decayVruntimeIfDue` is only evaluated from `_pump`.
+        async.elapse(const Duration(minutes: 5, seconds: 1));
+        scheduler.run<void>(
+          kind: LlmTaskKind.nataraj,
+          modelId: 'm',
+          work: (_) async {},
+        );
+        // The zero-delay dispatch runs via a `Timer.run`-scheduled Future,
+        // not a bare microtask — `elapse(Duration.zero)` fires it.
+        async.elapse(Duration.zero);
+
+        final after = scheduler.vruntimeSnapshot;
+        // nataraj: (10 halved to 5) + the new zero-duration run.
+        expect(after[LlmTaskKind.nataraj], closeTo(5.0, 0.01));
+        // gana: 30 halved to 15, untouched otherwise.
+        expect(after[LlmTaskKind.gana], closeTo(15.0, 0.01));
+      });
+    });
+
+    test('does not decay before 5 minutes have elapsed', () {
+      fakeAsync((async) {
+        final scheduler = InferenceScheduler();
+
+        scheduler.run<void>(
+          kind: LlmTaskKind.nataraj,
+          modelId: 'm',
+          work: (_) => Future.delayed(const Duration(seconds: 10)),
+        );
+        async.elapse(const Duration(seconds: 10));
+
+        // Total elapsed since construction (t=0) stays under 5 minutes:
+        // 10s + 4:45 = 4:55.
+        async.elapse(const Duration(minutes: 4, seconds: 45));
+        scheduler.run<void>(
+          kind: LlmTaskKind.nataraj,
+          modelId: 'm',
+          work: (_) async {},
+        );
+        async.elapse(Duration.zero);
+
+        // Still un-decayed: 10 (original) + 0 (instant second run).
+        expect(scheduler.vruntimeSnapshot[LlmTaskKind.nataraj],
+            closeTo(10.0, 0.01));
+      });
+    });
+  });
+
+  group('T2 soft budget window (rolling 5 minutes)', () {
+    test('a job blocked by an exceeded 60% budget dispatches once the '
+        'offending sample ages out of the rolling window', () {
+      fakeAsync((async) {
+        final scheduler = InferenceScheduler();
+        // Re-evaluates the picker (decay + budget + tiers) without adding
+        // or disturbing any queued job — `setForeground` calls `_pump()`
+        // as a side effect, and toggling it back to null in the same tick
+        // leaves `_foreground` exactly as it was.
+        void poke() {
+          scheduler.setForeground(LlmTaskKind.chat);
+          scheduler.setForeground(null);
+        }
+
+        // Blow the budget: one sample where 100% of recorded time was
+        // extract work (100/100 > the 60% cap).
+        scheduler.run<void>(
+          kind: LlmTaskKind.extract,
+          modelId: 'm',
+          work: (_) => Future.delayed(const Duration(seconds: 100)),
+        );
+        async.elapse(const Duration(seconds: 100));
+
+        var ran = false;
+        scheduler.run<void>(
+          kind: LlmTaskKind.extract,
+          modelId: 'm',
+          work: (_) async => ran = true,
+        );
+        async.elapse(Duration.zero);
+        expect(ran, isFalse,
+            reason: 'tier 2 must be skipped while the budget is exceeded');
+
+        // Just under 5 minutes since the offending sample — still blocked.
+        async.elapse(const Duration(minutes: 4, seconds: 55));
+        poke();
+        async.elapse(Duration.zero);
+        expect(ran, isFalse);
+
+        // Cross the 5-minute mark: `_trimT2Window` drops the offending
+        // sample, the budget check sees an empty window (not exceeded),
+        // and the queued job finally dispatches.
+        async.elapse(const Duration(seconds: 10));
+        poke();
+        async.elapse(Duration.zero);
+        expect(ran, isTrue);
+      });
     });
   });
 }

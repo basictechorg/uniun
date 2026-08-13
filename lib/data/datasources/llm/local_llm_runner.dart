@@ -6,6 +6,7 @@ import 'package:injectable/injectable.dart';
 import 'package:uniun/core/utils/llm_backend.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart';
 import 'package:uniun/data/datasources/llm/local_model_params.dart';
 import 'package:uniun/domain/entities/ai_model/ai_model_entity.dart';
@@ -35,13 +36,14 @@ import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
 class AIModelRunner {
   final InferenceScheduler _scheduler;
   final AppSettingsStore _settings;
+  final FlutterGemmaGateway _gateway;
 
   /// The model instance last handed out by [_openActiveModel]. Held so a failed
   /// invoke can [_resetModel] it — closing the native model frees its
   /// accumulated sessions/cache so the next open rebuilds a fresh one.
   InferenceModel? _activeModel;
 
-  AIModelRunner(this._scheduler, this._settings);
+  AIModelRunner(this._scheduler, this._settings, this._gateway);
 
   /// Stable string id for the currently-active model — handed to the
   /// scheduler so it can apply model-affinity batching across jobs. Falls
@@ -72,14 +74,14 @@ class AIModelRunner {
       _backend = preferredLlmBackend;
     }
     try {
-      return _activeModel = await FlutterGemma.getActiveModel(
+      return _activeModel = await _gateway.getActiveModel(
         maxTokens: maxTokens,
         preferredBackend: _backend,
       );
     } catch (e) {
       if (_backend == PreferredBackend.cpu) rethrow;
       debugPrint('⚠️ GPU backend failed to open model ($e) — retrying on CPU');
-      return _activeModel = await FlutterGemma.getActiveModel(
+      return _activeModel = await _gateway.getActiveModel(
         maxTokens: maxTokens,
       );
     }
@@ -101,7 +103,7 @@ class AIModelRunner {
     }
   }
 
-  bool get hasActiveModel => FlutterGemma.hasActiveModel();
+  bool get hasActiveModel => _gateway.hasActiveModel();
 
   /// Runs [action] (activating or deleting the local model) through the
   /// scheduler so it never races whatever generation is currently in
@@ -134,7 +136,7 @@ class AIModelRunner {
   /// [sendAndStream] per turn so independent chat surfaces (e.g. the Shiv tab
   /// and an inline composer chat) can't clobber each other.
   Future<void> initChat() async {
-    if (!FlutterGemma.hasActiveModel()) {
+    if (!_gateway.hasActiveModel()) {
       throw StateError('No AI model is active. Please select a model first.');
     }
   }
@@ -151,7 +153,7 @@ class AIModelRunner {
     required String systemInstruction,
     List<(String, String)> cleanHistory = const [],
   }) async* {
-    if (!FlutterGemma.hasActiveModel()) {
+    if (!_gateway.hasActiveModel()) {
       throw StateError('No AI model is active. Please select a model first.');
     }
 
@@ -226,7 +228,7 @@ class AIModelRunner {
     int maxTokens = 1024,
     LlmTaskKind kind = LlmTaskKind.extract,
   }) async {
-    if (!FlutterGemma.hasActiveModel()) {
+    if (!_gateway.hasActiveModel()) {
       debugPrint('⏭️ generateOneShot: no active model');
       return null;
     }

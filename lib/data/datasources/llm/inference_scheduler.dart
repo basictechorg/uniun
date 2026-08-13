@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uniun/domain/entities/llm/llm_task_kind.dart';
@@ -32,13 +33,19 @@ class InferenceScheduler {
   final List<_Job> _q = [];
   final Map<LlmTaskKind, double> _vruntime = {};
   final Queue<_BudgetSample> _t2Samples = Queue();
-  final Stopwatch _vruntimeDecayClock = Stopwatch()..start();
+
+  /// Uses `package:clock`'s zone-scoped [clock] instead of a raw [Stopwatch]
+  /// so both this decay window and the per-job timing below respond to
+  /// `package:fake_async` in tests — a real [Stopwatch] reads VM ticks and
+  /// cannot be faked, which made the 5-minute decay/budget-window logic
+  /// untestable without actually waiting real minutes.
+  DateTime _lastVruntimeDecayAt = clock.now();
 
   LlmTaskKind? _foreground;
   String? _loadedModelId;
   _Job? _running;
   CancelToken? _runningCancel;
-  Stopwatch? _runningTimer;
+  DateTime? _runningStartedAt;
   bool _runningCancelledByScheduler = false;
 
   // ── Public API ─────────────────────────────────────────────────────────
@@ -164,7 +171,7 @@ class InferenceScheduler {
     if (j.kind == LlmTaskKind.chat) return 0;
     if (j.foregroundHint || _foreground == j.kind) return 1;
     if (j.kind == LlmTaskKind.extract) return 2;
-    if (j.deadline != null && DateTime.now().isAfter(j.deadline!)) return 3;
+    if (j.deadline != null && clock.now().isAfter(j.deadline!)) return 3;
     return 4;
   }
 
@@ -234,7 +241,7 @@ class InferenceScheduler {
     _running = next;
     _runningCancel = CancelToken();
     _runningCancelledByScheduler = false;
-    _runningTimer = Stopwatch()..start();
+    _runningStartedAt = clock.now();
 
     debugPrint('▶️ InferenceScheduler: dispatch ${next.kind} '
         '(model=${next.modelId}, queue=${_q.length})');
@@ -252,14 +259,16 @@ class InferenceScheduler {
     Object? error,
     StackTrace? stack,
   }) {
-    final secs = (_runningTimer?.elapsedMilliseconds ?? 0) / 1000.0;
+    final secs = _runningStartedAt == null
+        ? 0.0
+        : clock.now().difference(_runningStartedAt!).inMilliseconds / 1000.0;
     _vruntime[j.kind] = (_vruntime[j.kind] ?? 0.0) + secs;
     _recordT2Sample(j.kind, secs);
 
     final wasCancelled = _runningCancelledByScheduler;
     _running = null;
     _runningCancel = null;
-    _runningTimer = null;
+    _runningStartedAt = null;
     _runningCancelledByScheduler = false;
 
     if (wasCancelled && _isReQueueable(j)) {
@@ -296,8 +305,11 @@ class InferenceScheduler {
   /// permanently penalise a producer. Mirrors Linux CFS min_vruntime
   /// behaviour on long-idle wake.
   void _decayVruntimeIfDue() {
-    if (_vruntimeDecayClock.elapsed < const Duration(minutes: 5)) return;
-    _vruntimeDecayClock.reset();
+    if (clock.now().difference(_lastVruntimeDecayAt) <
+        const Duration(minutes: 5)) {
+      return;
+    }
+    _lastVruntimeDecayAt = clock.now();
     for (final k in _vruntime.keys.toList()) {
       _vruntime[k] = (_vruntime[k] ?? 0.0) * 0.5;
     }
@@ -307,7 +319,7 @@ class InferenceScheduler {
 
   void _recordT2Sample(LlmTaskKind kind, double secs) {
     _t2Samples.add(_BudgetSample(
-      at: DateTime.now(),
+      at: clock.now(),
       t2Seconds: kind == LlmTaskKind.extract ? secs : 0.0,
       totalSeconds: secs,
     ));
@@ -323,7 +335,7 @@ class InferenceScheduler {
   }
 
   void _trimT2Window() {
-    final cutoff = DateTime.now().subtract(const Duration(minutes: 5));
+    final cutoff = clock.now().subtract(const Duration(minutes: 5));
     while (_t2Samples.isNotEmpty && _t2Samples.first.at.isBefore(cutoff)) {
       _t2Samples.removeFirst();
     }

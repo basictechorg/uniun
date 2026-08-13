@@ -26,6 +26,22 @@ void main() {
           status,
           headers: headers);
 
+  group('UniunGatewayException', () {
+    test('toString() returns the message, not a class dump', () {
+      const e = UniunGatewayException(
+        UniunGatewayErrorType.rateLimited,
+        'slow down',
+      );
+      expect(e.toString(), 'slow down');
+    });
+  });
+
+  test('the default constructor builds a real http.Client and default base '
+      'URL without making a request', () {
+    final client = UniunGatewayClient();
+    expect(client, isNotNull);
+  });
+
   group('auth endpoints', () {
     test('fetchChallenge posts the pubkey and unwraps {data.challenge}',
         () async {
@@ -184,6 +200,108 @@ void main() {
       } on UniunGatewayException catch (e) {
         expect(e.type, UniunGatewayErrorType.unauthorized);
       }
+    });
+  });
+
+  group('updateProfile', () {
+    test('PUTs username/email and succeeds on a {data} envelope', () async {
+      http.Request? sent;
+      final client = clientWith(MockClient((req) async {
+        sent = req;
+        return ok({'updated': true});
+      }));
+
+      await client.updateProfile(
+          apiKey: 'uk_k', username: 'alice', email: 'a@example.com');
+
+      expect(sent!.method, 'PUT');
+      expect(sent!.url.path, '/uniun/v1/profile');
+      expect(jsonDecode(sent!.body), {
+        'username': 'alice',
+        'email': 'a@example.com',
+      });
+    });
+
+    test('omits fields that are null', () async {
+      http.Request? sent;
+      final client = clientWith(MockClient((req) async {
+        sent = req;
+        return ok({'updated': true});
+      }));
+
+      await client.updateProfile(apiKey: 'uk_k', username: 'alice');
+
+      expect(jsonDecode(sent!.body), {'username': 'alice'});
+    });
+
+    test('a network failure surfaces as a network-typed exception',
+        () async {
+      final client = clientWith(
+          MockClient((req) async => throw const SocketExceptionFake()));
+
+      expect(
+        () => client.updateProfile(apiKey: 'uk_k', username: 'alice'),
+        throwsA(isA<UniunGatewayException>()
+            .having((e) => e.type, 'type', UniunGatewayErrorType.network)),
+      );
+    });
+
+    test('a gateway error (e.g. taken username) is mapped and thrown',
+        () async {
+      final client = clientWith(
+          MockClient((req) async => err(409, 'unknown', 'username taken')));
+
+      expect(
+        () => client.updateProfile(apiKey: 'uk_k', username: 'alice'),
+        throwsA(isA<UniunGatewayException>()),
+      );
+    });
+  });
+
+  group('network-error propagation across every request helper', () {
+    test('revokeKey', () async {
+      final client = clientWith(
+          MockClient((req) async => throw const SocketExceptionFake()));
+      expect(
+        () => client.revokeKey(apiKey: 'uk_k', keyId: 'kid'),
+        throwsA(isA<UniunGatewayException>()
+            .having((e) => e.type, 'type', UniunGatewayErrorType.network)),
+      );
+    });
+
+    test('_postJson-backed calls (fetchChallenge)', () async {
+      final client = clientWith(
+          MockClient((req) async => throw const SocketExceptionFake()));
+      expect(
+        () => client.fetchChallenge('a' * 64),
+        throwsA(isA<UniunGatewayException>()
+            .having((e) => e.type, 'type', UniunGatewayErrorType.network)),
+      );
+    });
+
+    test('_getList-backed calls (listModels/listPlans)', () async {
+      final client = clientWith(
+          MockClient((req) async => throw const SocketExceptionFake()));
+      expect(
+        () => client.listModels(),
+        throwsA(isA<UniunGatewayException>()
+            .having((e) => e.type, 'type', UniunGatewayErrorType.network)),
+      );
+      expect(
+        () => client.listPlans(),
+        throwsA(isA<UniunGatewayException>()
+            .having((e) => e.type, 'type', UniunGatewayErrorType.network)),
+      );
+    });
+
+    test('_getList-backed calls surface a gateway error status too',
+        () async {
+      final client = clientWith(
+          MockClient((req) async => err(500, 'unknown', 'boom')));
+      expect(
+        () => client.listModels(),
+        throwsA(isA<UniunGatewayException>()),
+      );
     });
   });
 
@@ -385,6 +503,26 @@ void main() {
       expect(tokens, ['ok']);
     });
 
+    test('maxTokens, when provided, is sent as max_tokens in the request body',
+        () async {
+      Map<String, dynamic>? sentBody;
+      final client = clientWith(MockClient.streaming((req, bodyStream) async {
+        sentBody = jsonDecode(await utf8.decoder.bind(bodyStream).join())
+            as Map<String, dynamic>;
+        return http.StreamedResponse(
+            Stream.value(utf8.encode('data: [DONE]\n\n')), 200);
+      }));
+
+      await client.streamChatCompletion(
+        apiKey: 'uk_k',
+        modelId: 'm',
+        messages: const [],
+        maxTokens: 512,
+      ).toList();
+
+      expect(sentBody!['max_tokens'], 512);
+    });
+
     test('non-200 stream start throws the mapped gateway error', () async {
       final client = clientWith(MockClient.streaming((req, body) async =>
           http.StreamedResponse(
@@ -429,6 +567,60 @@ void main() {
         ],
       );
       expect(out, 'answer');
+    });
+
+    test('maxTokens, when provided, is sent as max_tokens in the request body',
+        () async {
+      Map<String, dynamic>? sentBody;
+      final client = clientWith(MockClient((req) async {
+        sentBody = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'role': 'assistant', 'content': 'answer'}
+                }
+              ]
+            }),
+            200);
+      }));
+
+      await client.chatCompletion(
+        apiKey: 'uk_k',
+        modelId: 'm',
+        messages: const [],
+        maxTokens: 256,
+      );
+
+      expect(sentBody!['max_tokens'], 256);
+    });
+
+    test('an empty choices list returns null', () async {
+      final client = clientWith(MockClient((req) async =>
+          http.Response(jsonEncode({'choices': <dynamic>[]}), 200)));
+
+      final out = await client.chatCompletion(
+        apiKey: 'uk_k',
+        modelId: 'm',
+        messages: const [],
+      );
+
+      expect(out, isNull);
+    });
+
+    test('a non-200 response throws the mapped gateway error', () async {
+      final client = clientWith(MockClient((req) async => err(
+          403, 'model_not_allowed', 'model not on your plan')));
+
+      expect(
+        () => client.chatCompletion(
+          apiKey: 'uk_k',
+          modelId: 'm',
+          messages: const [],
+        ),
+        throwsA(isA<UniunGatewayException>().having(
+            (e) => e.type, 'type', UniunGatewayErrorType.modelNotAllowed)),
+      );
     });
   });
 }

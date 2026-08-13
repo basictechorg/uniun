@@ -25,6 +25,7 @@ import 'package:uniun/data/datasources/cloud/uniun_gateway_client.dart' as _i83;
 import 'package:uniun/data/datasources/feed_read_state_store.dart' as _i752;
 import 'package:uniun/data/datasources/isar_module.dart' as _i146;
 import 'package:uniun/data/datasources/llm/embedding_queue.dart' as _i1031;
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart' as _i93;
 import 'package:uniun/data/datasources/llm/inference_scheduler.dart' as _i552;
 import 'package:uniun/data/datasources/llm/llm_credentials_data_source.dart'
     as _i981;
@@ -291,10 +292,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i366.MediaCacheDataSource(),
     );
     gh.lazySingleton<_i168.MarmotMlsService>(() => _i168.MarmotMlsService());
-    gh.lazySingleton<_i850.EmbeddingModelDownloader>(
-      () => _i850.EmbeddingModelDownloader(),
-    );
-    gh.lazySingleton<_i587.EmbeddingService>(() => _i587.EmbeddingService());
     gh.lazySingleton<_i207.PromptBuilder>(() => const _i207.PromptBuilder());
     gh.lazySingleton<_i739.VectorRepository>(
       () => _i831.TostoreVectorRepositoryImpl(
@@ -305,6 +302,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i733.DrawerDataSource>(
       () => _i733.DrawerDataSource(gh<_i214.Isar>()),
     );
+    gh.factory<_i93.FlutterGemmaGateway>(() => _i93.FlutterGemmaGatewayImpl());
     gh.factory<_i266.ShivRepository>(
       () => _i412.ShivRepositoryImpl(gh<_i214.Isar>()),
     );
@@ -354,12 +352,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i182.NoteAttachmentsEnricher>(
       () => _i182.NoteAttachmentsEnricher(isar: gh<_i214.Isar>()),
-    );
-    gh.lazySingleton<_i937.AIModelRunner>(
-      () => _i937.AIModelRunner(
-        gh<_i552.InferenceScheduler>(),
-        gh<_i107.AppSettingsStore>(),
-      ),
     );
     gh.factory<_i1039.EventQueueRepository>(
       () => _i116.EventQueueRepositoryImpl(isar: gh<_i214.Isar>()),
@@ -559,6 +551,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetOwnProfileUseCase>(),
       ),
     );
+    gh.lazySingleton<_i587.EmbeddingService>(
+      () => _i587.EmbeddingService(gh<_i93.FlutterGemmaGateway>()),
+    );
     gh.factory<_i699.ManasRepository>(
       () => _i395.ManasRepositoryImpl(
         isar: gh<_i214.Isar>(),
@@ -570,13 +565,6 @@ extension GetItInjectableX on _i174.GetIt {
         isar: gh<_i214.Isar>(),
         eventQueue: gh<_i1039.EventQueueRepository>(),
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
-      ),
-    );
-    gh.factory<_i646.AIModelRepository>(
-      () => _i72.AIModelRepositoryImpl(
-        gh<_i214.Isar>(),
-        gh<_i107.AppSettingsStore>(),
-        gh<_i937.AIModelRunner>(),
       ),
     );
     gh.factory<_i756.BlockedUserRepository>(
@@ -613,13 +601,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i107.FollowedNoteRepositoryImpl(
         isar: gh<_i214.Isar>(),
         signer: gh<_i558.MeshEventSigner>(),
-      ),
-    );
-    gh.lazySingleton<_i937.LocalLlmDataSource>(
-      () => _i937.LocalLlmDataSource(
-        gh<_i937.AIModelRunner>(),
-        gh<_i552.InferenceScheduler>(),
-        gh<_i646.AIModelRepository>(),
       ),
     );
     gh.factory<_i956.SurroundingNoteRepository>(
@@ -668,6 +649,13 @@ extension GetItInjectableX on _i174.GetIt {
         signer: gh<_i558.MeshEventSigner>(),
       ),
     );
+    gh.lazySingleton<_i937.AIModelRunner>(
+      () => _i937.AIModelRunner(
+        gh<_i552.InferenceScheduler>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i93.FlutterGemmaGateway>(),
+      ),
+    );
     gh.lazySingleton<_i961.VectorSearchService>(
       () => _i961.VectorSearchService(gh<_i756.SearchVectorNotesUseCase>()),
     );
@@ -709,6 +697,14 @@ extension GetItInjectableX on _i174.GetIt {
         store: gh<_i107.UserServerListStore>(),
         eventQueue: gh<_i1039.EventQueueRepository>(),
         getActiveUserKeys: gh<_i799.GetActiveUserKeysUseCase>(),
+      ),
+    );
+    gh.factory<_i646.AIModelRepository>(
+      () => _i72.AIModelRepositoryImpl(
+        gh<_i214.Isar>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i93.FlutterGemmaGateway>(),
       ),
     );
     gh.factory<_i574.JoinGroupBloc>(
@@ -928,6 +924,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i475.GetThreadUseCase>(
       () => _i475.GetThreadUseCase(gh<_i47.NoteRepository>()),
     );
+    gh.lazySingleton<_i850.EmbeddingModelDownloader>(
+      () => _i850.EmbeddingModelDownloader(
+        gh<_i93.FlutterGemmaGateway>(),
+        gh<_i587.EmbeddingService>(),
+      ),
+    );
     gh.lazySingleton<_i141.RemoteLlmDataSource>(
       () => _i141.RemoteLlmDataSource(
         gh<_i880.UniunRepository>(),
@@ -1084,6 +1086,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i391.GetOwnProfileUseCase>(),
         gh<_i391.SaveProfileUseCase>(),
         gh<_i391.PublishProfileMetadataUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i937.LocalLlmDataSource>(
+      () => _i937.LocalLlmDataSource(
+        gh<_i937.AIModelRunner>(),
+        gh<_i552.InferenceScheduler>(),
+        gh<_i646.AIModelRepository>(),
       ),
     );
     gh.factory<_i399.CreateDmBloc>(
@@ -1472,24 +1481,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i179.ExtractKnowledgeUseCase>(),
       ),
     );
-    gh.lazySingleton<_i426.GanaEngine>(
-      () => _i426.GanaEngine(
-        gh<_i214.Isar>(),
-        gh<_i937.AIModelRunner>(),
-        gh<_i107.AppSettingsStore>(),
-        gh<_i103.UserRepository>(),
-        gh<_i475.PublishNoteUseCase>(),
-        gh<_i815.CreateGroupMessageUseCase>(),
-        gh<_i1023.SendDmUseCase>(),
-        gh<_i1055.SendPrivateGroupMessageUsecase>(),
-        gh<_i756.EmbedAndStoreNoteUseCase>(),
-        gh<_i651.ManasContextLoader>(),
-        gh<_i558.MeshEventSigner>(),
-        gh<_i918.GenerateOneShotUseCase>(),
-        gh<_i918.IsUniunCloudConnectedUseCase>(),
-        gh<_i918.GetActiveLlmModelUseCase>(),
-      ),
-    );
     gh.factory<_i1039.VishnuFeedBloc>(
       () => _i1039.VishnuFeedBloc(
         gh<_i837.GetOrInitFeedLoadedAtUseCase>(),
@@ -1530,6 +1521,25 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i179.DrainPendingExtractionsUseCase(
         gh<_i1000.PendingExtractionRepository>(),
         gh<_i179.ExtractKnowledgeUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i426.GanaEngine>(
+      () => _i426.GanaEngine(
+        gh<_i214.Isar>(),
+        gh<_i937.AIModelRunner>(),
+        gh<_i107.AppSettingsStore>(),
+        gh<_i103.UserRepository>(),
+        gh<_i475.PublishNoteUseCase>(),
+        gh<_i815.CreateGroupMessageUseCase>(),
+        gh<_i1023.SendDmUseCase>(),
+        gh<_i1055.SendPrivateGroupMessageUsecase>(),
+        gh<_i756.EmbedAndStoreNoteUseCase>(),
+        gh<_i651.ManasContextLoader>(),
+        gh<_i558.MeshEventSigner>(),
+        gh<_i918.GenerateOneShotUseCase>(),
+        gh<_i918.IsUniunCloudConnectedUseCase>(),
+        gh<_i918.GetActiveLlmModelUseCase>(),
+        gh<_i93.FlutterGemmaGateway>(),
       ),
     );
     gh.factory<_i886.BrahmaCreateBloc>(

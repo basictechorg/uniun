@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar_community/isar.dart';
 import 'package:uniun/core/enum/gana_output_type.dart';
@@ -9,6 +8,7 @@ import 'package:uniun/core/enum/gana_run_status.dart';
 import 'package:uniun/core/enum/gana_trigger_mode.dart';
 import 'package:uniun/core/utils/llm_text_sanitizer.dart';
 import 'package:uniun/data/datasources/app_settings_store.dart';
+import 'package:uniun/data/datasources/llm/flutter_gemma_gateway.dart';
 import 'package:uniun/data/datasources/llm/local_llm_runner.dart';
 import 'package:uniun/data/models/dm/dm_conversation_model.dart';
 import 'package:uniun/data/models/gana_model.dart';
@@ -80,6 +80,7 @@ class GanaEngine {
     this._generateOneShot,
     this._isCloudConnected,
     this._getActiveLlmModel,
+    this._gateway,
   );
 
   final Isar _isar;
@@ -96,6 +97,7 @@ class GanaEngine {
   final GenerateOneShotUseCase _generateOneShot;
   final IsUniunCloudConnectedUseCase _isCloudConnected;
   final GetActiveLlmModelUseCase _getActiveLlmModel;
+  final FlutterGemmaGateway _gateway;
 
   // ── Schedule state ─────────────────────────────────────────────────────
 
@@ -229,6 +231,16 @@ class GanaEngine {
         Timer(_reactiveDebounceDelay, () => _runIfPossible(g.ganaId));
   }
 
+  /// Test-only direct entry into the interval gate, bypassing the need to
+  /// wait for a real `Timer.periodic` tick — `Timer.periodic` only accepts
+  /// whole-minute durations, so driving the "too soon since lastRunAt"
+  /// branch through a real tick would need multiple real minutes and a
+  /// timing race with no slack. The real-timer *dispatch* path itself is
+  /// covered separately by waiting out one real tick.
+  @visibleForTesting
+  Future<void> debugMaybeRunInterval(String ganaId) =>
+      _maybeRunInterval(ganaId);
+
   Future<void> _maybeRunInterval(String ganaId) async {
     final row = await _isar.ganaModels
         .filter()
@@ -318,7 +330,7 @@ class GanaEngine {
         return;
       }
     } else {
-      if (!FlutterGemma.hasActiveModel()) {
+      if (!_gateway.hasActiveModel()) {
         debugPrint('[gana]   SKIPPED: noActiveModel');
         await _logRun(
           runId: runId,

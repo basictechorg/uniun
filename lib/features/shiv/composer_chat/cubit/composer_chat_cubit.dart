@@ -57,6 +57,7 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
     if (q.isEmpty || state.status == ComposerChatStatus.streaming) return;
 
     if (!await _hasModel.call()) {
+      if (isClosed) return;
       emit(state.copyWith(status: ComposerChatStatus.noModel));
       return;
     }
@@ -71,6 +72,7 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
             budget: _manasBudgetTokens,
             relevanceQuery: q,
           );
+    if (isClosed) return;
 
     final userMsg = ComposerChatPromptTemplate.userMessage(
       question: q,
@@ -107,6 +109,7 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
         ))
         .listen(
       (token) {
+        if (isClosed) return;
         buf.write(token);
         // Sanitize the cumulative raw buffer for display — decodes GPT-2
         // byte runs (emoji mojibake), strips tool-call envelopes, hides
@@ -117,6 +120,7 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
             streaming: LlmTextSanitizer.clean(buf.toString())));
       },
       onDone: () {
+        if (isClosed) return;
         final answer = stripThinking(buf.toString());
         emit(state.copyWith(
           turns: _withLastAnswer(answer.isEmpty ? '(no answer)' : answer),
@@ -125,6 +129,7 @@ class ComposerChatCubit extends Cubit<ComposerChatState> {
         ));
       },
       onError: (Object e) {
+        if (isClosed) return;
         emit(state.copyWith(
           status: ComposerChatStatus.error,
           errorMessage: e.toString(),
