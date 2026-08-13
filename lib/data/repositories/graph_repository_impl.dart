@@ -78,7 +78,11 @@ class GraphRepositoryImpl extends GraphRepository {
   }) async {
     try {
       if (keys.isEmpty) return const Right([]);
-      final results = <GraphEdgeModel>{};
+      // Keyed by Isar row id, not object identity: the same edge row can be
+      // fetched twice (once as outgoing-of-A, once as incoming-of-B when both
+      // are seed keys), and GraphEdgeModel has no ==/hashCode override, so a
+      // Set<GraphEdgeModel> would keep both as distinct entries.
+      final results = <int, GraphEdgeModel>{};
       for (final k in keys) {
         if (results.length >= limit) break;
         final outgoing = await isar.graphEdgeModels
@@ -86,16 +90,21 @@ class GraphRepositoryImpl extends GraphRepository {
             .sourceKeyEqualTo(k)
             .limit(limit)
             .findAll();
-        results.addAll(outgoing);
+        for (final e in outgoing) {
+          results[e.id] = e;
+        }
         if (results.length >= limit) break;
         final incoming = await isar.graphEdgeModels
             .filter()
             .targetKeyEqualTo(k)
             .limit(limit)
             .findAll();
-        results.addAll(incoming);
+        for (final e in incoming) {
+          results[e.id] = e;
+        }
       }
-      final edges = results.take(limit).map((m) => m.toDomain()).toList();
+      final edges =
+          results.values.take(limit).map((m) => m.toDomain()).toList();
       return Right(edges);
     } catch (e) {
       return Left(Failure.errorFailure(e.toString()));
