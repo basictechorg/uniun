@@ -142,15 +142,16 @@ void main() {
       expect(edgesOf(r), isEmpty);
     });
 
-    test('an edge matched from both endpoints appears TWICE (identity-set '
-        'quirk)', () async {
-      // Current behaviour: the impl dedups via Set<GraphEdgeModel>, but Isar
-      // materializes a fresh object per query and the model has no ==/hashCode
-      // override — so the same row fetched as outgoing-of-a and incoming-of-b
-      // is NOT collapsed. Duplicate edges can eat into the limit.
+    test('an edge matched from both endpoints (outgoing-of-a and '
+        'incoming-of-b) is deduped to one, not counted twice against the '
+        'limit', () async {
+      // Regression test for #144: dedup is keyed by Isar row id, not object
+      // identity — Isar materializes a fresh object per query, and
+      // GraphEdgeModel has no ==/hashCode override, so a naive
+      // Set<GraphEdgeModel> would keep both fetches as distinct entries.
       await repo.upsertEdge(aGraphEdge(sourceKey: 'a', targetKey: 'b'));
       final r = await repo.getNeighbours(['a', 'b']);
-      expect(edgesOf(r), hasLength(2));
+      expect(edgesOf(r), hasLength(1));
     });
   });
 
