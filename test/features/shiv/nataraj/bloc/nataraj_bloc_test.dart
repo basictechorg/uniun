@@ -195,8 +195,15 @@ void main() {
     );
 
     blocTest<NatarajBloc, NatarajState>(
-      'a resurfacing fill state with no card to show still maps to error '
-      '(only a resurfacing fill WITH a card sets state.resurfacing:true)',
+      // Regression test: a resurfacing/ok fill that lands no card is NOT a
+      // failure (generation succeeded) — it must NEVER map to
+      // NatarajStatus.error (which renders the misleading "AI model
+      // couldn't run on this device" copy). See issue root-caused via a
+      // real-device repro: a noop LLM response reports NatarajFillState.ok,
+      // and used to incorrectly surface the model-error screen.
+      'a resurfacing fill state with no card to show maps to noIdea, NOT '
+      'error (only a resurfacing fill WITH a card sets '
+      'state.resurfacing:true)',
       build: build,
       setUp: () {
         when(() => next.call(any())).thenAnswer((_) async => const Right(null));
@@ -209,7 +216,54 @@ void main() {
       act: (bloc) => bloc.add(const NatarajEvent.loadDeck(['m1'])),
       expect: () => [
         isA<NatarajState>(),
-        isA<NatarajState>().having((s) => s.status, 'status', NatarajStatus.error),
+        isA<NatarajState>()
+            .having((s) => s.status, 'status', NatarajStatus.noIdea)
+            .having((s) => s.status, 'status', isNot(NatarajStatus.error)),
+      ],
+    );
+
+    blocTest<NatarajBloc, NatarajState>(
+      'an ok fill state with no card (e.g. a noop LLM response) maps to '
+      'noIdea, NOT error',
+      build: build,
+      setUp: () {
+        when(() => next.call(any())).thenAnswer((_) async => const Right(null));
+        when(() => generator.fillBuffer(
+              manasIds: any(named: 'manasIds'),
+              count: any(named: 'count'),
+            )).thenAnswer((_) async =>
+            const NatarajFillResult(inserted: 0, state: NatarajFillState.ok));
+      },
+      act: (bloc) => bloc.add(const NatarajEvent.loadDeck(['m1'])),
+      expect: () => [
+        isA<NatarajState>(),
+        isA<NatarajState>()
+            .having((s) => s.status, 'status', NatarajStatus.noIdea)
+            .having((s) => s.status, 'status', isNot(NatarajStatus.error)),
+      ],
+    );
+
+    blocTest<NatarajBloc, NatarajState>(
+      // Negative-space check for the fix above: a GENUINE failure must
+      // still surface as NatarajStatus.error (the model-error UI is
+      // correct there) — the fix must not also swallow real errors.
+      'a genuine NatarajFillState.error with no card still maps to '
+      'NatarajStatus.error, NOT noIdea',
+      build: build,
+      setUp: () {
+        when(() => next.call(any())).thenAnswer((_) async => const Right(null));
+        when(() => generator.fillBuffer(
+              manasIds: any(named: 'manasIds'),
+              count: any(named: 'count'),
+            )).thenAnswer((_) async =>
+            const NatarajFillResult(inserted: 0, state: NatarajFillState.error));
+      },
+      act: (bloc) => bloc.add(const NatarajEvent.loadDeck(['m1'])),
+      expect: () => [
+        isA<NatarajState>(),
+        isA<NatarajState>()
+            .having((s) => s.status, 'status', NatarajStatus.error)
+            .having((s) => s.status, 'status', isNot(NatarajStatus.noIdea)),
       ],
     );
 

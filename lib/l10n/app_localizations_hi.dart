@@ -2897,6 +2897,13 @@ class AppLocalizationsHi extends AppLocalizations {
       'AI मॉडल इस डिवाइस पर नहीं चल सका। कोई दूसरा (छोटा) मॉडल आज़माएं, या पुनः प्रयास पर टैप करें।';
 
   @override
+  String get natarajNoIdeaTitle => 'इस बार कोई विचार नहीं';
+
+  @override
+  String get natarajNoIdeaBody =>
+      'नोट्स के इस संयोजन से कुछ नहीं जगा। कुछ गलत नहीं है — बस फिर से प्रयास करें।';
+
+  @override
   String get natarajPublishedSnack => 'नोट के रूप में प्रकाशित किया गया';
 
   @override

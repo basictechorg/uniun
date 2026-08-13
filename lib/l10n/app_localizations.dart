@@ -5228,6 +5228,18 @@ abstract class AppLocalizations {
   /// **'The AI model couldn\'t run on this device. Try a different (smaller) model, or tap retry.'**
   String get natarajModelErrorBody;
 
+  /// Nataraj state title when generation succeeded but produced nothing usable (not a model/device failure)
+  ///
+  /// In en, this message translates to:
+  /// **'No idea this time'**
+  String get natarajNoIdeaTitle;
+
+  /// Nataraj state body when generation succeeded but produced nothing usable (not a model/device failure)
+  ///
+  /// In en, this message translates to:
+  /// **'That combination of notes didn\'t spark anything. Nothing\'s wrong — just try again.'**
+  String get natarajNoIdeaBody;
+
   /// Snackbar after publishing a nataraj idea
   ///
   /// In en, this message translates to:

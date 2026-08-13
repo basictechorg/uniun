@@ -49,6 +49,13 @@ full technical detail behind every item below.
 - Android build failure caused by an incompatible transitive dependency pulled in by
   the AI engine update.
 - CI no longer runs the full test/build pipeline for documentation-only changes.
+- **Nataraj could show a misleading "AI model couldn't run on this device" error**
+  even when the model was working fine and simply didn't come up with a usable idea
+  for one note combination — now shows an honest "no idea this time, try again"
+  message instead.
+- Graph-neighbour lookups (used by Shiv's on-device knowledge graph search) could
+  occasionally return a duplicate connection, wasting a slot that could have surfaced
+  a genuinely new connection.
 
 ---
 
