@@ -17,7 +17,9 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  # Needed by codecov/codecov-action's tokenless OIDC upload (no secret
+  # required for public repos).
+  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -252,27 +254,18 @@ jobs:
             echo "**$pct%** — $hit of $lines lines, across $files files"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      # Uploads to Codecov for the PR/main-branch coverage dashboard, patch
+      # (diff) coverage, and trend graphs. Tokenless via GitHub OIDC — works
+      # for any public repo without a secret. Until the Codecov GitHub App
+      # is installed on the org (github.com/apps/codecov, an org-admin-only
+      # step), the upload is simply rejected server-side; `fail_ci_if_error:
+      # false` keeps that from ever failing the build in the meantime.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          script: |
-            const marker = '<!-- uniun-coverage -->';
-            const body = [
-              marker,
-              '## Coverage',
-              '',
-              `**${process.env.COVERAGE_PCT}%** — ${process.env.COVERAGE_HIT} of ${process.env.COVERAGE_LINES} lines, across ${process.env.COVERAGE_FILES} files`,
-            ].join('\n');
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
-            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
-            const existing = comments.data.find(c => c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
-            }
+          files: coverage.info
+          fail_ci_if_error: false
+          verbose: true
 
       - uses: actions/upload-artifact@v4
         with:
